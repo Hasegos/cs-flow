@@ -31,7 +31,7 @@ public class TopicController {
      * @param model       뷰에 전달할 데이터 모델
      * @return 토픽 학습 페이지 뷰 이름 (topics/{subjectSlug}/{templateName})
      */
-    @GetMapping("/{subjectSlug}/{topicSlug}")
+    @GetMapping("/{subjectSlug:arch|os|network|ds|algo|db}/{topicSlug}")
     public String topicDetail(@PathVariable String subjectSlug,
                               @PathVariable String topicSlug,
                               Model model){
