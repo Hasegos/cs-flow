@@ -28,7 +28,7 @@ public class SubjectController {
      * @param model       뷰에 전달할 데이터 모델
      * @return 과목 홈 페이지 뷰 이름
      */
-    @GetMapping("/{subjectSlug}")
+    @GetMapping("/{subjectSlug:arch|os|network|ds|algo|db}")
     public String subjectHome(@PathVariable String subjectSlug, Model model){
         log.info("과목 홈 페이지 요청 - subjectSlug: {}", subjectSlug);
         model.addAttribute("subject", subjectService.getPublishedSubject(subjectSlug));
