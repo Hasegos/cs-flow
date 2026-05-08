@@ -1,0 +1,35 @@
+<header th:fragment="header" class="gnb">
+    <div class="gnb__inner">
+        <a th:href="@{/}" class="gnb__logo">
+            <img th:src="@{/img/csflow_icon.svg}" alt="CS Flow 로고" class="gnb__logo-icon">
+            <span class="gnb__logo-text">
+                <span class="gnb__logo-cs">CS</span>
+                <span class="gnb__logo-flow"> Flow</span>
+            </span>
+        </a>
+
+        <nav class="gnb__nav">
+            <a th:href="@{/arch}"    class="gnb__nav-item" th:classappend="${currentSubject == 'arch'}    ? ' is-active'">컴퓨터 구조</a>
+            <a th:href="@{/os}"      class="gnb__nav-item" th:classappend="${currentSubject == 'os'}      ? ' is-active'">운영체제</a>
+            <a th:href="@{/network}" class="gnb__nav-item" th:classappend="${currentSubject == 'network'} ? ' is-active'">네트워크</a>
+            <a th:href="@{/ds}"      class="gnb__nav-item" th:classappend="${currentSubject == 'ds'}      ? ' is-active'">자료구조</a>
+            <a th:href="@{/algo}"    class="gnb__nav-item" th:classappend="${currentSubject == 'algo'}    ? ' is-active'">알고리즘</a>
+            <a th:href="@{/db}"      class="gnb__nav-item" th:classappend="${currentSubject == 'db'}      ? ' is-active'">데이터베이스</a>
+        </nav>
+
+        <button class="gnb__hamburger" id="hamburgerBtn" aria-label="메뉴 열기">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+    </div>
+
+    <div class="gnb__drawer" id="gnbDrawer">
+        <a th:href="@{/arch}"    class="gnb__drawer-item" th:classappend="${currentSubject == 'arch'}    ? ' is-active'">컴퓨터 구조</a>
+        <a th:href="@{/os}"      class="gnb__drawer-item" th:classappend="${currentSubject == 'os'}      ? ' is-active'">운영체제</a>
+        <a th:href="@{/network}" class="gnb__drawer-item" th:classappend="${currentSubject == 'network'} ? ' is-active'">네트워크</a>
+        <a th:href="@{/ds}"      class="gnb__drawer-item" th:classappend="${currentSubject == 'ds'}      ? ' is-active'">자료구조</a>
+        <a th:href="@{/algo}"    class="gnb__drawer-item" th:classappend="${currentSubject == 'algo'}    ? ' is-active'">알고리즘</a>
+        <a th:href="@{/db}"      class="gnb__drawer-item" th:classappend="${currentSubject == 'db'}      ? ' is-active'">데이터베이스</a>
+    </div>
+</header>
