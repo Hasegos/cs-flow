@@ -25,6 +25,7 @@ public interface TopicRepository extends JpaRepository<Topic,Long> {
      */
     @Query("""
             SELECT t FROM Topic t
+            LEFT JOIN FETCH t.tags
             WHERE t.subject.slug = :subjectSlug
             AND t.isPublished = true
             """)
@@ -39,6 +40,7 @@ public interface TopicRepository extends JpaRepository<Topic,Long> {
      */
     @Query("""
             SELECT t FROM Topic t
+            LEFT JOIN FETCH t.tags
             WHERE t.subject.slug = :subjectSlug
             AND t.slug = :topicSlug
             AND t.isPublished = true
@@ -57,6 +59,8 @@ public interface TopicRepository extends JpaRepository<Topic,Long> {
      */
     @Query("""
             SELECT DISTINCT t FROM Topic t
+            LEFT JOIN FETCH t.tags
+            LEFT JOIN FETCH t.subject
             JOIN t.tags tag
             WHERE tag.tag IN (
                 SELECT tt.tag FROM TopicTag tt WHERE tt.topic.topicId = :topicId
