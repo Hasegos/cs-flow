@@ -38,6 +38,8 @@
 
     /* 헤더 높이 */
     --header-h: 64px;
+
+    --subject-accent: #6c63ff;
 }
 
 /* === Reset === */

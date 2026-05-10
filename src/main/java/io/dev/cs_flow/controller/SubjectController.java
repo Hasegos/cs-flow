@@ -33,6 +33,7 @@ public class SubjectController {
         log.info("과목 홈 페이지 요청 - subjectSlug: {}", subjectSlug);
         model.addAttribute("subject", subjectService.getPublishedSubject(subjectSlug));
         model.addAttribute("topics", topicService.getPublishedTopics(subjectSlug));
+        model.addAttribute("currentSubjet", subjectSlug);
         return "subject/subject";
     }
 }
