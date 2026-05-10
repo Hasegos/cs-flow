@@ -1,0 +1,457 @@
+/* topic.css — 토픽 학습 페이지 */
+
+/* === .topic-hero — 토픽 히어로 === */
+.topic-hero {
+  position: relative;
+  padding-top: calc(var(--header-h) + 3rem);
+  padding-bottom: 2.5rem;
+  overflow: hidden;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.topic-hero__bg-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(var(--color-border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-border) 1px, transparent 1px);
+  background-size: 60px 60px;
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.topic-hero__bg-grid::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 80% 100% at 50% 100%, transparent 30%, var(--color-bg) 100%);
+}
+
+.topic-hero__glow {
+  position: absolute;
+  top: -100px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 500px;
+  height: 260px;
+  background: radial-gradient(ellipse at center, var(--subject-accent, var(--color-purple)) 0%, transparent 70%);
+  opacity: 0.07;
+  pointer-events: none;
+  filter: blur(40px);
+}
+
+.topic-hero__inner {
+  position: relative;
+  z-index: 1;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  animation: topic-fade-up 0.5s ease both;
+}
+
+/* === .topic-breadcrumb — 브레드크럼 === */
+.topic-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.75rem;
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+}
+
+.topic-breadcrumb__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--color-text-muted);
+  transition: color var(--transition);
+}
+
+.topic-breadcrumb__link:hover {
+  color: var(--color-text);
+}
+
+.topic-breadcrumb__link svg {
+  width: 13px;
+  height: 13px;
+}
+
+.topic-breadcrumb__sep {
+  opacity: 0.4;
+}
+
+.topic-breadcrumb__current {
+  color: var(--color-text-sub);
+}
+
+/* === .topic-hero__meta — slug + 제목 === */
+.topic-hero__slug {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--subject-accent, var(--color-purple));
+  margin-bottom: 0.6rem;
+  opacity: 0.9;
+}
+
+.topic-hero__title {
+  font-size: clamp(1.8rem, 3.5vw, 2.6rem);
+  color: var(--color-text);
+  margin-bottom: 1.25rem;
+}
+
+/* === .topic-tags — 태그 목록 === */
+.topic-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.topic-tag {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.2rem 0.65rem;
+}
+
+/* === .topic-tabs — 탭 네비게이션 === */
+.topic-tabs {
+  position: sticky;
+  top: var(--header-h);
+  z-index: 50;
+  background: rgba(15, 15, 26, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.topic-tabs__inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  display: flex;
+  gap: 0;
+}
+
+.topic-tabs__btn {
+  position: relative;
+  padding: 1rem 1.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color var(--transition);
+}
+
+.topic-tabs__btn::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--subject-accent, var(--color-purple));
+  transform: scaleX(0);
+  transition: transform var(--transition);
+}
+
+.topic-tabs__btn:hover {
+  color: var(--color-text-sub);
+}
+
+.topic-tabs__btn.is-active {
+  color: var(--color-text);
+}
+
+.topic-tabs__btn.is-active::after {
+  transform: scaleX(1);
+}
+
+/* === .topic-content — 탭 콘텐츠 영역 === */
+.topic-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 3rem 2rem 5rem;
+}
+
+.topic-panel {
+  display: none;
+  animation: topic-fade-up 0.35s ease both;
+}
+
+.topic-panel.is-active {
+  display: block;
+}
+
+/* === 큰 그림 탭 === */
+.overview-section {
+  max-width: 780px;
+}
+
+.overview-lead {
+  font-size: 1.1rem;
+  color: var(--color-text-sub);
+  font-weight: 300;
+  line-height: 1.9;
+  margin-bottom: 2.5rem;
+  border-left: 3px solid var(--subject-accent, var(--color-purple));
+  padding-left: 1.25rem;
+}
+
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-bottom: 2.5rem;
+}
+
+.overview-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+  transition: border-color var(--transition);
+}
+
+.overview-card:hover {
+  border-color: var(--color-border-hover);
+}
+
+.overview-card__label {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--subject-accent, var(--color-purple));
+  margin-bottom: 0.6rem;
+}
+
+.overview-card__title {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--color-text);
+  margin-bottom: 0.5rem;
+}
+
+.overview-card__desc {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  font-weight: 300;
+  line-height: 1.7;
+}
+
+.overview-points {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.overview-point {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  font-size: 0.9rem;
+  color: var(--color-text-sub);
+  line-height: 1.6;
+}
+
+.overview-point__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--subject-accent, var(--color-purple));
+  flex-shrink: 0;
+  margin-top: 0.55rem;
+  opacity: 0.8;
+}
+
+/* === 작동 원리 탭 (시각화) === */
+.visualizer-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.visualizer-canvas-area {
+  width: 100%;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  min-height: 480px;
+  position: relative;
+}
+
+/* === 코드 연결 탭 === */
+.code-section {
+  max-width: 780px;
+}
+
+.code-block-wrap {
+  margin-bottom: 2rem;
+}
+
+.code-block-label {
+  font-family: var(--font-mono);
+  font-size: 1.0rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--subject-accent, var(--color-purple));
+  margin-bottom: 0.75rem;
+}
+
+.code-block {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+  overflow-x: auto;
+}
+
+.code-block pre {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  line-height: 1.8;
+  color: var(--color-text-sub);
+  white-space: pre;
+  overflow-x: visible;
+  min-width: max-content;
+}
+
+.code-block .kw  { color: #c792ea; }
+.code-block .fn  { color: #82aaff; }
+.code-block .cm  { color: #546e7a; }
+.code-block .st  { color: #f78c6c; }
+.code-block .num { color: #f07178; }
+
+.code-desc {
+  font-size: 1.0rem;
+  color: var(--color-text-sub);
+  font-weight: 300;
+  line-height: 1.8;
+  margin-top: 0.75rem;
+}
+
+/* === 연관 개념 (하단 공통) === */
+.related-section {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem 5rem;
+  border-top: 1px solid var(--color-border);
+  padding-top: 3rem;
+}
+
+.related-section__label {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--color-teal);
+  margin-bottom: 1.25rem;
+}
+
+.related-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.related-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 1.25rem 1.5rem;
+  transition: border-color var(--transition), background var(--transition);
+}
+
+.related-card:hover {
+  border-color: var(--color-border-hover);
+  background: var(--color-surface-2);
+}
+
+.related-card__subject {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-bottom: 0.3rem;
+}
+
+.related-card__title {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.related-card__arrow {
+  width: 14px;
+  height: 14px;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+  margin-left: auto;
+  transition: color var(--transition), transform var(--transition);
+}
+
+.related-card:hover .related-card__arrow {
+  color: var(--color-purple);
+  transform: translateX(3px);
+}
+
+.related-empty {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  font-weight: 300;
+}
+
+/* === 애니메이션 === */
+@keyframes topic-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  to   {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* === 반응형 === */
+@media (max-width: 768px) {
+  .overview-grid  {
+    grid-template-columns: 1fr;
+  }
+
+  .related-grid   {
+    grid-template-columns: 1fr;
+  }
+
+  .topic-tabs__btn {
+  padding: 0.9rem 1rem;
+    font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .topic-content  {
+    padding: 2rem 1.25rem 4rem;
+  }
+
+  .related-section {
+    padding: 2rem 1.25rem 4rem;
+  }
+}
