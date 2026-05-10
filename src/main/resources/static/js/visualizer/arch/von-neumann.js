@@ -19,7 +19,6 @@
     /* ===================== UI 구성 ===================== */
     const root = el('div', 'vn');
 
-    // 툴바
     const toolbar = el('div', 'vn__toolbar');
     const tbLeft  = el('div', 'vn__toolbar-left');
     tbLeft.appendChild(el('span', 'vn__title', 'Von Neumann Architecture'));
@@ -40,7 +39,7 @@
 
     const speedWrap = el('div', 'vn__speed');
     speedWrap.appendChild(el('span', 'vn__speed-label', 'SPEED'));
-    [['1x', 900], ['2x', 400], ['3x', 180]].forEach(([label, ms], i) => {
+    [['1x', 1800], ['2x', 1000], ['3x', 500]].forEach(([label, ms], i) => {
         const btn = el('button', 'vn__speed-btn' + (i === 0 ? ' vn__speed-btn--active' : ''), label);
         btn.addEventListener('click', () => setSpeed(ms, btn));
         speedWrap.appendChild(btn);
@@ -48,19 +47,16 @@
     toolbar.appendChild(speedWrap);
     root.appendChild(toolbar);
 
-    // 캔버스
     const canvasWrap = el('div', 'vn__canvas-wrap');
     const canvas     = document.createElement('canvas');
     canvas.className = 'vn__canvas';
     canvasWrap.appendChild(canvas);
     root.appendChild(canvasWrap);
 
-    // 로그
     const log = el('div', 'vn__log', '시작 버튼을 눌러 Fetch → Decode → Execute 사이클을 확인하세요.');
     log.id = 'vn-log';
     root.appendChild(log);
 
-    // 컨트롤
     const controls = el('div', 'vn__controls');
     const btnPlay  = el('button', 'vn__btn vn__btn--primary', '▶ PLAY');
     const btnReset = el('button', 'vn__btn', '↺ RESET');
@@ -115,29 +111,49 @@
         { addr: '0x12', label: '?',             type: 'd' },
     ];
 
+    //   'A' → ADDR BUS (CPU→메모리 주소 전달, busY + gap)
+    //   'I' → CTRL BUS (메모리→CPU 명령어 전달, busY - gap)
+    //   'D' → DATA BUS (데이터 읽기/쓰기,       busY)
     const STEPS = [
-        { ph:'f', mh:0, reg:{PC:'0x00',IR:'—',   R1:'—', R2:'—'}, log:'[FETCH]   PC=0x00 → 메모리[0x00]에서 명령어 읽기', bus:{toMem:false, label:'I'} },
-        { ph:'d', mh:0, reg:{PC:'0x00',IR:'LOAD', R1:'—', R2:'—'}, log:'[DECODE]  IR ← LOAD R1,[0x10] — CU가 명령어 해석', bus:null },
-        { ph:'e', mh:5, reg:{PC:'0x02',IR:'LOAD', R1:'7', R2:'—'}, log:'[EXECUTE] R1 ← Mem[0x10]=7 — ALU 처리, PC+2', bus:{toMem:false, label:'D'} },
-        { ph:'f', mh:1, reg:{PC:'0x02',IR:'LOAD', R1:'7', R2:'—'}, log:'[FETCH]   PC=0x02 → 명령어 읽기', bus:{toMem:false, label:'I'} },
-        { ph:'d', mh:1, reg:{PC:'0x02',IR:'LOAD', R1:'7', R2:'—'}, log:'[DECODE]  IR ← LOAD R2,[0x11] — CU가 명령어 해석', bus:null },
-        { ph:'e', mh:6, reg:{PC:'0x04',IR:'LOAD', R1:'7', R2:'3'}, log:'[EXECUTE] R2 ← Mem[0x11]=3 — ALU 처리, PC+2', bus:{toMem:false, label:'D'} },
-        { ph:'f', mh:2, reg:{PC:'0x04',IR:'LOAD', R1:'7', R2:'3'}, log:'[FETCH]   PC=0x04 → 명령어 읽기', bus:{toMem:false, label:'I'} },
-        { ph:'d', mh:2, reg:{PC:'0x04',IR:'ADD',  R1:'7', R2:'3'}, log:'[DECODE]  IR ← ADD R1,R2 — CU가 명령어 해석', bus:null },
-        { ph:'e', mh:2, reg:{PC:'0x06',IR:'ADD',  R1:'10',R2:'3'}, log:'[EXECUTE] R1 ← R1+R2=10 — ALU 연산 수행', bus:null },
-        { ph:'f', mh:3, reg:{PC:'0x06',IR:'ADD',  R1:'10',R2:'3'}, log:'[FETCH]   PC=0x06 → 명령어 읽기', bus:{toMem:false, label:'I'} },
-        { ph:'d', mh:3, reg:{PC:'0x06',IR:'STORE',R1:'10',R2:'3'}, log:'[DECODE]  IR ← STORE R1,[0x12] — CU가 명령어 해석', bus:null },
-        { ph:'e', mh:7, reg:{PC:'0x08',IR:'STORE',R1:'10',R2:'3'}, log:'[EXECUTE] Mem[0x12] ← R1=10 — 메모리 쓰기', bus:{toMem:true, label:'D'} },
-        { ph:'f', mh:4, reg:{PC:'0x08',IR:'STORE',R1:'10',R2:'3'}, log:'[FETCH]   PC=0x08 → 마지막 명령어 읽기', bus:{toMem:false, label:'I'} },
-        { ph:'d', mh:4, reg:{PC:'0x08',IR:'HALT', R1:'10',R2:'3'}, log:'[DECODE]  IR ← HALT — CU가 명령어 해석', bus:null },
-        { ph:'e', mh:7, reg:{PC:'HALT',IR:'HALT', R1:'10',R2:'3'}, log:'[EXECUTE] HALT — 실행 완료! Mem[0x12]=10 저장됨 ✓', bus:null, done:true },
+        // ── 1번째 명령어: LOAD R1,[0x10] ──
+        { ph:'f', mh:0, reg:{PC:'0x00',IR:'—',   R1:'—', R2:'—'}, log:'[FETCH-1] PC=0x00 → ADDR BUS로 메모리에 주소 전달',          bus:{toMem:true,  label:'A'} },
+        { ph:'f', mh:0, reg:{PC:'0x00',IR:'—',   R1:'—', R2:'—'}, log:'[FETCH-2] 메모리[0x00] → CTRL BUS로 명령어 CPU에 전달',      bus:{toMem:false, label:'I'} },
+        { ph:'d', mh:0, reg:{PC:'0x00',IR:'LOAD', R1:'—', R2:'—'}, log:'[DECODE]  IR ← LOAD R1,[0x10] — CU가 명령어 해석',          bus:null },
+        { ph:'e', mh:5, reg:{PC:'0x02',IR:'LOAD', R1:'—', R2:'—'}, log:'[EXECUTE-1] 피연산자 주소 0x10 → ADDR BUS로 메모리 전달',   bus:{toMem:true,  label:'A'} },
+        { ph:'e', mh:5, reg:{PC:'0x02',IR:'LOAD', R1:'7', R2:'—'}, log:'[EXECUTE-2] Mem[0x10]=7 → DATA BUS로 CPU R1에 전달',        bus:{toMem:false, label:'D'} },
+
+        // ── 2번째 명령어: LOAD R2,[0x11] ──
+        { ph:'f', mh:1, reg:{PC:'0x02',IR:'LOAD', R1:'7', R2:'—'}, log:'[FETCH-1] PC=0x02 → ADDR BUS로 메모리에 주소 전달',          bus:{toMem:true,  label:'A'} },
+        { ph:'f', mh:1, reg:{PC:'0x02',IR:'LOAD', R1:'7', R2:'—'}, log:'[FETCH-2] 메모리[0x02] → CTRL BUS로 명령어 CPU에 전달',      bus:{toMem:false, label:'I'} },
+        { ph:'d', mh:1, reg:{PC:'0x02',IR:'LOAD', R1:'7', R2:'—'}, log:'[DECODE]  IR ← LOAD R2,[0x11] — CU가 명령어 해석',          bus:null },
+        { ph:'e', mh:6, reg:{PC:'0x04',IR:'LOAD', R1:'7', R2:'—'}, log:'[EXECUTE-1] 피연산자 주소 0x11 → ADDR BUS로 메모리 전달',   bus:{toMem:true,  label:'A'} },
+        { ph:'e', mh:6, reg:{PC:'0x04',IR:'LOAD', R1:'7', R2:'3'}, log:'[EXECUTE-2] Mem[0x11]=3 → DATA BUS로 CPU R2에 전달',        bus:{toMem:false, label:'D'} },
+
+        // ── 3번째 명령어: ADD R1, R2 ──
+        { ph:'f', mh:2, reg:{PC:'0x04',IR:'LOAD', R1:'7', R2:'3'}, log:'[FETCH-1] PC=0x04 → ADDR BUS로 메모리에 주소 전달',          bus:{toMem:true,  label:'A'} },
+        { ph:'f', mh:2, reg:{PC:'0x04',IR:'LOAD', R1:'7', R2:'3'}, log:'[FETCH-2] 메모리[0x04] → CTRL BUS로 명령어 CPU에 전달',      bus:{toMem:false, label:'I'} },
+        { ph:'d', mh:2, reg:{PC:'0x04',IR:'ADD',  R1:'7', R2:'3'}, log:'[DECODE]  IR ← ADD R1,R2 — CU가 명령어 해석',               bus:null },
+        { ph:'e', mh:2, reg:{PC:'0x06',IR:'ADD',  R1:'10',R2:'3'}, log:'[EXECUTE] R1 ← R1+R2=10 — ALU 내부 연산 (버스 사용 없음)',  bus:null },
+
+        // ── 4번째 명령어: STORE R1,[0x12] ──
+        { ph:'f', mh:3, reg:{PC:'0x06',IR:'ADD',  R1:'10',R2:'3'}, log:'[FETCH-1] PC=0x06 → ADDR BUS로 메모리에 주소 전달',          bus:{toMem:true,  label:'A'} },
+        { ph:'f', mh:3, reg:{PC:'0x06',IR:'ADD',  R1:'10',R2:'3'}, log:'[FETCH-2] 메모리[0x06] → CTRL BUS로 명령어 CPU에 전달',      bus:{toMem:false, label:'I'} },
+        { ph:'d', mh:3, reg:{PC:'0x06',IR:'STORE',R1:'10',R2:'3'}, log:'[DECODE]  IR ← STORE R1,[0x12] — CU가 명령어 해석',         bus:null },
+        { ph:'e', mh:7, reg:{PC:'0x08',IR:'STORE',R1:'10',R2:'3'}, log:'[EXECUTE-1] 저장 주소 0x12 → ADDR BUS로 메모리 전달',        bus:{toMem:true,  label:'A'} },
+        { ph:'e', mh:7, reg:{PC:'0x08',IR:'STORE',R1:'10',R2:'3'}, log:'[EXECUTE-2] R1=10 → DATA BUS로 메모리[0x12]에 쓰기',         bus:{toMem:true,  label:'D'} },
+
+        // ── 5번째 명령어: HALT ──
+        { ph:'f', mh:4, reg:{PC:'0x08',IR:'STORE',R1:'10',R2:'3'}, log:'[FETCH-1] PC=0x08 → ADDR BUS로 메모리에 주소 전달',          bus:{toMem:true,  label:'A'} },
+        { ph:'f', mh:4, reg:{PC:'0x08',IR:'STORE',R1:'10',R2:'3'}, log:'[FETCH-2] 메모리[0x08] → CTRL BUS로 명령어 CPU에 전달',      bus:{toMem:false, label:'I'} },
+        { ph:'d', mh:4, reg:{PC:'0x08',IR:'HALT', R1:'10',R2:'3'}, log:'[DECODE]  IR ← HALT — CU가 명령어 해석',                    bus:null },
+        { ph:'e', mh:7, reg:{PC:'HALT',IR:'HALT', R1:'10',R2:'3'}, log:'[EXECUTE] HALT — 실행 완료! Mem[0x12]=10 저장됨 ✓',          bus:null, done:true },
     ];
 
     /* ===================== 상태 ===================== */
     let stepIdx = -1;
     let running = false;
     let timer   = null;
-    let speed   = 900;
+    let speed   = 1800;
     let memHL   = -1;
     let curReg  = { PC: '—', IR: '—', R1: '—', R2: '—' };
     let curPh   = null;
@@ -179,36 +195,44 @@
         ctx.fillStyle = P.bg;
         ctx.fillRect(0, 0, W, H);
 
-        // 레이아웃 — 양쪽 박스를 더 크고, 중앙 버스 공간은 적절하게
-        const pad  = 20;
-        const cpuW = Math.min(220, W * 0.32);
-        const memW = Math.min(230, W * 0.34);
-        const boxH = Math.min(H - 32, 320);
-        const boxY = (H - boxH) / 2;
-        const cpuX = pad;
-        const memX = W - memW - pad;
+        const pad   = 20;
+        const gap   = 18;
+        const cpuW  = Math.min(220, W * 0.32);
+        const memW  = Math.min(230, W * 0.34);
+        const boxH  = Math.min(H - 32, 320);
+        const boxY  = (H - boxH) / 2;
+        const cpuX  = pad;
+        const memX  = W - memW - pad;
         const busX1 = cpuX + cpuW;
         const busX2 = memX;
         const busY  = H / 2;
 
-        drawBus(busX1, busX2, busY, H);
+        drawBus(busX1, busX2, busY, gap);
         drawCPU(cpuX, boxY, cpuW, boxH);
         drawMem(memX, boxY, memW, boxH);
-        if (busAnim) drawPacket(busX1, busX2, busY);
+
+        if (busAnim) {
+            // label별 버스 선 Y좌표
+            // 'A' → ADDR BUS (busY + gap)
+            // 'I' → CTRL BUS (busY - gap)
+            // 'D' → DATA BUS (busY)
+            const packetY = busAnim.label === 'A' ? busY + gap
+                          : busAnim.label === 'I' ? busY - gap
+                          : busY;
+            drawPacket(busX1, busX2, packetY);
+        }
     }
 
-    function drawBus(x1, x2, busY, H) {
-        const mx  = (x1 + x2) / 2;
-        const gap = 18;
+    function drawBus(x1, x2, busY, gap) {
+        const mx = (x1 + x2) / 2;
 
         const buses = [
-            { y: busY,      col: P.purple, op: 0.5,  lw: 2.5, label: 'DATA BUS' },
-            { y: busY + gap,col: P.teal,   op: 0.45, lw: 1.8, label: 'ADDR BUS' },
-            { y: busY - gap,col: P.orange, op: 0.45, lw: 1.8, label: 'CTRL BUS' },
+            { y: busY,       col: P.purple, op: 0.5,  lw: 2.5, label: 'DATA BUS' },
+            { y: busY + gap, col: P.teal,   op: 0.45, lw: 1.8, label: 'ADDR BUS' },
+            { y: busY - gap, col: P.orange, op: 0.45, lw: 1.8, label: 'CTRL BUS' },
         ];
 
         buses.forEach(b => {
-            // 버스 라인
             ctx.beginPath();
             ctx.setLineDash([6, 4]);
             ctx.moveTo(x1, b.y);
@@ -220,11 +244,8 @@
             ctx.globalAlpha = 1;
             ctx.setLineDash([]);
 
-            // 레이블 — 배경 박스 넣어서 가독성 확보
             const lw = 60, lh = 14;
-            const lx = mx - lw / 2;
-            const ly = b.y - lh / 2;
-            rr(lx, ly, lw, lh, 3, P.bg, b.col + '55', 1);
+            rr(mx - lw / 2, b.y - lh / 2, lw, lh, 3, P.bg, b.col + '55', 1);
             tx(b.label, mx, b.y, 7.5, b.col, 'center', true);
         });
     }
@@ -232,10 +253,8 @@
     function drawCPU(x, y, w, h) {
         const col = curPh ? phCol(curPh) : P.border;
 
-        // 외곽 박스
         rr(x, y, w, h, 10, P.surf, col, curPh ? 2 : 1.5);
 
-        // 헤더
         ctx.fillStyle = col;
         ctx.beginPath();
         ctx.moveTo(x + 10, y);
@@ -250,7 +269,6 @@
         const rp = 12, rh = 34, rg = 6;
         const rt = y + 44;
 
-        // 레지스터
         const regs = [
             { n: 'PC', v: curReg.PC, hi: curPh === 'f' },
             { n: 'IR', v: curReg.IR, hi: curPh === 'd' },
@@ -263,26 +281,20 @@
             const c  = r.hi ? phCol(curPh) : P.border;
             rr(x + rp, ry, w - rp * 2, rh, 5,
                 r.hi ? phCol(curPh) + '1a' : P.surf2, c, r.hi ? 2 : 1);
-
-            // 레지스터명 배경
             rr(x + rp, ry, 32, rh, 5, r.hi ? phCol(curPh) + '33' : P.bg, null);
             tx(r.n, x + rp + 16, ry + rh / 2, 9, r.hi ? phCol(curPh) : P.muted, 'center', true);
-
-            // 구분선
             ctx.beginPath();
             ctx.moveTo(x + rp + 32, ry + 6);
             ctx.lineTo(x + rp + 32, ry + rh - 6);
             ctx.strokeStyle = c;
             ctx.lineWidth = 1;
             ctx.stroke();
-
             tx(r.v, x + rp + 32 + (w - rp * 2 - 32) / 2, ry + rh / 2, 10,
                 r.hi ? phCol(curPh) : P.text, 'center', r.hi);
         });
 
-        // ALU / CU
-        const uy  = y + h - 76;
-        const uw  = (w - rp * 2 - 8) / 2;
+        const uy = y + h - 76;
+        const uw = (w - rp * 2 - 8) / 2;
 
         rr(x + rp, uy, uw, 42, 5,
             aluOn ? P.purple + '1a' : P.surf2,
@@ -298,7 +310,6 @@
     function drawMem(x, y, w, h) {
         rr(x, y, w, h, 10, P.surf, P.border, 1.5);
 
-        // 헤더
         ctx.fillStyle = P.teal + '33';
         ctx.beginPath();
         ctx.moveTo(x + 10, y);
@@ -310,9 +321,9 @@
         ctx.fill();
         tx('MEMORY', x + w / 2, y + 16, 11, P.teal, 'center', true);
 
-        const rp  = 10;
-        const rh  = Math.min(28, (h - 46) / mem.length - 3);
-        const rg  = 3;
+        const rp = 10;
+        const rh = Math.min(28, (h - 46) / mem.length - 3);
+        const rg = 3;
 
         mem.forEach((m, i) => {
             const ry  = y + 40 + i * (rh + rg);
@@ -323,12 +334,9 @@
             rr(x + rp, ry, w - rp * 2, rh, 4,
                 hl ? hc + '1a' : P.surf2,
                 hl ? hc : P.border, hl ? 2 : 1);
-
-            // 주소 배경
             rr(x + rp, ry, 44, rh, 4, hl ? hc + '28' : P.bg, null);
             tx(m.addr, x + rp + 22, ry + rh / 2, 8, isD ? P.teal : P.orange, 'center', true);
 
-            // 구분선
             ctx.beginPath();
             ctx.moveTo(x + rp + 44, ry + 5);
             ctx.lineTo(x + rp + 44, ry + rh - 5);
@@ -336,7 +344,7 @@
             ctx.lineWidth = 1;
             ctx.stroke();
 
-            const label = (i === 7 && stepIdx >= 11) ? '10' : m.label;
+            const label = (i === 7 && stepIdx >= 18) ? '10' : m.label;
             tx(label, x + rp + 44 + (w - rp * 2 - 44) / 2, ry + rh / 2, 9,
                 hl ? P.text : P.sub, 'center', hl);
         });
@@ -346,9 +354,15 @@
         if (!busAnim) return;
         const toM = busAnim.toMem;
         const px  = toM ? x1 + (x2 - x1) * busAnim.t : x2 - (x2 - x1) * busAnim.t;
-        const col = busAnim.label === 'D' ? P.teal : P.orange;
 
-        // 글로우
+        // label별 색상
+        // 'A' → ADDR BUS → 민트
+        // 'I' → CTRL BUS → 주황
+        // 'D' → DATA BUS → 보라
+        const col = busAnim.label === 'A' ? P.teal
+                  : busAnim.label === 'I' ? P.orange
+                  : P.purple;
+
         const g = ctx.createRadialGradient(px, y, 0, px, y, 20);
         g.addColorStop(0, col + '55');
         g.addColorStop(1, col + '00');
@@ -357,7 +371,6 @@
         ctx.fillStyle = g;
         ctx.fill();
 
-        // 본체
         ctx.beginPath();
         ctx.arc(px, y, 10, 0, Math.PI * 2);
         ctx.fillStyle = col;
@@ -365,7 +378,6 @@
 
         tx(busAnim.label, px, y, 8, '#0f0f1a', 'center', true);
 
-        // 화살표
         const ax = toM ? px + 22 : px - 22;
         ctx.beginPath();
         if (toM) { ctx.moveTo(ax - 6, y - 4); ctx.lineTo(ax, y); ctx.lineTo(ax - 6, y + 4); }
@@ -385,10 +397,10 @@
         const cls = { 'f': 'vn__phase--fetch', 'd': 'vn__phase--decode', 'e': 'vn__phase--execute' };
 
         Object.entries(map).forEach(([id, p]) => {
-            const el = document.getElementById(id);
-            if (!el) return;
-            el.classList.remove('vn__phase--fetch', 'vn__phase--decode', 'vn__phase--execute');
-            if (p === ph) el.classList.add(cls[ph]);
+            const e = document.getElementById(id);
+            if (!e) return;
+            e.classList.remove('vn__phase--fetch', 'vn__phase--decode', 'vn__phase--execute');
+            if (p === ph) e.classList.add(cls[ph]);
         });
     }
 
@@ -399,7 +411,7 @@
     function animBus(info, cb) {
         if (!info) { cb && cb(); return; }
         busAnim = { t: 0, toMem: info.toMem, label: info.label };
-        const N = 24;
+        const N = 140;
         let f = 0;
         function tick() {
             f++;
@@ -445,9 +457,9 @@
         curReg = { PC: '—', IR: '—', R1: '—', R2: '—' };
         mem = MEM_INIT.map(m => ({ ...m }));
 
-        ['vn-fetch','vn-decode','vn-execute'].forEach(id => {
+        ['vn-fetch', 'vn-decode', 'vn-execute'].forEach(id => {
             const e = document.getElementById(id);
-            if (e) e.classList.remove('vn__phase--fetch','vn__phase--decode','vn__phase--execute');
+            if (e) e.classList.remove('vn__phase--fetch', 'vn__phase--decode', 'vn__phase--execute');
         });
         setLog('시작 버튼을 눌러 Fetch → Decode → Execute 사이클을 확인하세요.');
         btnPlay.disabled = false;
@@ -460,12 +472,10 @@
         btn.classList.add('vn__speed-btn--active');
     }
 
-    // 전역 노출 최소화
-    window.vnStart  = vnStart;
-    window.vnReset  = vnReset;
+    window.vnStart = vnStart;
+    window.vnReset = vnReset;
 
     /* ===================== 초기화 ===================== */
     new ResizeObserver(() => resize()).observe(canvasWrap);
     setTimeout(resize, 60);
-
 })();
