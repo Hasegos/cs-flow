@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" th:content="${subject.name} + ' 핵심 개념을 인터랙티브 시각화로 학습하세요'">
+    <meta name="author" content="CS Flow">
+    <title th:text="'CS Flow ' + ${subject.name}">CS Flow 과목</title>
+    <link rel="stylesheet" th:href="@{/css/common/reset.css}">
+    <link rel="stylesheet" th:href="@{/css/common/header.css}">
+    <link rel="stylesheet" th:href="@{/css/common/footer.css}">
+    <link rel="stylesheet" th:href="@{/css/pages/subject.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- 과목 히어로 -->
+        <section class="subject-hero" th:style="'--subject-accent: ' + ${subject.colorAccent}">
+            <div class="subject-hero__bg-grid"></div>
+            <div class="subject-hero__glow"></div>
+
+            <div class="subject-hero__inner">
+                <div class="subject-hero__breadcrumb">
+                    <a th:href="@{/}" class="subject-hero__breadcrumb-home">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="subject-hero__breadcrumb-sep">/</span>
+                    <span class="subject-hero__breadcrumb-current" th:text="${subject.name}">과목명</span>
+                </div>
+
+                <div class="subject-hero__meta">
+                    <span class="subject-hero__slug" th:text="${subject.slug}">arch</span>
+                </div>
+                <h1 class="subject-hero__title" th:text="${subject.name}">컴퓨터 구조</h1>
+                <p class="subject-hero__count">
+                    <span th:text="${#lists.size(topics)}">0</span>개 토픽
+                </p>
+            </div>
+        </section>
+
+        <!-- 토픽 목록 -->
+        <section class="topic-list">
+            <div class="topic-list__inner">
+
+                <!-- 토픽 있을 때 -->
+                <div class="topic-grid" th:if="${not #lists.isEmpty(topics)}"
+                     th:style="'--subject-accent: ' + ${subject.colorAccent}">
+                    <a th:each="topic, stat : ${topics}"
+                       th:href="@{/{subjectSlug}/{topicSlug}(subjectSlug=${subject.slug}, topicSlug=${topic.slug})}"
+                       class="topic-card"
+                       th:style="'--card-index: ' + ${stat.index}">
+
+                        <div class="topic-card__number">
+                            <span th:text="${#strings.toString(stat.count).length() == 1 ? '0' + stat.count : stat.count}">01</span>
+                        </div>
+
+                        <div class="topic-card__body">
+                            <h3 class="topic-card__title" th:text="${topic.title}">토픽 제목</h3>
+                            <div class="topic-card__tags" th:if="${not #lists.isEmpty(topic.tags)}">
+                                    <span th:each="tag : ${topic.tags}"
+                                          class="topic-card__tag"
+                                          th:text="${tag.tag}">태그</span>
+                            </div>
+                        </div>
+
+                        <div class="topic-card__arrow">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                 stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="5" y1="12" x2="19" y2="12"/>
+                                <polyline points="12 5 19 12 12 19"/>
+                            </svg>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- 토픽 없을 때 -->
+                <div class="topic-empty" th:if="${#lists.isEmpty(topics)}">
+                    <div class="topic-empty__icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="8" x2="12" y2="12"/>
+                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                        </svg>
+                    </div>
+                    <p class="topic-empty__text">아직 준비 중인 과목이에요.</p>
+                    <p class="topic-empty__sub">곧 업데이트될 예정이에요.</p>
+                    <a th:href="@{/}" class="btn btn--ghost">홈으로 돌아가기</a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+</body>
+</html>

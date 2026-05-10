@@ -1,0 +1,20 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: cs-flow
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/${POSTGRESQL_DATABASE}
+    driver-class-name: org.postgresql.Driver
+    username: ${POSTGRESQL_USERNAME}
+    password: ${POSTGRESQL_PASSWORD}
+
+  jpa:
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        jdbc.time_zone: UTC

@@ -1,0 +1,312 @@
+/* home.css — 메인 랜딩 페이지 */
+
+/* === .hero — 풀스크린 히어로 섹션 === */
+.hero {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding-top: var(--header-h);
+}
+
+/* === .hero__bg-grid — 배경 회로 그리드 === */
+.hero__bg-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(var(--color-border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-border) 1px, transparent 1px);
+  background-size: 60px 60px;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.hero__bg-grid::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 60% 60% at 50% 50%, transparent 40%, var(--color-bg) 100%);
+}
+
+/* === .hero__inner — 중앙 텍스트 콘텐츠 === */
+.hero__inner {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  padding: 0 1.5rem;
+  max-width: 720px;
+  animation: hero-fade-up 0.7s ease both;
+}
+
+/* === .hero__eyebrow — 상단 레이블 === */
+.hero__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-teal);
+  margin-bottom: 1.5rem;
+}
+
+.hero__eyebrow-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-teal);
+  animation: hero-blink 2s ease-in-out infinite;
+}
+
+/* === .hero__title — 메인 타이틀 === */
+.hero__title {
+  font-size: clamp(2.2rem, 5vw, 3.6rem);
+  color: var(--color-text);
+  margin-bottom: 1.25rem;
+  line-height: 1.2;
+}
+
+.hero__title-accent {
+  color: var(--color-purple);
+}
+
+/* === .hero__desc — 서브 설명 텍스트 === */
+.hero__desc {
+  font-size: clamp(0.95rem, 1.5vw, 1.1rem);
+  color: var(--color-text-sub);
+  font-weight: 300;
+  line-height: 1.8;
+  margin-bottom: 2.5rem;
+}
+
+/* === .hero__cta — 버튼 그룹 === */
+.hero__cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* === .hero__circuit — 우측 배경 아이콘 장식 === */
+.hero__circuit {
+  position: absolute;
+  right: -60px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 480px;
+  opacity: 0.25;
+  pointer-events: none;
+  animation: hero-float 6s ease-in-out infinite;
+}
+
+/* === .subjects — 과목 카드 섹션 === */
+.subjects {
+  padding: 6rem 2rem;
+}
+
+.subjects__inner {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* === .subject-grid — 과목 카드 3열 그리드 === */
+.subject-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+}
+
+/* === .subject-card — 과목 카드 === */
+.subject-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 1.75rem 1.5rem;
+  gap: 1rem;
+  overflow: hidden;
+  transition: border-color var(--transition), background var(--transition), transform var(--transition);
+}
+
+.subject-card:hover {
+  border-color: var(--accent, var(--color-purple));
+  background: var(--color-surface-2);
+  transform: translateY(-3px);
+}
+
+/* 과목 색상 좌측 강조바 */
+.subject-card__accent-bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--accent, var(--color-purple));
+  border-radius: 3px 0 0 3px;
+  opacity: 0.8;
+}
+
+.subject-card__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.subject-card__slug {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent, var(--color-purple));
+  margin-bottom: 0.35rem;
+  opacity: 0.8;
+}
+
+.subject-card__name {
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.subject-card__arrow {
+  width: 18px;
+  height: 18px;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+  transition: color var(--transition), transform var(--transition);
+}
+
+.subject-card:hover .subject-card__arrow {
+  color: var(--accent, var(--color-purple));
+  transform: translateX(4px);
+}
+
+/* === .about — 플랫폼 소개 섹션 === */
+.about {
+  padding: 6rem 2rem;
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.about__inner {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.about-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+}
+
+/* === .about-card — 소개 카드 === */
+.about-card {
+  padding: 2rem 1.75rem;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: border-color var(--transition);
+}
+
+.about-card:hover {
+  border-color: var(--color-border-hover);
+}
+
+.about-card__icon {
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-purple-dim);
+  border-radius: var(--radius-sm);
+  margin-bottom: 1.25rem;
+  color: var(--color-purple);
+}
+
+.about-card__icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.about-card__title {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--color-text);
+  margin-bottom: 0.6rem;
+}
+
+.about-card__desc {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  font-weight: 300;
+  line-height: 1.7;
+}
+
+/* === 애니메이션 === */
+@keyframes hero-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+
+  to   {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes hero-blink {
+  0%, 100% {
+    opacity: 1;
+  }
+
+  50%       {
+    opacity: 0.3;
+  }
+}
+
+@keyframes hero-float {
+  0%, 100% {
+    transform: translateY(-50%);
+  }
+
+  50%       {
+    transform: translateY(calc(-50% - 16px));
+  }
+}
+
+/* === 반응형 === */
+@media (max-width: 1024px) {
+  .subject-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .about-grid   {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .hero__circuit {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .subject-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .about-grid   {
+    grid-template-columns: 1fr;
+  }
+}

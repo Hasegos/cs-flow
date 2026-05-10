@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="CS 핵심 개념을 흐름으로 이해하는 인터랙티브 학습 플랫폼">
+    <meta name="author" content="CS Flow">
+    <title>CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/common/reset.css}">
+    <link rel="stylesheet" th:href="@{/css/common/header.css}">
+    <link rel="stylesheet" th:href="@{/css/common/footer.css}">
+    <link rel="stylesheet" th:href="@{/css/pages/home.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- 히어로 섹션 -->
+        <section class="hero">
+            <div class="hero__bg-grid"></div>
+
+            <div class="hero__inner">
+                <p class="hero__eyebrow">
+                    <span class="hero__eyebrow-dot"></span>
+                    Interactive Learning Platform
+                </p>
+                <h1 class="hero__title">
+                    CS 핵심 개념을<br>
+                    <span class="hero__title-accent">흐름으로</span> 이해하다
+                </h1>
+                <p class="hero__desc">
+                    텍스트가 아닌 인터랙티브 시각화로<br>
+                    컴퓨터 과학의 핵심 개념을 직관적으로 학습하세요.
+                </p>
+                <div class="hero__cta">
+                    <a href="#subjects" class="btn btn--primary">학습 시작하기</a>
+                    <a href="#subjects" class="btn btn--ghost">과목 둘러보기</a>
+                </div>
+            </div>
+
+            <!-- 배경 회로 -->
+            <div class="hero__circuit" aria-hidden="true">
+                <img th:src="@{/img/csflow_icon.svg}" alt="배경 회로">
+            </div>
+        </section>
+
+        <!-- 과목 카드 섹션 -->
+        <section class="subjects" id="subjects">
+            <div class="subjects__inner">
+                <div class="section-header">
+                    <p class="section-header__label">Subjects</p>
+                    <h2 class="section-header__title">무엇을 배울까요?</h2>
+                    <p class="section-header__desc">6개 과목, 핵심 개념만 골라 시각화했어요.</p>
+                </div>
+
+                <div class="subject-grid">
+                    <a th:each="subject : ${subjects}"
+                       th:href="@{/{slug}(slug=${subject.slug})}"
+                       class="subject-card"
+                       th:style="'--accent: ' + ${subject.colorAccent}">
+                        <div class="subject-card__accent-bar"></div>
+                        <div class="subject-card__body">
+                            <span class="subject-card__slug" th:text="${subject.slug}">arch</span>
+                            <h3 class="subject-card__name" th:text="${subject.name}">컴퓨터 구조</h3>
+                        </div>
+                        <div class="subject-card__arrow">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                 stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="5" y1="12" x2="19" y2="12"/>
+                                <polyline points="12 5 19 12 12 19"/>
+                            </svg>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- 플랫폼 소개 섹션 -->
+        <section class="about">
+            <div class="about__inner">
+                <div class="section-header">
+                    <p class="section-header__label">Why CS Flow</p>
+                    <h2 class="section-header__title">왜 CS Flow인가요?</h2>
+                </div>
+
+                <div class="about-grid">
+                    <div class="about-card">
+                        <div class="about-card__icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                            </svg>
+                        </div>
+                        <h3 class="about-card__title">인터랙티브 시각화</h3>
+                        <p class="about-card__desc">Canvas API와 SVG 기반의 시각화로 개념의 동작 원리를 직접 눈으로 확인하세요.</p>
+                    </div>
+
+                    <div class="about-card">
+                        <div class="about-card__icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="16 18 22 12 16 6"/>
+                                <polyline points="8 6 2 12 8 18"/>
+                            </svg>
+                        </div>
+                        <h3 class="about-card__title">코드 연결</h3>
+                        <p class="about-card__desc">개념 이해에서 실제 코드까지, 3단계 학습 흐름으로 완결된 학습 경험을 제공합니다.</p>
+                    </div>
+
+                    <div class="about-card">
+                        <div class="about-card__icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="18" cy="5" r="3"/>
+                                <circle cx="6" cy="12" r="3"/>
+                                <circle cx="18" cy="19" r="3"/>
+                                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+                                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                            </svg>
+                        </div>
+                        <h3 class="about-card__title">개념 간 연결</h3>
+                        <p class="about-card__desc">태그 기반 연관 개념 추천으로 CS 지식의 흐름과 연결을 파악하며 확장 학습이 가능합니다.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+</body>
+</html>

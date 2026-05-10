@@ -1,0 +1,105 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">C — CPU 구성 요소 구조체 시뮬레이션</p>
+            <div class="code-block">
+<pre><span class="cm">// CPU 내부 레지스터 구조체</span>
+<span class="kw">typedef struct</span> {
+    <span class="kw">unsigned int</span> PC;   <span class="cm">// Program Counter  — 다음 명령어 주소</span>
+    <span class="kw">unsigned int</span> IR;   <span class="cm">// Instruction Reg  — 현재 명령어</span>
+    <span class="kw">unsigned int</span> MAR;  <span class="cm">// Memory Addr Reg  — 메모리 접근 주소</span>
+    <span class="kw">unsigned int</span> MBR;  <span class="cm">// Memory Buf Reg   — 메모리 데이터 버퍼</span>
+    <span class="kw">unsigned int</span> ACC;  <span class="cm">// Accumulator      — ALU 연산 결과</span>
+} Registers;
+
+<span class="cm">// ALU — 산술논리연산장치</span>
+<span class="kw">unsigned int</span> <span class="fn">alu_execute</span>(<span class="kw">unsigned int</span> op,
+                          <span class="kw">unsigned int</span> a,
+                          <span class="kw">unsigned int</span> b) {
+    <span class="kw">switch</span> (op) {
+        <span class="kw">case</span> <span class="num">0x01</span>: <span class="kw">return</span> a + b;   <span class="cm">// ADD</span>
+        <span class="kw">case</span> <span class="num">0x02</span>: <span class="kw">return</span> a - b;   <span class="cm">// SUB</span>
+        <span class="kw">case</span> <span class="num">0x03</span>: <span class="kw">return</span> a &amp; b;   <span class="cm">// AND</span>
+        <span class="kw">case</span> <span class="num">0x04</span>: <span class="kw">return</span> a | b;   <span class="cm">// OR</span>
+        <span class="kw">case</span> <span class="num">0x05</span>: <span class="kw">return</span> ~a;      <span class="cm">// NOT</span>
+        <span class="kw">default</span>:   <span class="kw">return</span> <span class="num">0</span>;
+    }
+}
+
+<span class="cm">// CU — 제어장치: 명령어 해석 후 제어 신호 생성</span>
+<span class="kw">void</span> <span class="fn">cu_decode</span>(Registers *reg, <span class="kw">unsigned int</span> *memory) {
+    <span class="kw">unsigned int</span> opcode  = (reg->IR >> <span class="num">24</span>) &amp; <span class="num">0xFF</span>;
+    <span class="kw">unsigned int</span> operand =  reg->IR &amp; <span class="num">0xFFFFFF</span>;
+
+    <span class="kw">switch</span> (opcode) {
+        <span class="kw">case</span> <span class="num">0x01</span>:  <span class="cm">// LOAD — 메모리 → ACC</span>
+            reg->MAR = operand;
+            reg->MBR = memory[reg->MAR];
+            reg->ACC = reg->MBR;
+            <span class="kw">break</span>;
+        <span class="kw">case</span> <span class="num">0x02</span>:  <span class="cm">// STORE — ACC → 메모리</span>
+            reg->MAR = operand;
+            reg->MBR = reg->ACC;
+            memory[reg->MAR] = reg->MBR;
+            <span class="kw">break</span>;
+        <span class="kw">case</span> <span class="num">0x03</span>:  <span class="cm">// ADD — ACC + 메모리값</span>
+            reg->MAR = operand;
+            reg->MBR = memory[reg->MAR];
+            reg->ACC = <span class="fn">alu_execute</span>(<span class="num">0x01</span>, reg->ACC, reg->MBR);
+            <span class="kw">break</span>;
+    }
+    reg->PC++;
+}</pre>
+            </div>
+            <p class="code-desc">
+                CU가 IR에 담긴 명령어를 해석해 MAR→MBR→ACC 순서로 데이터를 이동시킵니다.
+                ALU는 CU의 제어 신호를 받아 실제 연산을 수행합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 레지스터 역할 시뮬레이션</p>
+            <div class="code-block">
+<pre><span class="cm">// 간단한 CPU 레지스터 동작 시뮬레이터</span>
+<span class="kw">public class</span> <span class="fn">SimpleCPU</span> {
+
+    <span class="kw">private int</span> PC  = <span class="num">0</span>;   <span class="cm">// Program Counter</span>
+    <span class="kw">private int</span> IR  = <span class="num">0</span>;   <span class="cm">// Instruction Register</span>
+    <span class="kw">private int</span> MAR = <span class="num">0</span>;   <span class="cm">// Memory Address Register</span>
+    <span class="kw">private int</span> MBR = <span class="num">0</span>;   <span class="cm">// Memory Buffer Register</span>
+    <span class="kw">private int</span> ACC = <span class="num">0</span>;   <span class="cm">// Accumulator</span>
+    <span class="kw">private int</span>[] memory;
+
+    <span class="kw">public</span> <span class="fn">SimpleCPU</span>(<span class="kw">int</span>[] program) {
+        <span class="kw">this</span>.memory = program;
+    }
+
+    <span class="kw">public void</span> <span class="fn">step</span>() {
+        <span class="cm">// FETCH: PC → MAR → MBR → IR</span>
+        MAR = PC;
+        MBR = memory[MAR];
+        IR  = MBR;
+        PC++;
+
+        <span class="cm">// DECODE & EXECUTE</span>
+        <span class="kw">int</span> opcode  = (IR >> <span class="num">16</span>) &amp; <span class="num">0xFF</span>;
+        <span class="kw">int</span> operand =  IR &amp; <span class="num">0xFFFF</span>;
+
+        <span class="kw">switch</span> (opcode) {
+            <span class="kw">case</span> <span class="num">1</span> -> ACC = memory[operand];         <span class="cm">// LOAD</span>
+            <span class="kw">case</span> <span class="num">2</span> -> memory[operand] = ACC;         <span class="cm">// STORE</span>
+            <span class="kw">case</span> <span class="num">3</span> -> ACC += memory[operand];        <span class="cm">// ADD</span>
+            <span class="kw">case</span> <span class="num">4</span> -> ACC -= memory[operand];        <span class="cm">// SUB</span>
+        }
+    }
+}</pre>
+            </div>
+            <p class="code-desc">
+                FETCH 단계에서 PC → MAR → MBR → IR 순서로 명령어가 이동합니다.
+                각 레지스터의 역할이 명확히 구분되어 있으며, CU는 IR을 해석해 ALU와 메모리를 제어합니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>

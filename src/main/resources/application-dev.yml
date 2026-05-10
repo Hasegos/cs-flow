@@ -1,0 +1,9 @@
+spring:
+  config:
+    activate:
+      on-profile: dev # 개발 환경
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true

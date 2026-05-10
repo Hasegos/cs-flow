@@ -1,0 +1,86 @@
+/* footer.css — 푸터 */
+
+/* === .footer — 푸터 컨테이너 === */
+.footer {
+  border-top: 1px solid var(--color-border);
+  padding: 3rem 2rem 2rem;
+}
+
+/* === .footer__inner — 상단 브랜드 + 링크 행 === */
+.footer__inner {
+  max-width: 1200px;
+  margin: 0 auto 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 2rem;
+}
+
+/* === .footer__brand — 로고 + 설명 묶음 === */
+.footer__brand {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* === .footer__logo — 푸터 로고 텍스트 === */
+.footer__logo {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.footer__logo-cs {
+  color: var(--color-text);
+}
+
+.footer__logo-flow {
+  color: var(--color-purple);
+}
+
+/* === .footer__desc — 플랫폼 소개 문구 === */
+.footer__desc {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  font-weight: 300;
+  max-width: 420px;
+  line-height: 1.6;
+}
+
+/* === .footer__links — 외부 링크 목록 === */
+.footer__links {
+  display: flex;
+  gap: 1.25rem;
+}
+
+.footer__link {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  transition: color var(--transition);
+}
+
+.footer__link:hover {
+  color: var(--color-teal);
+}
+
+/* === .footer__bottom — 저작권 하단 행 === */
+.footer__bottom {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.footer__copy {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+}
+
+/* === 반응형 === */
+@media (max-width: 768px) {
+  .footer__inner {
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+}

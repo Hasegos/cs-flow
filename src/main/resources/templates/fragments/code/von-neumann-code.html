@@ -1,0 +1,61 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+        <div class="code-block-wrap">
+            <p class="code-block-label">C — 명령어 패치·디코드·실행 시뮬레이션</p>
+            <div class="code-block">
+<pre><span class="cm">// 폰 노이만 구조의 기본 동작 — Fetch → Decode → Execute</span>
+
+<span class="kw">typedef struct</span> {
+<span class="kw">int</span> memory[<span class="num">256</span>];   <span class="cm">// 명령어 + 데이터 동일 메모리</span>
+<span class="kw">int</span> pc;           <span class="cm">// Program Counter (다음 명령어 주소)</span>
+<span class="kw">int</span> acc;          <span class="cm">// Accumulator (누산기)</span>
+} CPU;
+
+<span class="kw">void</span> <span class="fn">run</span>(CPU *cpu) {
+    <span class="kw">while</span> (<span class="num">1</span>) {
+        <span class="cm">/* 1. FETCH — PC가 가리키는 메모리에서 명령어를 가져옴 */</span>
+        <span class="kw">int</span> instr = cpu->memory[cpu->pc++];
+
+        <span class="cm">/* 2. DECODE — 명령어 상위 비트로 연산 종류 판별 */</span>
+        <span class="kw">int</span> opcode  = (instr >> <span class="num">8</span>) & <span class="num">0xFF</span>;
+        <span class="kw">int</span> operand = instr & <span class="num">0xFF</span>;
+
+        <span class="cm">/* 3. EXECUTE — 연산 수행 */</span>
+        <span class="kw">if</span>      (opcode == <span class="num">0x01</span>) cpu->acc  = cpu->memory[operand]; <span class="cm">// LOAD</span>
+        <span class="kw">else if</span> (opcode == <span class="num">0x02</span>) cpu->memory[operand] = cpu->acc;  <span class="cm">// STORE</span>
+        <span class="kw">else if</span> (opcode == <span class="num">0x03</span>) cpu->acc += cpu->memory[operand]; <span class="cm">// ADD</span>
+        <span class="kw">else if</span> (opcode == <span class="num">0xFF</span>) <span class="kw">break</span>;                            <span class="cm">// HALT</span>
+    }
+}</pre>
+            </div>
+            <p class="code-desc">
+                PC(Program Counter)가 메모리 주소를 가리키고, 명령어를 꺼내(Fetch) → 해석하고(Decode) → 실행(Execute)하는 과정이 반복됩니다.
+                명령어와 데이터가 같은 <code>memory[]</code> 배열에 들어있는 것이 폰 노이만 구조의 핵심입니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 폰 노이만 병목 현상 체감</p>
+            <div class="code-block">
+<pre><span class="cm">// 메모리 접근 패턴에 따른 성능 차이 (캐시 미스 vs 히트)</span>
+
+<span class="kw">int</span>[] data = <span class="kw">new int</span>[<span class="num">1024</span> * <span class="num">1024</span>];
+
+<span class="cm">// 순차 접근 — 캐시 히트율 높음 (빠름)</span>
+<span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">0</span>; i < data.length; i++) {
+    data[i] *= <span class="num">2</span>;
+}
+
+<span class="cm">// 랜덤 접근 — 캐시 미스 빈번 (느림, 폰 노이만 병목 체감)</span>
+Random rand = <span class="kw">new</span> <span class="fn">Random</span>();
+<span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">0</span>; i < data.length; i++) {
+    data[rand.<span class="fn">nextInt</span>(data.length)] *= <span class="num">2</span>;
+}</pre>
+            </div>
+            <p class="code-desc">
+                CPU는 연산 속도가 메모리 접근 속도보다 훨씬 빠릅니다. 순차 접근은 캐시가 미리 데이터를 가져오지만,
+                랜덤 접근은 매번 느린 메인 메모리까지 가야 합니다. 이것이 폰 노이만 병목의 실체입니다.
+            </p>
+        </div>
+    </div>
+</th:block>
