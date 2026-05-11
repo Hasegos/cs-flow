@@ -1,7 +1,7 @@
-/* cpu-components.css — CPU 구성 요소 시각화 전용 */
+/* instruction-cycle.css — 명령어 사이클 시각화 전용 */
 
-/* === .cpu — 최상위 컨테이너 === */
-.cpu {
+/* === .ic — 최상위 컨테이너 === */
+.ic {
   display: flex;
   flex-direction: column;
   background: var(--color-bg);
@@ -10,26 +10,25 @@
   min-height: 540px;
 }
 
-/* === .cpu__toolbar === */
-.cpu__toolbar {
+/* === .ic__toolbar — 상단 툴바 === */
+.ic__toolbar {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   justify-content: space-between;
   padding: 14px 24px;
   border-bottom: 1px solid var(--color-border);
   flex-shrink: 0;
-  flex-wrap: wrap;
   gap: 8px;
 }
 
-.cpu__toolbar-left {
+.ic__toolbar-left {
   display: flex;
   align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
+  gap: 20px;
 }
 
-.cpu__title {
+.ic__title {
   font-family: var(--font-mono);
   font-size: 0.62rem;
   letter-spacing: 0.18em;
@@ -37,39 +36,62 @@
   color: var(--color-purple);
 }
 
-/* === .cpu__step — 현재 단계 표시 === */
-.cpu__step-badge {
-  font-family: var(--font-mono);
-  font-size: 0.62rem;
-  padding: 4px 12px;
-  border-radius: 20px;
-  border: 1px solid rgba(108,99,255,0.3);
-  color: var(--color-text-muted);
-  letter-spacing: 0.08em;
-  transition: all 0.25s ease;
-}
-
-.cpu__step-badge--active {
-  border-color: var(--color-purple);
-  color: var(--color-purple);
-  background: rgba(108,99,255,0.1);
-}
-
-/* === .cpu__speed === */
-.cpu__speed {
+/* === .ic__phases — Fetch/Decode/Execute 레이블 === */
+.ic__phases {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.cpu__speed-label {
+.ic__phase-sep {
+  color: #2a2a3a;
+  font-size: 11px;
+}
+
+.ic__phase {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  padding: 4px 12px;
+  border-radius: 20px;
+  border: 1px solid #2a2a3a;
+  color: var(--color-text-muted);
+  letter-spacing: 0.08em;
+  transition: all 0.25s ease;
+}
+
+.ic__phase--fetch {
+  border-color: #f7a14a;
+  color: #f7a14a;
+  background: rgba(247, 161, 74, 0.12);
+}
+
+.ic__phase--decode {
+  border-color: var(--color-teal);
+  color: var(--color-teal);
+  background: rgba(62, 207, 178, 0.12);
+}
+
+.ic__phase--execute {
+  border-color: var(--color-purple);
+  color: var(--color-purple);
+  background: rgba(108, 99, 255, 0.12);
+}
+
+/* === .ic__speed — 속도 조절 === */
+.ic__speed {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ic__speed-label {
   font-family: var(--font-mono);
   font-size: 0.6rem;
   color: var(--color-text-muted);
   letter-spacing: 0.08em;
 }
 
-.cpu__speed-btn {
+.ic__speed-btn {
   font-family: var(--font-mono);
   font-size: 0.6rem;
   padding: 4px 10px;
@@ -81,20 +103,26 @@
   transition: all 0.2s ease;
 }
 
-.cpu__speed-btn:hover,
-.cpu__speed-btn--active {
-  border-color: var(--color-purple);
+.ic__speed-btn:hover,
+.ic__speed-btn--active {
+border-color: var(--color-purple);
   color: var(--color-purple);
 }
 
-/* === .cpu__canvas-wrap === */
-.cpu__canvas-wrap {
-  flex: 1;
-  position: relative;
-  min-height: 360px;
+.ic__speed-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
-.cpu__canvas {
+/* === .ic__canvas-wrap — 캔버스 영역 === */
+.ic__canvas-wrap {
+  flex: 1;
+  position: relative;
+  min-height: 380px;
+}
+
+.ic__canvas {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -102,8 +130,8 @@
   display: block;
 }
 
-/* === .cpu__log === */
-.cpu__log {
+/* === .ic__log — 로그 바 === */
+.ic__log {
   padding: 10px 24px;
   border-top: 1px solid var(--color-border);
   font-family: var(--font-mono);
@@ -117,17 +145,17 @@
   line-height: 1.5;
 }
 
-/* === .cpu__controls === */
-.cpu__controls {
+/* === .ic__controls — 하단 컨트롤 === */
+.ic__controls {
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 12px 24px;
-  border-top: 1px solid rgba(108,99,255,0.1);
+  border-top: 1px solid rgba(108, 99, 255, 0.1);
   flex-shrink: 0;
 }
 
-.cpu__btn {
+.ic__btn {
   font-family: var(--font-mono);
   font-size: 0.72rem;
   padding: 8px 20px;
@@ -140,27 +168,22 @@
   letter-spacing: 0.06em;
 }
 
-.cpu__btn:hover {
+.ic__btn:hover {
   border-color: var(--color-purple);
   color: var(--color-purple);
 }
 
-.cpu__btn--primary {
+.ic__btn--primary {
   border-color: var(--color-purple);
   color: var(--color-purple);
 }
 
-.cpu__btn--primary:hover {
+.ic__btn--primary:hover {
   background: var(--color-purple);
   color: #0f0f1a;
 }
 
-.cpu__btn:disabled {
+.ic__btn:disabled {
   opacity: 0.35;
   cursor: not-allowed;
-}
-.cpu__speed-btn:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-  pointer-events: none;
 }

@@ -1,6 +1,10 @@
 /**
  * cpu-components.js
  * CPU 구성 요소 인터랙티브 시각화
+ * - STEP 버튼 추가
+ * - 배속 진행 중 비활성화 / 리셋 복구
+ * - animFlow 중복 정의 제거 + onDone 콜백 체이닝
+ * - 약어 ? 뱃지 + Canvas 툴팁
  */
 (function () {
     'use strict';
@@ -28,9 +32,13 @@
 
     const speedWrap = el('div', 'cpu__speed');
     speedWrap.appendChild(el('span', 'cpu__speed-label', 'SPEED'));
-    [['1x', 1000], ['2x', 500], ['3x', 220]].forEach(([label, ms], i) => {
+    [['1x', 2000], ['2x', 1000], ['3x', 400]].forEach(([label, ms], i) => {
         const btn = el('button', 'cpu__speed-btn' + (i === 0 ? ' cpu__speed-btn--active' : ''), label);
-        btn.addEventListener('click', () => setSpeed(ms, btn));
+        btn.dataset.ms = ms;
+        btn.addEventListener('click', () => {
+            if (running) return;
+            setSpeed(ms, btn);
+        });
         speedWrap.appendChild(btn);
     });
     toolbar.appendChild(speedWrap);
@@ -48,11 +56,15 @@
 
     const controls = el('div', 'cpu__controls');
     const btnPlay  = el('button', 'cpu__btn cpu__btn--primary', '▶ PLAY');
+    const btnStep  = el('button', 'cpu__btn', '▶| STEP');
     const btnReset = el('button', 'cpu__btn', '↺ RESET');
     btnPlay.id = 'cpu-btn-play';
-    btnPlay.addEventListener('click', cpuStart);
+    btnStep.id = 'cpu-btn-step';
+    btnPlay.addEventListener('click',  cpuStart);
+    btnStep.addEventListener('click',  cpuStep);
     btnReset.addEventListener('click', cpuReset);
     controls.appendChild(btnPlay);
+    controls.appendChild(btnStep);
     controls.appendChild(btnReset);
     root.appendChild(controls);
 
@@ -88,23 +100,38 @@
         muted:  '#6b6b8a',
     };
 
+    /* ===================== 약어 툴팁 데이터 ===================== */
+    const TOOLTIPS = {
+        'PC':  'Program Counter\n다음에 실행할 명령어의 메모리 주소를 보관',
+        'IR':  'Instruction Register\n인출한 명령어를 보관',
+        'MAR': 'Memory Address Register\n메모리에 접근할 주소를 임시 저장',
+        'MBR': 'Memory Buffer Register\n메모리와 주고받는 데이터를 임시 저장',
+        'ACC': 'Accumulator\n연산 중간 결과를 임시 저장',
+        'ALU': 'Arithmetic Logic Unit\n산술·논리 연산을 수행하는 회로',
+        'CU':  'Control Unit\n명령어를 해석하고 각 장치를 제어',
+    };
+
+    let tooltipHits = [];
+    let mousePos    = { x: -1, y: -1 };
+    let hoveredKey  = null;
+
     /* ===================== 시뮬레이션 데이터 ===================== */
     const STEPS = [
-        { active:'PC',  flow:null,                  regs:{PC:'0x04',IR:'—',      MAR:'—',    MBR:'—',     ACC:'5'}, alu:false, cu:false, badge:'FETCH',   log:'[PC] 다음 명령어 주소 0x04를 MAR로 전달합니다.' },
-        { active:'MAR', flow:{from:'PC',  to:'MAR'},regs:{PC:'0x04',IR:'—',      MAR:'0x04', MBR:'—',     ACC:'5'}, alu:false, cu:false, badge:'FETCH',   log:'[MAR] 메모리 주소 0x04 저장 완료. 메모리에서 명령어를 읽습니다.' },
-        { active:'MBR', flow:{from:'MEM',to:'MBR'}, regs:{PC:'0x04',IR:'—',      MAR:'0x04', MBR:'ADD 10',ACC:'5'}, alu:false, cu:false, badge:'FETCH',   log:'[MBR] 메모리[0x04]에서 명령어 "ADD 0x10"을 읽어 MBR에 저장했습니다.' },
-        { active:'IR',  flow:{from:'MBR',to:'IR'},  regs:{PC:'0x05',IR:'ADD 10', MAR:'0x04', MBR:'ADD 10',ACC:'5'}, alu:false, cu:true,  badge:'DECODE',  log:'[IR → CU] 명령어를 IR에 적재. CU가 명령어를 해석합니다.' },
-        { active:'MAR', flow:{from:'CU', to:'MAR'}, regs:{PC:'0x05',IR:'ADD 10', MAR:'0x10', MBR:'ADD 10',ACC:'5'}, alu:false, cu:true,  badge:'DECODE',  log:'[CU → MAR] CU가 피연산자 주소 0x10을 MAR로 전달합니다.' },
-        { active:'MBR', flow:{from:'MEM',to:'MBR'}, regs:{PC:'0x05',IR:'ADD 10', MAR:'0x10', MBR:'3',     ACC:'5'}, alu:false, cu:false, badge:'EXECUTE', log:'[메모리 → MBR] 메모리[0x10] = 3 읽기 완료.' },
-        { active:'ALU', flow:{from:'MBR',to:'ALU'}, regs:{PC:'0x05',IR:'ADD 10', MAR:'0x10', MBR:'3',     ACC:'5'}, alu:true,  cu:false, badge:'EXECUTE', log:'[ALU] ACC(5) + MBR(3) 덧셈 연산 수행 중...' },
-        { active:'ACC', flow:{from:'ALU',to:'ACC'}, regs:{PC:'0x05',IR:'ADD 10', MAR:'0x10', MBR:'3',     ACC:'8'}, alu:true,  cu:false, badge:'EXECUTE', log:'[ALU → ACC] 연산 결과 8이 ACC에 저장되었습니다. 완료!', done:true },
+        { active:'PC',  flow:null,                   regs:{PC:'0x04',IR:'—',      MAR:'—',    MBR:'—',     ACC:'5'}, alu:false, cu:false, badge:'FETCH',   log:'[PC] 다음 명령어 주소 0x04를 MAR로 전달합니다.' },
+        { active:'MAR', flow:{from:'PC',  to:'MAR'}, regs:{PC:'0x04',IR:'—',      MAR:'0x04', MBR:'—',     ACC:'5'}, alu:false, cu:false, badge:'FETCH',   log:'[MAR] 메모리 주소 0x04 저장 완료. 메모리에서 명령어를 읽습니다.' },
+        { active:'MBR', flow:{from:'MEM', to:'MBR'}, regs:{PC:'0x04',IR:'—',      MAR:'0x04', MBR:'ADD 10',ACC:'5'}, alu:false, cu:false, badge:'FETCH',   log:'[MBR] 메모리[0x04]에서 명령어 "ADD 0x10"을 읽어 MBR에 저장했습니다.' },
+        { active:'IR',  flow:{from:'MBR', to:'IR'},  regs:{PC:'0x05',IR:'ADD 10', MAR:'0x04', MBR:'ADD 10',ACC:'5'}, alu:false, cu:true,  badge:'DECODE',  log:'[IR → CU] 명령어를 IR에 적재. CU가 명령어를 해석합니다.' },
+        { active:'MAR', flow:{from:'CU',  to:'MAR'}, regs:{PC:'0x05',IR:'ADD 10', MAR:'0x10', MBR:'ADD 10',ACC:'5'}, alu:false, cu:true,  badge:'DECODE',  log:'[CU → MAR] CU가 피연산자 주소 0x10을 MAR로 전달합니다.' },
+        { active:'MBR', flow:{from:'MEM', to:'MBR'}, regs:{PC:'0x05',IR:'ADD 10', MAR:'0x10', MBR:'3',     ACC:'5'}, alu:false, cu:false, badge:'EXECUTE', log:'[메모리 → MBR] 메모리[0x10] = 3 읽기 완료.' },
+        { active:'ALU', flow:{from:'MBR', to:'ALU'}, regs:{PC:'0x05',IR:'ADD 10', MAR:'0x10', MBR:'3',     ACC:'5'}, alu:true,  cu:false, badge:'EXECUTE', log:'[ALU] ACC(5) + MBR(3) 덧셈 연산 수행 중...' },
+        { active:'ACC', flow:{from:'ALU', to:'ACC'}, regs:{PC:'0x05',IR:'ADD 10', MAR:'0x10', MBR:'3',     ACC:'8'}, alu:true,  cu:false, badge:'EXECUTE', log:'[ALU → ACC] 연산 결과 8이 ACC에 저장되었습니다. 완료!', done:true },
     ];
 
     /* ===================== 상태 ===================== */
     let stepIdx  = -1;
     let running  = false;
     let timer    = null;
-    let speed    = 1900;
+    let speed    = 2000;
     let curStep  = null;
     let flowAnim = null;
     let rafId    = null;
@@ -131,11 +158,7 @@
         ctx.fillText(str, x, y);
     }
 
-    /* ===================== 반응형 스케일 계산 ===================== */
-    function getScale(W) {
-        // 600px 기준, 그 이하면 비율에 맞게 축소
-        return Math.min(1, W / 600);
-    }
+    function getScale(W) { return Math.min(1, W / 600); }
 
     /* ===================== 레이아웃 ===================== */
     function buildLayout() {
@@ -148,7 +171,6 @@
         const memX = W - memW - pad;
         const memY = (H - memH) / 2;
 
-        // CPU 박스 — 화면 크기에 따라 적정 너비
         const cpuMaxW = memX - pad * 2 - Math.max(40, 60 * sc);
         const cpuW    = Math.min(580, cpuMaxW);
         const cpuX    = pad;
@@ -165,6 +187,8 @@
         ctx.fillStyle = P.bg;
         ctx.fillRect(0, 0, W, H);
 
+        tooltipHits = [];   // 히트박스 매 프레임 초기화
+
         const L = buildLayout();
         _layout = L;
 
@@ -172,6 +196,11 @@
         drawMemoryBox(L);
         drawDataBus(L);
         if (flowAnim) drawFlowPacket(L);
+
+        // 툴팁은 항상 최상단
+        if (hoveredKey && TOOLTIPS[hoveredKey]) {
+            drawTooltip(mousePos.x, mousePos.y, hoveredKey);
+        }
     }
 
     /* ===================== CPU 박스 ===================== */
@@ -182,13 +211,12 @@
         const cuOn   = curStep ? curStep.cu     : false;
         const regs   = curStep ? curStep.regs   : { PC:'—', IR:'—', MAR:'—', MBR:'—', ACC:'—' };
 
-        // 스케일에 따른 폰트/크기
-        const fSm   = Math.max(7,  Math.round(9  * sc));  // 설명 텍스트
-        const fMd   = Math.max(9,  Math.round(13 * sc));  // 레이블
-        const fLg   = Math.max(10, Math.round(14 * sc));  // 값
-        const fHd   = Math.max(10, Math.round(13 * sc));  // 헤더
-        const lblW  = Math.max(36, Math.round(56 * sc));  // 레이블 영역 너비
-        const rp    = Math.max(8,  Math.round(14 * sc));  // 패딩
+        const fSm   = Math.max(7,  Math.round(9  * sc));
+        const fMd   = Math.max(9,  Math.round(13 * sc));
+        const fLg   = Math.max(10, Math.round(14 * sc));
+        const fHd   = Math.max(10, Math.round(13 * sc));
+        const lblW  = Math.max(36, Math.round(56 * sc));
+        const rp    = Math.max(8,  Math.round(14 * sc));
         const rGap  = Math.max(6,  Math.round(10 * sc));
         const rH    = Math.max(44, Math.round(60 * sc));
         const rVGap = Math.max(6,  Math.round(10 * sc));
@@ -196,7 +224,6 @@
 
         rr(cpuX, cpuY, cpuW, cpuH, 10, P.surf, P.purple, 2);
 
-        // 헤더
         const hdrH = Math.max(28, Math.round(36 * sc));
         ctx.fillStyle = P.purple;
         ctx.beginPath();
@@ -210,11 +237,11 @@
         tx('CPU', cpuX + cpuW / 2, cpuY + hdrH / 2, fHd, '#0f0f1a', 'center', true);
 
         const REGS = [
-            { id:'PC',  label:'PC',  desc:'Program Counter',      col: P.orange },
-            { id:'IR',  label:'IR',  desc:'Instruction Reg',      col: P.teal   },
-            { id:'MAR', label:'MAR', desc:'Memory Addr Reg',      col: P.purple },
-            { id:'MBR', label:'MBR', desc:'Memory Buffer Reg',    col: P.purple },
-            { id:'ACC', label:'ACC', desc:'Accumulator',          col: P.teal   },
+            { id:'PC',  label:'PC',  desc:'Program Counter',   col: P.orange },
+            { id:'IR',  label:'IR',  desc:'Instruction Reg',   col: P.teal   },
+            { id:'MAR', label:'MAR', desc:'Memory Addr Reg',   col: P.purple },
+            { id:'MBR', label:'MBR', desc:'Memory Buffer Reg', col: P.purple },
+            { id:'ACC', label:'ACC', desc:'Accumulator',       col: P.teal   },
         ];
 
         const cols = 2;
@@ -235,16 +262,10 @@
             rr(rx, ry, rw, rH, 6,
                 isAct ? r.col + '22' : P.surf2,
                 isAct ? r.col : P.border, isAct ? 2.5 : 1);
-
-            // 레이블 배경
             rr(rx, ry, lblW, rH, 6, isAct ? r.col + '33' : P.bg, null);
 
-            // 레이블명
-            tx(r.label, rx + lblW / 2, ry + rH / 2 - fSm - 1, fMd, isAct ? r.col : P.sub, 'center', true);
-            // 설명 — sc가 작아도 표시
-            tx(r.desc,  rx + lblW / 2, ry + rH / 2 + fSm + 1, fSm, isAct ? r.col + 'cc' : P.muted, 'center');
+            tx(r.label, rx + lblW / 2, ry + rH / 2, fMd, isAct ? r.col : P.sub, 'center', true);
 
-            // 구분선
             ctx.beginPath();
             ctx.moveTo(rx + lblW, ry + 6);
             ctx.lineTo(rx + lblW, ry + rH - 6);
@@ -255,6 +276,20 @@
             const val = regs[r.id] || '—';
             tx(val, rx + lblW + (rw - lblW) / 2, ry + rH / 2, fLg,
                 isAct ? r.col : P.text, 'center', isAct);
+
+            // ? 뱃지
+            const qx    = rx + rw - 10;
+            const qy    = ry + rH - 10;
+            const isHov = hoveredKey === r.id;
+            ctx.beginPath();
+            ctx.arc(qx, qy, 6, 0, Math.PI * 2);
+            ctx.fillStyle   = isHov ? P.purple : P.surf2;
+            ctx.fill();
+            ctx.strokeStyle = isHov ? P.purple : P.muted;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            tx('?', qx, qy, 7, isHov ? '#fff' : P.muted, 'center', true);
+            tooltipHits.push({ x: qx - 6, y: qy - 6, w: 12, h: 12, key: r.id });
         });
 
         // ALU / CU
@@ -267,14 +302,30 @@
         rr(aluX, unitTop, unitW, unitH, 6,
             aluOn ? P.teal + '1a' : P.surf2,
             aluOn ? P.teal : P.border, aluOn ? 2.5 : 1);
-        tx('ALU',                   aluX + unitW / 2, unitTop + unitH / 2 - fSm - 1, fLg, aluOn ? P.teal : P.muted, 'center', aluOn);
-        tx('Arithmetic Logic Unit', aluX + unitW / 2, unitTop + unitH / 2 + fSm + 1, fSm, P.muted, 'center');
+        tx('ALU',                   aluX + unitW / 2, unitTop + unitH / 2, fLg, aluOn ? P.teal : P.muted, 'center', aluOn);
+
+        // ALU ? 뱃지
+        const aluQx = aluX + unitW - 10, aluQy = unitTop + unitH - 10;
+        const aluHov = hoveredKey === 'ALU';
+        ctx.beginPath(); ctx.arc(aluQx, aluQy, 6, 0, Math.PI * 2);
+        ctx.fillStyle = aluHov ? P.teal : P.surf2; ctx.fill();
+        ctx.strokeStyle = aluHov ? P.teal : P.muted; ctx.lineWidth = 1; ctx.stroke();
+        tx('?', aluQx, aluQy, 7, aluHov ? '#fff' : P.muted, 'center', true);
+        tooltipHits.push({ x: aluQx - 6, y: aluQy - 6, w: 12, h: 12, key: 'ALU' });
 
         rr(cuX, unitTop, unitW, unitH, 6,
             cuOn ? P.orange + '1a' : P.surf2,
             cuOn ? P.orange : P.border, cuOn ? 2.5 : 1);
-        tx('CU',           cuX + unitW / 2, unitTop + unitH / 2 - fSm - 1, fLg, cuOn ? P.orange : P.muted, 'center', cuOn);
-        tx('Control Unit', cuX + unitW / 2, unitTop + unitH / 2 + fSm + 1, fSm, P.muted, 'center');
+        tx('CU',           cuX + unitW / 2, unitTop + unitH / 2, fLg, cuOn ? P.orange : P.muted, 'center', cuOn);
+
+        // CU ? 뱃지
+        const cuQx = cuX + unitW - 10, cuQy = unitTop + unitH - 10;
+        const cuHov = hoveredKey === 'CU';
+        ctx.beginPath(); ctx.arc(cuQx, cuQy, 6, 0, Math.PI * 2);
+        ctx.fillStyle = cuHov ? P.orange : P.surf2; ctx.fill();
+        ctx.strokeStyle = cuHov ? P.orange : P.muted; ctx.lineWidth = 1; ctx.stroke();
+        tx('?', cuQx, cuQy, 7, cuHov ? '#fff' : P.muted, 'center', true);
+        tooltipHits.push({ x: cuQx - 6, y: cuQy - 6, w: 12, h: 12, key: 'CU' });
 
         L._regPos = regPos;
         L._aluBox = { cx: aluX + unitW / 2, cy: unitTop + unitH / 2 };
@@ -301,15 +352,15 @@
         ctx.fill();
         tx('MEMORY', memX + memW / 2, memY + 14, fHd, P.teal, 'center', true);
 
-        const rowH  = Math.max(30, Math.round(38 * sc));
-        const rowGap = Math.max(4, Math.round(8 * sc));
-        const mRows = [
+        const rowH   = Math.max(30, Math.round(38 * sc));
+        const rowGap = Math.max(4,  Math.round(8  * sc));
+        const mRows  = [
             { addr:'0x04', val:'ADD 0x10', hl: curStep && curStep.regs.MAR === '0x04' },
             { addr:'0x10', val:'3',        hl: curStep && curStep.regs.MAR === '0x10' },
         ];
 
         mRows.forEach((r, i) => {
-            const ry   = memY + 34 + i * (rowH + rowGap);
+            const ry    = memY + 34 + i * (rowH + rowGap);
             const addrW = Math.max(32, Math.round(44 * sc));
             rr(memX + 6, ry, memW - 12, rowH, 4,
                 r.hl ? P.teal + '18' : P.surf2,
@@ -352,9 +403,9 @@
         ctx.globalAlpha = 1;
         ctx.setLineDash([]);
 
-        const fBus  = Math.max(8, Math.round(10 * L.sc));
-        const lblW  = Math.max(56, Math.round(78 * L.sc));
-        const lblH  = Math.max(16, Math.round(22 * L.sc));
+        const fBus = Math.max(8, Math.round(10 * L.sc));
+        const lblW = Math.max(56, Math.round(78 * L.sc));
+        const lblH = Math.max(16, Math.round(22 * L.sc));
         rr(mx - lblW / 2, my - lblH / 2, lblW, lblH, 4, P.surf2, P.purple, 1.5);
         tx('DATA BUS', mx, my, fBus, P.purple, 'center', true);
     }
@@ -374,28 +425,21 @@
 
     function getToCenter(key, fromKey) {
         if (!_layout) return null;
-
-        // 출발 중심
         const from = getFromCenter(fromKey);
 
         if (_layout._regPos && _layout._regPos[key]) {
             const n = _layout._regPos[key];
             if (!from) return { x: n.cx, y: n.cy };
-
-            // 방향 벡터 계산
-            const dx = n.cx - from.x;
-            const dy = n.cy - from.y;
+            const dx   = n.cx - from.x;
+            const dy   = n.cy - from.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
             if (dist === 0) return { x: n.cx, y: n.cy };
-
-            // 노드 경계까지의 오프셋 (박스 안으로 16px 진입)
             const offset = 16;
             return {
                 x: n.cx - (dx / dist) * (n.w / 2 - offset),
                 y: n.cy - (dy / dist) * (n.h / 2 - offset),
             };
         }
-
         if (key === 'ALU' && _layout._aluBox) return { x: _layout._aluBox.cx, y: _layout._aluBox.cy };
         if (key === 'CU'  && _layout._cuBox)  return { x: _layout._cuBox.cx,  y: _layout._cuBox.cy  };
         if (key === 'MEM' && _layout._memBox) return { x: _layout._memBox.x + 16, y: _layout._memBox.cy };
@@ -404,20 +448,33 @@
 
     function animFlow(from, to, cb) {
         if (!from || !to) { cb && cb(); return; }
+        if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
         const fromPos = getFromCenter(from);
         const toPos   = getToCenter(to, from);
         if (!fromPos || !toPos) { cb && cb(); return; }
         flowAnim = { fromPos, toPos, t: 0 };
-        const N = 50;
+
+        // 거리 계산 → 픽셀당 동일 속도 유지
+        const dx   = toPos.x - fromPos.x;
+        const dy   = toPos.y - fromPos.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        // 기준: 1배속(1000ms)에서 100px/초 → 60fps 기준 100px = 60f
+        // speed가 작을수록 빠름, dist에 비례해 N 계산
+        const PX_PER_FRAME_1X = 1.8; // 1배속 기준 프레임당 픽셀 (낮을수록 느림)
+        const BASE_SPEED = 1000;
+        const speedRatio = BASE_SPEED / speed; // 배속 클수록 speedRatio 큼
+        const N = Math.max(10, Math.round(dist / (PX_PER_FRAME_1X * speedRatio)));
+
         let f = 0;
-        function tick() {
+        function animTick() {
             f++;
             flowAnim.t = f / N;
             draw();
-            if (f < N) rafId = requestAnimationFrame(tick);
+            if (f < N) rafId = requestAnimationFrame(animTick);
             else { flowAnim = null; draw(); cb && cb(); }
         }
-        rafId = requestAnimationFrame(tick);
+        rafId = requestAnimationFrame(animTick);
     }
 
     function drawFlowPacket(L) {
@@ -455,6 +512,42 @@
         }
     }
 
+    /* ===================== 툴팁 ===================== */
+    function drawTooltip(mx, my, key) {
+        const lines = TOOLTIPS[key].split('\n');
+        const title = lines[0];
+        const desc  = lines[1] || '';
+
+        ctx.font = '700 10px "JetBrains Mono",monospace';
+        const titleW = ctx.measureText(title).width;
+        ctx.font = '400 9px "JetBrains Mono",monospace';
+        const descW  = ctx.measureText(desc).width;
+
+        const pad = 10;
+        const tw  = Math.max(titleW, descW) + pad * 2;
+        const th  = desc ? 46 : 28;
+        const W   = GW(), H = GH();
+
+        let tx_ = mx + 14;
+        let ty_ = my - th - 8;
+        if (tx_ + tw > W - 8) tx_ = mx - tw - 8;
+        if (ty_ < 8)          ty_ = my + 14;
+
+        rr(tx_, ty_, tw, th, 6, P.surf2, P.purple + '88', 1);
+
+        ctx.font = '700 10px "JetBrains Mono",monospace';
+        ctx.fillStyle = P.text;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(title, tx_ + pad, ty_ + (desc ? 14 : th / 2));
+
+        if (desc) {
+            ctx.font = '400 9px "JetBrains Mono",monospace';
+            ctx.fillStyle = P.sub;
+            ctx.fillText(desc, tx_ + pad, ty_ + 32);
+        }
+    }
+
     /* ===================== 단계 제어 ===================== */
     function setLog(str)   { logEl.textContent = str; }
     function setBadge(str) {
@@ -462,31 +555,21 @@
         badge.className   = 'cpu__step-badge' + (str !== 'IDLE' ? ' cpu__step-badge--active' : '');
     }
 
-    function animFlow(from, to, cb) {
-        if (!from || !to) { cb && cb(); return; }
-        const fromPos = getFromCenter(from);
-        const toPos   = getToCenter(to);
-
-        if (!fromPos || !toPos) { cb && cb(); return; }
-        flowAnim = { fromPos, toPos, t: 0 };
-        const N = 140;
-        let f = 0;
-        function tick() {
-            f++;
-            flowAnim.t = f / N;
-            draw();
-            if (f < N) rafId = requestAnimationFrame(tick);
-            else { flowAnim = null; draw(); cb && cb(); }
-        }
-        rafId = requestAnimationFrame(tick);
-    }
-
-    function applyStep(s) {
+    function applyStep(s, onDone) {
         curStep = s;
         setLog(s.log);
         setBadge(s.badge);
-        if (s.flow) animFlow(s.flow.from, s.flow.to, () => draw());
-        else draw();
+        if (s.flow) {
+            animFlow(s.flow.from, s.flow.to, onDone || (() => draw()));
+        } else {
+            draw();
+            onDone && onDone();
+        }
+    }
+
+    /* ===================== 배속 버튼 활성/비활성 ===================== */
+    function setSpeedBtnsDisabled(disabled) {
+        root.querySelectorAll('.cpu__speed-btn').forEach(b => { b.disabled = disabled; });
     }
 
     /* ===================== 공개 API ===================== */
@@ -494,24 +577,49 @@
         if (running) return;
         running = true;
         btnPlay.disabled = true;
+        btnStep.disabled = true;
+        setSpeedBtnsDisabled(true);
+
         function tick() {
             stepIdx++;
-            if (stepIdx >= STEPS.length) { running = false; return; }
+            if (stepIdx >= STEPS.length) { running = false; setSpeedBtnsDisabled(false); return; }
             const s = STEPS[stepIdx];
-            applyStep(s);
-            if (s.done) { running = false; return; }
-            timer = setTimeout(tick, speed);
+            if (s.done) {
+                applyStep(s);
+                running = false;
+                btnStep.disabled = false;
+                setSpeedBtnsDisabled(false);
+                return;
+            }
+            applyStep(s, () => {
+                draw();
+                timer = setTimeout(tick, speed);
+            });
         }
         tick();
+    }
+
+    function cpuStep() {
+        if (running) return;
+        stepIdx++;
+        if (stepIdx >= STEPS.length) return;
+        const s = STEPS[stepIdx];
+        applyStep(s);
+        if (s.done) {
+            btnPlay.disabled = true;
+            btnStep.disabled = true;
+        }
     }
 
     function cpuReset() {
         clearTimeout(timer);
         cancelAnimationFrame(rafId);
-        running = false; stepIdx = -1; curStep = null; flowAnim = null;
+        running = false; stepIdx = -1; curStep = null; flowAnim = null; rafId = null;
         setLog('▶ PLAY를 눌러 CPU 구성 요소의 동작을 확인하세요.');
         setBadge('IDLE');
         btnPlay.disabled = false;
+        btnStep.disabled = false;
+        setSpeedBtnsDisabled(false);
         draw();
     }
 
@@ -520,6 +628,34 @@
         root.querySelectorAll('.cpu__speed-btn').forEach(b => b.classList.remove('cpu__speed-btn--active'));
         btn.classList.add('cpu__speed-btn--active');
     }
+
+    /* ===================== 마우스 이벤트 ===================== */
+    canvas.addEventListener('mousemove', function(e) {
+        const rect   = canvas.getBoundingClientRect();
+        const scaleX = GW() / rect.width;
+        const scaleY = GH() / rect.height;
+        mousePos.x = (e.clientX - rect.left) * scaleX;
+        mousePos.y = (e.clientY - rect.top)  * scaleY;
+
+        const hit = tooltipHits.find(h =>
+            mousePos.x >= h.x && mousePos.x <= h.x + h.w &&
+            mousePos.y >= h.y && mousePos.y <= h.y + h.h
+        );
+        const newKey = hit ? hit.key : null;
+        if (newKey !== hoveredKey) {
+            hoveredKey = newKey;
+            canvas.style.cursor = newKey ? 'help' : 'default';
+            draw();
+        }
+    });
+
+    canvas.addEventListener('mouseleave', function() {
+        if (hoveredKey) {
+            hoveredKey = null;
+            canvas.style.cursor = 'default';
+            draw();
+        }
+    });
 
     /* ===================== 초기화 ===================== */
     new ResizeObserver(() => resize()).observe(canvasWrap);
