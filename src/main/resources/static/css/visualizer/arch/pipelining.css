@@ -1,0 +1,167 @@
+/* pipelining.css — 파이프라이닝 시각화 전용 */
+
+/* === .pl — 최상위 컨테이너 === */
+.pl {
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  min-height: 540px;
+}
+
+/* === .pl__toolbar === */
+.pl__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pl__toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.pl__title {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-purple);
+}
+
+/* === .pl__step-badge — 현재 단계 표시 === */
+.pl__step-badge {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  padding: 4px 12px;
+  border-radius: 20px;
+  border: 1px solid rgba(108,99,255,0.3);
+  color: var(--color-text-muted);
+  letter-spacing: 0.08em;
+  transition: all 0.25s ease;
+}
+
+.pl__step-badge--active {
+  border-color: var(--color-purple);
+  color: var(--color-purple);
+  background: rgba(108,99,255,0.1);
+}
+
+/* === .pl__speed === */
+.pl__speed {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pl__speed-label {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--color-text-muted);
+  letter-spacing: 0.08em;
+}
+
+.pl__speed-btn {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  padding: 4px 10px;
+  border: 1px solid #2a2a3a;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all 0.2s ease;
+}
+
+.pl__speed-btn:hover,
+.pl__speed-btn--active {
+  border-color: var(--color-purple);
+  color: var(--color-purple);
+}
+
+/* === .pl__canvas-wrap === */
+.pl__canvas-wrap {
+  flex: 1;
+  position: relative;
+  min-height: 360px;
+}
+
+.pl__canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* === .pl__log === */
+.pl__log {
+  padding: 10px 24px;
+  border-top: 1px solid var(--color-border);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--color-purple);
+  letter-spacing: 0.04em;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  line-height: 1.5;
+}
+
+/* === .pl__controls === */
+.pl__controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 24px;
+  border-top: 1px solid rgba(108,99,255,0.1);
+  flex-shrink: 0;
+}
+
+.pl__btn {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  padding: 8px 20px;
+  border: 1px solid #2a2a3a;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+  letter-spacing: 0.06em;
+}
+
+.pl__btn:hover {
+  border-color: var(--color-purple);
+  color: var(--color-purple);
+}
+
+.pl__btn--primary {
+  border-color: var(--color-purple);
+  color: var(--color-purple);
+}
+
+.pl__btn--primary:hover {
+  background: var(--color-purple);
+  color: #0f0f1a;
+}
+
+.pl__btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.pl__speed-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
+}
