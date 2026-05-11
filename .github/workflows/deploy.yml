@@ -1,0 +1,57 @@
+name: CS Flow CI/CD
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest # 빌드 작업대
+
+    steps:
+      # 소스코드 가져오기
+      - name: 소스 코드 가져오기
+        uses: actions/checkout@v3
+
+      # 자바 환경 셋팅
+      - name: 자바 환경 셋팅
+        uses: actions/setup-java@v3
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      # maven 으로 jar 빌드
+      - name: maven jar 빌드
+        run: |
+          chmod +x mvnw
+          ./mvnw clean package -DskipTests
+
+      # 빌드된 jar 파일 Rocky linux로 전달 (SCP)
+      - name: 빌드된 jar 파일 Rocky linux로 전달
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.REMOTE_IP }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          source: "target/cs-flow-0.0.1-SNAPSHOT.jar"
+          target: "/root/workspace/cs-flow"
+          rm: false
+
+      # 서버에 접속해서 서비스 재시작
+      - name: 서버에 접속해서 서비스 재시작
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.REMOTE_IP }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            # 새 파일에 대한 보안 라벨 갱신 
+            restorecon -v /root/workspace/cs-flow/target/cs-flow-0.0.1-SNAPSHOT.jar
+            
+            # systemctl 서비스 재시작
+            systemctl restart cs-flow.service
+            
+            # 5초 대기후 서비스 상태 확인
+            sleep 5
+            systemctl is-active cs-flow.service
