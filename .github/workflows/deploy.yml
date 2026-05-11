@@ -34,6 +34,7 @@ jobs:
           host: ${{ secrets.REMOTE_IP }}
           username: ${{ secrets.REMOTE_USER }}
           key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
           source: "target/cs-flow-0.0.1-SNAPSHOT.jar"
           target: "/root/workspace/cs-flow"
           rm: false
@@ -45,6 +46,7 @@ jobs:
           host: ${{ secrets.REMOTE_IP }}
           username: ${{ secrets.REMOTE_USER }}
           key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
           script: |
             # 새 파일에 대한 보안 라벨 갱신 
             restorecon -v /root/workspace/cs-flow/target/cs-flow-0.0.1-SNAPSHOT.jar
