@@ -1,0 +1,147 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">C — 5단계 파이프라인 레지스터 시뮬레이션</p>
+            <div class="code-block">
+<pre><span class="cm">// 파이프라인 단계 간 데이터를 보관하는 파이프라인 레지스터</span>
+<span class="kw">typedef struct</span> { <span class="kw">unsigned int</span> pc, instruction; }           IF_ID;
+<span class="kw">typedef struct</span> { <span class="kw">unsigned int</span> pc, opcode, rs, rt, rd, imm; } ID_EX;
+<span class="kw">typedef struct</span> { <span class="kw">unsigned int</span> alu_result, rt_val, rd; }        EX_MEM;
+<span class="kw">typedef struct</span> { <span class="kw">unsigned int</span> result, rd; }                    MEM_WB;
+
+<span class="cm">// 파이프라인 레지스터 전역 선언</span>
+IF_ID  if_id   = {<span class="num">0</span>};
+ID_EX  id_ex   = {<span class="num">0</span>};
+EX_MEM ex_mem  = {<span class="num">0</span>};
+MEM_WB mem_wb  = {<span class="num">0</span>};
+
+<span class="cm">// 각 단계 함수 — 한 클럭에 동시 실행됨</span>
+<span class="kw">void</span> <span class="fn">stage_IF</span>(<span class="kw">unsigned int</span> *pc, <span class="kw">unsigned int</span> *mem) {
+    if_id.instruction = mem[*pc];  <span class="cm">// 명령어 인출</span>
+    if_id.pc = (*pc)++;            <span class="cm">// PC 증가</span>
+}
+
+<span class="kw">void</span> <span class="fn">stage_ID</span>() {
+    id_ex.opcode = (if_id.instruction >> <span class="num">26</span>) &amp; <span class="num">0x3F</span>;
+    id_ex.rs     = (if_id.instruction >> <span class="num">21</span>) &amp; <span class="num">0x1F</span>;
+    id_ex.rt     = (if_id.instruction >> <span class="num">16</span>) &amp; <span class="num">0x1F</span>;
+    id_ex.rd     = (if_id.instruction >> <span class="num">11</span>) &amp; <span class="num">0x1F</span>;
+    id_ex.imm    =  if_id.instruction        &amp; <span class="num">0xFFFF</span>;
+    id_ex.pc     =  if_id.pc;
+}
+
+<span class="kw">void</span> <span class="fn">stage_EX</span>(<span class="kw">unsigned int</span> *regs) {
+    ex_mem.rd     = id_ex.rd;
+    ex_mem.rt_val = regs[id_ex.rt];
+    <span class="kw">switch</span> (id_ex.opcode) {
+        <span class="kw">case</span> <span class="num">0x00</span>: ex_mem.alu_result = regs[id_ex.rs] + regs[id_ex.rt]; <span class="kw">break</span>; <span class="cm">// ADD</span>
+        <span class="kw">case</span> <span class="num">0x23</span>: ex_mem.alu_result = regs[id_ex.rs] + id_ex.imm;    <span class="kw">break</span>; <span class="cm">// LOAD</span>
+        <span class="kw">case</span> <span class="num">0x2B</span>: ex_mem.alu_result = regs[id_ex.rs] + id_ex.imm;    <span class="kw">break</span>; <span class="cm">// STORE</span>
+    }
+}
+
+<span class="kw">void</span> <span class="fn">stage_MEM</span>(<span class="kw">unsigned int</span> *data_mem) {
+    mem_wb.rd = ex_mem.rd;
+    <span class="kw">if</span> (id_ex.opcode == <span class="num">0x23</span>)       <span class="cm">// LOAD</span>
+        mem_wb.result = data_mem[ex_mem.alu_result];
+    <span class="kw">else if</span> (id_ex.opcode == <span class="num">0x2B</span>)  <span class="cm">// STORE</span>
+        data_mem[ex_mem.alu_result] = ex_mem.rt_val;
+    <span class="kw">else</span>
+        mem_wb.result = ex_mem.alu_result;
+}
+
+<span class="kw">void</span> <span class="fn">stage_WB</span>(<span class="kw">unsigned int</span> *regs) {
+    regs[mem_wb.rd] = mem_wb.result;  <span class="cm">// 결과를 레지스터에 기록</span>
+}
+
+<span class="cm">// 한 클럭 사이클 실행 — 5단계가 동시에 작동</span>
+<span class="kw">void</span> <span class="fn">clock_cycle</span>(<span class="kw">unsigned int</span> *pc,
+                  <span class="kw">unsigned int</span> *instr_mem,
+                  <span class="kw">unsigned int</span> *data_mem,
+                  <span class="kw">unsigned int</span> *regs) {
+    <span class="fn">stage_WB</span>(regs);        <span class="cm">// WB 먼저 — 포워딩 충돌 방지</span>
+    <span class="fn">stage_MEM</span>(data_mem);
+    <span class="fn">stage_EX</span>(regs);
+    <span class="fn">stage_ID</span>();
+    <span class="fn">stage_IF</span>(pc, instr_mem);
+}</pre>
+            </div>
+            <p class="code-desc">
+                파이프라인 레지스터(IF/ID, ID/EX, EX/MEM, MEM/WB)가 각 단계 사이에서
+                데이터를 래치(Latch)합니다. 매 클럭에 5단계가 동시에 실행되며,
+                WB를 먼저 수행해 같은 클럭 내 포워딩 충돌을 방지합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 파이프라인 해저드 시뮬레이션</p>
+            <div class="code-block">
+<pre><span class="cm">// 데이터 해저드 감지 및 스톨 삽입 시뮬레이터</span>
+<span class="kw">public class</span> <span class="fn">PipelineSimulator</span> {
+
+    <span class="kw">private int</span>[] registers = <span class="kw">new int</span>[<span class="num">32</span>];
+    <span class="kw">private int</span>   stallCount = <span class="num">0</span>;
+
+    <span class="cm">// 파이프라인 레지스터 (단계 간 데이터 보관)</span>
+    <span class="kw">private int</span> ifId_instr, idEx_rd, exMem_rd, memWb_rd;
+    <span class="kw">private boolean</span> idEx_regWrite, exMem_regWrite;
+
+    <span class="cm">/**
+     * 데이터 해저드(RAW) 감지
+     * — ID 단계 명령어의 소스 레지스터가
+     *   앞선 명령어의 목적지 레지스터와 겹치는지 확인
+     */</span>
+    <span class="kw">private boolean</span> <span class="fn">detectDataHazard</span>(<span class="kw">int</span> rs, <span class="kw">int</span> rt) {
+        <span class="cm">// EX/MEM 해저드: 바로 앞 명령어가 아직 WB 전</span>
+        <span class="kw">if</span> (exMem_regWrite &amp;&amp; exMem_rd != <span class="num">0</span> &amp;&amp;
+            (exMem_rd == rs || exMem_rd == rt)) {
+            <span class="kw">return true</span>;
+        }
+        <span class="cm">// MEM/WB 해저드: 두 단계 앞 명령어</span>
+        <span class="kw">if</span> (idEx_regWrite &amp;&amp; idEx_rd != <span class="num">0</span> &amp;&amp;
+            (idEx_rd == rs || idEx_rd == rt)) {
+            <span class="kw">return true</span>;
+        }
+        <span class="kw">return false</span>;
+    }
+
+    <span class="cm">/**
+     * 스톨(Bubble) 삽입
+     * — 해저드 감지 시 NOP을 끼워 파이프라인을 1클럭 지연
+     */</span>
+    <span class="kw">private void</span> <span class="fn">insertStall</span>() {
+        <span class="cm">// ID/EX 레지스터를 NOP(버블)으로 초기화</span>
+        idEx_rd       = <span class="num">0</span>;
+        idEx_regWrite = <span class="kw">false</span>;
+        stallCount++;
+        System.out.<span class="fn">printf</span>(<span class="st">"[STALL] 버블 삽입 — 총 스톨 횟수: %d%n"</span>, stallCount);
+    }
+
+    <span class="cm">/**
+     * 포워딩(Forwarding) — 스톨 없이 해저드 해소
+     * EX/MEM 또는 MEM/WB 레지스터에서 직접 값을 가져옴
+     */</span>
+    <span class="kw">private int</span> <span class="fn">forwardValue</span>(<span class="kw">int</span> regNum) {
+        <span class="kw">if</span> (exMem_regWrite &amp;&amp; exMem_rd == regNum) {
+            System.out.<span class="fn">println</span>(<span class="st">"[FORWARD] EX/MEM → EX"</span>);
+            <span class="kw">return</span> registers[exMem_rd]; <span class="cm">// EX/MEM 포워딩</span>
+        }
+        <span class="kw">if</span> (idEx_regWrite &amp;&amp; idEx_rd == regNum) {
+            System.out.<span class="fn">println</span>(<span class="st">"[FORWARD] MEM/WB → EX"</span>);
+            <span class="kw">return</span> registers[idEx_rd];  <span class="cm">// MEM/WB 포워딩</span>
+        }
+        <span class="kw">return</span> registers[regNum];
+    }
+}</pre>
+            </div>
+            <p class="code-desc">
+                RAW(Read After Write) 해저드는 앞선 명령어의 결과가 아직 레지스터에 기록되기 전에
+                뒤 명령어가 같은 레지스터를 읽을 때 발생합니다.
+                스톨(버블 삽입)은 성능을 낮추지만 정확성을 보장하고,
+                포워딩은 파이프라인 레지스터에서 직접 값을 전달해 스톨을 최소화합니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
