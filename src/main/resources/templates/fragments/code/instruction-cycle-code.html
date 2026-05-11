@@ -1,0 +1,78 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+        <div class="code-block-wrap">
+            <p class="code-block-label">C — 명령어 사이클 시뮬레이션</p>
+            <div class="code-block">
+<pre><span class="cm">// 명령어 사이클: Fetch → Decode → Execute 반복</span>
+
+<span class="kw">typedef struct</span> {
+    <span class="kw">int</span> memory[<span class="num">256</span>];  <span class="cm">// 명령어 + 데이터 동일 메모리 (폰 노이만)</span>
+    <span class="kw">int</span> PC;           <span class="cm">// Program Counter  — 다음 명령어 주소</span>
+    <span class="kw">int</span> MAR;          <span class="cm">// Memory Address Register</span>
+    <span class="kw">int</span> MDR;          <span class="cm">// Memory Data Register</span>
+    <span class="kw">int</span> IR;           <span class="cm">// Instruction Register</span>
+    <span class="kw">int</span> ACC;          <span class="cm">// Accumulator</span>
+} CPU;
+
+<span class="kw">void</span> <span class="fn">run</span>(CPU *cpu) {
+    <span class="kw">while</span> (<span class="num">1</span>) {
+        <span class="cm">/* ① FETCH — PC → MAR, MEM[MAR] → MDR → IR, PC++ */</span>
+        cpu->MAR = cpu->PC;
+        cpu->MDR = cpu->memory[cpu->MAR];
+        cpu->IR  = cpu->MDR;
+        cpu->PC++;
+
+        <span class="cm">/* ② DECODE — opcode(상위 8비트) / operand(하위 8비트) 분리 */</span>
+        <span class="kw">int</span> opcode  = (cpu->IR >> <span class="num">8</span>) & <span class="num">0xFF</span>;
+        <span class="kw">int</span> operand =  cpu->IR & <span class="num">0xFF</span>;
+
+        <span class="cm">/* ③ EXECUTE */</span>
+        <span class="kw">if</span>      (opcode == <span class="num">0x01</span>) cpu->ACC  = cpu->memory[operand]; <span class="cm">// LOAD</span>
+        <span class="kw">else if</span> (opcode == <span class="num">0x02</span>) cpu->memory[operand] = cpu->ACC;  <span class="cm">// STORE</span>
+        <span class="kw">else if</span> (opcode == <span class="num">0x03</span>) cpu->ACC += cpu->memory[operand]; <span class="cm">// ADD</span>
+        <span class="kw">else if</span> (opcode == <span class="num">0x04</span>) cpu->ACC -= cpu->memory[operand]; <span class="cm">// SUB</span>
+        <span class="kw">else if</span> (opcode == <span class="num">0xFF</span>) <span class="kw">break</span>;                            <span class="cm">// HALT</span>
+    }
+}</pre>
+            </div>
+            <p class="code-desc">
+                MAR/MDR은 CPU-메모리 간 속도 차이를 흡수하는 버퍼 레지스터입니다.
+                PC는 Fetch마다 자동 증가하며, 점프 명령어만 이 값을 강제로 바꿉니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — 인터럽트 포함 확장 사이클</p>
+            <div class="code-block">
+<pre><span class="cm"># Fetch → Decode → Execute → Interrupt Check 전체 사이클</span>
+
+<span class="kw">def</span> <span class="fn">run</span>(cpu):
+    <span class="kw">while</span> <span class="kw">True</span>:
+        <span class="cm"># ① FETCH</span>
+        cpu[<span class="st">'MAR'</span>] = cpu[<span class="st">'PC'</span>]
+        cpu[<span class="st">'MDR'</span>] = cpu[<span class="st">'mem'</span>][cpu[<span class="st">'MAR'</span>]]
+        cpu[<span class="st">'IR'</span>]  = cpu[<span class="st">'MDR'</span>]
+        cpu[<span class="st">'PC'</span>] += <span class="num">1</span>
+
+        <span class="cm"># ② DECODE</span>
+        opcode  = (cpu[<span class="st">'IR'</span>] >> <span class="num">8</span>) & <span class="num">0xFF</span>
+        operand =  cpu[<span class="st">'IR'</span>] & <span class="num">0xFF</span>
+
+        <span class="cm"># ③ EXECUTE</span>
+        <span class="kw">if</span>   opcode == <span class="num">0x01</span>: cpu[<span class="st">'ACC'</span>]  = cpu[<span class="st">'mem'</span>][operand]   <span class="cm"># LOAD</span>
+        <span class="kw">elif</span> opcode == <span class="num">0x02</span>: cpu[<span class="st">'mem'</span>][operand] = cpu[<span class="st">'ACC'</span>]   <span class="cm"># STORE</span>
+        <span class="kw">elif</span> opcode == <span class="num">0x03</span>: cpu[<span class="st">'ACC'</span>] += cpu[<span class="st">'mem'</span>][operand]  <span class="cm"># ADD</span>
+        <span class="kw">elif</span> opcode == <span class="num">0xFF</span>: <span class="kw">break</span>                                 <span class="cm"># HALT</span>
+
+        <span class="cm"># ④ INTERRUPT CHECK — 사이클과 사이클 사이에서만 처리</span>
+        <span class="kw">if</span> interrupt_pending():
+            stack.<span class="fn">push</span>(cpu[<span class="st">'PC'</span>])   <span class="cm"># 현재 PC 저장</span>
+            cpu[<span class="st">'PC'</span>] = isr_address  <span class="cm"># ISR로 점프</span></pre>
+            </div>
+            <p class="code-desc">
+                인터럽트는 반드시 Execute 완료 후에 체크합니다. 명령어 실행 도중에는 처리하지 않아야
+                레지스터 상태의 일관성이 보장됩니다. 현재 PC를 스택에 저장해야 ISR 종료 후 원래 위치로 복귀할 수 있습니다.
+            </p>
+        </div>
+    </div>
+</th:block>

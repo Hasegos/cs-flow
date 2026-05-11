@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" th:content="${topic.title} + ' — CS Flow에서 인터랙티브 시각화로 학습하세요'">
+    <title th:text="'CS Flow ' + ${topic.title}">CS Flow 명령어 사이클</title>
+    <link rel="stylesheet" th:href="@{/css/common/reset.css}">
+    <link rel="stylesheet" th:href="@{/css/common/header.css}">
+    <link rel="stylesheet" th:href="@{/css/common/footer.css}">
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/arch/instruction-cycle.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- 히어로 -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/arch}" class="topic-breadcrumb__link">컴퓨터 구조</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">명령어 사이클</span>
+                </nav>
+
+                <span class="topic-hero__slug">arch · 03</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">명령어 사이클</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        명령어 사이클은 CPU가 하나의 명령어를 처리하기 위해 반복하는 일련의 단계입니다.
+                        <strong>인출(Fetch) → 해독(Decode) → 실행(Execute)</strong>의 흐름이 끊임없이 반복되며,
+                        컴퓨터가 프로그램을 실행하는 근본 동작 원리입니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">1단계</p>
+                            <h3 class="overview-card__title">인출 (Fetch)</h3>
+                            <p class="overview-card__desc">PC가 가리키는 메모리 주소에서 명령어를 가져옵니다. MAR → 메모리 → MDR → IR 순서로 전달되고, PC는 자동으로 증가합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">2단계</p>
+                            <h3 class="overview-card__title">해독 (Decode)</h3>
+                            <p class="overview-card__desc">제어 유닛(CU)이 IR에 저장된 명령어를 분석합니다. 연산 코드(opcode)와 피연산자(operand)를 분리해 수행할 동작을 결정합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">3단계</p>
+                            <h3 class="overview-card__title">실행 (Execute)</h3>
+                            <p class="overview-card__desc">ALU가 산술·논리 연산을 수행하거나, 메모리 접근(LOAD/STORE)이 일어납니다. 결과는 레지스터 또는 메모리에 저장됩니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 레지스터</p>
+                            <h3 class="overview-card__title">PC / MAR / MDR / IR</h3>
+                            <p class="overview-card__desc">PC는 다음 명령어 주소, MAR은 접근할 주소, MDR은 전송 데이터, IR은 현재 실행 중인 명령어를 보관합니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>PC 자동 증가</strong> — Fetch 단계에서 명령어를 읽는 즉시 PC가 1 증가합니다. 점프(JMP) 명령어는 이 값을 강제로 덮어씁니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>인터럽트 체크</strong> — Execute 완료 후 인터럽트 요청이 있으면 현재 상태를 스택에 저장하고 ISR(인터럽트 서비스 루틴)을 실행합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>파이프라이닝과의 관계</strong> — 단순 사이클은 한 번에 하나의 명령어만 처리합니다. 파이프라이닝은 이 단계들을 겹쳐서 동시에 여러 명령어를 처리합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>MAR/MDR의 역할</strong> — CPU와 메모리의 속도 차이를 완충하는 버퍼입니다. 모든 메모리 접근은 이 레지스터를 경유합니다.</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 (시각화) -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/instruction-cycle-code :: code}"></th:block>
+            </div>
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+</body>
+</html>
