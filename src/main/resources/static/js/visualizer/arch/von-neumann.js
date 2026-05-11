@@ -41,7 +41,11 @@
     speedWrap.appendChild(el('span', 'vn__speed-label', 'SPEED'));
     [['1x', 1800], ['2x', 1000], ['3x', 500]].forEach(([label, ms], i) => {
         const btn = el('button', 'vn__speed-btn' + (i === 0 ? ' vn__speed-btn--active' : ''), label);
-        btn.addEventListener('click', () => setSpeed(ms, btn));
+        btn.dataset.ms = ms;
+        btn.addEventListener('click', () => {
+            if (running) return;
+            setSpeed(ms, btn);
+        });
         speedWrap.appendChild(btn);
     });
     toolbar.appendChild(speedWrap);
@@ -53,17 +57,21 @@
     canvasWrap.appendChild(canvas);
     root.appendChild(canvasWrap);
 
-    const log = el('div', 'vn__log', '시작 버튼을 눌러 Fetch → Decode → Execute 사이클을 확인하세요.');
-    log.id = 'vn-log';
-    root.appendChild(log);
+    const logBar = el('div', 'vn__log', '시작 버튼을 눌러 Fetch → Decode → Execute 사이클을 확인하세요.');
+    logBar.id = 'vn-log';
+    root.appendChild(logBar);
 
     const controls = el('div', 'vn__controls');
     const btnPlay  = el('button', 'vn__btn vn__btn--primary', '▶ PLAY');
+    const btnStep  = el('button', 'vn__btn', '▶| STEP');
     const btnReset = el('button', 'vn__btn', '↺ RESET');
     btnPlay.id = 'vn-btn-play';
-    btnPlay.addEventListener('click', vnStart);
+    btnStep.id = 'vn-btn-step';
+    btnPlay.addEventListener('click',  vnStart);
+    btnStep.addEventListener('click',  vnStep);
     btnReset.addEventListener('click', vnReset);
     controls.appendChild(btnPlay);
+    controls.appendChild(btnStep);
     controls.appendChild(btnReset);
     root.appendChild(controls);
 
@@ -99,6 +107,21 @@
         muted:  '#6b6b8a',
     };
 
+    /* ===================== 약어 툴팁 데이터 ===================== */
+    const TOOLTIPS = {
+        'PC':  'Program Counter\n다음에 실행할 명령어의 메모리 주소를 보관',
+        'IR':  'Instruction Register\n인출한 명령어를 보관',
+        'R1':  'Register 1\n범용 레지스터 — 연산에 사용되는 데이터 임시 저장',
+        'R2':  'Register 2\n범용 레지스터 — 연산에 사용되는 데이터 임시 저장',
+        'ALU': 'Arithmetic Logic Unit\n산술·논리 연산을 수행하는 회로',
+        'CU':  'Control Unit\n명령어를 해석하고 각 장치를 제어',
+    };
+
+    // 툴팁 히트박스: draw 시마다 갱신
+    let tooltipHits = [];
+    let mousePos    = { x: -1, y: -1 };
+    let hoveredKey  = null;
+
     /* ===================== 시뮬레이션 데이터 ===================== */
     const MEM_INIT = [
         { addr: '0x00', label: 'LOAD R1,[10]',  type: 'i' },
@@ -111,9 +134,6 @@
         { addr: '0x12', label: '?',             type: 'd' },
     ];
 
-    //   'A' → ADDR BUS (CPU→메모리 주소 전달, busY + gap)
-    //   'I' → CTRL BUS (메모리→CPU 명령어 전달, busY - gap)
-    //   'D' → DATA BUS (데이터 읽기/쓰기,       busY)
     const STEPS = [
         // ── 1번째 명령어: LOAD R1,[0x10] ──
         { ph:'f', mh:0, reg:{PC:'0x00',IR:'—',   R1:'—', R2:'—'}, log:'[FETCH-1] PC=0x00 → ADDR BUS로 메모리에 주소 전달',          bus:{toMem:true,  label:'A'} },
@@ -207,19 +227,21 @@
         const busX2 = memX;
         const busY  = H / 2;
 
+        tooltipHits = [];   // 히트박스 매 프레임 초기화
         drawBus(busX1, busX2, busY, gap);
         drawCPU(cpuX, boxY, cpuW, boxH);
         drawMem(memX, boxY, memW, boxH);
 
         if (busAnim) {
-            // label별 버스 선 Y좌표
-            // 'A' → ADDR BUS (busY + gap)
-            // 'I' → CTRL BUS (busY - gap)
-            // 'D' → DATA BUS (busY)
             const packetY = busAnim.label === 'A' ? busY + gap
                           : busAnim.label === 'I' ? busY - gap
                           : busY;
             drawPacket(busX1, busX2, packetY);
+        }
+
+        // 툴팁은 항상 최상단에 렌더
+        if (hoveredKey && TOOLTIPS[hoveredKey]) {
+            drawTooltip(mousePos.x, mousePos.y, hoveredKey);
         }
     }
 
@@ -291,6 +313,19 @@
             ctx.stroke();
             tx(r.v, x + rp + 32 + (w - rp * 2 - 32) / 2, ry + rh / 2, 10,
                 r.hi ? phCol(curPh) : P.text, 'center', r.hi);
+
+            // ? 뱃지
+            const qx = x + w - rp - 10, qy = ry + rh - 8;
+            const isHov = hoveredKey === r.n;
+            ctx.beginPath();
+            ctx.arc(qx, qy, 6, 0, Math.PI * 2);
+            ctx.fillStyle = isHov ? P.purple : P.surf2;
+            ctx.fill();
+            ctx.strokeStyle = isHov ? P.purple : P.muted;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            tx('?', qx, qy, 7, isHov ? '#fff' : P.muted, 'center', true);
+            tooltipHits.push({ x: qx - 6, y: qy - 6, w: 12, h: 12, key: r.n });
         });
 
         const uy = y + h - 76;
@@ -301,10 +336,28 @@
             aluOn ? P.purple : P.border, aluOn ? 2 : 1);
         tx('ALU', x + rp + uw / 2, uy + 21, 10, aluOn ? P.purple : P.muted, 'center', aluOn);
 
+        // ALU ? 뱃지
+        const aluQx = x + rp + uw - 8, aluQy = uy + 34;
+        const aluHov = hoveredKey === 'ALU';
+        ctx.beginPath(); ctx.arc(aluQx, aluQy, 6, 0, Math.PI * 2);
+        ctx.fillStyle = aluHov ? P.purple : P.surf2; ctx.fill();
+        ctx.strokeStyle = aluHov ? P.purple : P.muted; ctx.lineWidth = 1; ctx.stroke();
+        tx('?', aluQx, aluQy, 7, aluHov ? '#fff' : P.muted, 'center', true);
+        tooltipHits.push({ x: aluQx - 6, y: aluQy - 6, w: 12, h: 12, key: 'ALU' });
+
         rr(x + rp + uw + 8, uy, uw, 42, 5,
             cuOn ? P.teal + '1a' : P.surf2,
             cuOn ? P.teal : P.border, cuOn ? 2 : 1);
         tx('CU', x + rp + uw + 8 + uw / 2, uy + 21, 10, cuOn ? P.teal : P.muted, 'center', cuOn);
+
+        // CU ? 뱃지
+        const cuQx = x + rp + uw + 8 + uw - 8, cuQy = uy + 34;
+        const cuHov = hoveredKey === 'CU';
+        ctx.beginPath(); ctx.arc(cuQx, cuQy, 6, 0, Math.PI * 2);
+        ctx.fillStyle = cuHov ? P.teal : P.surf2; ctx.fill();
+        ctx.strokeStyle = cuHov ? P.teal : P.muted; ctx.lineWidth = 1; ctx.stroke();
+        tx('?', cuQx, cuQy, 7, cuHov ? '#fff' : P.muted, 'center', true);
+        tooltipHits.push({ x: cuQx - 6, y: cuQy - 6, w: 12, h: 12, key: 'CU' });
     }
 
     function drawMem(x, y, w, h) {
@@ -355,10 +408,6 @@
         const toM = busAnim.toMem;
         const px  = toM ? x1 + (x2 - x1) * busAnim.t : x2 - (x2 - x1) * busAnim.t;
 
-        // label별 색상
-        // 'A' → ADDR BUS → 민트
-        // 'I' → CTRL BUS → 주황
-        // 'D' → DATA BUS → 보라
         const col = busAnim.label === 'A' ? P.teal
                   : busAnim.label === 'I' ? P.orange
                   : P.purple;
@@ -387,6 +436,41 @@
         ctx.stroke();
     }
 
+    function drawTooltip(mx, my, key) {
+        const lines = TOOLTIPS[key].split('\n');
+        const title = lines[0];
+        const desc  = lines[1] || '';
+
+        ctx.font = '700 10px "JetBrains Mono",monospace';
+        const titleW = ctx.measureText(title).width;
+        ctx.font = '400 9px "JetBrains Mono",monospace';
+        const descW  = ctx.measureText(desc).width;
+
+        const pad = 10;
+        const tw  = Math.max(titleW, descW) + pad * 2;
+        const th  = desc ? 46 : 28;
+        const W   = GW(), H = GH();
+
+        let tx_ = mx + 14;
+        let ty_ = my - th - 8;
+        if (tx_ + tw > W - 8) tx_ = mx - tw - 8;
+        if (ty_ < 8)          ty_ = my + 14;
+
+        rr(tx_, ty_, tw, th, 6, P.surf2, P.purple + '88', 1);
+
+        ctx.font = '700 10px "JetBrains Mono",monospace';
+        ctx.fillStyle = P.text;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(title, tx_ + pad, ty_ + (desc ? 14 : th / 2));
+
+        if (desc) {
+            ctx.font = '400 9px "JetBrains Mono",monospace';
+            ctx.fillStyle = P.sub;
+            ctx.fillText(desc, tx_ + pad, ty_ + 32);
+        }
+    }
+
     /* ===================== 단계 제어 ===================== */
     function setPhase(ph) {
         curPh = ph;
@@ -405,31 +489,38 @@
     }
 
     function setLog(str) {
-        log.textContent = str;
+        logBar.textContent = str;
     }
 
     function animBus(info, cb) {
         if (!info) { cb && cb(); return; }
+        if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
         busAnim = { t: 0, toMem: info.toMem, label: info.label };
-        const N = 140;
+        const BASE_SPEED = 1800;
+        const N = Math.max(30, Math.round(140 * speed / BASE_SPEED));
         let f = 0;
-        function tick() {
+        function animTick() {
             f++;
             busAnim.t = f / N;
             draw();
-            if (f < N) rafId = requestAnimationFrame(tick);
+            if (f < N) rafId = requestAnimationFrame(animTick);
             else { busAnim = null; draw(); cb && cb(); }
         }
-        rafId = requestAnimationFrame(tick);
+        rafId = requestAnimationFrame(animTick);
     }
 
-    function applyStep(s) {
+    function applyStep(s, onDone) {
         curReg = { ...s.reg };
         memHL  = s.mh;
         setPhase(s.ph);
         setLog(s.log);
-        animBus(s.bus, () => draw());
+        animBus(s.bus, onDone || (() => draw()));
         draw();
+    }
+
+    /* ===================== 배속 버튼 활성/비활성 ===================== */
+    function setSpeedBtnsDisabled(disabled) {
+        root.querySelectorAll('.vn__speed-btn').forEach(b => { b.disabled = disabled; });
     }
 
     /* ===================== 공개 API ===================== */
@@ -437,16 +528,38 @@
         if (running) return;
         running = true;
         btnPlay.disabled = true;
+        btnStep.disabled = true;
+        setSpeedBtnsDisabled(true);
 
         function tick() {
             stepIdx++;
-            if (stepIdx >= STEPS.length) { running = false; return; }
+            if (stepIdx >= STEPS.length) { running = false; setSpeedBtnsDisabled(false); return; }
             const s = STEPS[stepIdx];
-            applyStep(s);
-            if (s.done) { running = false; return; }
-            timer = setTimeout(tick, speed);
+            if (s.done) {
+                applyStep(s);
+                running = false;
+                btnStep.disabled = false;
+                setSpeedBtnsDisabled(false);
+                return;
+            }
+            applyStep(s, () => {
+                draw();
+                timer = setTimeout(tick, speed);
+            });
         }
         tick();
+    }
+
+    function vnStep() {
+        if (running) return;
+        stepIdx++;
+        if (stepIdx >= STEPS.length) return;
+        const s = STEPS[stepIdx];
+        applyStep(s);
+        if (s.done) {
+            btnPlay.disabled = true;
+            btnStep.disabled = true;
+        }
     }
 
     function vnReset() {
@@ -463,6 +576,8 @@
         });
         setLog('시작 버튼을 눌러 Fetch → Decode → Execute 사이클을 확인하세요.');
         btnPlay.disabled = false;
+        btnStep.disabled = false;
+        setSpeedBtnsDisabled(false);
         draw();
     }
 
@@ -474,6 +589,34 @@
 
     window.vnStart = vnStart;
     window.vnReset = vnReset;
+
+    /* ===================== 마우스 이벤트 ===================== */
+    canvas.addEventListener('mousemove', function(e) {
+        const rect   = canvas.getBoundingClientRect();
+        const scaleX = GW() / rect.width;
+        const scaleY = GH() / rect.height;
+        mousePos.x = (e.clientX - rect.left) * scaleX;
+        mousePos.y = (e.clientY - rect.top)  * scaleY;
+
+        const hit = tooltipHits.find(h =>
+            mousePos.x >= h.x && mousePos.x <= h.x + h.w &&
+            mousePos.y >= h.y && mousePos.y <= h.y + h.h
+        );
+        const newKey = hit ? hit.key : null;
+        if (newKey !== hoveredKey) {
+            hoveredKey = newKey;
+            canvas.style.cursor = newKey ? 'help' : 'default';
+            draw();
+        }
+    });
+
+    canvas.addEventListener('mouseleave', function() {
+        if (hoveredKey) {
+            hoveredKey = null;
+            canvas.style.cursor = 'default';
+            draw();
+        }
+    });
 
     /* ===================== 초기화 ===================== */
     new ResizeObserver(() => resize()).observe(canvasWrap);
