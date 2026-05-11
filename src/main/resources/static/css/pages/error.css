@@ -1,0 +1,186 @@
+/* error.css — 에러 페이지 전용 */
+
+/* === .error-body — 페이지 레이아웃 === */
+body {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* === 배경 그리드 === */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+      linear-gradient(var(--color-border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--color-border) 1px, transparent 1px);
+  background-size: 60px 60px;
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+/* === .error-container — 중앙 콘텐츠 === */
+.error-container {
+  position: relative;
+  text-align: center;
+  padding: 2rem;
+  animation: error-fade-up 0.6s ease both;
+}
+
+/* === .error-icon — 아이콘 영역 === */
+.error-icon {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  margin: 0 auto 2.5rem;
+}
+
+.error-icon__ring {
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--color-purple);
+  border-radius: 50%;
+  opacity: 0.3;
+  animation: error-pulse 2.4s ease-in-out infinite;
+}
+
+.error-icon__ring:nth-child(2) {
+  inset: 12px;
+  border-color: var(--color-teal);
+  animation-delay: 0.4s;
+}
+
+.error-icon__ring:nth-child(3) {
+  inset: 24px;
+  border-color: var(--color-purple);
+  animation-delay: 0.8s;
+}
+
+.error-icon__core {
+  position: absolute;
+  inset: 36px;
+  background: var(--color-surface);
+  border: 2px solid var(--color-purple);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.error-icon__core svg {
+  width: 22px;
+  height: 22px;
+}
+
+/* === 텍스트 === */
+.error-code {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--color-teal);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+}
+
+.error-title {
+  font-family: var(--font-sans);
+  font-size: 1.6rem;
+  font-weight: 500;
+  color: var(--color-text);
+  margin-bottom: 0.75rem;
+  line-height: 1.4;
+}
+
+.error-message {
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  color: var(--color-text-muted);
+  font-weight: 300;
+  margin-bottom: 2.5rem;
+  line-height: 1.6;
+  max-width: 360px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* === .error-btn — 홈으로 버튼 === */
+.error-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.75rem;
+  background: transparent;
+  border: 1.5px solid var(--color-purple);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  font-weight: 400;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
+}
+
+.error-btn:hover {
+  background: var(--color-purple);
+  border-color: var(--color-purple);
+  color: #fff;
+}
+
+.error-btn svg {
+  width: 16px;
+  height: 16px;
+  transition: transform var(--transition);
+}
+
+.error-btn:hover svg {
+  transform: translateX(-3px);
+}
+
+/* === .error-decoration — 모서리 장식 텍스트 === */
+.error-decoration {
+  position: fixed;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.error-decoration--tl {
+  top: 2rem;
+  left: 2rem;
+}
+
+.error-decoration--br {
+bottom: 2rem;
+right: 2rem;
+ }
+
+/* === 애니메이션 === */
+@keyframes error-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to   {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes error-pulse {
+  0%, 100% {
+  transform: scale(1);
+    opacity: 0.3;
+  }
+
+  50% {
+    transform: scale(1.06);
+    opacity: 0.15;
+  }
+}
