@@ -4,204 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CS Flow - 오류</title>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@300;400;500&display=swap');
-
-        :root {
-            --bg: #0f0f1a;
-            --surface: #1a1a2e;
-            --purple: #6c63ff;
-            --teal: #3ecfb2;
-            --text: #e8e8f0;
-            --text-muted: #6b6b8a;
-            --border: rgba(108, 99, 255, 0.2);
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            background-color: var(--bg);
-            color: var(--text);
-            font-family: 'Noto Sans KR', sans-serif;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-        }
-
-        /* 배경 회로 패턴 */
-        body::before {
-            content: '';
-            position: fixed;
-            inset: 0;
-            background-image:
-                linear-gradient(var(--border) 1px, transparent 1px),
-                linear-gradient(90deg, var(--border) 1px, transparent 1px);
-            background-size: 60px 60px;
-            opacity: 0.4;
-            pointer-events: none;
-        }
-
-        .container {
-            position: relative;
-            text-align: center;
-            padding: 2rem;
-            animation: fadeUp 0.6s ease both;
-        }
-
-        /* 아이콘 영역 */
-        .icon-wrap {
-            position: relative;
-            width: 120px;
-            height: 120px;
-            margin: 0 auto 2.5rem;
-        }
-
-        .icon-ring {
-            position: absolute;
-            inset: 0;
-            border: 2px solid var(--purple);
-            border-radius: 50%;
-            opacity: 0.3;
-            animation: pulse 2.4s ease-in-out infinite;
-        }
-
-        .icon-ring:nth-child(2) {
-            inset: 12px;
-            border-color: var(--teal);
-            animation-delay: 0.4s;
-        }
-
-        .icon-ring:nth-child(3) {
-            inset: 24px;
-            border-color: var(--purple);
-            animation-delay: 0.8s;
-        }
-
-        .icon-core {
-            position: absolute;
-            inset: 36px;
-            background: var(--surface);
-            border: 2px solid var(--purple);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .icon-core svg {
-            width: 22px;
-            height: 22px;
-        }
-
-        /* 텍스트 */
-        .error-code {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.75rem;
-            color: var(--teal);
-            letter-spacing: 0.2em;
-            text-transform: uppercase;
-            margin-bottom: 1rem;
-        }
-
-        .error-title {
-            font-size: 1.6rem;
-            font-weight: 500;
-            color: var(--text);
-            margin-bottom: 0.75rem;
-            line-height: 1.4;
-        }
-
-        .error-message {
-            font-size: 0.95rem;
-            color: var(--text-muted);
-            font-weight: 300;
-            margin-bottom: 2.5rem;
-            line-height: 1.6;
-            max-width: 360px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        /* 버튼 */
-        .btn-home {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.75rem 1.75rem;
-            background: transparent;
-            border: 1.5px solid var(--purple);
-            border-radius: 6px;
-            color: var(--text);
-            font-family: 'Noto Sans KR', sans-serif;
-            font-size: 0.9rem;
-            font-weight: 400;
-            text-decoration: none;
-            cursor: pointer;
-            transition: background 0.2s, color 0.2s, border-color 0.2s;
-        }
-
-        .btn-home:hover {
-            background: var(--purple);
-            border-color: var(--purple);
-            color: #fff;
-        }
-
-        .btn-home svg {
-            width: 16px;
-            height: 16px;
-            transition: transform 0.2s;
-        }
-
-        .btn-home:hover svg {
-            transform: translateX(-3px);
-        }
-
-        /* 하단 장식 */
-        .decoration {
-            position: fixed;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.7rem;
-            color: var(--text-muted);
-            opacity: 0.3;
-            pointer-events: none;
-        }
-
-        .decoration-tl { top: 2rem; left: 2rem; }
-        .decoration-br { bottom: 2rem; right: 2rem; }
-
-        @keyframes fadeUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to   { opacity: 1; transform: translateY(0); }
-        }
-
-        @keyframes pulse {
-            0%, 100% { transform: scale(1);   opacity: 0.3; }
-            50%       { transform: scale(1.06); opacity: 0.15; }
-        }
-    </style>
+    <link rel="stylesheet" th:href="@{/css/common/reset.css}">
+    <link rel="stylesheet" th:href="@{/css/pages/error.css}">
 </head>
 <body>
 
-    <!-- 좌상단 장식 -->
-    <span class="decoration decoration-tl">cs_flow // error</span>
-    <!-- 우하단 장식 -->
-    <span class="decoration decoration-br">system.halt()</span>
+    <!-- 모서리 장식 -->
+    <span class="error-decoration error-decoration--tl">cs_flow // error</span>
+    <span class="error-decoration error-decoration--br">system.halt()</span>
 
-    <div class="container">
+    <div class="error-container">
 
         <!-- 아이콘 -->
-        <div class="icon-wrap">
-            <div class="icon-ring"></div>
-            <div class="icon-ring"></div>
-            <div class="icon-ring"></div>
-            <div class="icon-core">
-                <svg viewBox="0 0 24 24" fill="none" stroke="#6c63ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <div class="error-icon">
+            <div class="error-icon__ring"></div>
+            <div class="error-icon__ring"></div>
+            <div class="error-icon__ring"></div>
+            <div class="error-icon__core">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#6c63ff" stroke-width="2"
+                     stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="10"/>
                     <line x1="12" y1="8" x2="12" y2="12"/>
                     <line x1="12" y1="16" x2="12.01" y2="16"/>
@@ -213,17 +34,17 @@
         <p class="error-code">signal lost</p>
         <h1 class="error-title">앗, 문제가 발생했어요.</h1>
         <p class="error-message" th:text="${message}">
-            요청하신 페이지를 찾을 수 없거나<br>서버에 오류가 발생했어요.
+            요청하신 페이지를 찾을 수 없거나 서버에 오류가 발생했어요.
         </p>
 
         <!-- 홈으로 버튼 -->
-        <a href="/" class="btn-home">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <a href="/" class="error-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="15 18 9 12 15 6"/>
             </svg>
             홈으로 돌아가기
         </a>
-
     </div>
 
 </body>
