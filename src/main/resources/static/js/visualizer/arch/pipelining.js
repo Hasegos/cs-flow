@@ -464,7 +464,7 @@
         if (ty_ < 8)          ty_ = my + 14;
         if (ty_ + th > H - 8) ty_ = H - th - 8;
 
-        rr(tx_, ty_, tw, th, 6, P.surf2, stageCol + '88', 1);
+        rr(tx_, ty_, tw, th, 6, P.surf2, P.purple + 'cc', 2);
 
         ctx.font = '700 14px "JetBrains Mono",monospace';
         ctx.fillStyle = P.text;
