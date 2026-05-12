@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <meta name="description" th:content="${topic.title} + ' — CS Flow에서 인터랙티브 시각화로 학습하세요'">
+    <title th:text="'CS Flow ' + ${topic.title}">CS Flow 메모리 계층 구조</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/arch/memory-hierarchy.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/arch}" class="topic-breadcrumb__link">컴퓨터 구조</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">메모리 계층 구조</span>
+                </nav>
+                <span class="topic-hero__slug">arch · 06</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">메모리 계층 구조</h1>
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+            </div>
+        </section>
+
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+            </div>
+        </nav>
+
+        <div class="topic-content">
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+                    <p class="overview-lead">
+                        메모리 계층 구조(Memory Hierarchy)는 <strong>속도와 용량이 반비례</strong>하는 저장 장치들을
+                        계층으로 배치한 구조입니다. CPU에 가까울수록 빠르고 비싸며 용량이 작고,
+                        멀어질수록 느리지만 저렴하고 용량이 큽니다.
+                    </p>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">계층 1</p>
+                            <h3 class="overview-card__title">레지스터 (Register)</h3>
+                            <p class="overview-card__desc">CPU 내부에 위치한 가장 빠른 저장 공간입니다. 접근 시간 1ns 미만, 용량은 수십~수백 바이트 수준입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">계층 2</p>
+                            <h3 class="overview-card__title">L1 / L2 / L3 캐시</h3>
+                            <p class="overview-card__desc">CPU와 RAM 사이의 고속 버퍼입니다. L1은 수 KB, L2는 수백 KB, L3는 수 MB 규모이며 접근 시간은 1~40ns입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">계층 3</p>
+                            <h3 class="overview-card__title">메인 메모리 (RAM)</h3>
+                            <p class="overview-card__desc">프로그램 실행 시 데이터를 올려두는 주기억장치입니다. 수 GB~수십 GB 용량, 접근 시간 60~100ns입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">계층 4</p>
+                            <h3 class="overview-card__title">보조 기억 장치 (SSD/HDD)</h3>
+                            <p class="overview-card__desc">영구 저장 장치입니다. SSD는 수십~수백 μs, HDD는 수 ms 접근 시간이며 수백 GB~수 TB 용량을 제공합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 원리</p>
+                            <h3 class="overview-card__title">지역성 원리</h3>
+                            <p class="overview-card__desc">시간 지역성(최근 사용 데이터 재사용)과 공간 지역성(인접 주소 데이터 접근)을 이용해 상위 계층 적중률을 높입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 원리</p>
+                            <h3 class="overview-card__title">계층 간 데이터 이동</h3>
+                            <p class="overview-card__desc">상위 계층에 데이터가 없으면(Miss) 하위 계층에서 블록 단위로 가져옵니다. 히트율이 높을수록 전체 성능이 향상됩니다.</p>
+                        </div>
+                    </div>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>속도 vs 용량 트레이드오프</strong> — 레지스터는 RAM보다 약 100배 빠르지만 용량은 수억 배 작습니다. 계층 구조는 이 간극을 효율적으로 메웁니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>평균 접근 시간</strong> — 히트율 h, 캐시 접근 시간 Tc, 메모리 접근 시간 Tm일 때: 평균 접근 시간 = h×Tc + (1-h)×Tm 로 계산합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>캐시 일관성 (Cache Coherence)</strong> — 멀티코어 환경에서 각 코어의 L1 캐시가 같은 메모리 주소에 대해 다른 값을 가지면 안 됩니다. MESI 프로토콜 등으로 해결합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>가상 메모리</strong> — RAM이 부족할 때 SSD/HDD 일부를 RAM처럼 사용하는 기법입니다. 페이지 폴트 발생 시 디스크에서 페이지를 로드합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>비용 구조</strong> — SRAM(캐시)은 DRAM(RAM)보다 셀당 단가가 수십 배 높습니다. 이 때문에 캐시는 소용량으로만 사용됩니다.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/memory-hierarchy-code :: code}"></th:block>
+            </div>
+        </div>
+
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+</body>
+</html>

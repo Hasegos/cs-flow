@@ -1,0 +1,102 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">C — 메모리 계층별 접근 시간 시뮬레이션</p>
+            <div class="code-block">
+<pre><span class="cm">// 메모리 계층별 접근 시간 (나노초 단위)</span>
+<span class="kw">#define</span> T_REGISTER  <span class="num">1</span>      <span class="cm">// 레지스터:  ~1 ns</span>
+<span class="kw">#define</span> T_L1        <span class="num">4</span>      <span class="cm">// L1 캐시:    4 ns</span>
+<span class="kw">#define</span> T_L2        <span class="num">12</span>     <span class="cm">// L2 캐시:   12 ns</span>
+<span class="kw">#define</span> T_L3        <span class="num">40</span>     <span class="cm">// L3 캐시:   40 ns</span>
+<span class="kw">#define</span> T_RAM       <span class="num">100</span>    <span class="cm">// RAM:      100 ns</span>
+<span class="kw">#define</span> T_SSD       <span class="num">100000</span> <span class="cm">// SSD:  100,000 ns (100 μs)</span>
+
+<span class="cm">// 히트율 기반 평균 접근 시간 계산</span>
+<span class="cm">// AMAT = Hit Time + Miss Rate × Miss Penalty</span>
+<span class="kw">double</span> <span class="fn">calc_amat</span>(<span class="kw">double</span> h_l1, <span class="kw">double</span> h_l2, <span class="kw">double</span> h_l3) {
+    <span class="cm">// L1 히트</span>
+    <span class="kw">double</span> amat = h_l1 * T_L1;
+
+    <span class="cm">// L1 미스 → L2 탐색</span>
+    <span class="kw">double</span> miss_l1 = (<span class="num">1.0</span> - h_l1);
+    amat += miss_l1 * h_l2 * T_L2;
+
+    <span class="cm">// L2 미스 → L3 탐색</span>
+    <span class="kw">double</span> miss_l2 = miss_l1 * (<span class="num">1.0</span> - h_l2);
+    amat += miss_l2 * h_l3 * T_L3;
+
+    <span class="cm">// L3 미스 → RAM 접근</span>
+    <span class="kw">double</span> miss_l3 = miss_l2 * (<span class="num">1.0</span> - h_l3);
+    amat += miss_l3 * T_RAM;
+
+    <span class="kw">return</span> amat;
+}
+
+<span class="cm">// 예시: L1=90%, L2=80%, L3=90% 히트율</span>
+<span class="cm">// AMAT = 0.9×4 + 0.1×0.8×12 + 0.1×0.2×0.9×40 + 0.1×0.2×0.1×100</span>
+<span class="cm">//      = 3.6 + 0.96 + 0.72 + 0.2 = 5.48 ns</span></pre>
+            </div>
+            <p class="code-desc">
+                AMAT(Average Memory Access Time)은 계층별 히트율과 접근 시간으로 계산합니다.
+                L1 히트율이 90%일 때 10%의 미스가 하위 계층으로 전파되므로
+                전체 계층의 히트율을 높이는 것이 성능 향상의 핵심입니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 메모리 계층 접근 패턴 시뮬레이터</p>
+            <div class="code-block">
+<pre><span class="cm">// 메모리 계층 시뮬레이터 — 지역성 원리 확인</span>
+<span class="kw">public class</span> <span class="fn">MemoryHierarchySim</span> {
+
+    <span class="kw">private static final int</span> L1_SIZE  = <span class="num">128</span>;   <span class="cm">// 128 KB</span>
+    <span class="kw">private static final int</span> L2_SIZE  = <span class="num">1024</span>;  <span class="cm">// 1 MB</span>
+    <span class="kw">private static final int</span> L3_SIZE  = <span class="num">8192</span>;  <span class="cm">// 8 MB</span>
+
+    <span class="kw">private long</span> l1Hits, l2Hits, l3Hits, ramHits;
+    <span class="kw">private long</span> totalAccess;
+
+    <span class="cm">/** 주소 접근 시뮬레이션 */</span>
+    <span class="kw">public long</span> <span class="fn">access</span>(<span class="kw">int</span> address) {
+        totalAccess++;
+
+        <span class="cm">// 간단한 직접 매핑 시뮬레이션</span>
+        <span class="kw">if</span> (inCache(address, L1_SIZE)) {
+            l1Hits++;
+            <span class="kw">return</span> <span class="num">4</span>;   <span class="cm">// L1 접근: 4ns</span>
+        }
+        <span class="kw">if</span> (inCache(address, L2_SIZE)) {
+            l2Hits++;
+            <span class="kw">return</span> <span class="num">12</span>;  <span class="cm">// L2 접근: 12ns</span>
+        }
+        <span class="kw">if</span> (inCache(address, L3_SIZE)) {
+            l3Hits++;
+            <span class="kw">return</span> <span class="num">40</span>;  <span class="cm">// L3 접근: 40ns</span>
+        }
+
+        ramHits++;
+        <span class="kw">return</span> <span class="num">100</span>;   <span class="cm">// RAM 접근: 100ns</span>
+    }
+
+    <span class="kw">private boolean</span> <span class="fn">inCache</span>(<span class="kw">int</span> addr, <span class="kw">int</span> size) {
+        <span class="kw">return</span> (addr % (size * <span class="num">1024</span>)) < (size * <span class="num">512</span>);
+    }
+
+    <span class="cm">/** 히트율 및 평균 접근 시간 출력 */</span>
+    <span class="kw">public void</span> <span class="fn">printStats</span>() {
+        <span class="kw">double</span> amat = (l1Hits*<span class="num">4.0</span> + l2Hits*<span class="num">12.0</span> +
+                       l3Hits*<span class="num">40.0</span> + ramHits*<span class="num">100.0</span>) / totalAccess;
+        System.out.<span class="fn">printf</span>(<span class="st">"L1 히트율: %.1f%%%n"</span>, l1Hits*<span class="num">100.0</span>/totalAccess);
+        System.out.<span class="fn">printf</span>(<span class="st">"AMAT: %.2f ns%n"</span>, amat);
+    }
+}</pre>
+            </div>
+            <p class="code-desc">
+                시간 지역성이 높은 워크로드(같은 주소 반복 접근)는 L1 히트율이 높아 AMAT가 4ns에 근접합니다.
+                반면 순차 대용량 배열 접근(공간 지역성만 존재)은 캐시 미스가 많아 AMAT가 RAM 접근 시간인 100ns에 가까워집니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
