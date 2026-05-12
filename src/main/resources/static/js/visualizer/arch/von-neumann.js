@@ -300,11 +300,12 @@
 
         regs.forEach((r, i) => {
             const ry = rt + i * (rh + rg);
-            const c  = r.hi ? phCol(curPh) : P.border;
+            const isHov = hoveredKey === r.n;
+            const c  = r.hi ? phCol(curPh) : isHov ? P.purple : P.border;
             rr(x + rp, ry, w - rp * 2, rh, 5,
-                r.hi ? phCol(curPh) + '1a' : P.surf2, c, r.hi ? 2 : 1);
-            rr(x + rp, ry, 32, rh, 5, r.hi ? phCol(curPh) + '33' : P.bg, null);
-            tx(r.n, x + rp + 16, ry + rh / 2, 9, r.hi ? phCol(curPh) : P.muted, 'center', true);
+                r.hi ? phCol(curPh) + '1a' : isHov ? P.purple + '18' : P.surf2, c, r.hi ? 2 : isHov ? 2 : 1);
+            rr(x + rp, ry, 32, rh, 5, r.hi ? phCol(curPh) + '33' : isHov ? P.purple + '28' : P.bg, null);
+            tx(r.n, x + rp + 16, ry + rh / 2, 9, r.hi ? phCol(curPh) : isHov ? P.purple : P.muted, 'center', true);
             ctx.beginPath();
             ctx.moveTo(x + rp + 32, ry + 6);
             ctx.lineTo(x + rp + 32, ry + rh - 6);
@@ -316,7 +317,6 @@
 
             // ? 뱃지
             const qx = x + w - rp - 10, qy = ry + rh - 8;
-            const isHov = hoveredKey === r.n;
             ctx.beginPath();
             ctx.arc(qx, qy, 6, 0, Math.PI * 2);
             ctx.fillStyle = isHov ? P.purple : P.surf2;
@@ -441,33 +441,35 @@
         const title = lines[0];
         const desc  = lines[1] || '';
 
-        ctx.font = '700 10px "JetBrains Mono",monospace';
+        ctx.font = '700 14px "JetBrains Mono",monospace';
         const titleW = ctx.measureText(title).width;
-        ctx.font = '400 9px "JetBrains Mono",monospace';
+        ctx.font = '400 13px "JetBrains Mono",monospace';
         const descW  = ctx.measureText(desc).width;
 
-        const pad = 10;
+        const pad = 14;
         const tw  = Math.max(titleW, descW) + pad * 2;
-        const th  = desc ? 46 : 28;
+        const th  = desc ? 60 : 36;
         const W   = GW(), H = GH();
 
         let tx_ = mx + 14;
         let ty_ = my - th - 8;
-        if (tx_ + tw > W - 8) tx_ = mx - tw - 8;
+        if (tx_ + tw > W - 8) tx_ = mx - tw - 14;
+        if (tx_ < 8)          tx_ = 8;
         if (ty_ < 8)          ty_ = my + 14;
+        if (ty_ + th > H - 8) ty_ = H - th - 8;
 
-        rr(tx_, ty_, tw, th, 6, P.surf2, P.purple + '88', 1);
+        rr(tx_, ty_, tw, th, 6, P.surf2, P.purple + 'cc', 2);
 
-        ctx.font = '700 10px "JetBrains Mono",monospace';
+        ctx.font = '700 14px "JetBrains Mono",monospace';
         ctx.fillStyle = P.text;
         ctx.textAlign = 'left';
         ctx.textBaseline = 'middle';
-        ctx.fillText(title, tx_ + pad, ty_ + (desc ? 14 : th / 2));
+        ctx.fillText(title, tx_ + pad, ty_ + (desc ? 18 : th / 2));
 
         if (desc) {
-            ctx.font = '400 9px "JetBrains Mono",monospace';
+            ctx.font = '400 13px "JetBrains Mono",monospace';
             ctx.fillStyle = P.sub;
-            ctx.fillText(desc, tx_ + pad, ty_ + 32);
+            ctx.fillText(desc, tx_ + pad, ty_ + 42);
         }
     }
 
