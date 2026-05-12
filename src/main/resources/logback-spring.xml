@@ -11,7 +11,7 @@
     <appender name="APP_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>logs/cs-flow.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>logs/%d{yyyy-MM}/cs-flow.%d{yyyy-MM-dd, aux}.log</fileNamePattern>
+            <fileNamePattern>logs/%d{yyyy-MM}/%d{yyyy-MM-dd}.log</fileNamePattern>
             <maxHistory>365</maxHistory>
             <totalSizeCap>1GB</totalSizeCap>
         </rollingPolicy>
@@ -24,7 +24,7 @@
     <appender name="ACCESS_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>logs/access.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>logs/%d{yyyy-MM}/access.%d{yyyy-MM-dd, aux}.log</fileNamePattern>
+            <fileNamePattern>logs/access/%d{yyyy-MM}/%d{yyyy-MM-dd}.log</fileNamePattern>
             <maxHistory>365</maxHistory>
             <totalSizeCap>500MB</totalSizeCap>
         </rollingPolicy>
