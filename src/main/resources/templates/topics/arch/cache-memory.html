@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <meta name="description" th:content="${topic.title} + ' — CS Flow에서 인터랙티브 시각화로 학습하세요'">
+    <title th:text="'CS Flow ' + ${topic.title}">CS Flow 캐시 메모리</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/arch/cache-memory.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- 히어로 -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/arch}" class="topic-breadcrumb__link">컴퓨터 구조</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">캐시 메모리</span>
+                </nav>
+
+                <span class="topic-hero__slug">arch · 05</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">캐시 메모리</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        캐시 메모리(Cache Memory)는 CPU와 주기억장치(RAM) 사이에 위치한
+                        <strong>초고속 임시 저장 공간</strong>입니다.
+                        CPU가 자주 쓰는 데이터를 미리 담아두어 메모리 접근 속도 차이를 극복하고
+                        전체 성능을 끌어올립니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">캐시 히트 (Cache Hit)</h3>
+                            <p class="overview-card__desc">CPU가 요청한 데이터가 캐시에 있는 경우입니다. 메인 메모리 접근 없이 캐시에서 바로 데이터를 가져오므로 매우 빠릅니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">캐시 미스 (Cache Miss)</h3>
+                            <p class="overview-card__desc">CPU가 요청한 데이터가 캐시에 없는 경우입니다. 메인 메모리에서 데이터를 가져온 뒤 캐시에 적재(Load)합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">지역성 원리</h3>
+                            <p class="overview-card__desc">시간 지역성(방금 쓴 데이터를 곧 다시 씀)과 공간 지역성(인접한 주소의 데이터를 곧 씀)을 활용해 캐시 효율을 높입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">캐시 계층 (L1 / L2 / L3)</h3>
+                            <p class="overview-card__desc">L1은 가장 빠르고 작으며 CPU 코어에 직접 붙어있습니다. L2·L3로 갈수록 느리지만 용량이 커집니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">교체 정책 (LRU)</h3>
+                            <p class="overview-card__desc">캐시가 가득 찼을 때 가장 오랫동안 사용되지 않은 데이터를 제거합니다. LRU(Least Recently Used)가 가장 널리 쓰입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">쓰기 정책</h3>
+                            <p class="overview-card__desc">Write-Through는 캐시와 메모리를 동시에 갱신합니다. Write-Back은 캐시만 먼저 갱신하고 나중에 메모리에 반영합니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>히트율 (Hit Rate)</strong> — 전체 메모리 접근 중 캐시 히트 비율입니다. 히트율이 높을수록 성능이 좋으며, 현대 CPU는 90% 이상을 목표로 합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>블록 (Block / Cache Line)</strong> — 캐시는 데이터를 바이트 단위가 아닌 블록(보통 64바이트) 단위로 메모리에서 가져옵니다. 공간 지역성 활용의 핵심입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>직접 매핑 (Direct Mapped)</strong> — 메모리 블록이 캐시의 고정된 한 슬롯에만 들어갈 수 있습니다. 구조가 단순하지만 충돌 미스가 발생할 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>연관 매핑 (Fully Associative)</strong> — 메모리 블록이 캐시의 어느 슬롯에든 들어갈 수 있습니다. 충돌 미스가 없지만 검색 비용이 높습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>세트 연관 매핑 (Set Associative)</strong> — 직접·연관 매핑의 절충안입니다. 캐시를 세트로 나누고 각 세트 내에서 연관 매핑을 적용합니다.</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 (시각화) -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/cache-memory-code :: code}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+</body>
+</html>
