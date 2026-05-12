@@ -1,10 +1,6 @@
 /**
  * cpu-components.js
  * CPU 구성 요소 인터랙티브 시각화
- * - STEP 버튼 추가
- * - 배속 진행 중 비활성화 / 리셋 복구
- * - animFlow 중복 정의 제거 + onDone 콜백 체이닝
- * - 약어 ? 뱃지 + Canvas 툴팁
  */
 (function () {
     'use strict';
@@ -256,20 +252,21 @@
             const ry    = rTop + row * (rH + rVGap);
             const rw    = isACC ? cpuW - rp * 2 : rW;
             const isAct = active === r.id;
+            const isHov = hoveredKey === r.id;
 
             regPos[r.id] = { x: rx, y: ry, w: rw, h: rH, cx: rx + rw / 2, cy: ry + rH / 2 };
 
             rr(rx, ry, rw, rH, 6,
-                isAct ? r.col + '22' : P.surf2,
-                isAct ? r.col : P.border, isAct ? 2.5 : 1);
-            rr(rx, ry, lblW, rH, 6, isAct ? r.col + '33' : P.bg, null);
+                isAct ? r.col + '22' : isHov ? P.purple + '18' : P.surf2,
+                isAct ? r.col : isHov ? P.purple : P.border, isAct ? 2.5 : isHov ? 2 : 1);
+            rr(rx, ry, lblW, rH, 6, isAct ? r.col + '33' : isHov ? P.purple + '28' : P.bg, null);
 
-            tx(r.label, rx + lblW / 2, ry + rH / 2, fMd, isAct ? r.col : P.sub, 'center', true);
+            tx(r.label, rx + lblW / 2, ry + rH / 2, fMd, isAct ? r.col : isHov ? P.purple : P.sub, 'center', true);
 
             ctx.beginPath();
             ctx.moveTo(rx + lblW, ry + 6);
             ctx.lineTo(rx + lblW, ry + rH - 6);
-            ctx.strokeStyle = isAct ? r.col + '88' : P.border;
+            ctx.strokeStyle = isAct ? r.col + '88' : isHov ? P.purple + '88' : P.border;
             ctx.lineWidth = 1;
             ctx.stroke();
 
@@ -280,7 +277,6 @@
             // ? 뱃지
             const qx    = rx + rw - 10;
             const qy    = ry + rH - 10;
-            const isHov = hoveredKey === r.id;
             ctx.beginPath();
             ctx.arc(qx, qy, 6, 0, Math.PI * 2);
             ctx.fillStyle   = isHov ? P.purple : P.surf2;
@@ -518,33 +514,35 @@
         const title = lines[0];
         const desc  = lines[1] || '';
 
-        ctx.font = '700 10px "JetBrains Mono",monospace';
+        ctx.font = '700 14px "JetBrains Mono",monospace';
         const titleW = ctx.measureText(title).width;
-        ctx.font = '400 9px "JetBrains Mono",monospace';
+        ctx.font = '400 13px "JetBrains Mono",monospace';
         const descW  = ctx.measureText(desc).width;
 
-        const pad = 10;
+        const pad = 14;
         const tw  = Math.max(titleW, descW) + pad * 2;
-        const th  = desc ? 46 : 28;
+        const th  = desc ? 60 : 36;
         const W   = GW(), H = GH();
 
         let tx_ = mx + 14;
         let ty_ = my - th - 8;
-        if (tx_ + tw > W - 8) tx_ = mx - tw - 8;
+        if (tx_ + tw > W - 8) tx_ = mx - tw - 14;
+        if (tx_ < 8)          tx_ = 8;
         if (ty_ < 8)          ty_ = my + 14;
+        if (ty_ + th > H - 8) ty_ = H - th - 8;
 
-        rr(tx_, ty_, tw, th, 6, P.surf2, P.purple + '88', 1);
+        rr(tx_, ty_, tw, th, 6, P.surf2, P.purple + 'cc', 2);
 
-        ctx.font = '700 10px "JetBrains Mono",monospace';
+        ctx.font = '700 14px "JetBrains Mono",monospace';
         ctx.fillStyle = P.text;
         ctx.textAlign = 'left';
         ctx.textBaseline = 'middle';
-        ctx.fillText(title, tx_ + pad, ty_ + (desc ? 14 : th / 2));
+        ctx.fillText(title, tx_ + pad, ty_ + (desc ? 18 : th / 2));
 
         if (desc) {
-            ctx.font = '400 9px "JetBrains Mono",monospace';
+            ctx.font = '400 13px "JetBrains Mono",monospace';
             ctx.fillStyle = P.sub;
-            ctx.fillText(desc, tx_ + pad, ty_ + 32);
+            ctx.fillText(desc, tx_ + pad, ty_ + 42);
         }
     }
 
