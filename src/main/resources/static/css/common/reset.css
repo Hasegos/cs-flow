@@ -1,7 +1,5 @@
 /* reset.css — CSS 변수 / Reset / 공통 컴포넌트 */
 
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
-
 /* === 변수 === */
 :root {
     /* 배경 */
