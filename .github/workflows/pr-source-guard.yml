@@ -1,0 +1,22 @@
+name: PR source guard
+
+on:
+  pull_request:
+    branches: [ master ] # master로 들어오는 모든 PR 감시
+
+jobs:
+  allow-only-dev:
+    name: Allow only dev -> master
+    runs-on: ubuntu-latest
+    steps:
+      - name: PR이 dev브랜치인지 확인
+        run: |
+          echo "보내는 브랜치(Source): ${{ github.head_ref }}"
+          echo "받는 브랜치(Target): ${{ github.base_ref }}"
+          
+          if [ "${{ github.head_ref }}" != "dev" ]; then
+            echo "::error::❌ master 브랜치에는 dev 브랜치에서만 PR이 가능합니다. 현재 브랜치: ${{ github.head_ref }}"
+            exit 1
+          fi
+          
+          echo "✅ 검증 성공: dev -> master PR입니다."

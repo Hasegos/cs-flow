@@ -9,5 +9,4 @@ public class CsFlowApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(CsFlowApplication.class, args);
 	}
-
 }
