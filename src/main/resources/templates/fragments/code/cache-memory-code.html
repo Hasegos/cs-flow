@@ -1,0 +1,132 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">C — 직접 매핑 캐시 시뮬레이션</p>
+            <div class="code-block">
+<pre><span class="cm">// 직접 매핑(Direct Mapped) 캐시 구현</span>
+<span class="cm">// 캐시 크기: 4슬롯 / 메모리 블록: 16개</span>
+<span class="kw">#define</span> CACHE_SIZE  <span class="num">4</span>
+<span class="kw">#define</span> MEM_SIZE    <span class="num">16</span>
+
+<span class="kw">typedef struct</span> {
+    <span class="kw">int</span>  valid;      <span class="cm">// 유효 비트 (데이터가 있으면 1)</span>
+    <span class="kw">int</span>  tag;        <span class="cm">// 태그 (어느 메모리 블록인지)</span>
+    <span class="kw">int</span>  data;       <span class="cm">// 실제 데이터</span>
+} CacheSlot;
+
+CacheSlot cache[CACHE_SIZE];
+<span class="kw">int</span>       memory[MEM_SIZE];
+
+<span class="cm">// 직접 매핑: 슬롯 인덱스 = 블록 주소 % CACHE_SIZE</span>
+<span class="kw">int</span> <span class="fn">cache_read</span>(<span class="kw">int</span> addr) {
+    <span class="kw">int</span> index = addr % CACHE_SIZE;   <span class="cm">// 슬롯 결정</span>
+    <span class="kw">int</span> tag   = addr / CACHE_SIZE;   <span class="cm">// 태그 계산</span>
+
+    <span class="kw">if</span> (cache[index].valid &amp;&amp; cache[index].tag == tag) {
+        <span class="cm">/* ✅ Cache Hit — 캐시에서 바로 반환 */</span>
+        <span class="kw">return</span> cache[index].data;
+    }
+
+    <span class="cm">/* ❌ Cache Miss — 메모리에서 읽어서 캐시에 적재 */</span>
+    cache[index].valid = <span class="num">1</span>;
+    cache[index].tag   = tag;
+    cache[index].data  = memory[addr];
+    <span class="kw">return</span> cache[index].data;
+}
+
+<span class="cm">// Write-Through: 캐시와 메모리 동시 갱신</span>
+<span class="kw">void</span> <span class="fn">cache_write_through</span>(<span class="kw">int</span> addr, <span class="kw">int</span> val) {
+    <span class="kw">int</span> index = addr % CACHE_SIZE;
+    <span class="kw">int</span> tag   = addr / CACHE_SIZE;
+
+    cache[index].valid = <span class="num">1</span>;
+    cache[index].tag   = tag;
+    cache[index].data  = val;  <span class="cm">// 캐시 갱신</span>
+    memory[addr]       = val;  <span class="cm">// 메모리 동시 갱신</span>
+}
+
+<span class="cm">// Write-Back: 캐시만 갱신 (dirty bit 표시)</span>
+<span class="kw">void</span> <span class="fn">cache_write_back</span>(<span class="kw">int</span> addr, <span class="kw">int</span> val) {
+    <span class="kw">int</span> index = addr % CACHE_SIZE;
+    <span class="kw">int</span> tag   = addr / CACHE_SIZE;
+
+    cache[index].valid = <span class="num">1</span>;
+    cache[index].tag   = tag;
+    cache[index].data  = val;  <span class="cm">// 캐시만 갱신 (dirty)</span>
+    <span class="cm">// memory[addr]는 나중에 교체 시점에 반영</span>
+}</pre>
+            </div>
+            <p class="code-desc">
+                직접 매핑에서 슬롯 인덱스는 <code>주소 % 캐시 크기</code>로 결정됩니다.
+                유효 비트(valid)와 태그(tag)를 비교해 히트 여부를 판단하고,
+                미스 시 메모리에서 데이터를 읽어 해당 슬롯에 덮어씁니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — LRU 캐시 교체 정책</p>
+            <div class="code-block">
+<pre><span class="kw">import</span> java.util.LinkedHashMap;
+<span class="kw">import</span> java.util.Map;
+
+<span class="cm">/**
+ * LRU(Least Recently Used) 캐시 구현
+ * LinkedHashMap의 accessOrder=true를 활용해
+ * 접근 순서 기반으로 자동 정렬
+ */</span>
+<span class="kw">public class</span> <span class="fn">LRUCache</span>&lt;K, V&gt; {
+
+    <span class="kw">private final int</span> capacity;
+    <span class="kw">private final</span> LinkedHashMap&lt;K, V&gt; map;
+
+    <span class="kw">public</span> <span class="fn">LRUCache</span>(<span class="kw">int</span> capacity) {
+        <span class="kw">this</span>.capacity = capacity;
+        <span class="cm">// accessOrder=true: get() 호출 시 해당 항목을 맨 뒤로 이동</span>
+        <span class="kw">this</span>.map = <span class="kw">new</span> LinkedHashMap&lt;&gt;(capacity, <span class="num">0.75f</span>, <span class="kw">true</span>) {
+            <span class="kw">protected boolean</span> <span class="fn">removeEldestEntry</span>(Map.Entry&lt;K,V&gt; eldest) {
+                <span class="kw">return</span> size() &gt; capacity; <span class="cm">// 용량 초과 시 가장 오래된 항목 자동 제거</span>
+            }
+        };
+    }
+
+    <span class="cm">/** 캐시 조회 — Hit: 값 반환 / Miss: null */</span>
+    <span class="kw">public</span> V <span class="fn">get</span>(K key) {
+        <span class="kw">return</span> map.<span class="fn">getOrDefault</span>(key, <span class="kw">null</span>);
+    }
+
+    <span class="cm">/** 캐시 적재 — 용량 초과 시 LRU 항목 자동 제거 */</span>
+    <span class="kw">public void</span> <span class="fn">put</span>(K key, V value) {
+        map.<span class="fn">put</span>(key, value);
+    }
+
+    <span class="cm">/** 현재 캐시 상태 출력 (MRU → LRU 순) */</span>
+    <span class="kw">public void</span> <span class="fn">printCache</span>() {
+        System.out.<span class="fn">println</span>(<span class="st">"Cache: "</span> + map);
+    }
+}
+
+<span class="cm">// 사용 예시</span>
+<span class="kw">class</span> <span class="fn">Main</span> {
+    <span class="kw">public static void</span> <span class="fn">main</span>(String[] args) {
+        LRUCache&lt;String, Integer&gt; cache = <span class="kw">new</span> <span class="fn">LRUCache</span>&lt;&gt;(<span class="num">4</span>);
+
+        cache.<span class="fn">put</span>(<span class="st">"A"</span>, <span class="num">10</span>);  cache.<span class="fn">printCache</span>(); <span class="cm">// [A]</span>
+        cache.<span class="fn">put</span>(<span class="st">"B"</span>, <span class="num">20</span>);  cache.<span class="fn">printCache</span>(); <span class="cm">// [A, B]</span>
+        cache.<span class="fn">get</span>(<span class="st">"A"</span>);       cache.<span class="fn">printCache</span>(); <span class="cm">// [B, A] ← A가 MRU로</span>
+        cache.<span class="fn">put</span>(<span class="st">"C"</span>, <span class="num">30</span>);  cache.<span class="fn">printCache</span>(); <span class="cm">// [B, A, C]</span>
+        cache.<span class="fn">put</span>(<span class="st">"D"</span>, <span class="num">40</span>);  cache.<span class="fn">printCache</span>(); <span class="cm">// [B, A, C, D] ← 풀</span>
+        cache.<span class="fn">put</span>(<span class="st">"E"</span>, <span class="num">50</span>);  cache.<span class="fn">printCache</span>(); <span class="cm">// [A, C, D, E] ← B 제거(LRU)</span>
+    }
+}</pre>
+            </div>
+            <p class="code-desc">
+                Java의 <code>LinkedHashMap</code>은 <code>accessOrder=true</code> 설정 시
+                접근할 때마다 해당 항목을 내부적으로 맨 뒤로 이동시킵니다.
+                <code>removeEldestEntry</code>를 오버라이드하면 용량 초과 시
+                맨 앞(가장 오래된) 항목을 자동으로 제거해 LRU를 완성합니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
