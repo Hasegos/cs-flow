@@ -1,9 +1,13 @@
 server:
   port: 8081
+  shutdown: graceful
 
 spring:
   application:
     name: cs-flow
+
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
 
   datasource:
     url: jdbc:postgresql://localhost:5432/${POSTGRESQL_DATABASE}
