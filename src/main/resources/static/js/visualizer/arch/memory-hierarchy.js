@@ -1,5 +1,4 @@
 /**
- * memory-hierarchy.js
  * 메모리 계층 구조 인터랙티브 시각화
  */
 (function () {
@@ -48,8 +47,14 @@
     const GH  = () => canvas.height / dpr;
 
     function resize() {
-        const w = canvasWrap.offsetWidth;
-        const h = Math.max(canvasWrap.offsetHeight, 420);
+        const w   = canvasWrap.offsetWidth;
+        const mob = w < 560;
+        const pad = mob ? 12 : 24;
+        const minLayerH = mob ? 62 : 68;
+        const layerGap  = 4;
+        const labelSpace = mob ? 32 : 28;
+        const minH = pad * 2 + LAYERS.length * minLayerH + (LAYERS.length - 1) * layerGap + labelSpace;
+        const h    = Math.max(canvasWrap.offsetHeight, minH);
         canvas.width  = w * dpr;
         canvas.height = h * dpr;
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -186,18 +191,15 @@
     /* ===================== 레이아웃 ===================== */
     function buildLayout() {
         const W = GW(), H = GH();
-        const mob  = W < 560;
+        const mob  = W < 580;
         const pad  = mob ? 10 : 24;
 
-        // 피라미드 영역 (좌측 또는 전체)
         const pyrW = mob ? W - pad * 2 : Math.min(W * 0.52, 380);
-        const pyrX = pad;
+        const pyrX = mob ? pad + 16 : pad;
 
-        // 상세 패널 (우측, 데스크탑만)
         const panelX = mob ? 0 : pyrX + pyrW + (mob ? 0 : 20);
         const panelW = mob ? 0 : W - panelX - pad;
 
-        // 계층 높이
         const pyrH    = H - pad * 2;
         const layerH  = Math.floor(pyrH / LAYERS.length);
         const layerGap = 4;
@@ -209,10 +211,10 @@
     function layerRect(L, i) {
         const { pyrX, pyrW, pad, layerH, layerGap } = L;
         const total = LAYERS.length;
-        // 위로 갈수록 좁아짐 (레지스터=꼭대기=가장 좁음)
-        const minW = pyrW * 0.32;
+
+        const minW = pyrW * 0.6;
         const maxW = pyrW;
-        const frac = i / (total - 1);  // 0(레지스터) → 1(SSD)
+        const frac = i / (total - 1);
         const w    = minW + (maxW - minW) * frac;
         const x    = pyrX + (pyrW - w) / 2;
         const y    = pad + i * (layerH + layerGap);
@@ -241,67 +243,56 @@
 
     /* ===================== 피라미드 ===================== */
     function drawPyramid(L) {
-        const { mob } = L;
-        const fSm = mob ? 10 : 13;
-        const fMd = mob ? 12 : 14;
-        const fLg = mob ? 13 : 16;
+            const { mob } = L;
+            const fSm = mob ? 10 : 12;
+            const fLg = mob ? 13 : 15;
 
-        LAYERS.forEach((layer, i) => {
-            const { x, y, w, h } = layerRect(L, i);
-            const isSel = selectedIdx === i;
-            const isHov = hoveredIdx  === i;
-            const col   = layer.col;
+            LAYERS.forEach((layer, i) => {
+                const { x, y, w, h } = layerRect(L, i);
+                const isSel = selectedIdx === i;
+                const isHov = hoveredIdx  === i;
+                const col   = layer.col;
 
-            // 배경
-            const bgCol = isSel ? col + '33' : isHov ? col + '1a' : P.surf2;
-            const bdCol = isSel ? col : isHov ? col : P.border;
-            const lw    = isSel ? 2.5 : isHov ? 2 : 1;
-            rr(x, y, w, h, 6, bgCol, bdCol, lw);
+                const bgCol = isSel ? col + '33' : isHov ? col + '1a' : P.surf2;
+                const bdCol = isSel ? col : isHov ? col : P.border;
+                rr(x, y, w, h, 6, bgCol, bdCol, isSel ? 2.5 : 1);
 
-            // 왼쪽 컬러 바
-            rr(x, y, 5, h, 3, col, null);
+                rr(x, y, 5, h, 3, col, null);
 
-            const cx = x + w / 2;
-            const cy = y + h / 2;
+                const cx = x + w / 2;
+                const cy = y + h / 2;
 
-            // 계층명
-            tx(layer.name, cx, cy - (mob ? 7 : 8), fLg, isSel || isHov ? col : P.text, 'center', true);
-            tx(layer.nameEn, cx, cy + (mob ? 5 : 7), fSm, P.muted, 'center', false);
+                tx(layer.name, cx, cy - (mob ? 7 : 8), fLg, isSel || isHov ? col : P.text, 'center', true);
+                tx(layer.nameEn, cx, cy + (mob ? 5 : 7), fSm, P.muted, 'center', false);
 
-            // 속도 / 용량 (우측)
-            if (w > 160) {
-                tx(layer.speed, x + w - 8, cy - 8, fSm, isSel ? col : P.sub, 'right', false);
-                tx(layer.size,  x + w - 8, cy + 8, fSm, P.muted,             'right', false);
-            }
+                const rightW = Math.max(20, (w / 2) - 8);
+                clipText(layer.speed, x + w - 12, cy - 8, rightW, fSm, isSel ? col : P.sub, 'right', false);
+                clipText(layer.size,  x + w - 12, cy + 8, rightW, fSm, P.muted,             'right', false);
 
-            // ? 뱃지
-            const qx = x + 14, qy = y + 10;
-            const isHovQ = hoveredKey === layer.id;
-            ctx.beginPath();
-            ctx.arc(qx, qy, 6, 0, Math.PI * 2);
-            ctx.fillStyle   = isHovQ ? col : P.surf2;
-            ctx.fill();
-            ctx.strokeStyle = isHovQ ? col : P.muted;
-            ctx.lineWidth = 1;
-            ctx.stroke();
-            tx('?', qx, qy, 7, isHovQ ? '#fff' : P.muted, 'center', true);
-            tooltipHits.push({ x: qx - 6, y: qy - 6, w: 12, h: 12, key: layer.id });
+                const qx = x + 20, qy = y + h / 2;
+                const isHovQ = hoveredKey === layer.id;
+                ctx.beginPath();
+                ctx.arc(qx, qy, 6, 0, Math.PI * 2);
+                ctx.fillStyle = isHovQ ? col : P.surf2;
+                ctx.fill();
+                ctx.strokeStyle = isHovQ ? col : P.muted;
+                ctx.stroke();
+                tx('?', qx, qy, 7, isHovQ ? '#fff' : P.muted, 'center', true);
 
-            // 클릭 히트박스
-            tooltipHits.push({ x, y, w, h, layerIdx: i, key: null });
-        });
+                tooltipHits.push({ x: qx - 8, y: qy - 8, w: 16, h: 16, key: layer.id });
+                tooltipHits.push({ x, y, w, h, layerIdx: i, key: null });
+            });
 
-        // 계층 간 속도 비교 화살표 (좌측에 세로 축)
-        drawSpeedAxis(L);
-    }
+            drawSpeedAxis(L);
+        }
 
     /* ===================== 속도 축 ===================== */
     function drawSpeedAxis(L) {
-        const { pyrX, pad, layerH, layerGap } = L;
-        const axX  = pyrX - 14;
+        const { pyrX, pad, layerH, layerGap, mob } = L;
+        const axX  = mob ? pyrX - 10 : pyrX - 14;
         const topY = pad + layerH / 2;
         const botY = pad + (LAYERS.length - 1) * (layerH + layerGap) + layerH / 2;
-        if (axX < 4) return;
+        if (axX < 6) return;
 
         ctx.beginPath();
         ctx.moveTo(axX, topY);
@@ -312,7 +303,6 @@
         ctx.stroke();
         ctx.setLineDash([]);
 
-        // 화살촉 위(빠름)
         ctx.beginPath();
         ctx.moveTo(axX, topY - 2);
         ctx.lineTo(axX - 4, topY + 8);
@@ -321,8 +311,9 @@
         ctx.fillStyle = P.purple;
         ctx.fill();
 
-        tx('빠름', axX, topY - 12, 8, P.purple, 'center', true);
-        tx('느림', axX, botY + 12, 8, P.muted,  'center', false);
+        const fAxis = mob ? 10 : 11;
+        tx('빠름', axX, topY - 14, fAxis, P.purple, 'center', true);
+        tx('느림', axX, botY + 14, fAxis, P.muted,  'center', false);
     }
 
     /* ===================== 상세 패널 ===================== */
@@ -335,7 +326,6 @@
 
         rr(panelX, pY, panelW, pH, 8, P.surf, col, 2);
 
-        // 헤더
         rr(panelX, pY, panelW, 48, 8, col + '22', null);
         tx(layer.name,   panelX + panelW / 2, pY + 17, 18, col,    'center', true);
         tx(layer.nameEn, panelX + panelW / 2, pY + 36, 13, P.muted, 'center', false);
@@ -354,7 +344,6 @@
             tx(val,   panelX + panelW - 20,    ry + (rowH - 6) / 2, 14, col,     'right', true);
         });
 
-        // 설명
         const descY = pY + 60 + rows.length * rowH + 12;
         rr(panelX + 12, descY, panelW - 24, pH - (descY - pY) - 12, 5, P.surf2, P.border, 1);
         wrapText(layer.detail, panelX + 22, descY + 16, panelW - 44, 22, 13, P.sub);
@@ -388,6 +377,17 @@
             }
         });
         if (line) ctx.fillText(line, x, cy);
+    }
+
+    function clipText(str, x, y, maxW, sz, col, align, bold) {
+        ctx.font = `${bold ? 700 : 400} ${sz}px "JetBrains Mono",monospace`;
+        ctx.fillStyle    = col;
+        ctx.textAlign    = align || 'right';
+        ctx.textBaseline = 'middle';
+        let s = str;
+        while (s.length > 2 && ctx.measureText(s).width > maxW) s = s.slice(0, -1);
+        if (s !== str) s = s.slice(0, -1) + '…';
+        ctx.fillText(s, x, y);
     }
 
     /* ===================== 툴팁 ===================== */
@@ -451,14 +451,12 @@
         mousePos.x = (e.clientX - rect.left) * (GW() / rect.width);
         mousePos.y = (e.clientY - rect.top)  * (GH() / rect.height);
 
-        // ? 뱃지 히트
         const badgeHit = tooltipHits.find(h =>
             h.key && mousePos.x >= h.x && mousePos.x <= h.x + h.w &&
             mousePos.y >= h.y && mousePos.y <= h.y + h.h
         );
         const newKey = badgeHit ? badgeHit.key : null;
 
-        // 계층 hover
         const layerHit = tooltipHits.find(h =>
             h.layerIdx !== undefined &&
             mousePos.x >= h.x && mousePos.x <= h.x + h.w &&
@@ -488,7 +486,8 @@
             selectedIdx = layerHit.layerIdx;
             const layer = LAYERS[selectedIdx];
             setBadge(layer.nameEn);
-            setLog(`${layer.name} (${layer.nameEn}) — 접근 속도: ${layer.speed} / 용량: ${layer.size}`);
+            setLog(layer.name + ' (' + layer.nameEn + ') — 접근 속도: ' + layer.speed + ' / 용량: ' + layer.size);
+            if (window.innerWidth <= 768) showModal(layer);
             draw();
         }
     });
@@ -503,4 +502,33 @@
     /* ===================== 초기화 ===================== */
     new ResizeObserver(() => resize()).observe(canvasWrap);
     setTimeout(resize, 60);
+
+    /* ===================== 모바일 모달 ===================== */
+    const modalOverlay = document.createElement('div');
+    modalOverlay.className = 'mem-hier__modal-overlay';
+    const modalContent  = document.createElement('div');
+    modalContent.className = 'mem-hier__modal-content';
+    const modalClose = document.createElement('button');
+    modalClose.className  = 'mem-hier__modal-close';
+    modalClose.textContent = '×';
+    modalClose.onclick = () => modalOverlay.classList.remove('is-active');
+    const modalTitle = document.createElement('div');
+    modalTitle.className = 'mem-hier__modal-title';
+    const modalBody  = document.createElement('div');
+    modalBody.className  = 'mem-hier__modal-body';
+    modalContent.append(modalClose, modalTitle, modalBody);
+    modalOverlay.appendChild(modalContent);
+    modalOverlay.onclick = (e) => { if (e.target === modalOverlay) modalOverlay.classList.remove('is-active'); };
+    document.body.appendChild(modalOverlay);
+
+    function showModal(layer) {
+        modalTitle.textContent = layer.name + ' (' + layer.nameEn + ')';
+        modalBody.innerText =
+            '접근 속도: ' + layer.speed +
+            '\n용량: '    + layer.size  +
+            '\n기술: '    + layer.tech  +
+            '\n비용: '    + layer.cost  +
+            '\n\n'       + layer.detail;
+        modalOverlay.classList.add('is-active');
+    }
 })();

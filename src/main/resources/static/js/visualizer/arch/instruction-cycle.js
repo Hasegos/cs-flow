@@ -1,5 +1,4 @@
 /**
- * instruction-cycle.js
  * 명령어 사이클 인터랙티브 시각화
  */
 (function () {
@@ -52,19 +51,16 @@
     toolbar.appendChild(speedWrap);
     root.appendChild(toolbar);
 
-    // 캔버스
     const canvasWrap = el('div', 'ic__canvas-wrap');
     const canvas     = document.createElement('canvas');
     canvas.className = 'ic__canvas';
     canvasWrap.appendChild(canvas);
     root.appendChild(canvasWrap);
 
-    // 로그
     const logBar = el('div', 'ic__log', '시작 버튼을 눌러 Fetch → Decode → Execute 사이클을 확인하세요.');
     logBar.id = 'ic-log';
     root.appendChild(logBar);
 
-    // 컨트롤
     const controls = el('div', 'ic__controls');
     const btnPlay  = el('button', 'ic__btn ic__btn--primary', '▶ PLAY');
     const btnStep  = el('button', 'ic__btn', '▶| STEP');
@@ -112,8 +108,6 @@
     };
 
     /* ===================== 시뮬레이션 데이터 ===================== */
-    // 예시 프로그램: LOAD ACC,[0x05] → ADD ACC,[0x06] → STORE ACC,[0x07] → HALT
-    // 메모리 레이아웃
     const MEM_INIT = [
         { addr: '0x00', label: 'LOAD  [0x05]', type: 'i' },
         { addr: '0x01', label: 'ADD   [0x06]', type: 'i' },
@@ -125,31 +119,25 @@
         { addr: '0x07', label: '?',            type: 'd' },
     ];
 
-    // bus 방향: toMem=true → CPU→메모리, false → 메모리→CPU
-    // label: 'A'=ADDR BUS(민트), 'I'=CTRL BUS(주황), 'D'=DATA BUS(보라)
     const STEPS = [
-        // ── 1번째 명령어: LOAD ACC,[0x05] ──
         { ph:'f', mh:0, reg:{PC:'0x00', MAR:'0x00', MDR:'—',  IR:'—',    ACC:'—'}, log:'[FETCH-1] PC=0x00 → MAR=0x00, ADDR BUS로 메모리에 주소 전달',       bus:{toMem:true,  label:'A'} },
         { ph:'f', mh:0, reg:{PC:'0x01', MAR:'0x00', MDR:'LOAD',IR:'—',   ACC:'—'}, log:'[FETCH-2] MEM[0x00]=LOAD → CTRL BUS로 MDR에 전달, PC→0x01',         bus:{toMem:false, label:'I'} },
         { ph:'d', mh:0, reg:{PC:'0x01', MAR:'0x00', MDR:'LOAD',IR:'LOAD',ACC:'—'}, log:'[DECODE]  IR ← LOAD [0x05] — CU가 명령어 해석, 피연산자=0x05',       bus:null },
         { ph:'e', mh:5, reg:{PC:'0x01', MAR:'0x05', MDR:'LOAD',IR:'LOAD',ACC:'—'}, log:'[EXEC-1]  피연산자 주소 0x05 → ADDR BUS로 메모리 전달',              bus:{toMem:true,  label:'A'} },
         { ph:'e', mh:5, reg:{PC:'0x01', MAR:'0x05', MDR:'10',  IR:'LOAD',ACC:'10'},log:'[EXEC-2]  MEM[0x05]=10 → DATA BUS로 ACC에 전달, ACC=10',             bus:{toMem:false, label:'D'} },
 
-        // ── 2번째 명령어: ADD ACC,[0x06] ──
         { ph:'f', mh:1, reg:{PC:'0x01', MAR:'0x01', MDR:'10',  IR:'LOAD',ACC:'10'},log:'[FETCH-1] PC=0x01 → MAR=0x01, ADDR BUS로 메모리에 주소 전달',        bus:{toMem:true,  label:'A'} },
         { ph:'f', mh:1, reg:{PC:'0x02', MAR:'0x01', MDR:'ADD', IR:'LOAD',ACC:'10'},log:'[FETCH-2] MEM[0x01]=ADD → CTRL BUS로 MDR에 전달, PC→0x02',           bus:{toMem:false, label:'I'} },
         { ph:'d', mh:1, reg:{PC:'0x02', MAR:'0x01', MDR:'ADD', IR:'ADD', ACC:'10'},log:'[DECODE]  IR ← ADD [0x06] — CU가 명령어 해석, 피연산자=0x06',        bus:null },
         { ph:'e', mh:6, reg:{PC:'0x02', MAR:'0x06', MDR:'ADD', IR:'ADD', ACC:'10'},log:'[EXEC-1]  피연산자 주소 0x06 → ADDR BUS로 메모리 전달',              bus:{toMem:true,  label:'A'} },
         { ph:'e', mh:6, reg:{PC:'0x02', MAR:'0x06', MDR:'20',  IR:'ADD', ACC:'30'},log:'[EXEC-2]  MEM[0x06]=20 → DATA BUS, ACC=10+20=30',                    bus:{toMem:false, label:'D'} },
 
-        // ── 3번째 명령어: STORE ACC,[0x07] ──
         { ph:'f', mh:2, reg:{PC:'0x02', MAR:'0x02', MDR:'20',  IR:'ADD', ACC:'30'},log:'[FETCH-1] PC=0x02 → MAR=0x02, ADDR BUS로 메모리에 주소 전달',        bus:{toMem:true,  label:'A'} },
         { ph:'f', mh:2, reg:{PC:'0x03', MAR:'0x02', MDR:'STORE',IR:'ADD',ACC:'30'},log:'[FETCH-2] MEM[0x02]=STORE → CTRL BUS로 MDR에 전달, PC→0x03',         bus:{toMem:false, label:'I'} },
         { ph:'d', mh:2, reg:{PC:'0x03', MAR:'0x02', MDR:'STORE',IR:'STORE',ACC:'30'},log:'[DECODE] IR ← STORE [0x07] — CU가 명령어 해석, 피연산자=0x07',     bus:null },
         { ph:'e', mh:7, reg:{PC:'0x03', MAR:'0x07', MDR:'STORE',IR:'STORE',ACC:'30'},log:'[EXEC-1] 저장 주소 0x07 → ADDR BUS로 메모리 전달',                 bus:{toMem:true,  label:'A'} },
         { ph:'e', mh:7, reg:{PC:'0x03', MAR:'0x07', MDR:'30',   IR:'STORE',ACC:'30'},log:'[EXEC-2] ACC=30 → DATA BUS로 MEM[0x07]에 쓰기',                    bus:{toMem:true,  label:'D'} },
 
-        // ── 4번째 명령어: HALT ──
         { ph:'f', mh:3, reg:{PC:'0x03', MAR:'0x03', MDR:'30',  IR:'STORE',ACC:'30'},log:'[FETCH-1] PC=0x03 → MAR=0x03, ADDR BUS로 메모리에 주소 전달',       bus:{toMem:true,  label:'A'} },
         { ph:'f', mh:3, reg:{PC:'0x04', MAR:'0x03', MDR:'HALT',IR:'STORE',ACC:'30'},log:'[FETCH-2] MEM[0x03]=HALT → CTRL BUS로 MDR에 전달',                  bus:{toMem:false, label:'I'} },
         { ph:'d', mh:3, reg:{PC:'0x04', MAR:'0x03', MDR:'HALT',IR:'HALT', ACC:'30'},log:'[DECODE]  IR ← HALT — CU가 명령어 해석',                            bus:null },
@@ -167,8 +155,7 @@
         'CU':  'Control Unit\n명령어를 해석하고 각 장치를 제어',
     };
 
-    // 툴팁 히트박스: draw 시마다 갱신
-    let tooltipHits = []; // [{ x, y, w, h, key }]
+    let tooltipHits = [];
     let mousePos    = { x: -1, y: -1 };
     let hoveredKey  = null;
 
@@ -230,7 +217,7 @@
         const busX2 = memX;
         const busY  = H / 2;
 
-        tooltipHits = [];   // 히트박스 매 프레임 초기화
+        tooltipHits = [];
         drawBus(busX1, busX2, busY, gap);
         drawCPU(cpuX, boxY, cpuW, boxH);
         drawMem(memX, boxY, memW, boxH);
@@ -242,7 +229,6 @@
             drawPacket(busX1, busX2, packetY);
         }
 
-        // 툴팁 히트박스 초기화는 drawCPU 전에 해야 하므로 여기서 렌더만
         if (hoveredKey && TOOLTIPS[hoveredKey]) {
             drawTooltip(mousePos.x, mousePos.y, hoveredKey);
         }
@@ -280,7 +266,6 @@
 
         rr(x, y, w, h, 10, P.surf, col, curPh ? 2 : 1.5);
 
-        // 헤더
         ctx.fillStyle = col;
         ctx.beginPath();
         ctx.moveTo(x + 10, y);
@@ -292,7 +277,6 @@
         ctx.fill();
         tx('CPU', x + w / 2, y + 16, 11, '#0f0f1a', 'center', true);
 
-        // 레지스터 5개: PC, MAR, MDR, IR, ACC
         const rp = 12, rh = 28, rg = 5;
         const rt = y + 44;
 
@@ -323,7 +307,6 @@
             tx(r.v, x + rp + 36 + (w - rp * 2 - 36) / 2, ry + rh / 2, 9,
                 r.hi ? phCol(curPh) : P.text, 'center', r.hi);
 
-            // ? 뱃지
             const qx = x + w - rp - 10, qy = ry + rh - 8;
             ctx.beginPath();
             ctx.arc(qx, qy, 6, 0, Math.PI * 2);
@@ -337,7 +320,6 @@
             tooltipHits.push({ x: qx - 6, y: qy - 6, w: 12, h: 12, key: r.n });
         });
 
-        // ALU / CU
         const uy = y + h - 60;
         const uw = (w - rp * 2 - 8) / 2;
 
@@ -346,7 +328,6 @@
             aluOn ? P.purple : P.border, aluOn ? 2 : 1);
         tx('ALU', x + rp + uw / 2, uy + 19, 9, aluOn ? P.purple : P.muted, 'center', aluOn);
 
-        // ALU ? 뱃지
         const aluQx = x + rp + uw - 8, aluQy = uy + 30;
         const aluHov = hoveredKey === 'ALU';
         ctx.beginPath(); ctx.arc(aluQx, aluQy, 6, 0, Math.PI * 2);
@@ -360,7 +341,6 @@
             cuOn ? P.teal : P.border, cuOn ? 2 : 1);
         tx('CU', x + rp + uw + 8 + uw / 2, uy + 19, 9, cuOn ? P.teal : P.muted, 'center', cuOn);
 
-        // CU ? 뱃지
         const cuQx = x + rp + uw + 8 + uw - 8, cuQy = uy + 30;
         const cuHov = hoveredKey === 'CU';
         ctx.beginPath(); ctx.arc(cuQx, cuQy, 6, 0, Math.PI * 2);
@@ -373,7 +353,6 @@
     function drawMem(x, y, w, h) {
         rr(x, y, w, h, 10, P.surf, P.border, 1.5);
 
-        // 헤더
         ctx.fillStyle = P.teal + '33';
         ctx.beginPath();
         ctx.moveTo(x + 10, y);
@@ -408,7 +387,6 @@
             ctx.lineWidth = 1;
             ctx.stroke();
 
-            // STORE 완료 후 결과값 반영
             const label = (i === 7 && stepIdx >= 14) ? '30' : m.label;
             tx(label, x + rp + 44 + (w - rp * 2 - 44) / 2, ry + rh / 2, 9,
                 hl ? P.text : P.sub, 'center', hl);
@@ -479,7 +457,6 @@
         ctx.textBaseline = 'middle';
         ctx.fillText(title, tx_ + pad, ty_ + (desc ? 18 : th / 2));
 
-        // 설명
         if (desc) {
             ctx.font = '400 13px "JetBrains Mono",monospace';
             ctx.fillStyle = P.sub;

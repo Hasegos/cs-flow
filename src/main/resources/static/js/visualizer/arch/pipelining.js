@@ -1,5 +1,4 @@
 /**
- * pipelining.js
  * 파이프라이닝 인터랙티브 시각화
  */
 (function () {
@@ -72,8 +71,6 @@
 
     function resize() {
         const w = canvasWrap.offsetWidth;
-        // 모바일 여부에 따라 최소 높이 동적 계산
-        // pad + hdrH + 4행*(cellH+cellGap) + CLK박스 + 여유
         const mob = w < 480;
         const sc  = mob ? Math.min(1, w / 340) : Math.min(1, w / 400);
         const pad = mob ? 8 : Math.max(14, 22 * sc);
@@ -138,29 +135,15 @@
         { id: 'I4', label: 'SUB   R3, R2, #1',  short: 'SUB  R3' },
     ];
 
-    /*
-     * 클럭 사이클별 파이프라인 상태 정의
-     * state[clock][instrIdx] = stageIdx (0~4) | null
-     *
-     * 클럭 1: I1→IF
-     * 클럭 2: I1→ID,  I2→IF
-     * 클럭 3: I1→EX,  I2→ID,  I3→IF
-     * 클럭 4: I1→MEM, I2→EX,  I3→ID,  I4→IF
-     * 클럭 5: I1→WB,  I2→MEM, I3→EX,  I4→ID
-     * 클럭 6:          I2→WB,  I3→MEM, I4→EX
-     * 클럭 7:                   I3→WB,  I4→MEM
-     * 클럭 8:                            I4→WB
-     */
     const CLOCK_STATES = [
-        // [I1,   I2,   I3,   I4 ]  (stageIdx, null=미진입)
-        [0,    null, null, null],  // clock 1
-        [1,    0,    null, null],  // clock 2
-        [2,    1,    0,    null],  // clock 3
-        [3,    2,    1,    0   ],  // clock 4
-        [4,    3,    2,    1   ],  // clock 5
-        [null, 4,    3,    2   ],  // clock 6
-        [null, null, 4,    3   ],  // clock 7
-        [null, null, null, 4   ],  // clock 8
+        [0,    null, null, null],
+        [1,    0,    null, null],
+        [2,    1,    0,    null],
+        [3,    2,    1,    0   ],
+        [4,    3,    2,    1   ],
+        [null, 4,    3,    2   ],
+        [null, null, 4,    3   ],
+        [null, null, null, 4   ],
     ];
 
     const LOGS = [
@@ -181,8 +164,7 @@
     let speed    = 1200;
     let rafId    = null;
 
-    // 각 명령어의 현재 단계 (애니메이션용)
-    let cellAnims = []; // { instrIdx, stageIdx, alpha, prevStageIdx }
+    let cellAnims = [];
 
     /* ===================== 드로우 헬퍼 ===================== */
     function rr(x, y, w, h, r, fill, stroke, lw) {
@@ -208,30 +190,20 @@
     /* ===================== 레이아웃 ===================== */
     function buildLayout() {
         const W   = GW(), H = GH();
-        const mob = W < 480;  // 모바일 여부
+        const mob = W < 480;
 
-        // 모바일: sc 기준 낮춰서 요소 작게, 데스크탑: 크게
         const sc  = mob ? Math.min(1, W / 340) : Math.min(1, W / 400);
         const pad = mob ? 8 : Math.max(14, 22 * sc);
-
-        // 좌측 레이블: 모바일에서는 "I1" ID만 들어갈 최소폭
         const lblW = mob ? 36 : Math.max(90, Math.round(118 * sc));
-
-        // 파이프라인 그리드 영역
         const gap   = mob ? 4 : Math.max(8, 12 * sc);
         const gridX = pad + lblW + gap;
         const gridW = W - gridX - pad;
-
-        // 셀 크기 — 모바일에서 5칸이 들어가도록 최소폭 보장
         const cellW   = Math.max(mob ? 36 : 54, Math.floor(gridW / STAGES.length));
         const cellH   = mob ? Math.max(42, Math.round(52 * sc))
                             : Math.max(54, Math.round(68 * sc));
         const cellGap = Math.max(3, Math.round(5 * sc));
-
-        // 헤더 높이
         const hdrH = mob ? Math.max(30, Math.round(38 * sc))
                          : Math.max(38, Math.round(50 * sc));
-
         const rowH = cellH + cellGap;
         const topY = pad + hdrH + Math.max(6, 10 * sc);
         const clkH = Math.max(20, Math.round(26 * sc));
@@ -263,7 +235,6 @@
     /* ===================== 배경 그리드 선 ===================== */
     function drawBackground(L) {
         const { W, H, pad, gridX, cellW, topY, rowH, hdrH } = L;
-        // 수직 구분선
         ctx.setLineDash([3, 5]);
         ctx.strokeStyle = P.border;
         ctx.lineWidth = 1;
@@ -274,7 +245,7 @@
             ctx.lineTo(x, H - pad);
             ctx.stroke();
         }
-        // 수평 구분선
+
         for (let i = 0; i <= INSTRUCTIONS.length; i++) {
             const y = topY + i * rowH;
             ctx.beginPath();
@@ -303,7 +274,6 @@
 
             tx(s.label, cx, cy, fMd, isHov ? s.col : P.sub, 'center', true);
 
-            // ? 뱃지
             const qx  = x + cellW - 10;
             const qy  = pad + hdrH - 8;
             ctx.beginPath();
@@ -338,11 +308,9 @@
                 done ? P.green + '66' : P.border, 1);
 
             if (mob) {
-                // 모바일: ID만 중앙에
                 tx(instr.id, x + (lblW - 4) / 2, cy, fMd,
                     done ? P.green : P.sub, 'center', true);
             } else {
-                // 데스크탑: ID + 구분선 + short label
                 const divX = Math.max(30, 38 * sc);
                 tx(instr.id, x + divX / 2, cy, fMd,
                     done ? P.green : P.sub, 'center', true);
@@ -382,26 +350,21 @@
             const cx = x + cellW / 2;
             const cy = y + cellH / 2;
 
-            // 활성 셀
             const col = stage.col;
             rr(x + 4, y + 3, cellW - 8, cellH - 6, 6,
                 col + '22', col, 2);
 
-            // 단계 레이블
             tx(stage.label, cx, cy - Math.max(5, 7 * sc), fMd, col, 'center', true);
 
-            // 클럭 표시 (몇 번째 클럭에 이 단계인지)
             tx('clk ' + (clockIdx + 1), cx, cy + Math.max(5, 7 * sc), fSm, col + 'bb', 'center', false);
         });
 
-        // 이미 완료된 셀들 (현재 클럭보다 이전 단계) — 흐릿하게 표시
         for (let prevClock = 0; prevClock < clockIdx; prevClock++) {
             const prevState = CLOCK_STATES[prevClock];
             INSTRUCTIONS.forEach((instr, instrIdx) => {
                 const prevStageIdx = prevState[instrIdx];
                 const curStageIdx  = state[instrIdx];
                 if (prevStageIdx === null) return;
-                // 이미 활성이거나 현재 클럭에서 해당 칸에 다른 명령어가 있으면 스킵
                 if (prevStageIdx === curStageIdx) return;
 
                 const stage = STAGES[prevStageIdx];
@@ -410,7 +373,6 @@
                 const cx = x + cellW / 2;
                 const cy = y + cellH / 2;
 
-                // 완료된 셀 — 매우 흐릿하게
                 rr(x + 4, y + 3, cellW - 8, cellH - 6, 6,
                     stage.col + '08', stage.col + '30', 1);
                 tx(stage.label, cx, cy, fSm, stage.col + '55', 'center', false);
@@ -423,7 +385,6 @@
         const { pad, lblW, topY, rowH, sc } = L;
         if (clockIdx < 0) return;
 
-        // 명령어 4개 행이 끝나는 Y 아래, 좌측 레이블 영역에 배치
         const listBottom = topY + INSTRUCTIONS.length * rowH;
         const bw = lblW - 4;
         const bh = Math.max(38, Math.round(48 * sc));
@@ -456,7 +417,6 @@
         const th  = desc ? 60 : 36;
         const W   = GW(), H = GH();
 
-        // 오른쪽 우선, 넘치면 왼쪽, 그래도 안되면 강제 클램핑
         let tx_ = mx + 14;
         let ty_ = my - th - 8;
         if (tx_ + tw > W - 8) tx_ = mx - tw - 14;
