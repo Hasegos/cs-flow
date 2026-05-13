@@ -1,5 +1,4 @@
 /**
- * von-neumann.js
  * 폰 노이만 구조 인터랙티브 시각화
  */
 (function () {
@@ -135,34 +134,29 @@
     ];
 
     const STEPS = [
-        // ── 1번째 명령어: LOAD R1,[0x10] ──
         { ph:'f', mh:0, reg:{PC:'0x00',IR:'—',   R1:'—', R2:'—'}, log:'[FETCH-1] PC=0x00 → ADDR BUS로 메모리에 주소 전달',          bus:{toMem:true,  label:'A'} },
         { ph:'f', mh:0, reg:{PC:'0x00',IR:'—',   R1:'—', R2:'—'}, log:'[FETCH-2] 메모리[0x00] → CTRL BUS로 명령어 CPU에 전달',      bus:{toMem:false, label:'I'} },
         { ph:'d', mh:0, reg:{PC:'0x00',IR:'LOAD', R1:'—', R2:'—'}, log:'[DECODE]  IR ← LOAD R1,[0x10] — CU가 명령어 해석',          bus:null },
         { ph:'e', mh:5, reg:{PC:'0x02',IR:'LOAD', R1:'—', R2:'—'}, log:'[EXECUTE-1] 피연산자 주소 0x10 → ADDR BUS로 메모리 전달',   bus:{toMem:true,  label:'A'} },
         { ph:'e', mh:5, reg:{PC:'0x02',IR:'LOAD', R1:'7', R2:'—'}, log:'[EXECUTE-2] Mem[0x10]=7 → DATA BUS로 CPU R1에 전달',        bus:{toMem:false, label:'D'} },
 
-        // ── 2번째 명령어: LOAD R2,[0x11] ──
         { ph:'f', mh:1, reg:{PC:'0x02',IR:'LOAD', R1:'7', R2:'—'}, log:'[FETCH-1] PC=0x02 → ADDR BUS로 메모리에 주소 전달',          bus:{toMem:true,  label:'A'} },
         { ph:'f', mh:1, reg:{PC:'0x02',IR:'LOAD', R1:'7', R2:'—'}, log:'[FETCH-2] 메모리[0x02] → CTRL BUS로 명령어 CPU에 전달',      bus:{toMem:false, label:'I'} },
         { ph:'d', mh:1, reg:{PC:'0x02',IR:'LOAD', R1:'7', R2:'—'}, log:'[DECODE]  IR ← LOAD R2,[0x11] — CU가 명령어 해석',          bus:null },
         { ph:'e', mh:6, reg:{PC:'0x04',IR:'LOAD', R1:'7', R2:'—'}, log:'[EXECUTE-1] 피연산자 주소 0x11 → ADDR BUS로 메모리 전달',   bus:{toMem:true,  label:'A'} },
         { ph:'e', mh:6, reg:{PC:'0x04',IR:'LOAD', R1:'7', R2:'3'}, log:'[EXECUTE-2] Mem[0x11]=3 → DATA BUS로 CPU R2에 전달',        bus:{toMem:false, label:'D'} },
 
-        // ── 3번째 명령어: ADD R1, R2 ──
         { ph:'f', mh:2, reg:{PC:'0x04',IR:'LOAD', R1:'7', R2:'3'}, log:'[FETCH-1] PC=0x04 → ADDR BUS로 메모리에 주소 전달',          bus:{toMem:true,  label:'A'} },
         { ph:'f', mh:2, reg:{PC:'0x04',IR:'LOAD', R1:'7', R2:'3'}, log:'[FETCH-2] 메모리[0x04] → CTRL BUS로 명령어 CPU에 전달',      bus:{toMem:false, label:'I'} },
         { ph:'d', mh:2, reg:{PC:'0x04',IR:'ADD',  R1:'7', R2:'3'}, log:'[DECODE]  IR ← ADD R1,R2 — CU가 명령어 해석',               bus:null },
         { ph:'e', mh:2, reg:{PC:'0x06',IR:'ADD',  R1:'10',R2:'3'}, log:'[EXECUTE] R1 ← R1+R2=10 — ALU 내부 연산 (버스 사용 없음)',  bus:null },
 
-        // ── 4번째 명령어: STORE R1,[0x12] ──
         { ph:'f', mh:3, reg:{PC:'0x06',IR:'ADD',  R1:'10',R2:'3'}, log:'[FETCH-1] PC=0x06 → ADDR BUS로 메모리에 주소 전달',          bus:{toMem:true,  label:'A'} },
         { ph:'f', mh:3, reg:{PC:'0x06',IR:'ADD',  R1:'10',R2:'3'}, log:'[FETCH-2] 메모리[0x06] → CTRL BUS로 명령어 CPU에 전달',      bus:{toMem:false, label:'I'} },
         { ph:'d', mh:3, reg:{PC:'0x06',IR:'STORE',R1:'10',R2:'3'}, log:'[DECODE]  IR ← STORE R1,[0x12] — CU가 명령어 해석',         bus:null },
         { ph:'e', mh:7, reg:{PC:'0x08',IR:'STORE',R1:'10',R2:'3'}, log:'[EXECUTE-1] 저장 주소 0x12 → ADDR BUS로 메모리 전달',        bus:{toMem:true,  label:'A'} },
         { ph:'e', mh:7, reg:{PC:'0x08',IR:'STORE',R1:'10',R2:'3'}, log:'[EXECUTE-2] R1=10 → DATA BUS로 메모리[0x12]에 쓰기',         bus:{toMem:true,  label:'D'} },
 
-        // ── 5번째 명령어: HALT ──
         { ph:'f', mh:4, reg:{PC:'0x08',IR:'STORE',R1:'10',R2:'3'}, log:'[FETCH-1] PC=0x08 → ADDR BUS로 메모리에 주소 전달',          bus:{toMem:true,  label:'A'} },
         { ph:'f', mh:4, reg:{PC:'0x08',IR:'STORE',R1:'10',R2:'3'}, log:'[FETCH-2] 메모리[0x08] → CTRL BUS로 명령어 CPU에 전달',      bus:{toMem:false, label:'I'} },
         { ph:'d', mh:4, reg:{PC:'0x08',IR:'HALT', R1:'10',R2:'3'}, log:'[DECODE]  IR ← HALT — CU가 명령어 해석',                    bus:null },
@@ -227,7 +221,7 @@
         const busX2 = memX;
         const busY  = H / 2;
 
-        tooltipHits = [];   // 히트박스 매 프레임 초기화
+        tooltipHits = [];
         drawBus(busX1, busX2, busY, gap);
         drawCPU(cpuX, boxY, cpuW, boxH);
         drawMem(memX, boxY, memW, boxH);
@@ -239,7 +233,6 @@
             drawPacket(busX1, busX2, packetY);
         }
 
-        // 툴팁은 항상 최상단에 렌더
         if (hoveredKey && TOOLTIPS[hoveredKey]) {
             drawTooltip(mousePos.x, mousePos.y, hoveredKey);
         }
@@ -315,7 +308,6 @@
             tx(r.v, x + rp + 32 + (w - rp * 2 - 32) / 2, ry + rh / 2, 10,
                 r.hi ? phCol(curPh) : P.text, 'center', r.hi);
 
-            // ? 뱃지
             const qx = x + w - rp - 10, qy = ry + rh - 8;
             ctx.beginPath();
             ctx.arc(qx, qy, 6, 0, Math.PI * 2);
@@ -336,7 +328,6 @@
             aluOn ? P.purple : P.border, aluOn ? 2 : 1);
         tx('ALU', x + rp + uw / 2, uy + 21, 10, aluOn ? P.purple : P.muted, 'center', aluOn);
 
-        // ALU ? 뱃지
         const aluQx = x + rp + uw - 8, aluQy = uy + 34;
         const aluHov = hoveredKey === 'ALU';
         ctx.beginPath(); ctx.arc(aluQx, aluQy, 6, 0, Math.PI * 2);
@@ -350,7 +341,6 @@
             cuOn ? P.teal : P.border, cuOn ? 2 : 1);
         tx('CU', x + rp + uw + 8 + uw / 2, uy + 21, 10, cuOn ? P.teal : P.muted, 'center', cuOn);
 
-        // CU ? 뱃지
         const cuQx = x + rp + uw + 8 + uw - 8, cuQy = uy + 34;
         const cuHov = hoveredKey === 'CU';
         ctx.beginPath(); ctx.arc(cuQx, cuQy, 6, 0, Math.PI * 2);
