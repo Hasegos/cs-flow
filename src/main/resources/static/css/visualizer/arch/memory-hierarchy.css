@@ -1,4 +1,4 @@
-/* memory-hierarchy.css — 메모리 계층 구조 시각화 전용 */
+/* 메모리 계층 구조 시각화 전용 */
 
 /* === .mem-hier — 최상위 컨테이너 === */
 .mem-hier {
@@ -126,4 +126,59 @@
 .mem-hier__btn:disabled {
   opacity: 0.35;
   cursor: not-allowed;
+}
+
+/* --- 모바일 전용 팝업 스타일 --- */
+@media (max-width: 768px) {
+  .mem-hier__modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(4px);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .mem-hier__modal-overlay.is-active {
+    display: flex;
+  }
+
+  .mem-hier__modal-content {
+    width: 100%;
+    max-width: 360px;
+    background: #1a1a2e;
+    border: 1px solid #6c63ff;
+    border-radius: 12px;
+    padding: 24px;
+    position: relative;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+  }
+
+  .mem-hier__modal-title {
+    font-size: 1.1rem;
+    color: #6c63ff;
+    margin-bottom: 12px;
+    font-weight: 600;
+  }
+
+  .mem-hier__modal-body {
+    color: #cbd5e1;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    white-space: pre-line;
+  }
+
+  .mem-hier__modal-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: none;
+    border: none;
+    color: #94a3b8;
+    font-size: 1.5rem;
+    cursor: pointer;
+  }
 }
