@@ -1,5 +1,4 @@
 /**
- * cache-memory.js
  * 캐시 메모리 인터랙티브 시각화
  */
 (function () {
@@ -68,11 +67,9 @@
         const w   = canvasWrap.offsetWidth;
         const mob = w < 500;
         const vpad = mob ? 12 : 20;
-        // Cache 최소 높이: hdr(36) + 4×slotH(60) + 3×slotGap(7) + 상하여백
-        const cacheMinH = 36 + 4 * 60 + 3 * 7 + vpad * 2;  // = 337 + 40 = 377
-        // Memory 최소 높이: hdr(36) + 8×memBH(38) + 7×memBGap(6) + 상하여백
-        const memMinH   = 36 + 8 * 38 + 7 * 6  + vpad * 2;  // = 382 + 40 = 422
-        const minH = Math.max(cacheMinH, memMinH) + 40;  // 여유 40px 추가
+        const cacheMinH = 36 + 4 * 60 + 3 * 7 + vpad * 2;
+        const memMinH   = 36 + 8 * 38 + 7 * 6  + vpad * 2;
+        const minH = Math.max(cacheMinH, memMinH) + 40;
         const h    = Math.max(canvasWrap.offsetHeight, minH);
         canvas.width  = w * dpr;
         canvas.height = h * dpr;
@@ -107,10 +104,6 @@
     };
 
     /* ===================== 시나리오 정의 ===================== */
-    /*
-     * 캐시 슬롯 4개, 메모리 블록 8개 (A~H)
-     * 스텝별: { req, hit, evict, load, log, badge }
-     */
     const MEM_BLOCKS = ['A','B','C','D','E','F','G','H'];
 
     const STEPS = [
@@ -156,13 +149,8 @@
     let running  = false;
     let timer    = null;
     let speed    = 1100;
-
-    // 캐시 슬롯: [{ block: 'A', lruRank: 0 }, ...]  lruRank 낮을수록 오래됨
     let cacheSlots = [null, null, null, null];
     let lruCounter = 0;
-
-    // 애니메이션 패킷
-    // 패킷: pktQueue / pktCurrent 로 관리 (큐 기반)
     let rafId   = null;
 
     /* ===================== 툴팁 히트박스 ===================== */
@@ -205,7 +193,6 @@
         ctx.setLineDash([5, 4]);
         ctx.stroke();
         ctx.setLineDash([]);
-        // 화살촉
         ctx.beginPath();
         const perp = 4;
         ctx.moveTo(x2, y2);
@@ -221,31 +208,23 @@
         const W = GW(), H = GH();
         const mob = W < 500;
         const pad = mob ? 8 : 20;
-        const vpad = mob ? 14 : 20;  // 상하 여백
-
-        // CPU 박스 — 좌측 고정
+        const vpad = mob ? 14 : 20;
         const cpuW = mob ? 54  : 84;
         const cpuH = mob ? 44  : 64;
         const cpuX = pad;
         const cpuY = H / 2 - cpuH / 2;
-
-        // Cache 슬롯 높이 (고정)
         const cacheHdrH = 36;
         const slotGap   = 7;
         const slotH     = 60;
-        const cacheH    = cacheHdrH + 4 * slotH + 3 * slotGap + 10;  // 하단 여백
+        const cacheH    = cacheHdrH + 4 * slotH + 3 * slotGap + 10;
         const cacheW    = mob ? 120 : 158;
-
-        // Memory 블록 높이 (고정)
         const memHdrH = 36;
         const memBGap = 6;
         const memBH   = 38;
-        const memH    = memHdrH + 8 * memBH + 7 * memBGap + 10;  // 하단 여백
+        const memH    = memHdrH + 8 * memBH + 7 * memBGap + 10;
         const memW    = mob ? 100 : 130;
-
-        // 3개 박스를 가용 너비에 균등 배분
         const totalBoxW = cpuW + cacheW + memW;
-        const gapCount  = 3;  // pad + gap1 + gap2 + pad
+        const gapCount  = 3;
         const gap = Math.max(mob ? 12 : 24, Math.floor((W - totalBoxW - pad * 2) / (gapCount - 1)));
 
         const cacheX = cpuX + cpuW + gap;
@@ -296,7 +275,6 @@
         tx('CPU', cx, cy - (mob ? 5 : 6), fMd, P.purple, 'center', true);
         tx('Processor', cx, cy + (mob ? 6 : 8), fSm, P.muted, 'center', false);
 
-        // ? 뱃지
         const qx = cpuX + cpuW - 8, qy = cpuY + 8;
         drawBadge(qx, qy, 'CPU');
         tooltipHits.push({ x: qx - 6, y: qy - 6, w: 12, h: 12, key: 'CPU' });
@@ -312,20 +290,16 @@
         const fSub  = mob ? 8  : 10;
         const pad   = mob ? 8  : 12;
 
-        // 외곽 박스
         rr(cacheX, cacheY, cacheW, cacheH, 8,
             isHov ? P.teal + '10' : P.surf,
             isHov ? P.teal : P.teal, isHov ? 2 : 1.5);
 
-        // 헤더
         tx('CACHE', cacheX + cacheW / 2, cacheY + hdrH / 2, fHdr, P.teal, 'center', true);
 
-        // ? 뱃지
         const qx = cacheX + cacheW - 8, qy = cacheY + 8;
         drawBadge(qx, qy, 'CACHE');
         tooltipHits.push({ x: qx - 6, y: qy - 6, w: 12, h: 12, key: 'CACHE' });
 
-        // 슬롯
         const step = STEPS[stepIdx] || {};
         cacheSlots.forEach((slot, i) => {
             const sy = cacheY + hdrH + slotGap / 2 + i * (slotH + slotGap);
@@ -346,10 +320,8 @@
 
             rr(sx, sy, sw, slotH, 5, bgCol, bdCol, lw);
 
-            // 슬롯 번호
             tx(`S${i}`, sx + (mob ? 14 : 18), sy + slotH / 2 - (mob ? 7 : 9), fSub, P.muted, 'center', false);
 
-            // 구분선
             const divX = sx + (mob ? 26 : 34);
             ctx.beginPath();
             ctx.moveTo(divX, sy + 5);
@@ -369,7 +341,6 @@
                     sy + slotH / 2, fSlot, P.muted, 'center', false);
             }
 
-            // 상태 레이블 — 슬롯 번호(S0) 바로 아래에 표시
             if (isEvict)       tx('EVICT', sx + (mob ? 14 : 18), sy + slotH / 2 + (mob ? 9 : 11), fSub - 1, P.red,   'center', true);
             else if (isLoaded) tx('LOAD',  sx + (mob ? 14 : 18), sy + slotH / 2 + (mob ? 9 : 11), fSub - 1, P.teal,  'center', true);
             else if (isHit)    tx('HIT',   sx + (mob ? 14 : 18), sy + slotH / 2 + (mob ? 9 : 11), fSub - 1, P.green, 'center', true);
@@ -421,23 +392,20 @@
         const cacheLx = cacheX,            cacheMy = cacheY + cacheH / 2;
         const cacheRx = cacheX + cacheW;
         const memLx   = memX,              memMy   = memY + memH / 2;
-        const off = 5;  // 상하 오프셋으로 왕복선 분리
+        const off = 5;
 
-        // CPU ↔ Cache
         arrow(cpuRx + 2,    cpuMy - off,  cacheLx - 2,  cacheMy - off, P.purple + 'aa');
         arrow(cacheLx - 2,  cacheMy + off, cpuRx + 2,   cpuMy + off,   P.green  + 'aa');
 
-        // Cache ↔ Memory
         arrow(cacheRx + 2,  cacheMy - off, memLx - 2,   memMy - off,   P.purple + 'aa');
         arrow(memLx - 2,    memMy + off,   cacheRx + 2, cacheMy + off, P.orange + 'aa');
     }
 
     /* ===================== 패킷 애니메이션 (큐 기반) ===================== */
-    // 패킷 큐: 순차 실행. 하나가 끝나야 다음 실행
-    let pktQueue   = [];   // [{x,y,tx,ty,col,label}, ...]
-    let pktCurrent = null; // 현재 이동 중인 패킷
+    let pktQueue   = [];
+    let pktCurrent = null;
     let pktProg    = 0;
-    let pktDoneAll = null; // 전체 큐 완료 콜백
+    let pktDoneAll = null;
 
     function drawPackets() {
         if (!pktCurrent) return;
@@ -473,12 +441,10 @@
         rafId = requestAnimationFrame(tick);
     }
 
-    // 큐에 패킷 추가
     function spawnPacket(x, y, tx_, ty_, col, label) {
         pktQueue.push({ x, y, tx: tx_, ty: ty_, col, label });
     }
 
-    // 큐 실행 시작
     function animatePackets(onDone) {
         pktDoneAll = onDone || null;
         pktNext();
@@ -552,28 +518,20 @@
         setBadge(step.badge);
         setLog(step.log);
 
-        // 실제 캐시 상태 업데이트
         if (!step.hit) {
             if (step.evict) {
-                // LRU 교체: evict 블록 있는 슬롯 찾아서 교체
                 const evictIdx = cacheSlots.findIndex(s => s && s.block === step.evict);
                 if (evictIdx !== -1) cacheSlots[evictIdx] = { block: step.load, lruRank: ++lruCounter };
             } else {
-                // 빈 슬롯에 load
                 const emptyIdx = cacheSlots.findIndex(s => s === null);
                 if (emptyIdx !== -1) cacheSlots[emptyIdx] = { block: step.load, lruRank: ++lruCounter };
             }
         } else {
-            // 히트: LRU 순위 갱신
             const hitSlot = cacheSlots.find(s => s && s.block === step.req);
             if (hitSlot) hitSlot.lruRank = ++lruCounter;
         }
 
-        // 패킷 애니메이션
-        // 히트:  CPU→Cache(요청) → Cache→CPU(데이터 반환)
-        // 미스:  CPU→Cache(요청) → Cache→Memory(미스,메모리요청) → Memory→Cache(데이터) → Cache→CPU(데이터 반환)
         const L  = buildLayout();
-        // 접촉 좌표: 각 박스의 좌우 중앙점
         const cpuRx   = L.cpuX + L.cpuW;
         const cpuMy   = L.cpuY + L.cpuH / 2;
         const cacheLx = L.cacheX;
@@ -585,18 +543,12 @@
         pktQueue = [];  // 큐 초기화
 
         if (step.hit) {
-            // ① CPU → Cache (요청, 보라)
             spawnPacket(cpuRx, cpuMy, cacheLx, cacheMy, P.purple, step.req);
-            // ② Cache → CPU (히트 반환, 초록)
             spawnPacket(cacheLx, cacheMy, cpuRx, cpuMy, P.green, step.req);
         } else {
-            // ① CPU → Cache (요청, 보라)
             spawnPacket(cpuRx, cpuMy, cacheLx, cacheMy, P.purple, step.req);
-            // ② Cache → Memory (미스: 메모리 요청, 주황)
             spawnPacket(cacheRx, cacheMy, memLx, memMy, P.orange, step.req);
-            // ③ Memory → Cache (데이터 로드, 주황)
             spawnPacket(memLx, memMy, cacheRx, cacheMy, P.orange, step.load);
-            // ④ Cache → CPU (데이터 반환, 청록)
             spawnPacket(cacheLx, cacheMy, cpuRx, cpuMy, P.teal, step.load);
         }
 

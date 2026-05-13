@@ -1,5 +1,4 @@
 /**
- * cpu-components.js
  * CPU 구성 요소 인터랙티브 시각화
  */
 (function () {
@@ -183,7 +182,7 @@
         ctx.fillStyle = P.bg;
         ctx.fillRect(0, 0, W, H);
 
-        tooltipHits = [];   // 히트박스 매 프레임 초기화
+        tooltipHits = [];
 
         const L = buildLayout();
         _layout = L;
@@ -193,7 +192,6 @@
         drawDataBus(L);
         if (flowAnim) drawFlowPacket(L);
 
-        // 툴팁은 항상 최상단
         if (hoveredKey && TOOLTIPS[hoveredKey]) {
             drawTooltip(mousePos.x, mousePos.y, hoveredKey);
         }
@@ -274,7 +272,6 @@
             tx(val, rx + lblW + (rw - lblW) / 2, ry + rH / 2, fLg,
                 isAct ? r.col : P.text, 'center', isAct);
 
-            // ? 뱃지
             const qx    = rx + rw - 10;
             const qy    = ry + rH - 10;
             ctx.beginPath();
@@ -288,7 +285,6 @@
             tooltipHits.push({ x: qx - 6, y: qy - 6, w: 12, h: 12, key: r.id });
         });
 
-        // ALU / CU
         const unitTop = rTop + 3 * (rH + rVGap) + rVGap / 2;
         const unitW   = (cpuW - rp * 2 - rGap) / 2;
         const unitH   = Math.max(40, Math.round(56 * sc));
@@ -300,7 +296,6 @@
             aluOn ? P.teal : P.border, aluOn ? 2.5 : 1);
         tx('ALU',                   aluX + unitW / 2, unitTop + unitH / 2, fLg, aluOn ? P.teal : P.muted, 'center', aluOn);
 
-        // ALU ? 뱃지
         const aluQx = aluX + unitW - 10, aluQy = unitTop + unitH - 10;
         const aluHov = hoveredKey === 'ALU';
         ctx.beginPath(); ctx.arc(aluQx, aluQy, 6, 0, Math.PI * 2);
@@ -314,7 +309,6 @@
             cuOn ? P.orange : P.border, cuOn ? 2.5 : 1);
         tx('CU',           cuX + unitW / 2, unitTop + unitH / 2, fLg, cuOn ? P.orange : P.muted, 'center', cuOn);
 
-        // CU ? 뱃지
         const cuQx = cuX + unitW - 10, cuQy = unitTop + unitH - 10;
         const cuHov = hoveredKey === 'CU';
         ctx.beginPath(); ctx.arc(cuQx, cuQy, 6, 0, Math.PI * 2);
@@ -450,16 +444,13 @@
         if (!fromPos || !toPos) { cb && cb(); return; }
         flowAnim = { fromPos, toPos, t: 0 };
 
-        // 거리 계산 → 픽셀당 동일 속도 유지
         const dx   = toPos.x - fromPos.x;
         const dy   = toPos.y - fromPos.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
-        // 기준: 1배속(1000ms)에서 100px/초 → 60fps 기준 100px = 60f
-        // speed가 작을수록 빠름, dist에 비례해 N 계산
-        const PX_PER_FRAME_1X = 1.8; // 1배속 기준 프레임당 픽셀 (낮을수록 느림)
+        const PX_PER_FRAME_1X = 1.8;
         const BASE_SPEED = 1000;
-        const speedRatio = BASE_SPEED / speed; // 배속 클수록 speedRatio 큼
+        const speedRatio = BASE_SPEED / speed;
         const N = Math.max(10, Math.round(dist / (PX_PER_FRAME_1X * speedRatio)));
 
         let f = 0;
