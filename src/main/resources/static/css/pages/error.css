@@ -1,6 +1,6 @@
 /* 에러 페이지 전용 */
 
-/* === .error-body — 페이지 레이아웃 === */
+/* === 페이지 레이아웃 === */
 body {
   min-height: 100vh;
   display: flex;
@@ -22,7 +22,7 @@ body::before {
   pointer-events: none;
 }
 
-/* === .error-container — 중앙 콘텐츠 === */
+/* === 중앙 콘텐츠 === */
 .error-container {
   position: relative;
   text-align: center;
@@ -30,7 +30,7 @@ body::before {
   animation: error-fade-up 0.6s ease both;
 }
 
-/* === .error-icon — 아이콘 영역 === */
+/* === 아이콘 영역 === */
 .error-icon {
   position: relative;
   width: 120px;
@@ -106,7 +106,7 @@ body::before {
   margin-right: auto;
 }
 
-/* === .error-btn — 홈으로 버튼 === */
+/* === 홈으로 버튼 === */
 .error-btn {
   display: inline-flex;
   align-items: center;
@@ -140,7 +140,7 @@ body::before {
   transform: translateX(-3px);
 }
 
-/* === .error-decoration — 모서리 장식 텍스트 === */
+/* === 모서리 장식 텍스트 === */
 .error-decoration {
   position: fixed;
   font-family: var(--font-mono);
@@ -183,4 +183,9 @@ right: 2rem;
     transform: scale(1.06);
     opacity: 0.15;
   }
+}
+
+/* === 라이트 모드 === */
+[data-theme="light"] .error-icon__core {
+  background: var(--color-surface);
 }

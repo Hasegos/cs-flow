@@ -1,6 +1,6 @@
 /* 헤더 */
 
-/* ===.gnb - 고정 헤더 컨테이너  === */
+/* === 고정 헤더 컨테이너  === */
 .gnb {
   position: fixed;
   top: 0;
@@ -14,7 +14,7 @@
   border-bottom: 1px solid var(--color-border);
 }
 
-/* === .gnb__inner — 내부 정렬 래퍼 === */
+/* === 내부 정렬 래퍼 === */
 .gnb__inner {
   max-width: 1200px;
   margin: 0 auto;
@@ -25,7 +25,7 @@
   gap: 2.5rem;
 }
 
-/* === .gnb__logo — 로고 영역 === */
+/* === 로고 영역 === */
 .gnb__logo {
   display: flex;
   align-items: center;
@@ -53,7 +53,7 @@
   color: var(--color-purple);
 }
 
-/* === .gnb__nav — 데스크탑 네비게이션 === */
+/* === 데스크탑 네비게이션 === */
 .gnb__nav {
   display: flex;
   align-items: center;
@@ -79,7 +79,7 @@
   background: var(--color-purple-dim);
 }
 
-/* === .gnb__hamburger — 모바일 햄버거 버튼 === */
+/* === 모바일 햄버거 버튼 === */
 .gnb__hamburger {
   display: none;
   flex-direction: column;
@@ -109,7 +109,7 @@
   transform: translateY(-7px) rotate(-45deg);
 }
 
-/* === .gnb__drawer — 모바일 드로어 메뉴 === */
+/* === 모바일 드로어 메뉴 === */
 .gnb__drawer {
   display: none;
   flex-direction: column;
@@ -141,11 +141,104 @@
 
 /* === 반응형 === */
 @media (max-width: 768px) {
-  .gnb__nav       {
-    display: none;
-  }
+  .gnb__nav { display: none; }
 
   .gnb__hamburger {
     display: flex;
+    margin-left: auto;
+    order: 1;
   }
+
+  .gnb__theme-btn {
+    order: 2;
+    margin-left: 0.5rem;
+  }
+}
+
+/* === 라이트 모드 헤더 === */
+[data-theme="light"] .gnb {
+  background: rgba(245, 245, 255, 0.92);
+  border-bottom-color: rgba(108, 99, 255, 0.18);
+}
+
+[data-theme="light"] .gnb__drawer {
+  background: var(--color-surface);
+}
+
+[data-theme="light"] .gnb__hamburger-line {
+  background: var(--color-text-sub);
+}
+
+/* === 테마 토글 버튼 === */
+.gnb__theme-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-sub);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: border-color var(--transition), color var(--transition), background var(--transition);
+}
+
+.gnb__theme-btn:hover {
+  border-color: var(--color-purple);
+  color: var(--color-purple);
+  background: var(--color-purple-dim);
+}
+
+.gnb__theme-btn svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+/* 다크(기본): 해 아이콘, 라이트: 달 아이콘 */
+.gnb__theme-icon--dark  {
+  display: block;
+}
+
+.gnb__theme-icon--light {
+  display: none;
+}
+
+[data-theme="light"] .gnb__theme-icon--dark  {
+  display: none;
+}
+
+[data-theme="light"] .gnb__theme-icon--light {
+  display: block;
+}
+
+/* === 아이콘 라이트 모드 전환 === */
+.gnb__logo-icon--dark  {
+  display: block;
+}
+
+.gnb__logo-icon--light {
+  display: none;
+}
+
+[data-theme="light"] .gnb__logo-icon--dark  {
+  display: none;
+}
+
+[data-theme="light"] .gnb__logo-icon--light {
+  display: block;
+}
+
+/* === 주제 탭 라이트 모드 === */
+[data-theme="light"] .topic-tabs {
+  background: rgba(245, 245, 255, 0.95);
+  border-bottom-color: rgba(108, 99, 255, 0.18);
+}
+
+/* === 시각화 라이트 모드 === */
+[data-theme="light"] .visualizer-canvas-area {
+  background: var(--color-surface);
+  border-color: rgba(108, 99, 255, 0.2);
 }
