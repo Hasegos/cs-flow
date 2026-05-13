@@ -1,6 +1,6 @@
 /* 과목 홈 페이지 */
 
-/* === .subject-hero — 과목 히어로 섹션 === */
+/* === 과목 히어로 섹션 === */
 .subject-hero {
   position: relative;
   padding-top: calc(var(--header-h) + 5rem);
@@ -8,7 +8,7 @@
   overflow: hidden;
 }
 
-/* === .subject-hero__bg-grid — 배경 그리드 === */
+/* === 배경 그리드 === */
 .subject-hero__bg-grid {
   position: absolute;
   inset: 0;
@@ -27,7 +27,7 @@
   background: radial-gradient(ellipse 70% 80% at 50% 100%, transparent 40%, var(--color-bg) 100%);
 }
 
-/* === .subject-hero__glow — 과목 색상 글로우 === */
+/* === 과목 색상 글로우 === */
 .subject-hero__glow {
   position: absolute;
   top: -80px;
@@ -41,7 +41,7 @@
   filter: blur(40px);
 }
 
-/* === .subject-hero__inner — 히어로 콘텐츠 === */
+/* === 히어로 콘텐츠 === */
 .subject-hero__inner {
   position: relative;
   z-index: 1;
@@ -51,7 +51,7 @@
   animation: subject-fade-up 0.6s ease both;
 }
 
-/* === .subject-hero__breadcrumb — 브레드크럼 === */
+/* === 브레드크럼 === */
 .subject-hero__breadcrumb {
   display: flex;
   align-items: center;
@@ -86,7 +86,7 @@
   color: var(--color-text-sub);
 }
 
-/* === .subject-hero__meta — 슬러그 === */
+/* === 슬러그 === */
 .subject-hero__meta {
   margin-bottom: 0.75rem;
 }
@@ -100,7 +100,7 @@
   opacity: 0.9;
 }
 
-/* === .subject-hero__title — 과목명 === */
+/* === 과목명 === */
 .subject-hero__title {
   font-size: clamp(2rem, 4vw, 3rem);
   color: var(--color-text);
@@ -108,7 +108,7 @@
   line-height: 1.2;
 }
 
-/* === .subject-hero__count — 토픽 수 === */
+/* === 토픽 수 === */
 .subject-hero__count {
   font-family: var(--font-mono);
   font-size: 0.8rem;
@@ -121,7 +121,7 @@
   font-weight: 700;
 }
 
-/* === .topic-list — 토픽 목록 섹션 === */
+/* === 토픽 목록 섹션 === */
 .topic-list {
   padding: 3rem 2rem 6rem;
 }
@@ -131,14 +131,14 @@
   margin: 0 auto;
 }
 
-/* === .topic-grid — 토픽 카드 2열 그리드 === */
+/* === 토픽 카드 2열 그리드 === */
 .topic-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 1rem;
 }
 
-/* === .topic-card — 토픽 카드 === */
+/* === 토픽 카드 === */
 .topic-card {
   display: flex;
   align-items: center;
@@ -161,7 +161,7 @@
   transform: translateY(-2px);
 }
 
-/* === .topic-card__number — 순번 === */
+/* === 순번 === */
 .topic-card__number {
   font-family: var(--font-mono);
   font-size: 1.2rem;
@@ -176,7 +176,7 @@
   opacity: 1;
 }
 
-/* === .topic-card__body — 제목 + 태그 === */
+/* === 제목 + 태그 === */
 .topic-card__body {
   flex: 1;
   min-width: 0;
@@ -197,14 +197,14 @@
   color: var(--subject-accent, var(--color-purple));
 }
 
-/* === .topic-card__tags — 태그 목록 === */
+/* === 태그 목록 === */
 .topic-card__tags {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
 }
 
-/* === .topic-card__tag — 개별 태그 === */
+/* === 개별 태그 === */
 .topic-card__tag {
   font-family: var(--font-mono);
   font-size: 0.65rem;
@@ -216,7 +216,7 @@
   padding: 0.15rem 0.5rem;
 }
 
-/* === .topic-card__arrow — 화살표 === */
+/* === 화살표 === */
 .topic-card__arrow {
   width: 16px;
   height: 16px;
@@ -230,7 +230,7 @@
   transform: translateX(4px);
 }
 
-/* === .topic-empty — 빈 상태 === */
+/* === 빈 상태 === */
 .topic-empty {
   display: flex;
   flex-direction: column;
@@ -296,4 +296,22 @@
   .topic-card {
     padding: 1.25rem;
   }
+}
+
+/* === 라이트 모드 === */
+[data-theme="light"] .topic-card {
+  background: var(--color-surface);
+}
+
+[data-theme="light"] .topic-card:hover {
+  background: var(--color-surface-2);
+}
+
+[data-theme="light"] .topic-card__tag {
+  background: var(--color-bg);
+  border-color: rgba(108,99,255,0.18);
+}
+
+[data-theme="light"] .subject-hero__bg-grid {
+  opacity: 0.25;
 }

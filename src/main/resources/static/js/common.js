@@ -43,4 +43,35 @@
             });
         });
     }
+
+    /* ===================== 테마 토글 ===================== */
+    const themeBtn = document.getElementById('themeToggleBtn');
+
+    (function () {
+        const saved = localStorage.getItem('csflow-theme');
+        if (saved === 'light') {
+            document.documentElement.setAttribute('data-theme', 'light');
+        }
+    })();
+
+    if (themeBtn) {
+        themeBtn.addEventListener('click', function () {
+            const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+            if (isLight) {
+                document.documentElement.removeAttribute('data-theme');
+                localStorage.setItem('csflow-theme', 'dark');
+                themeBtn.setAttribute('aria-label', '라이트 모드로 전환');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'light');
+                localStorage.setItem('csflow-theme', 'light');
+                themeBtn.setAttribute('aria-label', '다크 모드로 전환');
+            }
+            window.dispatchEvent(new CustomEvent('csflow-theme-change'));
+        });
+
+        const initTheme = localStorage.getItem('csflow-theme');
+        themeBtn.setAttribute('aria-label',
+            initTheme === 'light' ? '다크 모드로 전환' : '라이트 모드로 전환'
+        );
+    }
 })();

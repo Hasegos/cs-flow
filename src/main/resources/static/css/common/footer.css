@@ -1,12 +1,12 @@
 /* 푸터 */
 
-/* === .footer — 푸터 컨테이너 === */
+/* === 푸터 컨테이너 === */
 .footer {
   border-top: 1px solid var(--color-border);
   padding: 3rem 2rem 2rem;
 }
 
-/* === .footer__inner — 상단 브랜드 + 링크 행 === */
+/* === 상단 브랜드 + 링크 행 === */
 .footer__inner {
   max-width: 1200px;
   margin: 0 auto 2rem;
@@ -16,14 +16,14 @@
   gap: 2rem;
 }
 
-/* === .footer__brand — 로고 + 설명 묶음 === */
+/* === 로고 + 설명 묶음 === */
 .footer__brand {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
 
-/* === .footer__logo — 푸터 로고 텍스트 === */
+/* === 푸터 로고 텍스트 === */
 .footer__logo {
   font-size: 1rem;
   font-weight: 700;
@@ -38,7 +38,7 @@
   color: var(--color-purple);
 }
 
-/* === .footer__desc — 플랫폼 소개 문구 === */
+/* === 플랫폼 소개 문구 === */
 .footer__desc {
   font-size: 0.85rem;
   color: var(--color-text-muted);
@@ -47,7 +47,7 @@
   line-height: 1.6;
 }
 
-/* === .footer__links — 외부 링크 목록 === */
+/* === 외부 링크 목록 === */
 .footer__links {
   display: flex;
   gap: 1.25rem;
@@ -63,7 +63,7 @@
   color: var(--color-teal);
 }
 
-/* === .footer__bottom — 저작권 하단 행 === */
+/* === 저작권 하단 행 === */
 .footer__bottom {
   max-width: 1200px;
   margin: 0 auto;
@@ -83,4 +83,12 @@
     flex-direction: column;
     gap: 1.5rem;
   }
+}
+
+/* === 라이트 모드 === */
+[data-theme="light"] .footer {
+  border-top-color: rgba(108,99,255,0.18);
+}
+[data-theme="light"] .footer__bottom {
+  border-top-color: rgba(108,99,255,0.18);
 }

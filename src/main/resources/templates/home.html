@@ -17,27 +17,30 @@
             <div class="hero__bg-grid"></div>
 
             <div class="hero__inner">
-                <p class="hero__eyebrow">
-                    <span class="hero__eyebrow-dot"></span>
-                    Interactive Learning Platform
-                </p>
-                <h1 class="hero__title">
-                    CS 핵심 개념을<br>
-                    <span class="hero__title-accent">흐름으로</span> 이해하다
-                </h1>
-                <p class="hero__desc">
-                    텍스트가 아닌 인터랙티브 시각화로<br>
-                    컴퓨터 과학의 핵심 개념을 직관적으로 학습하세요.
-                </p>
-                <div class="hero__cta">
-                    <a href="#subjects" class="btn btn--primary">학습 시작하기</a>
-                    <a href="#subjects" class="btn btn--ghost">과목 둘러보기</a>
+                <div class="hero__text">
+                    <p class="hero__eyebrow">
+                        <span class="hero__eyebrow-dot"></span>
+                        Interactive Learning Platform
+                    </p>
+                    <h1 class="hero__title">
+                        CS 핵심 개념을<br>
+                        <span class="hero__title-accent">흐름으로</span> 이해하다
+                    </h1>
+                    <p class="hero__desc">
+                        텍스트가 아닌 인터랙티브 시각화로<br>
+                        컴퓨터 과학의 핵심 개념을 직관적으로 학습하세요.
+                    </p>
+                    <div class="hero__cta">
+                        <a href="#subjects" class="btn btn--primary">학습 시작하기</a>
+                        <a href="#subjects" class="btn btn--ghost">과목 둘러보기</a>
+                    </div>
                 </div>
-            </div>
 
-            <!-- 배경 회로 -->
-            <div class="hero__circuit" aria-hidden="true">
-                <img th:src="@{/img/csflow_icon.svg}" alt="배경 회로">
+                <!-- 배경 회로 — 다크/라이트 이미지 분리 -->
+                <div class="hero__circuit" aria-hidden="true">
+                    <img th:src="@{/img/csflow_icon.svg}"       alt="배경 회로" class="hero__circuit-img hero__circuit-img--dark">
+                    <img th:src="@{/img/csflow_icon_light.svg}" alt="배경 회로" class="hero__circuit-img hero__circuit-img--light">
+                </div>
             </div>
         </section>
 

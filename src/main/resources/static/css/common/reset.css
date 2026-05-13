@@ -20,7 +20,7 @@
     /* 텍스트 */
     --color-text:       #e8e8f0;
     --color-text-sub:   #a0a0bc;
-    --color-text-muted: #6b6b8a;
+    --color-text-muted: #E0E0E0;
 
     /* 폰트 */
     --font-sans: 'Noto Sans KR', system-ui, sans-serif;
@@ -38,6 +38,29 @@
     --header-h: 64px;
 
     --subject-accent: #6c63ff;
+}
+
+/* === 라이트 모드 변수 === */
+[data-theme="light"] {
+    /* 배경 */
+    --color-bg:         #f5f5ff;
+    --color-surface:    #ffffff;
+    --color-surface-2:  #eeeeff;
+
+    /* 보더 */
+    --color-border:       rgba(108, 99, 255, 0.2);
+    --color-border-hover: rgba(108, 99, 255, 0.5);
+
+    /* 브랜드 (동일 유지) */
+    --color-purple:     #6c63ff;
+    --color-purple-dim: rgba(108, 99, 255, 0.12);
+    --color-teal:       #2ab89e;
+    --color-teal-dim:   rgba(62, 207, 178, 0.12);
+
+    /* 텍스트 */
+    --color-text:       #1a1a2e;
+    --color-text-sub:   #3a3a5c;
+    --color-text-muted: #6b6b8a;
 }
 
 /* === Reset === */
@@ -87,7 +110,7 @@ h1, h2, h3, h4 {
     letter-spacing: -0.02em;
 }
 
-/* === .btn — 공통 버튼 === */
+/* === 공통 버튼 === */
 .btn {
     display: inline-flex;
     align-items: center;
@@ -126,7 +149,7 @@ h1, h2, h3, h4 {
     border-color: var(--color-purple);
 }
 
-/* === .section-header — 섹션 타이틀 공통 === */
+/* === 섹션 타이틀 공통 === */
 .section-header {
     text-align: center;
     margin-bottom: 3rem;
