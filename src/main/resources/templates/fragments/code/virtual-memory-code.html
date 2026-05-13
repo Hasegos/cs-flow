@@ -1,0 +1,114 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">C — 가상 주소 변환 (페이지 테이블 조회)</p>
+            <div class="code-block">
+<pre><span class="cm">// 페이지 크기: 4KB = 4096 bytes</span>
+<span class="kw">#define</span> PAGE_SIZE   <span class="num">4096</span>
+<span class="kw">#define</span> PAGE_BITS   <span class="num">12</span>    <span class="cm">// log2(4096) = 12</span>
+<span class="kw">#define</span> VPN_MASK    <span class="num">0xFFFFF000</span>
+<span class="kw">#define</span> OFFSET_MASK <span class="num">0x00000FFF</span>
+
+<span class="kw">typedef struct</span> {
+    <span class="kw">unsigned int</span> pfn   : <span class="num">20</span>;  <span class="cm">// 물리 프레임 번호 (20비트)</span>
+    <span class="kw">unsigned int</span> valid : <span class="num">1</span>;   <span class="cm">// 유효 비트 (물리 메모리에 있으면 1)</span>
+    <span class="kw">unsigned int</span> dirty : <span class="num">1</span>;   <span class="cm">// 수정 여부 (Write-Back용)</span>
+    <span class="kw">unsigned int</span> ref   : <span class="num">1</span>;   <span class="cm">// 참조 비트 (LRU 교체 판단용)</span>
+} PageEntry;
+
+PageEntry page_table[<span class="num">1048576</span>]; <span class="cm">// 2^20개 엔트리</span>
+
+<span class="cm">// 가상 주소 → 물리 주소 변환</span>
+<span class="kw">long</span> <span class="fn">translate</span>(<span class="kw">unsigned int</span> vaddr) {
+    <span class="kw">unsigned int</span> vpn    = (vaddr &amp; VPN_MASK)    >> PAGE_BITS;
+    <span class="kw">unsigned int</span> offset =  vaddr &amp; OFFSET_MASK;
+
+    PageEntry *entry = &amp;page_table[vpn];
+
+    <span class="kw">if</span> (!entry->valid) {
+        <span class="cm">// Page Fault — OS가 처리</span>
+        <span class="fn">handle_page_fault</span>(vpn);
+    }
+
+    entry->ref = <span class="num">1</span>;  <span class="cm">// 참조 비트 설정</span>
+    <span class="kw">return</span> (((<span class="kw">long</span>)entry->pfn) &lt;&lt; PAGE_BITS) | offset;
+}
+
+<span class="cm">// 물리 주소 = PFN << 12 | Offset</span>
+<span class="cm">// 예: VPN=5, Offset=0x1A0 → PA = (5 << 12) | 0x1A0 = 0x501A0</span></pre>
+            </div>
+            <p class="code-desc">
+                가상 주소 32비트 중 상위 20비트가 VPN(페이지 번호), 하위 12비트가 Offset입니다.
+                페이지 테이블에서 VPN에 해당하는 엔트리를 찾아 PFN을 얻고,
+                물리 주소 = PFN × 4096 + Offset 으로 계산합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — TLB 시뮬레이션 (LinkedHashMap 기반)</p>
+            <div class="code-block">
+<pre><span class="kw">import</span> java.util.LinkedHashMap;
+<span class="kw">import</span> java.util.Map;
+
+<span class="cm">/**
+ * TLB 시뮬레이터 — 최근 사용 기반(LRU) 교체
+ * 용량: 16엔트리 (실제 TLB와 유사한 소용량)
+ */</span>
+<span class="kw">public class</span> <span class="fn">TLBSimulator</span> {
+
+    <span class="kw">private static final int</span> TLB_SIZE = <span class="num">16</span>;
+
+    <span class="cm">// accessOrder=true: get() 호출 시 해당 항목을 MRU로 이동 (LRU 자동 관리)</span>
+    <span class="kw">private final</span> Map&lt;Integer, Integer&gt; tlb = <span class="kw">new</span> LinkedHashMap&lt;&gt;(
+        TLB_SIZE, <span class="num">0.75f</span>, <span class="kw">true</span>
+    ) {
+        <span class="kw">protected boolean</span> <span class="fn">removeEldestEntry</span>(Map.Entry&lt;Integer,Integer&gt; e) {
+            <span class="kw">return</span> <span class="fn">size</span>() &gt; TLB_SIZE; <span class="cm">// 용량 초과 시 LRU 항목 자동 제거</span>
+        }
+    };
+
+    <span class="kw">private int</span>[] pageTable; <span class="cm">// 페이지 테이블 (VPN → PFN)</span>
+    <span class="kw">private int</span>   tlbHits, tlbMisses;
+
+    <span class="kw">public</span> <span class="fn">TLBSimulator</span>(<span class="kw">int</span>[] pageTable) {
+        <span class="kw">this</span>.pageTable = pageTable;
+    }
+
+    <span class="cm">/** 가상 주소 → 물리 주소 변환 */</span>
+    <span class="kw">public int</span> <span class="fn">translate</span>(<span class="kw">int</span> vaddr) {
+        <span class="kw">int</span> vpn    = vaddr >> <span class="num">12</span>;
+        <span class="kw">int</span> offset = vaddr &amp; <span class="num">0xFFF</span>;
+
+        <span class="cm">// TLB 조회</span>
+        Integer pfn = tlb.<span class="fn">get</span>(vpn);
+
+        <span class="kw">if</span> (pfn != <span class="kw">null</span>) {
+            tlbHits++;
+            System.out.<span class="fn">printf</span>(<span class="st">"TLB HIT  VPN:%d → PFN:%d%n"</span>, vpn, pfn);
+        } <span class="kw">else</span> {
+            <span class="cm">// TLB Miss — 페이지 테이블 조회 후 TLB 갱신</span>
+            tlbMisses++;
+            pfn = pageTable[vpn];
+            tlb.<span class="fn">put</span>(vpn, pfn); <span class="cm">// TLB에 캐싱</span>
+            System.out.<span class="fn">printf</span>(<span class="st">"TLB MISS VPN:%d → PFN:%d (PT 조회)%n"</span>, vpn, pfn);
+        }
+
+        <span class="kw">return</span> (pfn &lt;&lt; <span class="num">12</span>) | offset; <span class="cm">// 물리 주소</span>
+    }
+
+    <span class="kw">public void</span> <span class="fn">printStats</span>() {
+        <span class="kw">int</span> total = tlbHits + tlbMisses;
+        System.out.<span class="fn">printf</span>(<span class="st">"TLB 히트율: %.1f%%%n"</span>, tlbHits * <span class="num">100.0</span> / total);
+    }
+}</pre>
+            </div>
+            <p class="code-desc">
+                TLB는 VPN → PFN 변환 결과를 캐싱해 페이지 테이블 조회 비용을 줄입니다.
+                히트 시 메모리 접근 1회, 미스 시 페이지 테이블(메모리) 접근 후 TLB 갱신으로 총 2회 접근합니다.
+                LinkedHashMap의 accessOrder로 LRU 교체를 자동 구현합니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>

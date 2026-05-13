@@ -1,6 +1,6 @@
 /* 메인 랜딩 페이지 */
 
-/* === .hero — 풀스크린 히어로 섹션 === */
+/* === 풀스크린 히어로 섹션 === */
 .hero {
   position: relative;
   min-height: 100vh;
@@ -11,7 +11,7 @@
   padding-top: var(--header-h);
 }
 
-/* === .hero__bg-grid — 배경 회로 그리드 === */
+/* === 배경 회로 그리드 === */
 .hero__bg-grid {
   position: absolute;
   inset: 0;
@@ -30,7 +30,7 @@
   background: radial-gradient(ellipse 60% 60% at 50% 50%, transparent 40%, var(--color-bg) 100%);
 }
 
-/* === .hero__inner — 중앙 텍스트 콘텐츠 === */
+/* === 중앙 텍스트 콘텐츠 === */
 .hero__inner {
   position: relative;
   z-index: 1;
@@ -40,7 +40,7 @@
   animation: hero-fade-up 0.7s ease both;
 }
 
-/* === .hero__eyebrow — 상단 레이블 === */
+/* === 상단 레이블 === */
 .hero__eyebrow {
   display: inline-flex;
   align-items: center;
@@ -61,7 +61,7 @@
   animation: hero-blink 2s ease-in-out infinite;
 }
 
-/* === .hero__title — 메인 타이틀 === */
+/* === 메인 타이틀 === */
 .hero__title {
   font-size: clamp(2.2rem, 5vw, 3.6rem);
   color: var(--color-text);
@@ -73,7 +73,7 @@
   color: var(--color-purple);
 }
 
-/* === .hero__desc — 서브 설명 텍스트 === */
+/* === 서브 설명 텍스트 === */
 .hero__desc {
   font-size: clamp(0.95rem, 1.5vw, 1.1rem);
   color: var(--color-text-sub);
@@ -82,7 +82,7 @@
   margin-bottom: 2.5rem;
 }
 
-/* === .hero__cta — 버튼 그룹 === */
+/* === 버튼 그룹 === */
 .hero__cta {
   display: flex;
   align-items: center;
@@ -91,19 +91,18 @@
   flex-wrap: wrap;
 }
 
-/* === .hero__circuit — 우측 배경 아이콘 장식 === */
+/* === 우측 배경 아이콘 장식 === */
 .hero__circuit {
   position: absolute;
-  right: -60px;
+  right: -90%;
   top: 50%;
-  transform: translateY(-50%);
   width: 480px;
   opacity: 0.25;
   pointer-events: none;
   animation: hero-float 6s ease-in-out infinite;
 }
 
-/* === .subjects — 과목 카드 섹션 === */
+/* === 과목 카드 섹션 === */
 .subjects {
   padding: 6rem 2rem;
 }
@@ -113,14 +112,14 @@
   margin: 0 auto;
 }
 
-/* === .subject-grid — 과목 카드 3열 그리드 === */
+/* === 과목 카드 3열 그리드 === */
 .subject-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 1.25rem;
 }
 
-/* === .subject-card — 과목 카드 === */
+/* === 과목 카드 === */
 .subject-card {
   position: relative;
   display: flex;
@@ -190,7 +189,7 @@
   transform: translateX(4px);
 }
 
-/* === .about — 플랫폼 소개 섹션 === */
+/* === 플랫폼 소개 섹션 === */
 .about {
   padding: 6rem 2rem;
   background: var(--color-surface);
@@ -209,7 +208,7 @@
   gap: 1.5rem;
 }
 
-/* === .about-card — 소개 카드 === */
+/* === 소개 카드 === */
 .about-card {
   padding: 2rem 1.75rem;
   background: var(--color-bg);
@@ -297,7 +296,7 @@
   }
 
   .hero__circuit {
-    display: none;
+    width: 200px;
   }
 }
 
@@ -309,4 +308,67 @@
   .about-grid   {
     grid-template-columns: 1fr;
   }
+}
+
+@media (max-width: 768px) {
+  .hero__circuit {
+    position: absolute;
+    width: 360px;
+    opacity: 0.15;
+    top: 50%;
+    left: 50%;
+    z-index: 0;
+  }
+  .hero__inner {
+    flex-direction: column;
+    gap: 0;
+  }
+  .hero__text {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+/* === 라이트 모드 === */
+[data-theme="light"] .about {
+  background: var(--color-surface);
+  border-color: rgba(108,99,255,0.15);
+}
+
+[data-theme="light"] .about-card {
+  background: var(--color-bg);
+}
+
+[data-theme="light"] .subject-card {
+  background: var(--color-surface);
+}
+
+[data-theme="light"] .subject-card:hover {
+  background: var(--color-surface-2);
+}
+
+[data-theme="light"] .hero__bg-grid {
+  opacity: 0.3;
+}
+
+/* === 다크/라이트 이미지 전환 === */
+.hero__circuit-img {
+  width: 70%;
+  height: 70%;
+}
+
+.hero__circuit-img--dark  {
+  display: block;
+}
+
+.hero__circuit-img--light {
+  display: none;
+}
+
+[data-theme="light"] .hero__circuit-img--dark  {
+  display: none;
+}
+
+[data-theme="light"] .hero__circuit-img--light {
+  display: block;
 }

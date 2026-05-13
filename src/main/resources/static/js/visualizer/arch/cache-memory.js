@@ -78,20 +78,28 @@
     }
 
     /* ===================== 팔레트 ===================== */
-    const P = {
-        bg:     '#0f0f1a',
-        surf:   '#1a1a2e',
-        surf2:  '#222238',
-        border: 'rgba(108,99,255,0.22)',
-        purple: '#6c63ff',
-        teal:   '#3ecfb2',
-        orange: '#f7a14a',
-        green:  '#4ade80',
-        red:    '#f87171',
-        text:   '#e8e8f0',
-        sub:    '#a0a0bc',
-        muted:  '#6b6b8a',
+    const PALETTE = {
+        dark: {
+            bg:     '#0f0f1a', surf:   '#1a1a2e', surf2:  '#222238',
+            border: 'rgba(108,99,255,0.22)',
+            purple: '#6c63ff', teal:   '#3ecfb2', orange: '#f7a14a',
+            green:  '#4ade80', red:    '#f87171', yellow: '#fbbf24',
+            text:   '#e8e8f0', sub:    '#a0a0bc', muted:  '#6b6b8a',
+        },
+        light: {
+            bg:     '#f5f5ff', surf:   '#ffffff', surf2:  '#eeeeff',
+            border: 'rgba(108,99,255,0.2)',
+            purple: '#6c63ff', teal:   '#2ab89e', orange: '#d97706',
+            green:  '#16a34a', red:    '#dc2626', yellow: '#ca8a04',
+            text:   '#1a1a2e', sub:    '#3a3a5c', muted:  '#6b6b8a',
+        },
     };
+
+    function getP() {
+        return document.documentElement.getAttribute('data-theme') === 'light'
+            ? PALETTE.light : PALETTE.dark;
+    }
+    let P = getP();
 
     /* ===================== 툴팁 정의 ===================== */
     const TOOLTIPS = {
@@ -241,6 +249,7 @@
 
     /* ===================== 메인 드로우 ===================== */
     function draw() {
+        P = getP();
         const W = GW(), H = GH();
         ctx.clearRect(0, 0, W, H);
         ctx.fillStyle = P.bg;
@@ -540,7 +549,7 @@
         const memLx   = L.memX;
         const memMy   = L.memY + L.memH / 2;
 
-        pktQueue = [];  // 큐 초기화
+        pktQueue = [];
 
         if (step.hit) {
             spawnPacket(cpuRx, cpuMy, cacheLx, cacheMy, P.purple, step.req);
@@ -634,6 +643,12 @@
 
     canvas.addEventListener('mouseleave', function () {
         if (hoveredKey) { hoveredKey = null; canvas.style.cursor = 'default'; draw(); }
+    });
+
+    /* ===================== 테마 변경 대응 ===================== */
+    window.addEventListener('csflow-theme-change', function () {
+        P = getP();
+        draw();
     });
 
     /* ===================== 초기화 ===================== */

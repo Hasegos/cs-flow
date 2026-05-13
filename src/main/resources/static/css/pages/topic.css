@@ -1,6 +1,6 @@
 /* 토픽 학습 페이지 */
 
-/* === .topic-hero — 토픽 히어로 === */
+/* === 토픽 히어로 === */
 .topic-hero {
   position: relative;
   padding-top: calc(var(--header-h) + 3rem);
@@ -49,7 +49,7 @@
   animation: topic-fade-up 0.5s ease both;
 }
 
-/* === .topic-breadcrumb — 브레드크럼 === */
+/* === 브레드크럼 === */
 .topic-breadcrumb {
   display: flex;
   align-items: center;
@@ -84,7 +84,7 @@
   color: var(--color-text-sub);
 }
 
-/* === .topic-hero__meta — slug + 제목 === */
+/* === slug + 제목 === */
 .topic-hero__slug {
   display: block;
   font-family: var(--font-mono);
@@ -102,7 +102,7 @@
   margin-bottom: 1.25rem;
 }
 
-/* === .topic-tags — 태그 목록 === */
+/* === 태그 목록 === */
 .topic-tags {
   display: flex;
   flex-wrap: wrap;
@@ -120,7 +120,7 @@
   padding: 0.2rem 0.65rem;
 }
 
-/* === .topic-tabs — 탭 네비게이션 === */
+/* === 탭 네비게이션 === */
 .topic-tabs {
   position: sticky;
   top: var(--header-h);
@@ -177,7 +177,7 @@
   transform: scaleX(1);
 }
 
-/* === .topic-content — 탭 콘텐츠 영역 === */
+/* === 탭 콘텐츠 영역 === */
 .topic-content {
   max-width: 1200px;
   margin: 0 auto;
@@ -229,7 +229,7 @@
 
 .overview-card__label {
   font-family: var(--font-mono);
-  font-size: 0.65rem;
+  font-size: 0.85rem;
   letter-spacing: 0.15em;
   text-transform: uppercase;
   color: var(--subject-accent, var(--color-purple));
@@ -244,7 +244,7 @@
 }
 
 .overview-card__desc {
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   color: var(--color-text-muted);
   font-weight: 300;
   line-height: 1.7;
@@ -384,7 +384,7 @@
 
 .related-card__subject {
   font-family: var(--font-mono);
-  font-size: 0.62rem;
+  font-size: 0.85rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-text-muted);
