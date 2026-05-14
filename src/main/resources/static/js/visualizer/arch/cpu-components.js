@@ -459,7 +459,7 @@
         const dist = Math.sqrt(dx * dx + dy * dy);
 
         const PX_PER_FRAME_1X = 1.8;
-        const BASE_SPEED = 1000;
+        const BASE_SPEED = 900;
         const speedRatio = BASE_SPEED / speed;
         const N = Math.max(10, Math.round(dist / (PX_PER_FRAME_1X * speedRatio)));
 

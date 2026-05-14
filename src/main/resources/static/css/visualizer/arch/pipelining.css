@@ -1,6 +1,6 @@
 /* 파이프라이닝 시각화 전용 */
 
-/* === .pl — 최상위 컨테이너 === */
+/* === 최상위 컨테이너 === */
 .pl {
   display: flex;
   flex-direction: column;
@@ -10,7 +10,7 @@
   min-height: 540px;
 }
 
-/* === .pl__toolbar === */
+/* === 툴바 === */
 .pl__toolbar {
   display: flex;
   align-items: center;
@@ -37,7 +37,7 @@
   color: var(--color-purple);
 }
 
-/* === .pl__step-badge — 현재 단계 표시 === */
+/* === 현재 단계 표시 === */
 .pl__step-badge {
   font-family: var(--font-mono);
   font-size: 0.62rem;
@@ -55,7 +55,7 @@
   background: rgba(108,99,255,0.1);
 }
 
-/* === .pl__speed === */
+/* === 스피드 === */
 .pl__speed {
   display: flex;
   align-items: center;
@@ -87,7 +87,6 @@
   color: var(--color-purple);
 }
 
-/* === .pl__canvas-wrap === */
 .pl__canvas-wrap {
   flex: 1;
   position: relative;
@@ -102,7 +101,6 @@
   display: block;
 }
 
-/* === .pl__log === */
 .pl__log {
   padding: 10px 24px;
   border-top: 1px solid var(--color-border);
@@ -117,7 +115,6 @@
   line-height: 1.5;
 }
 
-/* === .pl__controls === */
 .pl__controls {
   display: flex;
   align-items: center;
