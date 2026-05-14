@@ -1,17 +1,16 @@
-/*  캐시 메모리 시각화 전용 */
+/* 인터럽트 시각화 전용 */
 
 /* === 최상위 컨테이너 === */
-.cache-viz {
+.intr {
   display: flex;
   flex-direction: column;
   background: var(--color-bg);
   border-radius: var(--radius-md);
-  overflow: hidden;
-  min-height: 540px;
+  overflow: visible;
 }
 
 /* === 툴바 === */
-.cache-viz__toolbar {
+.intr__toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -22,14 +21,14 @@
   gap: 8px;
 }
 
-.cache-viz__toolbar-left {
+.intr__toolbar-left {
   display: flex;
   align-items: center;
   gap: 16px;
   flex-wrap: wrap;
 }
 
-.cache-viz__title {
+.intr__title {
   font-family: var(--font-mono);
   font-size: 0.62rem;
   letter-spacing: 0.18em;
@@ -37,7 +36,8 @@
   color: var(--color-purple);
 }
 
-.cache-viz__step-badge {
+/* === 뱃지 === */
+.intr__step-badge {
   font-family: var(--font-mono);
   font-size: 0.62rem;
   padding: 4px 12px;
@@ -48,26 +48,27 @@
   transition: all 0.25s ease;
 }
 
-.cache-viz__step-badge--active {
+.intr__step-badge--active {
   border-color: var(--color-purple);
   color: var(--color-purple);
   background: rgba(108,99,255,0.1);
 }
 
-.cache-viz__speed {
+/* === 스피드 === */
+.intr__speed {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.cache-viz__speed-label {
+.intr__speed-label {
   font-family: var(--font-mono);
   font-size: 0.6rem;
   color: var(--color-text-muted);
   letter-spacing: 0.08em;
 }
 
-.cache-viz__speed-btn {
+.intr__speed-btn {
   font-family: var(--font-mono);
   font-size: 0.6rem;
   padding: 4px 10px;
@@ -79,19 +80,25 @@
   transition: all 0.2s ease;
 }
 
-.cache-viz__speed-btn:hover,
-.cache-viz__speed-btn--active {
+.intr__speed-btn:hover,
+.intr__speed-btn--active {
   border-color: var(--color-purple);
   color: var(--color-purple);
 }
 
-.cache-viz__canvas-wrap {
-  flex: 1;
-  position: relative;
-  min-height: 360px;
+.intr__speed-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
-.cache-viz__canvas {
+.intr__canvas-wrap {
+  flex: 1;
+  position: relative;
+  min-height: 420px;
+}
+
+.intr__canvas {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -99,21 +106,21 @@
   display: block;
 }
 
-.cache-viz__log {
+.intr__log {
   padding: 10px 24px;
   border-top: 1px solid var(--color-border);
   font-family: var(--font-mono);
   font-size: 0.72rem;
   color: var(--color-purple);
   letter-spacing: 0.04em;
-  min-height: 40px;
+  min-height: 56px;
   display: flex;
   align-items: center;
   flex-shrink: 0;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
-.cache-viz__controls {
+.intr__controls {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -122,7 +129,7 @@
   flex-shrink: 0;
 }
 
-.cache-viz__btn {
+.intr__btn {
   font-family: var(--font-mono);
   font-size: 0.72rem;
   padding: 8px 20px;
@@ -135,28 +142,22 @@
   letter-spacing: 0.06em;
 }
 
-.cache-viz__btn:hover {
+.intr__btn:hover {
   border-color: var(--color-purple);
   color: var(--color-purple);
 }
 
-.cache-viz__btn--primary {
+.intr__btn--primary {
   border-color: var(--color-purple);
   color: var(--color-purple);
 }
 
-.cache-viz__btn--primary:hover {
+.intr__btn--primary:hover {
   background: var(--color-purple);
   color: #0f0f1a;
 }
 
-.cache-viz__btn:disabled {
+.intr__btn:disabled {
   opacity: 0.35;
   cursor: not-allowed;
-}
-
-.cache-viz__speed-btn:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-  pointer-events: none;
 }

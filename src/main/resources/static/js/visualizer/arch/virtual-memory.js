@@ -160,7 +160,7 @@
     let stepIdx    = -1;
     let running    = false;
     let timer      = null;
-    let speed      = 1000;
+    let speed      = 1800;
     let activeSet  = new Set();
     let resultState = null;
 

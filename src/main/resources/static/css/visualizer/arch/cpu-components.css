@@ -1,6 +1,6 @@
 /* CPU 구성 요소 시각화 전용 */
 
-/* === .cpu — 최상위 컨테이너 === */
+/* === 최상위 컨테이너 === */
 .cpu {
   display: flex;
   flex-direction: column;
@@ -10,7 +10,7 @@
   min-height: 540px;
 }
 
-/* === .cpu__toolbar === */
+/* === 툴바 === */
 .cpu__toolbar {
   display: flex;
   align-items: center;
@@ -37,7 +37,7 @@
   color: var(--color-purple);
 }
 
-/* === .cpu__step — 현재 단계 표시 === */
+/* === 현재 단계 표시 === */
 .cpu__step-badge {
   font-family: var(--font-mono);
   font-size: 0.62rem;
@@ -55,7 +55,6 @@
   background: rgba(108,99,255,0.1);
 }
 
-/* === .cpu__speed === */
 .cpu__speed {
   display: flex;
   align-items: center;
@@ -87,7 +86,6 @@
   color: var(--color-purple);
 }
 
-/* === .cpu__canvas-wrap === */
 .cpu__canvas-wrap {
   flex: 1;
   position: relative;
@@ -102,7 +100,6 @@
   display: block;
 }
 
-/* === .cpu__log === */
 .cpu__log {
   padding: 10px 24px;
   border-top: 1px solid var(--color-border);
@@ -117,7 +114,6 @@
   line-height: 1.5;
 }
 
-/* === .cpu__controls === */
 .cpu__controls {
   display: flex;
   align-items: center;

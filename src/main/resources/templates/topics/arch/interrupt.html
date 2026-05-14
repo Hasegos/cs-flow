@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <meta name="description" th:content="${topic.title} + ' — CS Flow에서 인터랙티브 시각화로 학습하세요'">
+    <title th:text="'CS Flow ' + ${topic.title}">CS Flow 인터럽트</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/arch/interrupt.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/arch}" class="topic-breadcrumb__link">컴퓨터 구조</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">인터럽트</span>
+                </nav>
+
+                <span class="topic-hero__slug">arch · 08</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">인터럽트</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        인터럽트(Interrupt)는 CPU가 현재 작업을 수행하는 도중
+                        <strong>긴급한 이벤트가 발생했음을 알리는 신호</strong>입니다.
+                        CPU는 하던 일을 잠시 중단하고 해당 이벤트를 처리한 뒤, 원래 작업으로 돌아옵니다.
+                        운영체제와 하드웨어 간 효율적인 소통의 핵심 메커니즘입니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">하드웨어 인터럽트</h3>
+                            <p class="overview-card__desc">키보드 입력, 마우스 클릭, 네트워크 패킷 수신 등 외부 하드웨어 장치가 CPU에 보내는 신호입니다. 비동기적으로 발생하며 CPU는 이를 즉시 처리합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">소프트웨어 인터럽트 (트랩)</h3>
+                            <p class="overview-card__desc">프로그램이 의도적으로 발생시키는 인터럽트입니다. 시스템 콜(System Call)이 대표적이며, 사용자 모드에서 커널 기능을 요청할 때 사용됩니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">예외 (Exception)</h3>
+                            <p class="overview-card__desc">0으로 나누기, 페이지 폴트, 잘못된 메모리 접근 등 CPU 내부에서 발생하는 오류 상황입니다. 동기적으로 발생하며 즉시 처리가 필요합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">인터럽트 서비스 루틴 (ISR)</h3>
+                            <p class="overview-card__desc">인터럽트 발생 시 실행되는 처리 함수입니다. 인터럽트 벡터 테이블(IVT)에 각 인터럽트 번호별 ISR 주소가 등록되어 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">인터럽트 벡터 테이블 (IVT)</h3>
+                            <p class="overview-card__desc">인터럽트 번호와 ISR 주소를 매핑한 테이블입니다. CPU는 인터럽트 발생 시 이 테이블을 참조해 해당 ISR의 주소를 찾아 점프합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">인터럽트 우선순위</h3>
+                            <p class="overview-card__desc">여러 인터럽트가 동시에 발생하면 우선순위가 높은 것을 먼저 처리합니다. 우선순위가 낮은 ISR 실행 중 높은 우선순위 인터럽트가 오면 중단하고 처리합니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>컨텍스트 저장</strong> — 인터럽트 발생 시 CPU는 현재 PC(프로그램 카운터), 레지스터 값 등을 스택에 저장합니다. ISR 종료 후 이를 복원해 원래 작업을 재개합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>인터럽트 마스킹</strong> — ISR 실행 중 다른 인터럽트를 무시(마스킹)할 수 있습니다. 중요한 처리 중 재진입을 방지해 데이터 일관성을 보장합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>폴링 vs 인터럽트</strong> — 폴링은 CPU가 주기적으로 장치 상태를 확인하는 방식으로 CPU 자원을 낭비합니다. 인터럽트 방식은 이벤트 발생 시에만 처리하므로 훨씬 효율적입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>인터럽트 컨트롤러 (PIC/APIC)</strong> — 여러 하드웨어 장치로부터 인터럽트 신호를 받아 우선순위를 조정하고 CPU에 전달하는 하드웨어 컴포넌트입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>RETI 명령어</strong> — ISR의 마지막에 실행되는 인터럽트 복귀 명령어입니다. 스택에서 PC와 레지스터를 복원하고 인터럽트 플래그를 원상복구합니다.</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 (시각화) -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/interrupt-code :: code}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+</body>
+</html>
