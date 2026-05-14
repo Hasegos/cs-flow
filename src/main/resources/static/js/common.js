@@ -32,6 +32,16 @@
             btn.addEventListener('click', function () {
                 const target = btn.dataset.tab;
 
+                const activePanel = document.querySelector('.topic-panel.is-active');
+                if (activePanel) {
+                    const c = activePanel.querySelector('canvas');
+                    if (c) {
+                        c.width = 1;
+                        c.height = 1;
+                    }
+                    window.dispatchEvent(new CustomEvent('csflow-viz-pause'));
+                }
+
                 tabBtns.forEach(b => b.classList.remove('is-active'));
                 btn.classList.add('is-active');
 
@@ -40,6 +50,10 @@
                 });
                 const targetPanel = document.getElementById('panel-' + target);
                 if (targetPanel) targetPanel.classList.add('is-active');
+
+                if (target === 'visualizer') {
+                    window.dispatchEvent(new CustomEvent('csflow-viz-resume'));
+                }
             });
         });
     }
