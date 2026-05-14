@@ -7,11 +7,10 @@
         </encoder>
     </appender>
 
-    <!-- app 로그 -->
+    <!-- app 로그: logs/2026-05-14/app.log -->
     <appender name="APP_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>logs/app/app.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>logs/app/app.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <fileNamePattern>logs/%d{yyyy-MM-dd}/app.log</fileNamePattern>
             <maxHistory>365</maxHistory>
             <totalSizeCap>2GB</totalSizeCap>
         </rollingPolicy>
@@ -20,11 +19,10 @@
         </encoder>
     </appender>
 
-    <!-- access 로그 -->
+    <!-- access 로그: logs/2026-05-14/access.log -->
     <appender name="ACCESS_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>logs/access/access.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>logs/access/access.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <fileNamePattern>logs/%d{yyyy-MM-dd}/access.log</fileNamePattern>
             <maxHistory>365</maxHistory>
             <totalSizeCap>2GB</totalSizeCap>
         </rollingPolicy>
@@ -33,14 +31,13 @@
         </encoder>
     </appender>
 
-    <!-- error 로그 -->
+    <!-- error 로그: logs/2026-05-14/error.log -->
     <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>logs/error/error.log</file>
         <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
             <level>ERROR</level>
         </filter>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>logs/error/error.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <fileNamePattern>logs/%d{yyyy-MM-dd}/error.log</fileNamePattern>
             <maxHistory>365</maxHistory>
             <totalSizeCap>1GB</totalSizeCap>
         </rollingPolicy>
@@ -49,7 +46,7 @@
         </encoder>
     </appender>
 
-    <!-- ACCESS Logger → access 폴더만, 콘솔 출력 안 함 -->
+    <!-- ACCESS Logger → access 파일만, 콘솔 출력 안 함 -->
     <logger name="ACCESS" level="INFO" additivity="false">
         <appender-ref ref="ACCESS_FILE"/>
     </logger>
