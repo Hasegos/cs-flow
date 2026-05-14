@@ -1,0 +1,154 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">C — 인터럽트 벡터 테이블 등록 및 ISR 구현</p>
+            <div class="code-block">
+<pre><span class="cm">// 인터럽트 서비스 루틴 (ISR) 타입 정의</span>
+<span class="kw">typedef void</span> (*<span class="fn">isr_t</span>)(<span class="kw">void</span>);
+
+<span class="cm">// 인터럽트 벡터 테이블 (IVT) — 256개 인터럽트 슬롯</span>
+<span class="kw">#define</span> IVT_SIZE <span class="num">256</span>
+isr_t ivt[IVT_SIZE];
+
+<span class="cm">// ISR 등록 함수</span>
+<span class="kw">void</span> <span class="fn">register_isr</span>(<span class="kw">int</span> irq_num, isr_t handler) {
+    ivt[irq_num] = handler;
+}
+
+<span class="cm">// 키보드 인터럽트 핸들러 (IRQ1)</span>
+<span class="kw">void</span> <span class="fn">keyboard_isr</span>(<span class="kw">void</span>) {
+    <span class="cm">/* 1. 키보드 포트에서 스캔 코드 읽기 */</span>
+    <span class="kw">uint8_t</span> scancode = <span class="fn">inb</span>(<span class="num">0x60</span>);
+
+    <span class="cm">/* 2. 스캔 코드를 ASCII로 변환해 버퍼에 저장 */</span>
+    key_buffer[buf_head] = <span class="fn">scancode_to_ascii</span>(scancode);
+    buf_head = (buf_head + <span class="num">1</span>) % KEY_BUF_SIZE;
+
+    <span class="cm">/* 3. PIC에 EOI(End of Interrupt) 신호 전송 */</span>
+    <span class="fn">outb</span>(<span class="num">0x20</span>, <span class="num">0x20</span>);
+
+    <span class="cm">/* RETI — ISR 종료 시 CPU가 자동으로 이전 컨텍스트 복원 */</span>
+}
+
+<span class="cm">// 타이머 인터럽트 핸들러 (IRQ0)</span>
+<span class="kw">void</span> <span class="fn">timer_isr</span>(<span class="kw">void</span>) {
+    tick_count++;                   <span class="cm">// 시스템 틱 증가</span>
+    <span class="fn">schedule</span>();                     <span class="cm">// 프로세스 스케줄러 호출</span>
+    <span class="fn">outb</span>(<span class="num">0x20</span>, <span class="num">0x20</span>);             <span class="cm">// EOI 전송</span>
+}
+
+<span class="cm">// 초기화: IRQ0(타이머), IRQ1(키보드) 등록</span>
+<span class="kw">void</span> <span class="fn">init_interrupts</span>(<span class="kw">void</span>) {
+    <span class="fn">register_isr</span>(<span class="num">0</span>, timer_isr);    <span class="cm">// IRQ0 → 타이머</span>
+    <span class="fn">register_isr</span>(<span class="num">1</span>, keyboard_isr); <span class="cm">// IRQ1 → 키보드</span>
+    <span class="fn">sti</span>();                          <span class="cm">// 인터럽트 활성화 (IF 플래그 SET)</span>
+}</pre>
+            </div>
+            <p class="code-desc">
+                <code>ivt[]</code> 배열이 인터럽트 벡터 테이블입니다. IRQ 번호를 인덱스로
+                ISR 함수 포인터를 저장합니다. 인터럽트 발생 시 CPU는 <code>ivt[irq]</code>를
+                참조해 해당 핸들러로 점프하고, ISR 종료 후 자동으로 이전 컨텍스트를 복원합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">C — 컨텍스트 저장 및 복원 (어셈블리 수준)</p>
+            <div class="code-block">
+<pre><span class="cm">/* 인터럽트 발생 시 CPU가 자동으로 수행하는 동작 (x86 기준) */</span>
+
+<span class="cm">// ── 인터럽트 발생 시 (하드웨어 자동) ──────────────────────</span>
+<span class="cm">// 1. IF(Interrupt Flag) 클리어 → 추가 인터럽트 차단</span>
+<span class="cm">// 2. 현재 SS, ESP, EFLAGS, CS, EIP를 스택에 PUSH</span>
+<span class="cm">// 3. IDT(Interrupt Descriptor Table)에서 ISR 주소 로드</span>
+<span class="cm">// 4. ISR로 점프 (EIP = ISR 주소)</span>
+
+<span class="cm">// ── ISR 진입부 (어셈블리로 작성) ──────────────────────────</span>
+<span class="kw">__asm__</span>(
+    <span class="st">"keyboard_isr_entry:\n"</span>
+    <span class="st">"  pusha\n"</span>          <span class="cm">// EAX,ECX,EDX,EBX,ESP,EBP,ESI,EDI 저장</span>
+    <span class="st">"  call keyboard_isr\n"</span> <span class="cm">// C ISR 함수 호출</span>
+    <span class="st">"  popa\n"</span>           <span class="cm">// 레지스터 복원</span>
+    <span class="st">"  iret\n"</span>           <span class="cm">// EIP, CS, EFLAGS 복원 + IF 재활성화</span>
+);
+
+<span class="cm">// ── IRET 명령이 복원하는 것 ────────────────────────────────</span>
+<span class="kw">typedef struct</span> {
+    <span class="kw">uint32_t</span> eip;     <span class="cm">// 중단된 명령어 주소 → 여기서 재개</span>
+    <span class="kw">uint32_t</span> cs;      <span class="cm">// 코드 세그먼트</span>
+    <span class="kw">uint32_t</span> eflags;  <span class="cm">// 플래그 레지스터 (IF 포함)</span>
+} InterruptFrame;
+
+<span class="cm">// ── 인터럽트 마스킹 예시 ──────────────────────────────────</span>
+<span class="kw">void</span> <span class="fn">critical_section</span>(<span class="kw">void</span>) {
+    <span class="fn">cli</span>();   <span class="cm">// 인터럽트 비활성화 (IF = 0)</span>
+
+    <span class="cm">/* 원자적으로 실행해야 하는 코드 */</span>
+    shared_resource++;
+
+    <span class="fn">sti</span>();   <span class="cm">// 인터럽트 재활성화 (IF = 1)</span>
+}</pre>
+            </div>
+            <p class="code-desc">
+                <code>iret</code>는 인터럽트 복귀 전용 명령어입니다. 스택에서 EIP, CS, EFLAGS를
+                한 번에 복원하고 인터럽트 플래그(IF)를 재활성화합니다.
+                <code>cli</code>/<code>sti</code>로 임계 구역을 보호하면 인터럽트에 의한
+                데이터 경합을 방지할 수 있습니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 소프트웨어 인터럽트 (시스템 콜 시뮬레이션)</p>
+            <div class="code-block">
+<pre><span class="cm">/**
+ * 소프트웨어 인터럽트(트랩) 개념 시뮬레이션
+ * Java에서 직접 시스템 콜을 발생시키진 않지만,
+ * JVM이 내부적으로 OS 시스템 콜을 트랩으로 처리하는 흐름을 표현
+ */</span>
+<span class="kw">public class</span> <span class="fn">SyscallSimulator</span> {
+
+    <span class="cm">// 시스템 콜 번호 정의</span>
+    <span class="kw">static final int</span> SYS_READ  = <span class="num">0</span>;
+    <span class="kw">static final int</span> SYS_WRITE = <span class="num">1</span>;
+    <span class="kw">static final int</span> SYS_EXIT  = <span class="num">60</span>;
+
+    <span class="cm">// 시스템 콜 핸들러 테이블 (IVT와 동일한 개념)</span>
+    <span class="kw">static final</span> Runnable[] syscallTable = {
+        () -> System.out.<span class="fn">println</span>(<span class="st">"[KERNEL] SYS_READ 처리"</span>),   <span class="cm">// 0</span>
+        () -> System.out.<span class="fn">println</span>(<span class="st">"[KERNEL] SYS_WRITE 처리"</span>),  <span class="cm">// 1</span>
+    };
+
+    <span class="cm">/**
+     * 소프트웨어 인터럽트 발생 시뮬레이션
+     * 실제 x86: INT 0x80 명령 → 커널 모드 전환 → 시스템 콜 처리
+     */</span>
+    <span class="kw">static void</span> <span class="fn">syscall</span>(<span class="kw">int</span> callNumber) {
+        System.out.<span class="fn">println</span>(<span class="st">"[USER]   INT 0x80 발생 → 커널 모드 전환"</span>);
+        System.out.<span class="fn">println</span>(<span class="st">"[CPU]    컨텍스트 저장 (PC, 레지스터 → 스택)"</span>);
+
+        <span class="kw">if</span> (callNumber >= <span class="num">0</span> && callNumber < syscallTable.length) {
+            syscallTable[callNumber].<span class="fn">run</span>(); <span class="cm">// ISR 실행</span>
+        }
+
+        System.out.<span class="fn">println</span>(<span class="st">"[CPU]    컨텍스트 복원 (스택 → PC, 레지스터)"</span>);
+        System.out.<span class="fn">println</span>(<span class="st">"[USER]   사용자 모드 복귀\n"</span>);
+    }
+
+    <span class="kw">public static void</span> <span class="fn">main</span>(String[] args) {
+        System.out.<span class="fn">println</span>(<span class="st">"=== 사용자 프로그램 실행 중 ==="</span>);
+        <span class="fn">syscall</span>(SYS_WRITE); <span class="cm">// 소프트웨어 인터럽트 발생</span>
+        <span class="fn">syscall</span>(SYS_READ);
+        System.out.<span class="fn">println</span>(<span class="st">"=== 프로그램 계속 실행 ==="</span>);
+    }
+}</pre>
+            </div>
+            <p class="code-desc">
+                Java에서 <code>System.out.println()</code>을 호출하면 내부적으로 JVM이
+                OS의 <code>write</code> 시스템 콜을 발생시킵니다. 이 과정에서 소프트웨어
+                인터럽트(트랩)가 발생해 사용자 모드에서 커널 모드로 전환되고,
+                처리 후 다시 사용자 모드로 복귀합니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
