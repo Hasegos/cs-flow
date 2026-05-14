@@ -160,7 +160,7 @@
     let stepIdx    = -1;
     let running    = false;
     let timer      = null;
-    let speed      = 1000;
+    let speed      = 1800;
     let activeSet  = new Set();
     let resultState = null;
 
@@ -240,7 +240,7 @@
             };
             return { W, H, mob, nw, nh, nodes, addrY, addrH };
         }
-=
+
         const hGap  = Math.max(40, (W - 48 - nw*3) / 2);
         const vGap  = Math.max(60, (H - 48 - nh*2) / 1);
         const row1Y = 24;
@@ -283,7 +283,7 @@
             tx(step.pfn,            px + pw*0.60, py + ph/2, fMd, col,      'center', false);
             tx('PA: ' + step.phys,  px + pw*0.82, py + ph/2, fMd, P.orange, 'center', true);
         } else {
-            tx('주소 변환',     px + pw/2, py + 18,  fSm, P.muted,  'center', false);
+            tx('주소 변환',     px + pw/2, py + 18,  14, P.muted,  'center', false);
             tx('VA  ' + step.addr,  px + pw/2, py + 40,  fMd, P.purple, 'center', true);
             tx(step.vpn,            px + pw/2, py + 62,  fMd, P.teal,   'center', false);
             tx(step.pfn,            px + pw/2, py + 82,  fMd, col,      'center', false);

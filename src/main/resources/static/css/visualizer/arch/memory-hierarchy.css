@@ -1,6 +1,6 @@
 /* 메모리 계층 구조 시각화 전용 */
 
-/* === .mem-hier — 최상위 컨테이너 === */
+/* === 최상위 컨테이너 === */
 .mem-hier {
   display: flex;
   flex-direction: column;
@@ -10,7 +10,7 @@
   min-height: 540px;
 }
 
-/* === .mem-hier__toolbar === */
+/* === 툴바 === */
 .mem-hier__toolbar {
   display: flex;
   align-items: center;
@@ -37,7 +37,6 @@
   color: var(--color-purple);
 }
 
-/* === .mem-hier__step-badge === */
 .mem-hier__step-badge {
   font-family: var(--font-mono);
   font-size: 0.62rem;
@@ -55,7 +54,6 @@
   background: rgba(108,99,255,0.1);
 }
 
-/* === .mem-hier__canvas-wrap === */
 .mem-hier__canvas-wrap {
   flex: 1;
   position: relative;
@@ -70,7 +68,6 @@
   display: block;
 }
 
-/* === .mem-hier__log === */
 .mem-hier__log {
   padding: 10px 24px;
   border-top: 1px solid var(--color-border);
@@ -85,7 +82,6 @@
   line-height: 1.5;
 }
 
-/* === .mem-hier__controls === */
 .mem-hier__controls {
   display: flex;
   align-items: center;
