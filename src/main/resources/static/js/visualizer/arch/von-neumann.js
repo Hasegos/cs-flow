@@ -621,12 +621,62 @@
     });
 
     /* ===================== 테마 변경 대응 ===================== */
-    window.addEventListener('csflow-theme-change', function () {
-        P = getP();
-        draw();
+    function onThemeChange() {
+      P = getP();
+      draw();
+    }
+    window.addEventListener('csflow-theme-change', onThemeChange);
+
+    /* ===================== viz pause/resume ===================== */
+    function onVizPause() {
+        if (rafId) {
+            cancelAnimationFrame(rafId);
+            rafId = null;
+        }
+
+        if (timer) {
+            clearTimeout(timer);
+            timer = null;
+        }
+
+        running = false;
+        setSpeedDisabled(false);
+    }
+
+    function onVizResume() {
+        resize();
+    }
+    window.addEventListener('csflow-viz-pause',  onVizPause);
+    window.addEventListener('csflow-viz-resume', onVizResume);
+
+    /* ===================== 메모리 해제 ===================== */
+    const observer = new ResizeObserver(() => resize());
+    observer.observe(canvasWrap);
+
+    window.addEventListener('beforeunload', function () {
+        window.removeEventListener('csflow-theme-change', onThemeChange);
+        window.removeEventListener('csflow-viz-pause',    onVizPause);
+        window.removeEventListener('csflow-viz-resume',   onVizResume);
+
+        if (timer) clearTimeout(timer);
+        if (rafId) cancelAnimationFrame(rafId);
+        if (observer) observer.disconnect();
+
+        canvas.width  = 1;
+        canvas.height = 1;
+    });
+
+    document.addEventListener('visibilitychange', function () {
+        if (document.hidden) {
+           if (typeof rafId !== 'undefined' && rafId){
+               cancelAnimationFrame(rafId);
+           }
+        }
+        else {
+           resize();
+        }
     });
 
     /* ===================== 초기화 ===================== */
-    new ResizeObserver(() => resize()).observe(canvasWrap);
     setTimeout(resize, 60);
 })();
