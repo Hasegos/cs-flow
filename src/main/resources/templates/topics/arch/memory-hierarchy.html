@@ -2,8 +2,8 @@
 <html xmlns:th="http://www.thymeleaf.org" lang="ko">
 <head>
     <th:block th:replace="~{fragments/head :: head}"></th:block>
-    <meta name="description" th:content="${topic.title} + ' — CS Flow에서 인터랙티브 시각화로 학습하세요'">
-    <title th:text="'CS Flow ' + ${topic.title}">CS Flow 메모리 계층 구조</title>
+    <meta name="description" th:content="${topic.title} + ' CS 지식 정리 — 레지스터, 캐시, RAM, SSD 계층 구조와 지역성 원리를 인터랙티브 시각화로 학습하세요. 개발자 면접 컴퓨터구조 핵심 개념.'">
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">메모리 계층 구조 | CS 지식 정리 - CS Flow</title>
     <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
     <link rel="stylesheet" th:href="@{/css/visualizer/arch/memory-hierarchy.css}">
 </head>
