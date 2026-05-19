@@ -1,14 +1,10 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" th:content="${subject.name} + ' 핵심 개념을 인터랙티브 시각화로 학습하세요'">
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
     <meta name="author" content="CS Flow">
-    <title th:text="'CS Flow ' + ${subject.name}">CS Flow 과목</title>
-    <link rel="stylesheet" th:href="@{/css/common/reset.css}">
-    <link rel="stylesheet" th:href="@{/css/common/header.css}">
-    <link rel="stylesheet" th:href="@{/css/common/footer.css}">
+    <meta name="description" th:content="${subject.name} + ' CS 지식 핵심 개념 완전 정리. 개발자 면접 대비 ' + ${subject.name} + ' 이론을 인터랙티브 시각화로 직관적으로 학습하세요.'">
+    <title th:text="${subject.name} + ' CS 지식 정리 | CS Flow'">컴퓨터 구조 CS 지식 정리 | CS Flow</title>
     <link rel="stylesheet" th:href="@{/css/pages/subject.css}">
 </head>
 <body>
