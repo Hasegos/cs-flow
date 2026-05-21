@@ -82,27 +82,8 @@
     const GH = () => canvas.height / dpr;
 
     /* ===================== 팔레트 ===================== */
-    const PALETTE = {
-        dark: {
-            bg:     '#0f0f1a', surf:   '#1a1a2e', surf2:  '#222238',
-            border: 'rgba(108,99,255,0.22)',
-            purple: '#6c63ff', teal:   '#3ecfb2', orange: '#f7a14a',
-            green:  '#4ade80', red:    '#f87171', yellow: '#fbbf24',
-            text:   '#e8e8f0', sub:    '#a0a0bc', muted:  '#6b6b8a',
-        },
-        light: {
-            bg:     '#f5f5ff', surf:   '#ffffff', surf2:  '#eeeeff',
-            border: 'rgba(108,99,255,0.2)',
-            purple: '#6c63ff', teal:   '#2ab89e', orange: '#d97706',
-            green:  '#16a34a', red:    '#dc2626', yellow: '#ca8a04',
-            text:   '#1a1a2e', sub:    '#3a3a5c', muted:  '#6b6b8a',
-        },
-    };
-    function getP() {
-        return document.documentElement.getAttribute('data-theme') === 'light'
-            ? PALETTE.light : PALETTE.dark;
-    }
-    let P = getP();
+    const PALETTE = window.CsFlow.PALETTE;
+   let P = window.CsFlow.getP();
 
     /* ===================== 약어 툴팁 데이터 ===================== */
     const TOOLTIPS = {
@@ -186,7 +167,7 @@
 
     /* ===================== 메인 드로우 ===================== */
     function draw() {
-        P = getP();
+        P = window.CsFlow.getP();
         const W = GW(), H = GH();
         ctx.clearRect(0, 0, W, H);
         ctx.fillStyle = P.bg;
@@ -628,86 +609,32 @@
         btn.classList.add('cpu__speed-btn--active');
     }
 
-    /* ===================== 마우스 이벤트 ===================== */
-    canvas.addEventListener('mousemove', function(e) {
-        const rect   = canvas.getBoundingClientRect();
-        const scaleX = GW() / rect.width;
-        const scaleY = GH() / rect.height;
-        mousePos.x = (e.clientX - rect.left) * scaleX;
-        mousePos.y = (e.clientY - rect.top)  * scaleY;
-
-        const hit = tooltipHits.find(h =>
-            mousePos.x >= h.x && mousePos.x <= h.x + h.w &&
-            mousePos.y >= h.y && mousePos.y <= h.y + h.h
-        );
-        const newKey = hit ? hit.key : null;
-        if (newKey !== hoveredKey) {
-            hoveredKey = newKey;
-            canvas.style.cursor = newKey ? 'help' : 'default';
-            draw();
-        }
-    });
-
-    canvas.addEventListener('mouseleave', function() {
-        if (hoveredKey) {
-            hoveredKey = null;
-            canvas.style.cursor = 'default';
-            draw();
-        }
-    });
-
-    /* ===================== 테마 변경 대응 ===================== */
-    function onThemeChange() {
-       P = getP();
-       draw();
-    }
-    window.addEventListener('csflow-theme-change', onThemeChange);
-
-    /* ===================== viz pause/resume ===================== */
-    function onVizPause() {
-        if (rafId) {
-            cancelAnimationFrame(rafId);
-            rafId = null;
-        }
-
-        if (timer) {
-            clearTimeout(timer);
-            timer = null;
-        }
-
-        running = false;
-        setSpeedDisabled(false);
-    }
-
-    function onVizResume() {
-       resize();
-    }
-    window.addEventListener('csflow-viz-pause',  onVizPause);
-    window.addEventListener('csflow-viz-resume', onVizResume);
-
-    /* ===================== 메모리 해제 ===================== */
-    window.addEventListener('beforeunload', function () {
-        window.removeEventListener('csflow-theme-change', onThemeChange);
-        window.removeEventListener('csflow-viz-pause',    onVizPause);
-        window.removeEventListener('csflow-viz-resume',   onVizResume);
-
-        if (timer) clearTimeout(timer);
-        if (rafId) cancelAnimationFrame(rafId);
-        if (observer) observer.disconnect();
-
-        canvas.width  = 1;
-        canvas.height = 1;
-    });
-
-    document.addEventListener('visibilitychange', function () {
-        if (document.hidden) {
-            if (typeof rafId !== 'undefined' && rafId){
-                cancelAnimationFrame(rafId);
-            }
-        }
-        else {
-            resize();
-        }
+    /* ===================== 라이프사이클 ===================== */
+    window.CsFlow.createVizLifecycle({
+        canvas    : canvas,
+        canvasWrap: canvasWrap,
+        resize    : resize,
+        draw      : draw,
+        getState  : function () {
+            return { rafId: rafId, timer: timer, running: running };
+        },
+        setState  : function (s) {
+            rafId   = s.rafId;
+            timer   = s.timer;
+            running = s.running;
+        },
+        onPause    : function () { setSpeedBtnsDisabled(false); },
+        getMouseCtx: function () {
+            return {
+                GW         : GW,
+                GH         : GH,
+                mousePos   : mousePos,
+                tooltipHits: tooltipHits,
+                hoveredKey : function ()  { return hoveredKey; },
+                setHoveredKey: function (k) { hoveredKey = k; },
+                draw       : draw,
+            };
+        },
     });
 
     /* ===================== 초기화 ===================== */
