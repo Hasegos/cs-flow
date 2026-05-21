@@ -8,6 +8,14 @@
     <meta property="og:type" content="website">
     <meta name="keywords" content="CS지식, 컴퓨터구조, 운영체제, 네트워크, 자료구조, 알고리즘, 데이터베이스, 개발자면접, CS공부">
 
+    <!-- OG -->
+    <meta property="og:site_name" content="CS Flow">
+    <meta property="og:type" content="website">
+    <meta property="og:title" th:if="${pageTitle}" th:content="${pageTitle} + ' | CS Flow'">
+    <meta property="og:description" th:if="${pageDescription}" th:content="${pageDescription}">
+    <meta property="og:url" th:if="${canonicalUrl}" th:content="${canonicalUrl}">
+    <meta property="og:image" content="https://csflow.kr/img/csflow_icon.svg">
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap">
