@@ -38,8 +38,8 @@
                     if (c) {
                         c.width = 1;
                         c.height = 1;
+                        window.dispatchEvent(new CustomEvent('csflow-viz-pause'));
                     }
-                    window.dispatchEvent(new CustomEvent('csflow-viz-pause'));
                 }
 
                 tabBtns.forEach(b => b.classList.remove('is-active'));
