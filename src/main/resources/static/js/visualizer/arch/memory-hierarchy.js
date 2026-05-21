@@ -4,6 +4,11 @@
 (function () {
     'use strict';
 
+    if (!window.CsFlow || typeof window.CsFlow.createVizLifecycle !== 'function') {
+        console.error('[CSFlow] viz-common.js 로드 필요');
+        return;
+    }
+
     const container = document.getElementById('visualizer-container');
     if (!container) return;
 
@@ -62,27 +67,8 @@
     }
 
     /* ===================== 팔레트 ===================== */
-    const PALETTE = {
-        dark: {
-            bg:     '#0f0f1a', surf:   '#1a1a2e', surf2:  '#222238',
-            border: 'rgba(108,99,255,0.22)',
-            purple: '#6c63ff', teal:   '#3ecfb2', orange: '#f7a14a',
-            green:  '#4ade80', red:    '#f87171', yellow: '#fbbf24',
-            text:   '#e8e8f0', sub:    '#a0a0bc', muted:  '#6b6b8a',
-        },
-        light: {
-            bg:     '#f5f5ff', surf:   '#ffffff', surf2:  '#eeeeff',
-            border: 'rgba(108,99,255,0.2)',
-            purple: '#6c63ff', teal:   '#2ab89e', orange: '#d97706',
-            green:  '#16a34a', red:    '#dc2626', yellow: '#ca8a04',
-            text:   '#1a1a2e', sub:    '#3a3a5c', muted:  '#6b6b8a',
-        },
-    };
-    function getP() {
-        return document.documentElement.getAttribute('data-theme') === 'light'
-            ? PALETTE.light : PALETTE.dark;
-    }
-    let P = getP();
+    const PALETTE = window.CsFlow.PALETTE;
+    let P = window.CsFlow.getP();
 
     /* ===================== 계층 데이터 ===================== */
     const LAYERS = [
@@ -229,7 +215,7 @@
 
     /* ===================== 메인 드로우 ===================== */
     function draw() {
-        P = getP();
+        P = window.CsFlow.getP();
         const W = GW(), H = GH();
         ctx.clearRect(0, 0, W, H);
         ctx.fillStyle = P.bg;
@@ -452,6 +438,7 @@
     }
 
     /* ===================== 마우스 이벤트 ===================== */
+
     canvas.addEventListener('mousemove', function (e) {
         const rect = canvas.getBoundingClientRect();
         mousePos.x = (e.clientX - rect.left) * (GW() / rect.width);
@@ -505,37 +492,17 @@
         draw();
     });
 
-    /* ===================== 테마 변경 대응 ===================== */
-    function onThemeChange() {
-        P = getP();
-        draw();
-    }
-    window.addEventListener('csflow-theme-change', onThemeChange);
-
-    /* ===================== viz pause/resume ===================== */
-    function onVizResume() {
-       resize();
-    }
-    window.addEventListener('csflow-viz-resume', onVizResume);
-
-    /* ===================== 메모리 해제 ===================== */
-    const observer = new ResizeObserver(() => resize());
-    observer.observe(canvasWrap);
-
-    window.addEventListener('beforeunload', function () {
-       window.removeEventListener('csflow-theme-change', onThemeChange);
-       window.removeEventListener('csflow-viz-resume',   onVizResume);
-
-       if (observer) observer.disconnect();
-
-       canvas.width  = 1;
-       canvas.height = 1;
-    });
-
-    document.addEventListener('visibilitychange', function () {
-        if (!document.hidden) {
-           resize();
-        }
+    /* ===================== 라이프사이클 ===================== */
+    window.CsFlow.createVizLifecycle({
+        canvas    : canvas,
+        canvasWrap: canvasWrap,
+        resize    : resize,
+        draw      : draw,
+        getState  : function () {
+            return { rafId: null, timer: null, running: false };
+        },
+        setState  : function () {},
+        onPause   : null
     });
 
     /* ===================== 초기화 ===================== */
