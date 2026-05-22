@@ -31,6 +31,9 @@ public class Topic {
     @Column(name = "template_name", nullable = false, length = 200)
     private String templateName;
 
+    @Column(name = "meta_description", length = 300)
+    private String metaDescription;
+
     @Column(name = "is_published", nullable = false)
     private boolean isPublished = false;
 
