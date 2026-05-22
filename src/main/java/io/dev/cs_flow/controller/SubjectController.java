@@ -34,6 +34,7 @@ public class SubjectController {
         model.addAttribute("subject", subjectService.getPublishedSubject(subjectSlug));
         model.addAttribute("topics", topicService.getPublishedTopics(subjectSlug));
         model.addAttribute("currentSubjet", subjectSlug);
+        model.addAttribute("canonicalUrl", "https://csflow.kr/" + subjectSlug);
         return "subject/subject";
     }
 }

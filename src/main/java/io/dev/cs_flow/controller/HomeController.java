@@ -28,6 +28,7 @@ public class HomeController {
     public String home(Model model){
         log.info("홈 페이지 요청");
         model.addAttribute("subjects", subjectService.getPublishedSubjects());
+        model.addAttribute("canonicalUrl", "https://csflow.kr/");
         return "home";
     }
 }

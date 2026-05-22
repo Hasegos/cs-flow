@@ -43,6 +43,7 @@ public class TopicController {
         model.addAttribute("topic", topic);
         model.addAttribute("jsFileKey", jsFileKey);
         model.addAttribute("relatedTopics", topicService.getRelatedTopics(topic.getTopicId()));
+        model.addAttribute("canonicalUrl", "https://csflow.kr/" + subjectSlug + "/" + topicSlug);
 
         return "topics/" + subjectSlug + "/" + topic.getTemplateName();
     }
