@@ -2,7 +2,6 @@
 <html xmlns:th="http://www.thymeleaf.org" lang="ko">
 <head>
     <th:block th:replace="~{fragments/head :: head}"></th:block>
-    <meta name="description" th:content="${topic.title} + ' CS 지식 정리 — 하드웨어·소프트웨어 인터럽트, ISR, IVT 동작 원리를 인터랙티브 시각화로 학습하세요. 개발자 면접 컴퓨터구조 핵심 개념.'">
     <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">인터럽트 | CS 지식 정리 - CS Flow</title>
     <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
     <link rel="stylesheet" th:href="@{/css/visualizer/arch/interrupt.css}">
