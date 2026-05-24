@@ -9,15 +9,20 @@
     <meta name="description" th:unless="${topic}" content="컴퓨터 구조, 운영체제, 네트워크, 자료구조, 알고리즘, 데이터베이스 CS 지식을 인터랙티브 시각화로 학습하세요. 개발자 면접 CS 핵심 개념 총정리.">
 
     <!-- Canonical -->
-    <link rel="canonical" th:if="${canonicalUrl}" th:href="${canonicalUrl}">
+    <link rel="canonical" th:href="${canonicalUrl} ?: 'https://csflow.kr/'">
 
     <!-- OG -->
     <meta property="og:site_name" content="CS Flow">
     <meta property="og:type" content="website">
-    <meta property="og:title" th:if="${topic}" th:content="${topic.title} + ' | CS 지식 정리 - CS Flow'">
-    <meta property="og:description" th:if="${topic}" th:content="${topic.metaDescription}">
-    <meta property="og:url" th:if="${canonicalUrl}" th:content="${canonicalUrl}">
-    <meta property="og:image" content="https://csflow.kr/img/csflow_icon.svg">
+    <meta property="og:title"
+          th:content="${topic != null} ? (${topic.title} + ' | CS 지식 정리 - CS Flow') : 'CS Flow | CS 지식 인터랙티브 학습 플랫폼'">
+    <meta property="og:description"
+          th:content="${topic != null} ? ${topic.metaDescription} : '컴퓨터 구조, 운영체제, 네트워크, 자료구조, 알고리즘, 데이터베이스 CS 지식을 인터랙티브 시각화로 학습하세요.'">
+    <meta property="og:url"
+          th:content="${canonicalUrl} ?: 'https://csflow.kr/'">
+    <meta property="og:image" content="https://csflow.kr/img/og_image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
 
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" th:href="@{/img/favicon.svg}">
