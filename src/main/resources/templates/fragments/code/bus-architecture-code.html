@@ -1,0 +1,122 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">C — 버스 읽기/쓰기 시뮬레이션</p>
+            <div class="code-block">
+<pre><span class="cm">// 버스 구조 시뮬레이션 — Address / Data / Control Bus</span>
+<span class="kw">#include</span> <span class="st">&lt;stdint.h&gt;</span>
+<span class="kw">#include</span> <span class="st">&lt;stdbool.h&gt;</span>
+
+<span class="cm">// 메인 메모리 (256 바이트)</span>
+<span class="kw">#define</span> MEM_SIZE <span class="num">256</span>
+<span class="kw">static</span> <span class="kw">uint8_t</span> memory[MEM_SIZE];
+
+<span class="cm">// 버스 레지스터 — 실제 하드웨어의 버스 라인을 모델링</span>
+<span class="kw">typedef struct</span> {
+    <span class="kw">uint8_t</span>  address_bus;   <span class="cm">// Address Bus — 단방향 (CPU → 장치)</span>
+    <span class="kw">uint8_t</span>  data_bus;      <span class="cm">// Data Bus    — 양방향</span>
+    <span class="kw">bool</span>     read_signal;   <span class="cm">// Control Bus — READ 신호</span>
+    <span class="kw">bool</span>     write_signal;  <span class="cm">// Control Bus — WRITE 신호</span>
+    <span class="kw">bool</span>     bus_request;   <span class="cm">// Control Bus — BR (Bus Request)</span>
+    <span class="kw">bool</span>     bus_grant;     <span class="cm">// Control Bus — BG (Bus Grant)</span>
+} Bus;
+
+<span class="kw">static</span> Bus bus = {<span class="num">0</span>};
+
+<span class="cm">// 메모리 읽기: Address Bus → READ 신호 → Data Bus로 반환</span>
+<span class="kw">uint8_t</span> <span class="fn">bus_read</span>(<span class="kw">uint8_t</span> addr) {
+    bus.address_bus  = addr;   <span class="cm">// 1. Address Bus에 주소 전송</span>
+    bus.read_signal  = <span class="kw">true</span>;  <span class="cm">// 2. Control Bus — READ 신호 활성화</span>
+    bus.data_bus     = memory[bus.address_bus]; <span class="cm">// 3. 메모리 → Data Bus</span>
+    bus.read_signal  = <span class="kw">false</span>; <span class="cm">// 4. 신호 해제</span>
+    <span class="kw">return</span> bus.data_bus;
+}
+
+<span class="cm">// 메모리 쓰기: Address Bus → Data Bus에 값 적재 → WRITE 신호</span>
+<span class="kw">void</span> <span class="fn">bus_write</span>(<span class="kw">uint8_t</span> addr, <span class="kw">uint8_t</span> val) {
+    bus.address_bus  = addr;   <span class="cm">// 1. Address Bus에 주소 전송</span>
+    bus.data_bus     = val;    <span class="cm">// 2. Data Bus에 데이터 적재</span>
+    bus.write_signal = <span class="kw">true</span>;  <span class="cm">// 3. Control Bus — WRITE 신호 활성화</span>
+    memory[bus.address_bus] = bus.data_bus; <span class="cm">// 4. 메모리에 기록</span>
+    bus.write_signal = <span class="kw">false</span>; <span class="cm">// 5. 신호 해제</span>
+}
+
+<span class="cm">// 버스 중재 — I/O 장치가 버스 요청 후 승인받아 DMA 수행</span>
+<span class="kw">void</span> <span class="fn">dma_transfer</span>(<span class="kw">uint8_t</span> dst, <span class="kw">uint8_t</span> src_data) {
+    bus.bus_request = <span class="kw">true</span>;  <span class="cm">// I/O: Bus Request (BR) 신호 전송</span>
+
+    <span class="cm">// Arbiter가 버스 승인 (현재 CPU 전송 완료 후)</span>
+    bus.bus_grant   = <span class="kw">true</span>;  <span class="cm">// Arbiter: Bus Grant (BG) 신호 전송</span>
+    bus.bus_request = <span class="kw">false</span>;
+
+    <span class="cm">// I/O가 버스 마스터로서 메모리에 직접 쓰기 (DMA)</span>
+    bus.address_bus  = dst;
+    bus.data_bus     = src_data;
+    bus.write_signal = <span class="kw">true</span>;
+    memory[dst]      = src_data;
+    bus.write_signal = <span class="kw">false</span>;
+
+    bus.bus_grant = <span class="kw">false</span>;    <span class="cm">// 버스 반환</span>
+}</pre>
+            </div>
+            <p class="code-desc">
+                Address Bus는 단방향이므로 항상 CPU(또는 현재 Bus Master)가 주소를 올립니다.
+                Data Bus는 양방향이며 Read 시에는 메모리→CPU, Write 시에는 CPU→메모리 방향으로 흐릅니다.
+                DMA 전송 시에는 I/O 장치가 Arbiter로부터 버스 사용권을 받아 직접 메모리에 접근합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">C — 데이지 체인 버스 중재 구현</p>
+            <div class="code-block">
+<pre><span class="cm">// 데이지 체인(Daisy Chain) 버스 중재
+// Bus Grant 신호를 장치 체인으로 순서대로 전달</span>
+<span class="kw">#define</span> NUM_DEVICES <span class="num">4</span>
+
+<span class="kw">typedef struct</span> {
+    <span class="kw">int</span>  id;
+    <span class="kw">bool</span> requesting;  <span class="cm">// 버스 요청 중인지 여부</span>
+    <span class="kw">bool</span> granted;     <span class="cm">// 버스 사용권 획득 여부</span>
+} Device;
+
+Device devices[NUM_DEVICES] = {
+    { <span class="num">0</span>, <span class="kw">false</span>, <span class="kw">false</span> },  <span class="cm">// 우선순위 최고</span>
+    { <span class="num">1</span>, <span class="kw">false</span>, <span class="kw">false</span> },
+    { <span class="num">2</span>, <span class="kw">false</span>, <span class="kw">false</span> },
+    { <span class="num">3</span>, <span class="kw">false</span>, <span class="kw">false</span> },  <span class="cm">// 우선순위 최저</span>
+};
+
+<span class="cm">// Arbiter: Bus Grant를 체인 순서대로 전달
+// 요청 중인 첫 번째 장치가 버스를 획득</span>
+<span class="kw">int</span> <span class="fn">daisy_chain_arbitrate</span>() {
+    <span class="kw">bool</span> grant_available = <span class="kw">true</span>;  <span class="cm">// 초기에 Grant 신호 활성화</span>
+
+    <span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">0</span>; i &lt; NUM_DEVICES; i++) {
+        <span class="kw">if</span> (!grant_available) <span class="kw">break</span>;
+
+        <span class="kw">if</span> (devices[i].requesting) {
+            devices[i].granted = <span class="kw">true</span>;   <span class="cm">// 버스 사용권 부여</span>
+            grant_available    = <span class="kw">false</span>;   <span class="cm">// Grant 신호 차단 (이후 장치는 획득 불가)</span>
+            <span class="kw">return</span> i;
+        }
+        <span class="cm">// 요청 없으면 Grant 신호를 다음 장치로 통과</span>
+    }
+    <span class="kw">return</span> -<span class="num">1</span>;  <span class="cm">// 요청 장치 없음</span>
+}
+
+<span class="cm">// 버스 사용 완료 후 반환</span>
+<span class="kw">void</span> <span class="fn">release_bus</span>(<span class="kw">int</span> device_id) {
+    devices[device_id].granted    = <span class="kw">false</span>;
+    devices[device_id].requesting = <span class="kw">false</span>;
+}</pre>
+            </div>
+            <p class="code-desc">
+                데이지 체인 중재는 Bus Grant 신호를 장치 0번부터 순서대로 통과시킵니다.
+                요청 중인 장치가 신호를 받으면 그 자리에서 버스를 획득하고 이후 장치로의 신호를 차단합니다.
+                구조가 단순한 대신 앞 번호 장치가 지속적으로 요청하면 뒷 장치는 기아(Starvation) 상태가 될 수 있습니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>

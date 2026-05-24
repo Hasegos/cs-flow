@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <meta name="description" th:content="${topic.title} + ' CS 지식 정리 — Address/Data/Control Bus, 버스 중재(Arbitration), DMA 동작 원리를 인터랙티브 시각화로 학습하세요. 개발자 면접 컴퓨터구조 핵심 개념.'">
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">버스 구조 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/arch/bus-architecture.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- 히어로 -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/arch}" class="topic-breadcrumb__link">컴퓨터 구조</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">버스 구조</span>
+                </nav>
+
+                <span class="topic-hero__slug">arch · 09</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">버스 구조</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        버스(Bus)는 CPU, 메모리, I/O 장치가 데이터를 주고받는
+                        <strong>공유 통신 경로</strong>입니다.
+                        하나의 버스를 여러 장치가 공유하기 때문에 누가, 언제 버스를 사용할지
+                        조율하는 중재(Arbitration) 메커니즘이 핵심입니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">Address Bus</h3>
+                            <p class="overview-card__desc">CPU가 접근할 메모리 주소나 I/O 포트를 전달합니다. CPU에서 메모리·I/O 방향의 단방향 버스입니다. 주소선의 수가 주소 공간의 크기를 결정합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">Data Bus</h3>
+                            <p class="overview-card__desc">실제 데이터를 주고받는 통로입니다. CPU↔메모리, CPU↔I/O 모두 이 버스를 사용합니다. 양방향이며 버스 폭(8/16/32/64비트)이 한 번에 전송 가능한 데이터 크기를 결정합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">Control Bus</h3>
+                            <p class="overview-card__desc">Read/Write 신호, 인터럽트 요청(IRQ), 버스 요청(BR)/승인(BG) 등 제어 신호를 전달합니다. 양방향이며 버스 동작 전체를 지휘합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">버스 중재 (Arbitration)</h3>
+                            <p class="overview-card__desc">여러 장치가 동시에 버스를 요청할 때 우선순위를 결정합니다. 중앙집중식(Centralized)과 분산식(Distributed) 방식이 있으며, 현대 시스템은 대부분 중앙 Arbiter를 사용합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">Bus Master / Slave</h3>
+                            <p class="overview-card__desc">버스 사용권을 주도적으로 요청하는 Master(CPU, DMA)와 요청을 받아 응답하는 Slave(메모리, I/O)로 역할이 나뉩니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">DMA (Direct Memory Access)</h3>
+                            <p class="overview-card__desc">I/O 장치가 CPU를 거치지 않고 메모리에 직접 접근하는 방식입니다. CPU 개입 없이 데이터 전송이 가능해 성능이 크게 향상됩니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>버스 대역폭 (Bandwidth)</strong> — 버스 폭(비트 수) × 클록 주파수 × 클럭당 전송 횟수로 결정됩니다. SDR(Single Data Rate)은 × 1, DDR(Double Data Rate)은 클럭 상승·하강 엣지 양쪽에서 전송해 × 2가 됩니다. 현대 메모리(DDR4/DDR5)는 모두 DDR 방식입니다. 병목이 되면 CPU가 아무리 빨라도 전체 성능이 제한됩니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>동기식 vs 비동기식 버스</strong> — 동기식은 공통 클록에 맞춰 동작해 단순하지만 느린 장치에 발목이 잡힙니다. 비동기식은 핸드셰이킹으로 각 장치 속도에 맞춥니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>단일 버스 vs 다중 버스</strong> — 단일 버스는 구조가 단순하지만 동시 전송이 불가합니다. 현대 시스템은 고속(CPU-메모리)과 저속(I/O) 버스를 분리해 병목을 줄입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>데이지 체인 중재</strong> — Bus Grant 신호를 장치 체인으로 순서대로 전달합니다. 구조는 단순하지만 앞 장치가 우선순위를 독점할 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>PCIe / USB</strong> — 현대 시스템은 병렬 공유 버스 대신 직렬 Point-to-Point 연결(PCIe, USB, SATA)을 사용해 대역폭과 안정성을 모두 확보합니다.</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 (시각화) -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/bus-architecture-code :: code}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+</body>
+</html>

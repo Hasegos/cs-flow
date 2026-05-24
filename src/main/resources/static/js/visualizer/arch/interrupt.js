@@ -371,8 +371,11 @@
         activeSet.add(pktCurrent.from);
         activeSet.add(pktCurrent.to);
         if (rafId) cancelAnimationFrame(rafId);
+        const BASE_SPEED = 1800;
+        const baseStep   = 0.014;
+        const step       = baseStep * (BASE_SPEED / speed);
         (function tick() {
-            pktProg = Math.min(1, pktProg + 0.014);
+            pktProg = Math.min(1, pktProg + step);
             draw();
             if (pktProg < 1) rafId = requestAnimationFrame(tick);
             else pktNext();

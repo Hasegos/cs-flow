@@ -423,8 +423,11 @@
         pktCurrent = pktQueue.shift();
         pktProg    = 0;
         if (rafId) cancelAnimationFrame(rafId);
+        const BASE_SPEED = 1100;
+        const baseStep   = 0.013;
+        const step       = baseStep * (BASE_SPEED / speed);
         function tick() {
-            pktProg = Math.min(1, pktProg + 0.013);
+            pktProg = Math.min(1, pktProg + step);
             draw();
             if (pktProg < 1) {
                 rafId = requestAnimationFrame(tick);
