@@ -42,6 +42,8 @@ PageEntry page_table[<span class="num">1048576</span>]; <span class="cm">// 2^20
                 가상 주소 32비트 중 상위 20비트가 VPN(페이지 번호), 하위 12비트가 Offset입니다.
                 페이지 테이블에서 VPN에 해당하는 엔트리를 찾아 PFN을 얻고,
                 물리 주소 = PFN × 4096 + Offset 으로 계산합니다.
+                엔트리가 2²⁰개 × 4바이트 = 4MB이므로 프로세스마다 4MB의 페이지 테이블이 필요합니다.
+                이 오버헤드를 줄이기 위해 실제 OS는 2단계 이상의 다단계 페이지 테이블을 사용합니다.
             </p>
         </div>
 
@@ -53,7 +55,9 @@ PageEntry page_table[<span class="num">1048576</span>]; <span class="cm">// 2^20
 
 <span class="cm">/**
  * TLB 시뮬레이터 — 최근 사용 기반(LRU) 교체
- * 용량: 16엔트리 (실제 TLB와 유사한 소용량)
+ * 용량: 16엔트리 (교육용 단순화)
+ * 실제 x86 L1 DTLB: 64~128 엔트리 (Pentium 4: 64, Core 2 Duo: 128,
+ *                   Alder Lake Golden Cove: 96 — Intel SDM Vol.3A Ch.11)
  */</span>
 <span class="kw">public class</span> <span class="fn">TLBSimulator</span> {
 
@@ -105,7 +109,8 @@ PageEntry page_table[<span class="num">1048576</span>]; <span class="cm">// 2^20
             </div>
             <p class="code-desc">
                 TLB는 VPN → PFN 변환 결과를 캐싱해 페이지 테이블 조회 비용을 줄입니다.
-                히트 시 메모리 접근 1회, 미스 시 페이지 테이블(메모리) 접근 후 TLB 갱신으로 총 2회 접근합니다.
+                이 코드의 단일 레벨 페이지 테이블 기준으로 히트 시 메모리 접근 1회, 미스 시 페이지 테이블(메모리) 접근 후 TLB 갱신으로 총 2회 접근합니다.
+                실제 x86-64의 4단계 페이지 테이블(PML4→PDPT→PD→PT)에서는 TLB 미스 시 하드웨어 페이지 워크로 최대 4+1 = 5회 메모리 접근이 발생합니다(Intel SDM Vol.3A Ch.4).
                 LinkedHashMap의 accessOrder로 LRU 교체를 자동 구현합니다.
             </p>
         </div>

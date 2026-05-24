@@ -12,30 +12,26 @@
 <span class="kw">#define</span> T_RAM       <span class="num">100</span>    <span class="cm">// RAM:      100 ns</span>
 <span class="kw">#define</span> T_SSD       <span class="num">100000</span> <span class="cm">// SSD:  100,000 ns (100 μs)</span>
 
-<span class="cm">// 히트율 기반 평균 접근 시간 계산</span>
-<span class="cm">// AMAT = Hit Time + Miss Rate × Miss Penalty</span>
+<span class="cm">// 히트율 기반 평균 접근 시간 계산 (표준 계층적 공식)</span>
+<span class="cm">// AMAT = T_L1 + MissRate_L1 × (T_L2 + MissRate_L2 × (T_L3 + MissRate_L3 × T_RAM))</span>
+<span class="cm">// L2 히트 시에도 L1 조회(미스) 비용을 함께 지불해야 하므로 누적 합산한다.</span>
 <span class="kw">double</span> <span class="fn">calc_amat</span>(<span class="kw">double</span> h_l1, <span class="kw">double</span> h_l2, <span class="kw">double</span> h_l3) {
-    <span class="cm">// L1 히트</span>
-    <span class="kw">double</span> amat = h_l1 * T_L1;
+    <span class="cm">// L3 미스 시 페널티: L3 접근 + RAM 접근</span>
+    <span class="kw">double</span> miss_l3_penalty = T_L3 + (<span class="num">1.0</span> - h_l3) * T_RAM;
 
-    <span class="cm">// L1 미스 → L2 탐색</span>
-    <span class="kw">double</span> miss_l1 = (<span class="num">1.0</span> - h_l1);
-    amat += miss_l1 * h_l2 * T_L2;
+    <span class="cm">// L2 미스 시 페널티: L2 접근 + L3 탐색 비용</span>
+    <span class="kw">double</span> miss_l2_penalty = T_L2 + (<span class="num">1.0</span> - h_l2) * miss_l3_penalty;
 
-    <span class="cm">// L2 미스 → L3 탐색</span>
-    <span class="kw">double</span> miss_l2 = miss_l1 * (<span class="num">1.0</span> - h_l2);
-    amat += miss_l2 * h_l3 * T_L3;
-
-    <span class="cm">// L3 미스 → RAM 접근</span>
-    <span class="kw">double</span> miss_l3 = miss_l2 * (<span class="num">1.0</span> - h_l3);
-    amat += miss_l3 * T_RAM;
+    <span class="cm">// AMAT: L1 접근 + L1 미스 시 추가 페널티</span>
+    <span class="kw">double</span> amat = T_L1 + (<span class="num">1.0</span> - h_l1) * miss_l2_penalty;
 
     <span class="kw">return</span> amat;
 }
 
 <span class="cm">// 예시: L1=90%, L2=80%, L3=90% 히트율</span>
-<span class="cm">// AMAT = 0.9×4 + 0.1×0.8×12 + 0.1×0.2×0.9×40 + 0.1×0.2×0.1×100</span>
-<span class="cm">//      = 3.6 + 0.96 + 0.72 + 0.2 = 5.48 ns</span></pre>
+<span class="cm">// AMAT = 4 + 0.1 × (12 + 0.2 × (40 + 0.1 × 100))</span>
+<span class="cm">//      = 4 + 0.1 × (12 + 0.2 × 50)</span>
+<span class="cm">//      = 4 + 0.1 × 22 = 6.2 ns</span></pre>
             </div>
             <p class="code-desc">
                 AMAT(Average Memory Access Time)은 계층별 히트율과 접근 시간으로 계산합니다.

@@ -9,7 +9,7 @@
     <span class="kw">unsigned int</span> PC;   <span class="cm">// Program Counter  — 다음 명령어 주소</span>
     <span class="kw">unsigned int</span> IR;   <span class="cm">// Instruction Reg  — 현재 명령어</span>
     <span class="kw">unsigned int</span> MAR;  <span class="cm">// Memory Addr Reg  — 메모리 접근 주소</span>
-    <span class="kw">unsigned int</span> MBR;  <span class="cm">// Memory Buf Reg   — 메모리 데이터 버퍼</span>
+    <span class="kw">unsigned int</span> MDR;  <span class="cm">// Memory Data Reg  — 메모리 데이터 버퍼</span>
     <span class="kw">unsigned int</span> ACC;  <span class="cm">// Accumulator      — ALU 연산 결과</span>
 } Registers;
 
@@ -35,25 +35,25 @@
     <span class="kw">switch</span> (opcode) {
         <span class="kw">case</span> <span class="num">0x01</span>:  <span class="cm">// LOAD — 메모리 → ACC</span>
             reg->MAR = operand;
-            reg->MBR = memory[reg->MAR];
-            reg->ACC = reg->MBR;
+            reg->MDR = memory[reg->MAR];
+            reg->ACC = reg->MDR;
             <span class="kw">break</span>;
         <span class="kw">case</span> <span class="num">0x02</span>:  <span class="cm">// STORE — ACC → 메모리</span>
             reg->MAR = operand;
-            reg->MBR = reg->ACC;
-            memory[reg->MAR] = reg->MBR;
+            reg->MDR = reg->ACC;
+            memory[reg->MAR] = reg->MDR;
             <span class="kw">break</span>;
         <span class="kw">case</span> <span class="num">0x03</span>:  <span class="cm">// ADD — ACC + 메모리값</span>
             reg->MAR = operand;
-            reg->MBR = memory[reg->MAR];
-            reg->ACC = <span class="fn">alu_execute</span>(<span class="num">0x01</span>, reg->ACC, reg->MBR);
+            reg->MDR = memory[reg->MAR];
+            reg->ACC = <span class="fn">alu_execute</span>(<span class="num">0x01</span>, reg->ACC, reg->MDR);
             <span class="kw">break</span>;
     }
     reg->PC++;
 }</pre>
             </div>
             <p class="code-desc">
-                CU가 IR에 담긴 명령어를 해석해 MAR→MBR→ACC 순서로 데이터를 이동시킵니다.
+                CU가 IR에 담긴 명령어를 해석해 MAR→MDR→ACC 순서로 데이터를 이동시킵니다.
                 ALU는 CU의 제어 신호를 받아 실제 연산을 수행합니다.
             </p>
         </div>
@@ -67,7 +67,7 @@
     <span class="kw">private int</span> PC  = <span class="num">0</span>;   <span class="cm">// Program Counter</span>
     <span class="kw">private int</span> IR  = <span class="num">0</span>;   <span class="cm">// Instruction Register</span>
     <span class="kw">private int</span> MAR = <span class="num">0</span>;   <span class="cm">// Memory Address Register</span>
-    <span class="kw">private int</span> MBR = <span class="num">0</span>;   <span class="cm">// Memory Buffer Register</span>
+    <span class="kw">private int</span> MDR = <span class="num">0</span>;   <span class="cm">// Memory Data Register</span>
     <span class="kw">private int</span> ACC = <span class="num">0</span>;   <span class="cm">// Accumulator</span>
     <span class="kw">private int</span>[] memory;
 
@@ -76,10 +76,10 @@
     }
 
     <span class="kw">public void</span> <span class="fn">step</span>() {
-        <span class="cm">// FETCH: PC → MAR → MBR → IR</span>
+        <span class="cm">// FETCH: PC → MAR → MDR → IR</span>
         MAR = PC;
-        MBR = memory[MAR];
-        IR  = MBR;
+        MDR = memory[MAR];
+        IR  = MDR;
         PC++;
 
         <span class="cm">// DECODE & EXECUTE</span>
@@ -96,7 +96,7 @@
 }</pre>
             </div>
             <p class="code-desc">
-                FETCH 단계에서 PC → MAR → MBR → IR 순서로 명령어가 이동합니다.
+                FETCH 단계에서 PC → MAR → MDR → IR 순서로 명령어가 이동합니다.
                 각 레지스터의 역할이 명확히 구분되어 있으며, CU는 IR을 해석해 ALU와 메모리를 제어합니다.
             </p>
         </div>

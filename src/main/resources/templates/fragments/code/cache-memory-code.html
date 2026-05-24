@@ -11,6 +11,7 @@
 
 <span class="kw">typedef struct</span> {
     <span class="kw">int</span>  valid;      <span class="cm">// 유효 비트 (데이터가 있으면 1)</span>
+    <span class="kw">int</span>  dirty;      <span class="cm">// Dirty 비트 (Write-Back: 캐시가 메모리와 불일치하면 1)</span>
     <span class="kw">int</span>  tag;        <span class="cm">// 태그 (어느 메모리 블록인지)</span>
     <span class="kw">int</span>  data;       <span class="cm">// 실제 데이터</span>
 } CacheSlot;
@@ -28,39 +29,49 @@ CacheSlot cache[CACHE_SIZE];
         <span class="kw">return</span> cache[index].data;
     }
 
-    <span class="cm">/* ❌ Cache Miss — 메모리에서 읽어서 캐시에 적재 */</span>
+    <span class="cm">/* ❌ Cache Miss — 교체 전 dirty 슬롯이면 메모리에 write-back */</span>
+    <span class="kw">if</span> (cache[index].valid &amp;&amp; cache[index].dirty) {
+        <span class="kw">int</span> evict_addr = cache[index].tag * CACHE_SIZE + index;
+        memory[evict_addr] = cache[index].data; <span class="cm">// Write-Back</span>
+    }
     cache[index].valid = <span class="num">1</span>;
+    cache[index].dirty = <span class="num">0</span>;  <span class="cm">// 읽기로 적재 → clean</span>
     cache[index].tag   = tag;
     cache[index].data  = memory[addr];
     <span class="kw">return</span> cache[index].data;
 }
 
-<span class="cm">// Write-Through: 캐시와 메모리 동시 갱신</span>
+<span class="cm">// Write-Through: 캐시와 메모리 동시 갱신 → dirty bit 불필요</span>
 <span class="kw">void</span> <span class="fn">cache_write_through</span>(<span class="kw">int</span> addr, <span class="kw">int</span> val) {
     <span class="kw">int</span> index = addr % CACHE_SIZE;
     <span class="kw">int</span> tag   = addr / CACHE_SIZE;
 
     cache[index].valid = <span class="num">1</span>;
+    cache[index].dirty = <span class="num">0</span>;  <span class="cm">// 항상 메모리와 동기화 → clean</span>
     cache[index].tag   = tag;
     cache[index].data  = val;  <span class="cm">// 캐시 갱신</span>
     memory[addr]       = val;  <span class="cm">// 메모리 동시 갱신</span>
 }
 
-<span class="cm">// Write-Back: 캐시만 갱신 (dirty bit 표시)</span>
+<span class="cm">// Write-Back: 캐시만 갱신하고 dirty bit 설정
+// 교체 시점에 dirty=1 슬롯만 메모리에 반영</span>
 <span class="kw">void</span> <span class="fn">cache_write_back</span>(<span class="kw">int</span> addr, <span class="kw">int</span> val) {
     <span class="kw">int</span> index = addr % CACHE_SIZE;
     <span class="kw">int</span> tag   = addr / CACHE_SIZE;
 
     cache[index].valid = <span class="num">1</span>;
+    cache[index].dirty = <span class="num">1</span>;  <span class="cm">// 메모리와 불일치 → dirty 표시</span>
     cache[index].tag   = tag;
-    cache[index].data  = val;  <span class="cm">// 캐시만 갱신 (dirty)</span>
-    <span class="cm">// memory[addr]는 나중에 교체 시점에 반영</span>
+    cache[index].data  = val;  <span class="cm">// 캐시만 갱신</span>
+    <span class="cm">// memory[addr]는 교체 시 dirty=1 확인 후 반영 (cache_read 참조)</span>
 }</pre>
             </div>
             <p class="code-desc">
                 직접 매핑에서 슬롯 인덱스는 <code>주소 % 캐시 크기</code>로 결정됩니다.
-                유효 비트(valid)와 태그(tag)를 비교해 히트 여부를 판단하고,
-                미스 시 메모리에서 데이터를 읽어 해당 슬롯에 덮어씁니다.
+                유효 비트(valid)와 태그(tag)를 비교해 히트 여부를 판단합니다.
+                Write-Back 미스 시 기존 슬롯의 <code>dirty=1</code>이면 교체 전에 메모리에 write-back하고,
+                새 데이터는 <code>dirty=0</code>(clean)으로 적재합니다.
+                Write-Through는 항상 메모리와 동기화하므로 dirty bit가 불필요합니다.
             </p>
         </div>
 
