@@ -69,4 +69,16 @@ public interface TopicRepository extends JpaRepository<Topic,Long> {
             AND t.isPublished = true
             """)
     List<Topic> findRelatedTopic(@Param("topicId") Long topicId);
+
+    /**
+     * sitemap 생성용으로 공개된 모든 토픽을 과목과 함께 조회한다.
+     *
+     * @return 공개된 토픽 전체 목록
+     */
+    @Query("""
+            SELECT t FROM Topic t
+            JOIN FETCH t.subject
+            WHERE t.isPublished = true
+            """)
+    List<Topic> findAllPublished();
 }

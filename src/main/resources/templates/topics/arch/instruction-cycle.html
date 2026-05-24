@@ -2,7 +2,6 @@
 <html xmlns:th="http://www.thymeleaf.org" lang="ko">
 <head>
     <th:block th:replace="~{fragments/head :: head}"></th:block>
-    <meta name="description" th:content="${topic.title} + ' CS 지식 정리 — Fetch, Decode, Execute 명령어 사이클 동작 원리를 인터랙티브 시각화로 학습하세요. 개발자 면접 컴퓨터구조 핵심 개념.'">
     <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">명령어 사이클 | CS 지식 정리 - CS Flow</title>
     <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
     <link rel="stylesheet" th:href="@{/css/visualizer/arch/instruction-cycle.css}">
@@ -103,7 +102,7 @@
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>MAR/MDR의 역할</strong> — CPU와 메모리의 속도 차이를 완충하는 버퍼입니다. 모든 메모리 접근은 이 레지스터를 경유합니다.</span>
+                            <span><strong>MAR/MDR의 역할</strong> — CPU 내부 버스와 외부 메모리 버스를 연결하는 인터페이스 레지스터입니다. 모든 메모리 접근은 이 레지스터를 경유합니다. 속도 차이를 완충하는 역할은 캐시(Cache)가 담당합니다.</span>
                         </div>
                     </div>
 

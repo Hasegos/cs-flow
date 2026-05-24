@@ -35,26 +35,40 @@
         </div>
 
         <div class="code-block-wrap">
-            <p class="code-block-label">Java — 폰 노이만 병목 현상 체감</p>
+            <p class="code-block-label">Java — CPU-메모리 대역폭 병목 (폰 노이만 병목) 체감</p>
             <div class="code-block">
-<pre><span class="cm">// 메모리 접근 패턴에 따른 성능 차이 (캐시 미스 vs 히트)</span>
+<pre><span class="cm">// 폰 노이만 병목(Von Neumann Bottleneck): CPU와 메모리를 잇는 단일 버스의
+// 처리량(bandwidth)이 CPU 연산 속도를 따라가지 못하는 현상.
+// — John Backus, 1978 ACM Turing Award 강연에서 정의
+//
+// 아래 코드는 메모리 계층(캐시) 효과를 통해 병목을 간접 체감합니다.
+// 캐시 미스가 잦을수록 CPU가 메인 메모리를 기다리는 시간이 늘어나
+// CPU-메모리 간 대역폭 병목이 전체 성능을 제한하는 상황이 재현됩니다.</span>
 
 <span class="kw">int</span>[] data = <span class="kw">new int</span>[<span class="num">1024</span> * <span class="num">1024</span>];
 
-<span class="cm">// 순차 접근 — 캐시 히트율 높음 (빠름)</span>
+<span class="cm">// 순차 접근 — 공간 지역성 높음 → 캐시 히트율 높음 → 버스 대역폭 부담 적음 (빠름)</span>
 <span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">0</span>; i < data.length; i++) {
     data[i] *= <span class="num">2</span>;
 }
 
-<span class="cm">// 랜덤 접근 — 캐시 미스 빈번 (느림, 폰 노이만 병목 체감)</span>
+<span class="cm">// 랜덤 접근 — 공간 지역성 없음 → 캐시 미스 빈발 → 매 연산마다 메인 메모리 접근
+// → CPU가 버스를 통해 메모리를 기다리는 상태 반복 = 폰 노이만 병목 간접 체감</span>
 Random rand = <span class="kw">new</span> <span class="fn">Random</span>();
 <span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">0</span>; i < data.length; i++) {
     data[rand.<span class="fn">nextInt</span>(data.length)] *= <span class="num">2</span>;
 }</pre>
             </div>
             <p class="code-desc">
-                CPU는 연산 속도가 메모리 접근 속도보다 훨씬 빠릅니다. 순차 접근은 캐시가 미리 데이터를 가져오지만,
-                랜덤 접근은 매번 느린 메인 메모리까지 가야 합니다. 이것이 폰 노이만 병목의 실체입니다.
+                폰 노이만 병목은 Backus(1978 ACM Turing Award)가 정의한 개념으로,
+                CPU와 메모리를 잇는 단일 버스의 처리량이 CPU 연산 속도보다 훨씬 낮아
+                CPU가 데이터를 기다리며 낭비되는 현상을 가리킵니다.
+                이 코드는 메모리 계층(캐시) 효과를 통해 병목을 간접적으로 체감합니다.
+                순차 접근은 캐시가 데이터를 미리 가져와 버스 부하가 낮지만,
+                랜덤 접근은 캐시 미스가 빈발해 CPU가 매번 버스를 통해
+                메인 메모리를 기다리는 시간이 길어집니다.
+                캐시 미스 자체는 메모리 계층의 문제이며, 폰 노이만 병목(단일 버스 대역폭 한계)과
+                같은 개념은 아니지만 병목이 실제 성능에 미치는 영향을 체감하기 위한 예시입니다.
             </p>
         </div>
     </div>

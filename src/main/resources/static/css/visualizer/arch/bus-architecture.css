@@ -1,0 +1,166 @@
+/*  버스 구조 시각화 전용 */
+
+/* === .bus-viz — 최상위 컨테이너 === */
+.bus-viz {
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  min-height: 540px;
+}
+
+/* === .bus-viz__toolbar === */
+.bus-viz__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.bus-viz__toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.bus-viz__title {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-purple);
+}
+
+.bus-viz__step-badge {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  padding: 4px 12px;
+  border-radius: 20px;
+  border: 1px solid rgba(108,99,255,0.3);
+  color: var(--color-text-muted);
+  letter-spacing: 0.08em;
+  transition: all 0.25s ease;
+}
+
+.bus-viz__step-badge--active {
+  border-color: var(--color-purple);
+  color: var(--color-purple);
+  background: rgba(108,99,255,0.1);
+}
+
+/* === .bus-viz__speed === */
+.bus-viz__speed {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bus-viz__speed-label {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--color-text-muted);
+  letter-spacing: 0.08em;
+}
+
+.bus-viz__speed-btn {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  padding: 4px 10px;
+  border: 1px solid #2a2a3a;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all 0.2s ease;
+}
+
+.bus-viz__speed-btn:hover,
+.bus-viz__speed-btn--active {
+  border-color: var(--color-purple);
+  color: var(--color-purple);
+}
+
+.bus-viz__speed-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* === .bus-viz__canvas-wrap === */
+.bus-viz__canvas-wrap {
+  flex: 1;
+  position: relative;
+  min-height: 360px;
+}
+
+.bus-viz__canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* === .bus-viz__log === */
+.bus-viz__log {
+  padding: 10px 24px;
+  border-top: 1px solid var(--color-border);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--color-purple);
+  letter-spacing: 0.04em;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  line-height: 1.5;
+}
+
+/* === .bus-viz__controls === */
+.bus-viz__controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 24px;
+  border-top: 1px solid rgba(108,99,255,0.1);
+  flex-shrink: 0;
+}
+
+.bus-viz__btn {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  padding: 8px 20px;
+  border: 1px solid #2a2a3a;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+  letter-spacing: 0.06em;
+}
+
+.bus-viz__btn:hover {
+  border-color: var(--color-purple);
+  color: var(--color-purple);
+}
+
+.bus-viz__btn--primary {
+  border-color: var(--color-purple);
+  color: var(--color-purple);
+}
+
+.bus-viz__btn--primary:hover {
+  background: var(--color-purple);
+  color: #0f0f1a;
+}
+
+.bus-viz__btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}

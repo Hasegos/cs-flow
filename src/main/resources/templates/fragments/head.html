@@ -4,9 +4,24 @@
     <meta name="google-site-verification" content="Opv_BuoU55HVvcJ-dvr9PrYKpAJVdrLhtKHjhKYKhaQ" />
 
     <!-- SEO -->
+    <meta name="keywords" content="CS지식, 컴퓨터구조, 운영체제, 네트워크, 자료구조, 알고리즘, 데이터베이스, 개발자면접, CS공부">
+    <meta name="description" th:if="${topic}" th:content="${topic.metaDescription}">
+    <meta name="description" th:unless="${topic}" content="컴퓨터 구조, 운영체제, 네트워크, 자료구조, 알고리즘, 데이터베이스 CS 지식을 인터랙티브 시각화로 학습하세요. 개발자 면접 CS 핵심 개념 총정리.">
+
+    <!-- Canonical -->
+    <link rel="canonical" th:if="${canonicalUrl}" th:href="${canonicalUrl}">
+
+    <!-- OG -->
     <meta property="og:site_name" content="CS Flow">
     <meta property="og:type" content="website">
-    <meta name="keywords" content="CS지식, 컴퓨터구조, 운영체제, 네트워크, 자료구조, 알고리즘, 데이터베이스, 개발자면접, CS공부">
+    <meta property="og:title" th:if="${topic}" th:content="${topic.title} + ' | CS 지식 정리 - CS Flow'">
+    <meta property="og:description" th:if="${topic}" th:content="${topic.metaDescription}">
+    <meta property="og:url" th:if="${canonicalUrl}" th:content="${canonicalUrl}">
+    <meta property="og:image" content="https://csflow.kr/img/csflow_icon.svg">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" th:href="@{/img/favicon.svg}">
+    <link rel="apple-touch-icon" th:href="@{/img/favicon.svg}">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

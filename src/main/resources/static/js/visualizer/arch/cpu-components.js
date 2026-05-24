@@ -90,7 +90,7 @@
         'PC':  'Program Counter\n다음에 실행할 명령어의 메모리 주소를 보관',
         'IR':  'Instruction Register\n인출한 명령어를 보관',
         'MAR': 'Memory Address Register\n메모리에 접근할 주소를 임시 저장',
-        'MBR': 'Memory Buffer Register\n메모리와 주고받는 데이터를 임시 저장',
+        'MDR': 'Memory Data Register\n메모리와 주고받는 데이터를 임시 저장',
         'ACC': 'Accumulator\n연산 중간 결과를 임시 저장',
         'ALU': 'Arithmetic Logic Unit\n산술·논리 연산을 수행하는 회로',
         'CU':  'Control Unit\n명령어를 해석하고 각 장치를 제어',
@@ -102,14 +102,14 @@
 
     /* ===================== 시뮬레이션 데이터 ===================== */
     const STEPS = [
-        { active:'PC',  flow:null,                   regs:{PC:'0x04',IR:'—',      MAR:'—',    MBR:'—',     ACC:'5'}, alu:false, cu:false, badge:'FETCH',   log:'[PC] 다음 명령어 주소 0x04를 MAR로 전달합니다.' },
-        { active:'MAR', flow:{from:'PC',  to:'MAR'}, regs:{PC:'0x04',IR:'—',      MAR:'0x04', MBR:'—',     ACC:'5'}, alu:false, cu:false, badge:'FETCH',   log:'[MAR] 메모리 주소 0x04 저장 완료. 메모리에서 명령어를 읽습니다.' },
-        { active:'MBR', flow:{from:'MEM', to:'MBR'}, regs:{PC:'0x04',IR:'—',      MAR:'0x04', MBR:'ADD 10',ACC:'5'}, alu:false, cu:false, badge:'FETCH',   log:'[MBR] 메모리[0x04]에서 명령어 "ADD 0x10"을 읽어 MBR에 저장했습니다.' },
-        { active:'IR',  flow:{from:'MBR', to:'IR'},  regs:{PC:'0x05',IR:'ADD 10', MAR:'0x04', MBR:'ADD 10',ACC:'5'}, alu:false, cu:true,  badge:'DECODE',  log:'[IR → CU] 명령어를 IR에 적재. CU가 명령어를 해석합니다.' },
-        { active:'MAR', flow:{from:'CU',  to:'MAR'}, regs:{PC:'0x05',IR:'ADD 10', MAR:'0x10', MBR:'ADD 10',ACC:'5'}, alu:false, cu:true,  badge:'DECODE',  log:'[CU → MAR] CU가 피연산자 주소 0x10을 MAR로 전달합니다.' },
-        { active:'MBR', flow:{from:'MEM', to:'MBR'}, regs:{PC:'0x05',IR:'ADD 10', MAR:'0x10', MBR:'3',     ACC:'5'}, alu:false, cu:false, badge:'EXECUTE', log:'[메모리 → MBR] 메모리[0x10] = 3 읽기 완료.' },
-        { active:'ALU', flow:{from:'MBR', to:'ALU'}, regs:{PC:'0x05',IR:'ADD 10', MAR:'0x10', MBR:'3',     ACC:'5'}, alu:true,  cu:false, badge:'EXECUTE', log:'[ALU] ACC(5) + MBR(3) 덧셈 연산 수행 중...' },
-        { active:'ACC', flow:{from:'ALU', to:'ACC'}, regs:{PC:'0x05',IR:'ADD 10', MAR:'0x10', MBR:'3',     ACC:'8'}, alu:true,  cu:false, badge:'EXECUTE', log:'[ALU → ACC] 연산 결과 8이 ACC에 저장되었습니다. 완료!', done:true },
+        { active:'PC',  flow:null,                   regs:{PC:'0x04',IR:'—',      MAR:'—',    MDR:'—',     ACC:'5'}, alu:false, cu:false, badge:'FETCH',   log:'[PC] 다음 명령어 주소 0x04를 MAR로 전달합니다.' },
+        { active:'MAR', flow:{from:'PC',  to:'MAR'}, regs:{PC:'0x04',IR:'—',      MAR:'0x04', MDR:'—',     ACC:'5'}, alu:false, cu:false, badge:'FETCH',   log:'[MAR] 메모리 주소 0x04 저장 완료. 메모리에서 명령어를 읽습니다.' },
+        { active:'MDR', flow:{from:'MEM', to:'MDR'}, regs:{PC:'0x04',IR:'—',      MAR:'0x04', MDR:'ADD 10',ACC:'5'}, alu:false, cu:false, badge:'FETCH',   log:'[MDR] 메모리[0x04]에서 명령어 "ADD 0x10"을 읽어 MDR에 저장했습니다.' },
+        { active:'IR',  flow:{from:'MDR', to:'IR'},  regs:{PC:'0x05',IR:'ADD 10', MAR:'0x04', MDR:'ADD 10',ACC:'5'}, alu:false, cu:true,  badge:'DECODE',  log:'[IR → CU] 명령어를 IR에 적재. CU가 명령어를 해석합니다.' },
+        { active:'MAR', flow:{from:'CU',  to:'MAR'}, regs:{PC:'0x05',IR:'ADD 10', MAR:'0x10', MDR:'ADD 10',ACC:'5'}, alu:false, cu:true,  badge:'DECODE',  log:'[CU → MAR] CU가 피연산자 주소 0x10을 MAR로 전달합니다.' },
+        { active:'MDR', flow:{from:'MEM', to:'MDR'}, regs:{PC:'0x05',IR:'ADD 10', MAR:'0x10', MDR:'3',     ACC:'5'}, alu:false, cu:false, badge:'EXECUTE', log:'[메모리 → MDR] 메모리[0x10] = 3 읽기 완료.' },
+        { active:'ALU', flow:{from:'MDR', to:'ALU'}, regs:{PC:'0x05',IR:'ADD 10', MAR:'0x10', MDR:'3',     ACC:'5'}, alu:true,  cu:false, badge:'EXECUTE', log:'[ALU] ACC(5) + MDR(3) 덧셈 연산 수행 중...' },
+        { active:'ACC', flow:{from:'ALU', to:'ACC'}, regs:{PC:'0x05',IR:'ADD 10', MAR:'0x10', MDR:'3',     ACC:'8'}, alu:true,  cu:false, badge:'EXECUTE', log:'[ALU → ACC] 연산 결과 8이 ACC에 저장되었습니다. 완료!', done:true },
     ];
 
     /* ===================== 상태 ===================== */
@@ -194,7 +194,7 @@
         const active = curStep ? curStep.active : null;
         const aluOn  = curStep ? curStep.alu    : false;
         const cuOn   = curStep ? curStep.cu     : false;
-        const regs   = curStep ? curStep.regs   : { PC:'—', IR:'—', MAR:'—', MBR:'—', ACC:'—' };
+        const regs   = curStep ? curStep.regs   : { PC:'—', IR:'—', MAR:'—', MDR:'—', ACC:'—' };
 
         const fSm   = Math.max(7,  Math.round(9  * sc));
         const fMd   = Math.max(9,  Math.round(13 * sc));
@@ -225,7 +225,7 @@
             { id:'PC',  label:'PC',  desc:'Program Counter',   col: P.orange },
             { id:'IR',  label:'IR',  desc:'Instruction Reg',   col: P.teal   },
             { id:'MAR', label:'MAR', desc:'Memory Addr Reg',   col: P.purple },
-            { id:'MBR', label:'MBR', desc:'Memory Buffer Reg', col: P.purple },
+            { id:'MDR', label:'MDR', desc:'Memory Data Reg', col: P.purple },
             { id:'ACC', label:'ACC', desc:'Accumulator',       col: P.teal   },
         ];
 
@@ -363,11 +363,11 @@
     /* ===================== DATA BUS ===================== */
     function drawDataBus(L) {
         if (!L._regPos || !L._memBox) return;
-        const mbr = L._regPos['MBR'];
-        if (!mbr) return;
+        const mdr = L._regPos['MDR'];
+        if (!mdr) return;
 
-        const sx = mbr.x + mbr.w;
-        const sy = mbr.cy;
+        const sx = mdr.x + mdr.w;
+        const sy = mdr.cy;
         const ex = L._memBox.x;
         const ey = L._memBox.cy;
         const mx = (sx + ex) / 2;

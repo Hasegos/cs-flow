@@ -2,7 +2,6 @@
 <html xmlns:th="http://www.thymeleaf.org" lang="ko">
 <head>
     <th:block th:replace="~{fragments/head :: head}"></th:block>
-    <meta name="description" th:content="${topic.title} + ' CS 지식 정리 — ALU, CU, 레지스터 동작 원리를 인터랙티브 시각화로 학습하세요. 개발자 면접 컴퓨터구조 핵심 개념.'">
     <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">CPU 구성 요소 | CS 지식 정리 - CS Flow</title>
     <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
     <link rel="stylesheet" th:href="@{/css/visualizer/arch/cpu-components.css}">
@@ -80,7 +79,7 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 구성</p>
                             <h3 class="overview-card__title">레지스터</h3>
-                            <p class="overview-card__desc">CPU 내부의 초고속 임시 저장 공간입니다. PC, IR, MAR, MBR, ACC 등 역할에 따라 구분됩니다.</p>
+                            <p class="overview-card__desc">CPU 내부의 초고속 임시 저장 공간입니다. PC, IR, MAR, MDR, ACC 등 역할에 따라 구분됩니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 구성</p>
@@ -104,7 +103,7 @@
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>MBR (Memory Buffer Register)</strong> — 메모리에서 읽어온 데이터 또는 메모리에 쓸 데이터를 임시 저장합니다. 데이터 버스와 연결됩니다.</span>
+                            <span><strong>MDR (Memory Data Register)</strong> — 메모리에서 읽어온 데이터 또는 메모리에 쓸 데이터를 임시 저장합니다. 데이터 버스와 연결됩니다. MBR(Memory Buffer Register)이라고도 부르며 동일한 레지스터입니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <style>
+    .bg { fill: #1a1a2e; }
+    .text { fill: #6c63ff; }
+    @media (prefers-color-scheme: light) {
+      .bg { fill: #f0f0ff; }
+      .text { fill: #6c63ff; }
+    }
+  </style>
+  <rect class="bg" width="100" height="100" rx="20"/>
+  <text class="text" x="50" y="68"
+        font-family="SF Pro Display, Inter, system-ui, sans-serif"
+        font-size="52" font-weight="700"
+        text-anchor="middle">CS</text>
+</svg>
