@@ -7,7 +7,7 @@
 <pre><span class="cm">// 파이프라인 단계 간 데이터를 보관하는 파이프라인 레지스터</span>
 <span class="kw">typedef struct</span> { <span class="kw">unsigned int</span> pc, instruction; }           IF_ID;
 <span class="kw">typedef struct</span> { <span class="kw">unsigned int</span> pc, opcode, rs, rt, rd, imm; } ID_EX;
-<span class="kw">typedef struct</span> { <span class="kw">unsigned int</span> alu_result, rt_val, rd; }        EX_MEM;
+<span class="kw">typedef struct</span> { <span class="kw">unsigned int</span> alu_result, rt_val, rd, opcode; } EX_MEM; <span class="cm">// opcode: MEM 단계 판별용 제어 신호</span>
 <span class="kw">typedef struct</span> { <span class="kw">unsigned int</span> result, rd; }                    MEM_WB;
 
 <span class="cm">// 파이프라인 레지스터 전역 선언</span>
@@ -34,6 +34,7 @@ MEM_WB mem_wb  = {<span class="num">0</span>};
 <span class="kw">void</span> <span class="fn">stage_EX</span>(<span class="kw">unsigned int</span> *regs) {
     ex_mem.rd     = id_ex.rd;
     ex_mem.rt_val = regs[id_ex.rt];
+    ex_mem.opcode = id_ex.opcode;  <span class="cm">// 제어 신호를 EX/MEM 레지스터로 전파 (MEM 단계가 사용)</span>
     <span class="kw">switch</span> (id_ex.opcode) {
         <span class="kw">case</span> <span class="num">0x00</span>: ex_mem.alu_result = regs[id_ex.rs] + regs[id_ex.rt]; <span class="kw">break</span>; <span class="cm">// ADD</span>
         <span class="kw">case</span> <span class="num">0x23</span>: ex_mem.alu_result = regs[id_ex.rs] + id_ex.imm;    <span class="kw">break</span>; <span class="cm">// LOAD</span>
@@ -43,9 +44,9 @@ MEM_WB mem_wb  = {<span class="num">0</span>};
 
 <span class="kw">void</span> <span class="fn">stage_MEM</span>(<span class="kw">unsigned int</span> *data_mem) {
     mem_wb.rd = ex_mem.rd;
-    <span class="kw">if</span> (id_ex.opcode == <span class="num">0x23</span>)       <span class="cm">// LOAD</span>
+    <span class="kw">if</span> (ex_mem.opcode == <span class="num">0x23</span>)       <span class="cm">// LOAD  — EX/MEM 레지스터의 opcode 사용 (id_ex는 EX 단계 명령어)</span>
         mem_wb.result = data_mem[ex_mem.alu_result];
-    <span class="kw">else if</span> (id_ex.opcode == <span class="num">0x2B</span>)  <span class="cm">// STORE</span>
+    <span class="kw">else if</span> (ex_mem.opcode == <span class="num">0x2B</span>)  <span class="cm">// STORE — 동일</span>
         data_mem[ex_mem.alu_result] = ex_mem.rt_val;
     <span class="kw">else</span>
         mem_wb.result = ex_mem.alu_result;
@@ -93,12 +94,15 @@ MEM_WB mem_wb  = {<span class="num">0</span>};
      *   앞선 명령어의 목적지 레지스터와 겹치는지 확인
      */</span>
     <span class="kw">private boolean</span> <span class="fn">detectDataHazard</span>(<span class="kw">int</span> rs, <span class="kw">int</span> rt) {
-        <span class="cm">// EX/MEM 해저드: 바로 앞 명령어가 아직 WB 전</span>
+        <span class="cm">// EX/MEM 해저드: 2클럭 앞 명령어가 MEM 단계에 있고 아직 WB 미완료</span>
+        <span class="cm">// (Patterson & Hennessy 조건 1: EX/MEM.RegisterRd == 현재 명령어 소스)</span>
         <span class="kw">if</span> (exMem_regWrite &amp;&amp; exMem_rd != <span class="num">0</span> &amp;&amp;
             (exMem_rd == rs || exMem_rd == rt)) {
             <span class="kw">return true</span>;
         }
-        <span class="cm">// MEM/WB 해저드: 두 단계 앞 명령어</span>
+        <span class="cm">// ID/EX 해저드: 1클럭 앞 명령어가 EX 단계에 있고 아직 WB 미완료</span>
+        <span class="cm">// (Patterson & Hennessy 조건 2: ID/EX.RegisterRd == 현재 명령어 소스)</span>
+        <span class="cm">// idEx_rd = ID/EX 파이프라인 레지스터 → EX 단계의 명령어 (MEM/WB가 아님)</span>
         <span class="kw">if</span> (idEx_regWrite &amp;&amp; idEx_rd != <span class="num">0</span> &amp;&amp;
             (idEx_rd == rs || idEx_rd == rt)) {
             <span class="kw">return true</span>;
@@ -120,16 +124,20 @@ MEM_WB mem_wb  = {<span class="num">0</span>};
 
     <span class="cm">/**
      * 포워딩(Forwarding) — 스톨 없이 해저드 해소
-     * EX/MEM 또는 MEM/WB 레지스터에서 직접 값을 가져옴
+     * 표준 포워딩 경로:
+     *   EX/MEM → EX: exMem 레지스터 (2클럭 앞 명령어, MEM 단계)
+     *   ID/EX  → EX: idEx  레지스터 (1클럭 앞 명령어, EX 단계)
+     * ※ 이 시뮬레이터는 단순화를 위해 registers[]에서 값을 읽습니다.
+     *   실제 하드웨어에서는 파이프라인 레지스터의 결과 필드를 직접 바이패스합니다.
      */</span>
     <span class="kw">private int</span> <span class="fn">forwardValue</span>(<span class="kw">int</span> regNum) {
         <span class="kw">if</span> (exMem_regWrite &amp;&amp; exMem_rd == regNum) {
-            System.out.<span class="fn">println</span>(<span class="st">"[FORWARD] EX/MEM → EX"</span>);
+            System.out.<span class="fn">println</span>(<span class="st">"[FORWARD] EX/MEM → EX (MEM 단계 명령어에서 EX 단계로)"</span>);
             <span class="kw">return</span> registers[exMem_rd]; <span class="cm">// EX/MEM 포워딩</span>
         }
         <span class="kw">if</span> (idEx_regWrite &amp;&amp; idEx_rd == regNum) {
-            System.out.<span class="fn">println</span>(<span class="st">"[FORWARD] MEM/WB → EX"</span>);
-            <span class="kw">return</span> registers[idEx_rd];  <span class="cm">// MEM/WB 포워딩</span>
+            System.out.<span class="fn">println</span>(<span class="st">"[FORWARD] ID/EX → EX (EX 단계 명령어에서 EX 단계로)"</span>);
+            <span class="kw">return</span> registers[idEx_rd];  <span class="cm">// ID/EX 포워딩 (idEx = EX 단계의 명령어, MEM/WB 아님)</span>
         }
         <span class="kw">return</span> registers[regNum];
     }

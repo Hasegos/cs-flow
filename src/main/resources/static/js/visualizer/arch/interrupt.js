@@ -81,9 +81,9 @@
     const TOOLTIPS = {
         CPU:   'CPU\n명령어를 실행하는 프로세서. 인터럽트 신호를 감지하면 현재 작업을 중단한다.',
         PIC:   'PIC (Programmable Interrupt Controller)\n하드웨어 장치로부터 인터럽트를 수집하고 우선순위를 조정해 CPU에 전달한다.',
-        IVT:   'IVT (Interrupt Vector Table)\n인터럽트 번호와 ISR 주소를 매핑한 테이블. CPU가 이를 참조해 ISR을 찾는다.',
+        IVT:   'IDT / IVT (벡터 테이블)\n보호 모드(현대 OS): IDT 사용. 실제 모드: IVT 사용. 인터럽트 번호로 ISR 주소를 찾는다.',
         STACK: 'Stack (컨텍스트 저장)\nPC·레지스터 등 현재 실행 상태를 저장한다. ISR 종료 후 복원해 원래 작업을 재개한다.',
-        ISR:   'ISR (Interrupt Service Routine)\n인터럽트를 실제로 처리하는 함수. 처리 완료 후 RETI 명령으로 원래 흐름으로 복귀한다.',
+        ISR:   'ISR (Interrupt Service Routine)\n인터럽트를 실제로 처리하는 함수. 처리 완료 후 IRET 명령으로 원래 흐름으로 복귀한다.',
     };
 
     /* ===================== 시나리오 정의 ===================== */
@@ -117,9 +117,9 @@
             arrow:  [['IVT', 'ISR', 'jump']],
         },
         {
-            badge: 'RETI 복귀',
+            badge: 'IRET 복귀',
             phase: 'return',
-            log:   'Step 5 — ISR이 완료됐습니다. RETI 명령이 실행되어 스택에서 PC·레지스터를 복원하고 원래 프로그램으로 돌아갑니다.',
+            log:   'Step 5 — ISR이 완료됐습니다. IRET 명령이 실행되어 스택에서 EIP·CS·EFLAGS를 복원하고 원래 프로그램으로 돌아갑니다.',
             active: ['ISR', 'STACK', 'CPU'],
             arrow:  [['ISR', 'STACK', 'restore'], ['STACK', 'CPU', 'resume']],
         },
@@ -332,7 +332,7 @@
             'save':    ['PC + Registers → Stack', P.teal],
             'ivt':     ['IRQ1 → ISR 주소: 0x0204', P.yellow],
             'isr':     ['ISR 실행 중 (키 입력 처리)', P.green],
-            'return':  ['RETI → 원래 작업 복귀', P.purple],
+            'return':  ['IRET → 원래 작업 복귀', P.purple],
         };
         const info = phaseMap[step.phase];
         if (!info) return;

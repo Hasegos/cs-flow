@@ -84,12 +84,12 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">인터럽트 서비스 루틴 (ISR)</h3>
-                            <p class="overview-card__desc">인터럽트 발생 시 실행되는 처리 함수입니다. 인터럽트 벡터 테이블(IVT)에 각 인터럽트 번호별 ISR 주소가 등록되어 있습니다.</p>
+                            <p class="overview-card__desc">인터럽트 발생 시 실행되는 처리 함수입니다. x86 실제 모드에서는 IVT(Interrupt Vector Table), 보호 모드(현대 OS)에서는 IDT(Interrupt Descriptor Table)에 각 인터럽트 번호별 ISR 주소가 등록되어 있습니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
-                            <h3 class="overview-card__title">인터럽트 벡터 테이블 (IVT)</h3>
-                            <p class="overview-card__desc">인터럽트 번호와 ISR 주소를 매핑한 테이블입니다. CPU는 인터럽트 발생 시 이 테이블을 참조해 해당 ISR의 주소를 찾아 점프합니다.</p>
+                            <h3 class="overview-card__title">인터럽트 디스크립터 테이블 (IDT / IVT)</h3>
+                            <p class="overview-card__desc">인터럽트 번호와 ISR 주소를 매핑한 테이블입니다. x86 실제 모드에서는 IVT를, 보호 모드(현대 OS)에서는 IDT를 사용합니다. CPU는 인터럽트 발생 시 이 테이블을 참조해 해당 ISR로 점프합니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
@@ -117,7 +117,7 @@
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>RETI 명령어</strong> — ISR의 마지막에 실행되는 인터럽트 복귀 명령어입니다. 스택에서 PC와 레지스터를 복원하고 인터럽트 플래그를 원상복구합니다.</span>
+                            <span><strong>IRET 명령어</strong> — ISR의 마지막에 실행되는 x86 인터럽트 복귀 명령어입니다. 스택에서 EIP, CS, EFLAGS를 한 번에 복원하고 인터럽트 플래그(IF)를 재활성화합니다. (RETI는 AVR/PIC 등 임베디드 MCU에서 사용하는 별개의 명령어입니다.)</span>
                         </div>
                     </div>
 
