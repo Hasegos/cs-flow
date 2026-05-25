@@ -2,9 +2,11 @@ package io.dev.cs_flow.common.handler;
 
 import io.dev.cs_flow.common.exception.NotFoundException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 /**
  * 애플리케이션 전역 예외를 처리하는 핸들러.
@@ -16,6 +18,15 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 @Slf4j
 @ControllerAdvice
 public class GlobalExceptionHandler {
+
+    /**
+     * favicon.ico, chrome devtools 등 브라우저 자동 요청으로 인한
+     * 불필요한 ERROR 로그 오염 방지
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<Void> handleNoResourceFound(NoResourceFoundException e){
+        return ResponseEntity.notFound().build();
+    }
 
     /**
      * 리소스를 찾을 수 없을 때 발생하는 예외를 처리한다. (404)
