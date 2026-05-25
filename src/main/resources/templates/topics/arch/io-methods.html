@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">I/O 방식 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/arch/io-methods.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/arch}" class="topic-breadcrumb__link">컴퓨터 구조</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">I/O 방식</span>
+                </nav>
+
+                <span class="topic-hero__slug">arch · 10</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">I/O 방식</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- tab nav -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+            </div>
+        </nav>
+
+        <!-- tab content -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        I/O 방식은 CPU가 입출력 장치와 데이터를 주고받는 방법입니다.
+                        <strong>Programmed I/O → Interrupt-Driven → DMA</strong> 순으로 발전하며
+                        CPU 효율이 점진적으로 개선됩니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">Programmed I/O</h3>
+                            <p class="overview-card__desc">CPU가 장치 상태 레지스터를 반복 확인(Polling)하며 완료를 기다립니다. 구현이 단순하지만 I/O 내내 CPU가 점유되어 다른 작업을 할 수 없습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">Interrupt-Driven I/O</h3>
+                            <p class="overview-card__desc">CPU가 I/O 명령만 내리고 즉시 다른 작업으로 돌아갑니다. 장치가 완료되면 인터럽트 신호를 보내 CPU에 통보합니다. 폴링 낭비가 없어집니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">DMA (Direct Memory Access)</h3>
+                            <p class="overview-card__desc">DMA 컨트롤러가 버스를 직접 제어해 장치↔메모리 간 데이터를 전송합니다. CPU는 시작과 완료 인터럽트 처리만 담당해 부담이 최소화됩니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">Interrupt Controller</h3>
+                            <p class="overview-card__desc">여러 장치의 인터럽트 요청(IRQ)을 수집해 우선순위를 결정하고 CPU에 전달하는 하드웨어입니다. x86에서는 PIC, 현재는 APIC를 사용합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">Device Controller</h3>
+                            <p class="overview-card__desc">실제 I/O 장치(디스크, 키보드 등)와 시스템 버스 사이에서 신호를 변환하는 하드웨어입니다. 데이터 레지스터·상태 레지스터·커맨드 레지스터를 가집니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">사이클 스틸링</h3>
+                            <p class="overview-card__desc">DMA가 버스를 점유하는 순간 CPU의 메모리 접근이 한 사이클 지연됩니다. 대용량 전송에서 CPU 효율 이득이 지연 비용보다 훨씬 크므로 실용적입니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>방식별 CPU 점유율</strong> — Programmed I/O: 전송 내내 100% / Interrupt-Driven: 명령+ISR 처리만 / DMA: 설정+ISR 처리만 (~0%)</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>ISR (Interrupt Service Routine)</strong> — 인터럽트 발생 시 실행되는 OS 핸들러입니다. 현재 실행 중인 프로세스를 잠시 중단하고 빠르게 처리 후 복귀합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>메모리 맵드 I/O</strong> — 장치 레지스터를 메모리 주소 공간에 매핑해 일반 메모리 명령(MOV)으로 I/O를 수행합니다. 포트 맵드 I/O(IN/OUT 명령)와 대비됩니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>적용 사례</strong> — 저속 소형 장치(GPIO, 센서): Programmed I/O 또는 IRQ / 고속 대용량 전송(NVMe, 네트워크 NIC): DMA / 현대 OS는 대부분 DMA 기반입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>버스 중재 (Bus Arbitration)</strong> — CPU와 DMA가 동시에 버스를 요청할 때 DMA 컨트롤러가 버스 사용 권한을 중재합니다. DMA 완료 후 CPU에 버스가 반환됩니다.</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 (시각화) -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/io-methods-code :: code}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+</body>
+</html>
