@@ -32,7 +32,15 @@ public class SubjectService {
     @Transactional(readOnly = true)
     public List<Subject> getPublishedSubjects(){
         log.info("공개된 과목 목록 조회");
-        return subjectRepository.findAllByIsPublishedTrue();
+        List<Subject> subjects = subjectRepository.findAllByIsPublishedTrue();
+        subjects.forEach(s -> {
+            if(!s.getColorAccent().matches(COLOR_ACCENT_PATTERN)){
+                log.warn("비정상 colorAccent 감지 - slug: {}", s.getSlug());
+                throw new NotFoundException("과목 정보가 올바르지 않습니다.");
+            }
+        });
+
+        return subjects;
     }
 
     /**

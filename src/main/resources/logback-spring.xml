@@ -51,11 +51,21 @@
         <appender-ref ref="ACCESS_FILE"/>
     </logger>
 
-    <!-- root: app + error + 콘솔 -->
-    <root level="INFO">
-        <appender-ref ref="STDOUT"/>
-        <appender-ref ref="APP_FILE"/>
-        <appender-ref ref="ERROR_FILE"/>
-    </root>
+    <!-- prod에서는 콘솔 없음 -->
+    <springProfile name="prod">
+        <root level="INFO">
+            <appender-ref ref="APP_FILE"/>
+            <appender-ref ref="ERROR_FILE"/>
+        </root>
+    </springProfile>
+
+    <!--  로컬에서는 콘솔 포함 -->
+    <springProfile name="!prod">
+        <root level="INFO">
+            <appender-ref ref="STDOUT"/>
+            <appender-ref ref="APP_FILE"/>
+            <appender-ref ref="ERROR_FILE"/>
+        </root>
+    </springProfile>
 
 </configuration>
