@@ -1,6 +1,8 @@
 package io.dev.cs_flow.repository;
 
 import io.dev.cs_flow.model.Topic;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -18,18 +20,33 @@ import java.util.Optional;
 public interface TopicRepository extends JpaRepository<Topic,Long> {
 
     /**
-     * 과목 slug에 해당하는 공개된 토픽 목록을 조회한다.
+     * 과목 slug에 해당하는 공개된 토픽 목록을 페이지 단위로 조회한다.
+     * <p>
+     * LEFT JOIN FETCH와 Pageable을 함께 사용하면 HibernateException이 발생하므로
+     * countQuery를 별도로 분리한다.
+     * </p>
      *
      * @param subjectSlug 과목 영문 식별자 (URL 경로에 사용)
-     * @return 공개된 토픽 목록, 없으면 빈 리스트 반환
+     * @param pageable    페이지 정보 (page, size, sort)
+     * @return 공개된 토픽 Page 객체
      */
-    @Query("""
-            SELECT t FROM Topic t
-            LEFT JOIN FETCH t.tags
-            WHERE t.subject.slug = :subjectSlug
-            AND t.isPublished = true
-            """)
-    List<Topic> findPublishedTopicsBySubjectSlug(@Param("subjectSlug") String subjectSlug);
+    @Query(
+        value = """
+                SELECT t FROM Topic t
+                LEFT JOIN FETCH t.tags
+                WHERE t.subject.slug = :subjectSlug
+                AND t.isPublished = true
+                """,
+        countQuery = """
+                SELECT COUNT(t) FROM Topic t
+                WHERE t.subject.slug = :subjectSlug
+                AND t.isPublished = true
+                """
+    )
+    Page<Topic> findPublishedTopicsBySubjectSlugPageable(
+            @Param("subjectSlug") String subjectSlug,
+            Pageable pageable
+    );
 
     /**
      * 과목 slug와 토픽 slug로 공개된 토픽 단건을 조회한다.
