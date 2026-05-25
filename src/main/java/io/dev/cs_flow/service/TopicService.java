@@ -5,6 +5,10 @@ import io.dev.cs_flow.model.Topic;
 import io.dev.cs_flow.repository.TopicRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,18 +27,6 @@ import java.util.List;
 public class TopicService {
 
     private final TopicRepository topicRepository;
-
-    /**
-     * 과목 slug에 해당하는 공개된 토픽 목록을 조회한다.
-     *
-     * @param subjectSlug 과목 영문 식별자
-     * @return 공개된 토픽 목록, 없으면 빈 리스트 반환
-     */
-    @Transactional(readOnly = true)
-    public List<Topic> getPublishedTopics(String subjectSlug){
-        log.info("토픽 목록 조회 - subjectSlug: {}", subjectSlug);
-        return topicRepository.findPublishedTopicsBySubjectSlug(subjectSlug);
-    }
 
     /**
      * 과목 slug와 토픽 slug로 공개된 토픽 단건을 조회한다.
@@ -63,5 +55,20 @@ public class TopicService {
     public List<Topic> getRelatedTopics(Long topicId){
         log.info("연관 토픽 목록 조회 - topicId: {}", topicId);
         return topicRepository.findRelatedTopic(topicId);
+    }
+
+    /**
+     * 과목 slug에 해당하는 공개된 토픽 목록을 페이지 단위로 조회한다.
+     *
+     * @param subjectSlug 과목 영문 식별자
+     * @param page        페이지 번호 (0-based)
+     * @param size        페이지 크기
+     * @return 공개된 토픽 Page 객체
+     */
+    @Transactional(readOnly = true)
+    public Page<Topic> getPublishedTopicsPageable(String subjectSlug, int page, int size){
+        log.info("토픽 목록 조회 - subjectSlug: {}, page: {}, size: {}", subjectSlug, page, size);
+        Pageable pageable = PageRequest.of(page, size, Sort.by("topicId").ascending());
+        return topicRepository.findPublishedTopicsBySubjectSlugPageable(subjectSlug, pageable);
     }
 }
