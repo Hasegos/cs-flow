@@ -3,7 +3,6 @@ package io.dev.cs_flow.controller;
 import io.dev.cs_flow.model.Topic;
 import io.dev.cs_flow.service.SitemapService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,12 +21,11 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SitemapController {
 
+    private static final String BASE_URL       = "https://csflow.kr";
     private static final String CHANGE_FREQ_WEEKLY = "weekly";
     private static final String CHANGE_FREQ_MONTHLY = "monthly";
 
-    @Value("${app.base-url}")
-    private String baseUrl;
-
+    private static final String SLUG_PATTERN = "^[a-z0-9\\-]+$";
     private final SitemapService sitemapService;
 
     /**
@@ -48,16 +46,20 @@ public class SitemapController {
         sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
         sb.append("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">");
 
-        sb.append(url(baseUrl + "/", CHANGE_FREQ_WEEKLY, "1.0"));
+        sb.append(url(BASE_URL  + "/", CHANGE_FREQ_WEEKLY, "1.0"));
 
         topics.stream()
                 .map(t -> t.getSubject().getSlug())
                 .distinct()
-                .forEach(slug -> sb.append(url(baseUrl + "/" + slug, CHANGE_FREQ_WEEKLY, "0.8")));
+                .filter(slug -> slug.matches(SLUG_PATTERN))
+                .forEach(slug -> sb.append(url(BASE_URL  + "/" + slug, CHANGE_FREQ_WEEKLY, "0.8")));
 
-        topics.forEach(t -> sb.append(url(
-                baseUrl + "/" + t.getSubject().getSlug() + "/" + t.getSlug(),
-                CHANGE_FREQ_MONTHLY, "0.7")));
+        topics.stream()
+                .filter(t -> t.getSubject().getSlug().matches(SLUG_PATTERN)
+                        && t.getSlug().matches(SLUG_PATTERN))
+                .forEach(t -> sb.append(url(
+                        BASE_URL + "/" + t.getSubject().getSlug() + "/" + t.getSlug(),
+                        CHANGE_FREQ_MONTHLY, "0.7")));
 
         sb.append("</urlset>");
         return sb.toString();
