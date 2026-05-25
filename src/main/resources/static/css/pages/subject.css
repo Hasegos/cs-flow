@@ -189,7 +189,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0;
   transition: color var(--transition);
 }
 
@@ -199,6 +199,7 @@
 
 /* === 태그 목록 === */
 .topic-card__tags {
+  margin-top: 0.5rem;
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
@@ -265,6 +266,74 @@
   color: var(--color-text-muted);
   font-weight: 300;
   margin-bottom: 1.25rem;
+}
+
+/* === 페이지네이션 === */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 2.5rem;
+  padding-bottom: 1rem;
+}
+
+.pagination__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  text-decoration: none;
+  transition: border-color var(--transition), color var(--transition), background var(--transition);
+}
+
+.pagination__btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.pagination__btn:hover:not(.pagination__btn--disabled):not(.pagination__num--active) {
+  border-color: var(--subject-accent, var(--color-purple));
+  color: var(--subject-accent, var(--color-purple));
+}
+
+.pagination__btn--disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.pagination__num--active {
+  border-color: var(--subject-accent, var(--color-purple));
+  background: var(--subject-accent, var(--color-purple));
+  color: #0f0f1a;
+  font-weight: 700;
+  cursor: default;
+}
+
+.pagination__ellipsis {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  letter-spacing: 0.05em;
+  user-select: none;
+}
+
+/* === 라이트 모드 === */
+[data-theme="light"] .pagination__num--active {
+  color: #fff;
 }
 
 /* === 애니메이션 === */
