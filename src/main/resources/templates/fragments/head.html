@@ -52,18 +52,5 @@
         }
     </script>
 
-    <script th:if="${topic}" type="application/ld+json" th:inline="javascript">
-        {
-            "@context": "https://schema.org",
-            "@type": "LearningResource",
-            "name": [[${topic.title}]],
-            "description": [[${topic.metaDescription}]],
-            "url": [[${canonicalUrl}]],
-            "provider": {
-                "@type": "Organization",
-                "name": "CS Flow",
-                "url": "https://csflow.kr"
-            }
-        }
-    </script>
+    <script th:if="${topic}" type="application/ld+json" th:utext="${ldJson}"></script>
 </th:block>
