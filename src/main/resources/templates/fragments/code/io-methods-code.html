@@ -1,0 +1,125 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">C — Programmed I/O (Polling)</p>
+            <div class="code-block">
+<pre><span class="cm">// I/O 포트 주소 (메모리 맵드 I/O 가정)</span>
+<span class="kw">#define</span> DISK_STATUS_REG  <span class="num">0xFF00</span>  <span class="cm">// 상태 레지스터 (read-only)</span>
+<span class="kw">#define</span> DISK_DATA_REG    <span class="num">0xFF04</span>  <span class="cm">// 데이터 레지스터</span>
+<span class="kw">#define</span> DISK_CMD_REG     <span class="num">0xFF08</span>  <span class="cm">// 커맨드 레지스터 (write-only)</span>
+<span class="kw">#define</span> CMD_READ         <span class="num">0x20</span>    <span class="cm">// 섹터 읽기 명령</span>
+<span class="kw">#define</span> CMD_READ_NEXT    <span class="num">0x21</span>    <span class="cm">// 다음 워드 전송 요청</span>
+<span class="kw">#define</span> STATUS_READY     <span class="num">0x02</span>    <span class="cm">// 데이터 준비 완료 비트</span>
+
+<span class="kw">volatile uint32_t</span> *status_reg = (<span class="kw">volatile uint32_t</span> *)DISK_STATUS_REG;
+<span class="kw">volatile uint32_t</span> *data_reg   = (<span class="kw">volatile uint32_t</span> *)DISK_DATA_REG;
+<span class="kw">volatile uint32_t</span> *cmd_reg    = (<span class="kw">volatile uint32_t</span> *)DISK_CMD_REG;
+
+<span class="cm">// Programmed I/O: CPU가 직접 폴링하며 대기</span>
+<span class="kw">uint32_t</span> <span class="fn">pio_read_sector</span>(<span class="kw">uint32_t</span> sector) {
+    <span class="cm">// 1. 커맨드 레지스터에 읽기 명령 전송 (상태 레지스터는 read-only)</span>
+    *cmd_reg = sector | CMD_READ;
+
+    <span class="cm">// 2. Busy-Wait: 완료 비트(READY)가 설정될 때까지 CPU가 반복 폴링</span>
+    <span class="cm">//    '!BUSY'가 아니라 'READY 설정'을 검사 — 장치가 상태를 갱신하기 전에</span>
+    <span class="cm">//    루프를 빠져나가는 경합(race)을 방지하기 위함</span>
+    <span class="kw">while</span> (!(*status_reg & STATUS_READY)) {
+        <span class="cm">/* spin — CPU 100% 점유, 다른 일 불가 */</span>
+    }
+
+    <span class="cm">// 3. 완료 후 데이터 직접 읽기</span>
+    <span class="kw">return</span> *data_reg;
+}
+
+<span class="cm">// Interrupt-Driven I/O: 명령만 내리고 CPU는 다른 작업 수행</span>
+<span class="kw">void</span> <span class="fn">irq_read_sector</span>(<span class="kw">uint32_t</span> sector) {
+    <span class="cm">// 1. 커맨드 레지스터에 읽기 명령 전송</span>
+    *cmd_reg = sector | CMD_READ;
+
+    <span class="cm">// 2. CPU는 즉시 다른 작업으로 복귀 — 폴링(Busy-Wait)이 없음</span>
+    <span class="cm">//    완료 통보는 인터럽트(ISR)가 담당</span>
+    <span class="fn">do_other_work</span>();
+}
+
+<span class="cm">// ISR: 장치가 데이터 1워드를 준비할 때마다 인터럽트로 호출됨</span>
+<span class="kw">void</span> __attribute__((interrupt)) <span class="fn">disk_isr</span>() {
+    <span class="kw">uint32_t</span> data = *data_reg;        <span class="cm">// 데이터 복사를 CPU(ISR)가 직접 수행</span>
+    <span class="fn">store_to_buffer</span>(data);            <span class="cm">// 수신 버퍼에 누적</span>
+
+    <span class="kw">if</span> (<span class="fn">transfer_remaining</span>()) {        <span class="cm">// 받을 데이터가 더 남았으면</span>
+        *cmd_reg = CMD_READ_NEXT;        <span class="cm">// 다음 워드 요청 → 또 인터럽트 발생</span>
+    } <span class="kw">else</span> {
+        <span class="fn">wake_up_waiting_process</span>();      <span class="cm">// 전송 완료 — 대기 프로세스 깨움</span>
+    }
+    <span class="fn">eoi</span>();                            <span class="cm">// End of Interrupt 신호</span>
+
+    <span class="cm">// 주의: 섹터(예: 128워드)당 인터럽트가 워드 수만큼 발생한다.</span>
+    <span class="cm">//       폴링 낭비는 없앴지만 전송 단위마다 CPU가 개입하므로</span>
+    <span class="cm">//       대용량 전송에서는 인터럽트+복사 오버헤드가 누적된다 → DMA의 동기</span>
+}</pre>
+            </div>
+            <p class="code-desc">
+                Programmed I/O에서는 <code>while (!(*status_reg &amp; STATUS_READY))</code> 폴링 루프가 핵심입니다.
+                CPU가 상태 레지스터를 반복 읽으며 장치 완료를 기다리므로, 이 시간 동안 CPU 자원이 100% 낭비됩니다.
+                완료 비트(<code>STATUS_READY</code>)가 설정되는지를 검사하면, 장치가 상태를 갱신하기 전에 루프를 빠져나가는 경합을 피할 수 있습니다.<br>
+                Interrupt-Driven 방식은 폴링 없이 명령만 내리고 즉시 반환하며, 완료 통보는 ISR(Interrupt Service Routine)이 처리합니다.
+                다만 순수 Interrupt-Driven I/O에서는 ISR이 전송 단위(워드)마다 데이터를 직접 복사하므로,
+                대용량 전송에서는 인터럽트 횟수만큼 CPU 개입 비용이 누적됩니다 — 이 비용까지 없애는 것이 DMA입니다.
+                <code>volatile</code> 키워드는 컴파일러가 레지스터 읽기를 최적화로 제거하지 못하도록 강제합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">C — DMA 전송 설정</p>
+            <div class="code-block">
+<pre><span class="kw">#define</span> DMA_SRC_REG   <span class="num">0xFE00</span>  <span class="cm">// 소스 주소 레지스터</span>
+<span class="kw">#define</span> DMA_DST_REG   <span class="num">0xFE04</span>  <span class="cm">// 목적지 주소 레지스터</span>
+<span class="kw">#define</span> DMA_LEN_REG   <span class="num">0xFE08</span>  <span class="cm">// 전송 길이 레지스터</span>
+<span class="kw">#define</span> DMA_CTRL_REG  <span class="num">0xFE0C</span>  <span class="cm">// 제어 레지스터 (START=0x1)</span>
+
+<span class="kw">volatile uint32_t</span> *dma_src  = (<span class="kw">volatile uint32_t</span> *)DMA_SRC_REG;
+<span class="kw">volatile uint32_t</span> *dma_dst  = (<span class="kw">volatile uint32_t</span> *)DMA_DST_REG;
+<span class="kw">volatile uint32_t</span> *dma_len  = (<span class="kw">volatile uint32_t</span> *)DMA_LEN_REG;
+<span class="kw">volatile uint32_t</span> *dma_ctrl = (<span class="kw">volatile uint32_t</span> *)DMA_CTRL_REG;
+
+<span class="cm">/**
+ * DMA 전송 시작 — CPU는 주소/길이만 설정하고 즉시 반환
+ * 실제 데이터 이동은 DMA 컨트롤러가 버스를 직접 제어해서 수행
+ * 완료 시 DMA가 인터럽트를 발생시켜 CPU에 통보
+ */</span>
+<span class="kw">void</span> <span class="fn">dma_transfer</span>(<span class="kw">uint32_t</span> src_phys, <span class="kw">uint32_t</span> dst_phys, <span class="kw">size_t</span> len) {
+    *dma_src  = src_phys;  <span class="cm">// 소스 물리 주소 설정</span>
+    *dma_dst  = dst_phys;  <span class="cm">// 목적지 물리 주소 설정</span>
+    *dma_len  = len;       <span class="cm">// 전송 바이트 수</span>
+    *dma_ctrl = <span class="num">0x01</span>;     <span class="cm">// START 비트 — DMA 전송 시작</span>
+
+    <span class="cm">// CPU는 여기서 즉시 반환 — DMA가 버스를 점유하며 전송 수행</span>
+    <span class="cm">// CPU는 다른 프로세스 실행 가능</span>
+    <span class="fn">schedule</span>();           <span class="cm">// 다른 프로세스에 CPU 양보</span>
+}
+
+<span class="cm">// DMA 완료 ISR</span>
+<span class="kw">void</span> __attribute__((interrupt)) <span class="fn">dma_isr</span>() {
+    <span class="fn">wake_up_waiting_process</span>(); <span class="cm">// 대기 중인 프로세스를 준비 큐로 이동</span>
+    <span class="fn">eoi</span>();
+}
+
+<span class="cm">// 세 방식 CPU 개입 비교</span>
+<span class="cm">// Programmed I/O : 전송 내내 CPU 100% 점유 (Busy-Wait)</span>
+<span class="cm">// Interrupt-Driven: 폴링 낭비는 없으나 전송 단위(워드)마다 인터럽트+CPU 복사</span>
+<span class="cm">//                   → 대용량일수록 인터럽트 오버헤드 누적</span>
+<span class="cm">// DMA            : 설정 + 완료 인터럽트 1회만 CPU 개입 (전송 전체에 ~0%)</span>
+<span class="cm">//                   단, 전송 중 버스 경합(Cycle Stealing) 주의</span></pre>
+            </div>
+            <p class="code-desc">
+                DMA는 CPU 대신 DMA 컨트롤러가 시스템 버스를 직접 제어해서 장치↔메모리 간 데이터를 전송합니다.
+                CPU는 소스·목적지 주소와 길이를 레지스터에 기록하고 START 비트를 세운 뒤 즉시 다른 작업으로 넘어갑니다.<br>
+                Interrupt-Driven 방식과 달리 전송 도중에는 CPU가 전혀 개입하지 않고, 완료 시 단 한 번의 인터럽트만 처리합니다.
+                단, DMA가 버스를 점유하는 동안 CPU의 메모리 접근이 잠시 지연될 수 있는 사이클 스틸링(Cycle Stealing)이 발생합니다.
+                대용량 블록 전송(디스크 I/O, 네트워크 수신 등)에서 DMA는 CPU 오버헤드를 최소화하는 가장 효율적인 방식입니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
