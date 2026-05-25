@@ -15,12 +15,13 @@ import org.springframework.web.servlet.HandlerInterceptor;
 public class AccessLogInterceptor implements HandlerInterceptor {
 
     private static final Logger log = LoggerFactory.getLogger("ACCESS");
+    private static final int MAX_UA_LENGTH = 200;
 
     /**
      * HTTP 요청 전처리 단계에서 사용자 접근 정보를 로그에 기록한다.
      * <p>
      * Cloudflare 프록시 환경에서 실제 사용자 IP를 추출하기 위해
-     * {@code CF-Connecting-IP} → {@code X-Forwarded-For} → {@code RemoteAddr} 순서로 확인한다.
+     * {@code CF-Connecting-IP} → {@code RemoteAddr} 순서로 확인한다.
      * 로그 기록 실패 시에도 요청 처리는 계속 진행된다.
      * </p>
      *
@@ -37,17 +38,23 @@ public class AccessLogInterceptor implements HandlerInterceptor {
         try {
             String ip = request.getHeader("CF-Connecting-IP");
             if (ip == null || ip.isBlank()) {
-                ip = request.getHeader("X-Forwarded-For");
-            }
-            if (ip == null || ip.isBlank()) {
                 ip = request.getRemoteAddr();
+            }
+
+            String ua = request.getHeader("User-Agent");
+            if(ua != null){
+                ua = ua.replaceAll("[\r\n\t]", "_");
+                ua = ua.substring(0, Math.min(ua.length(), MAX_UA_LENGTH));
+            }
+            else{
+                ua = "unknown";
             }
 
             log.info("IP={} METHOD={} URI={} UA={}",
                     ip,
                     request.getMethod(),
                     request.getRequestURI(),
-                    request.getHeader("User-Agent"));
+                    ua);
 
         } catch (Exception e) {
             log.warn("접근 로그 기록 실패: {}", e.getMessage());

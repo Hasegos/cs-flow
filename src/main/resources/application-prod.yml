@@ -1,6 +1,3 @@
-app:
-  base-url: https://csflow.kr
-
 spring:
   config:
     activate:

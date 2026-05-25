@@ -22,6 +22,7 @@ import java.util.List;
 public class SubjectService {
 
     private final SubjectRepository subjectRepository;
+    private static final String COLOR_ACCENT_PATTERN = "^#[0-9a-fA-F]{3,6}$|^[a-zA-Z]+$";
 
     /**
      * 공개된 모든 과목 목록을 조회한다.
@@ -44,7 +45,14 @@ public class SubjectService {
     @Transactional(readOnly = true)
     public Subject getPublishedSubject(String slug){
         log.info("과목 단건 조회 - slug: {}", slug);
-        return subjectRepository.findBySlugAndIsPublishedTrue(slug)
+        Subject subject = subjectRepository.findBySlugAndIsPublishedTrue(slug)
                 .orElseThrow(() -> new NotFoundException("존재하지 않는 과목입니다. slug: " + slug));
+
+        if(!subject.getColorAccent().matches(COLOR_ACCENT_PATTERN)){
+            log.warn("비정상 colorAccent 감지 - slug: {}", slug);
+            throw new NotFoundException("과목 정보가 올바르지 않습니다.");
+        }
+
+        return subject;
     }
 }
