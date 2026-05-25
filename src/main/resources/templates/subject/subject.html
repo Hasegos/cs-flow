@@ -35,7 +35,7 @@
                 </div>
                 <h1 class="subject-hero__title" th:text="${subject.name}">컴퓨터 구조</h1>
                 <p class="subject-hero__count">
-                    <span th:text="${#lists.size(topics)}">0</span>개 토픽
+                    <span th:text="${totalElements}">0</span>개 토픽
                 </p>
             </div>
         </section>
@@ -74,6 +74,59 @@
                         </div>
                     </a>
                 </div>
+
+                <!-- 페이지네이션 -->
+                <nav class="pagination" th:if="${totalPages > 1}" aria-label="토픽 페이지 네비게이션">
+                    <!-- 이전 버튼 -->
+                    <a th:if="${currentPage > 0}"
+                       th:href="@{/{slug}(slug=${subject.slug}, page=${currentPage - 1})}"
+                       class="pagination__btn pagination__btn--prev"
+                       aria-label="이전 페이지">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="15 18 9 12 15 6"/>
+                        </svg>
+                    </a>
+                    <span th:if="${currentPage == 0}"
+                          class="pagination__btn pagination__btn--disabled"
+                          aria-disabled="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="15 18 9 12 15 6"/>
+                        </svg>
+                    </span>
+
+                    <!-- 페이지 번호 -->
+                    <th:block th:each="p : ${pageRange}">
+                        <span th:if="${p == -1}" class="pagination__ellipsis">…</span>
+                        <a th:if="${p != -1 && p != currentPage}"
+                           th:href="@{/{slug}(slug=${subject.slug}, page=${p})}"
+                           class="pagination__btn pagination__num"
+                           th:text="${p + 1}">1</a>
+                        <span th:if="${p != -1 && p == currentPage}"
+                              class="pagination__btn pagination__num pagination__num--active"
+                              th:text="${p + 1}">1</span>
+                    </th:block>
+
+                    <!-- 다음 버튼 -->
+                    <a th:if="${currentPage < totalPages - 1}"
+                       th:href="@{/{slug}(slug=${subject.slug}, page=${currentPage + 1})}"
+                       class="pagination__btn pagination__btn--next"
+                       aria-label="다음 페이지">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="9 18 15 12 9 6"/>
+                        </svg>
+                    </a>
+                    <span th:if="${currentPage == totalPages - 1}"
+                          class="pagination__btn pagination__btn--disabled"
+                          aria-disabled="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="9 18 15 12 9 6"/>
+                        </svg>
+                    </span>
+                </nav>
 
                 <!-- 토픽 없을 때 -->
                 <div class="topic-empty" th:if="${#lists.isEmpty(topics)}">
