@@ -26,7 +26,11 @@
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:site" content="@csflow_kr">
+    <meta name="twitter:title"
+          th:content="${topic != null} ? (${topic.title} + ' | CS Flow') : 'CS Flow | CS 지식 인터랙티브 학습 플랫폼'">
+    <meta name="twitter:image" content="https://csflow.kr/img/og_image.png">
+    <meta name="twitter:description"
+          th:content="${topic != null} ? ${topic.metaDescription} : '컴퓨터 구조, 운영체제, 네트워크, 자료구조, 알고리즘, 데이터베이스 CS 지식을 인터랙티브 시각화로 학습하세요.'">
 
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" th:href="@{/img/favicon.svg}">
