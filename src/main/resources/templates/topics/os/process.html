@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">프로세스 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/os/process.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/os}" class="topic-breadcrumb__link">운영체제</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">프로세스</span>
+                </nav>
+
+                <span class="topic-hero__slug">os · 01</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">프로세스</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        프로세스(Process)는 <strong>실행 중인 프로그램</strong>입니다.
+                        디스크에 저장된 정적인 프로그램이 메모리에 올라와 OS의 관리를 받는 순간 프로세스가 됩니다.
+                        OS는 각 프로세스를 PCB(Process Control Block)로 관리하며, 프로세스는 생명 주기 동안 여러 상태를 전이합니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">PCB (Process Control Block)</h3>
+                            <p class="overview-card__desc">OS가 프로세스를 관리하기 위해 유지하는 자료구조입니다. PID, 상태, PC(Program Counter), 레지스터 값, 메모리 정보, 스케줄링 우선순위 등을 저장합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">프로세스 상태</h3>
+                            <p class="overview-card__desc">New(생성) → Ready(준비) → Running(실행) → Waiting(대기) → Terminated(종료)의 5가지 상태를 가집니다. OS 스케줄러가 Ready ↔ Running 전이를 제어합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">컨텍스트 스위칭</h3>
+                            <p class="overview-card__desc">CPU가 현재 프로세스의 상태를 PCB에 저장하고, 다음 프로세스의 상태를 PCB에서 복원하는 작업입니다. 순수한 오버헤드로 작용하므로 빈도를 최소화하는 것이 중요합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">프로세스 메모리 구조</h3>
+                            <p class="overview-card__desc">Code(텍스트) / Data(초기화된 전역·정적 변수) / BSS(미초기화 전역·정적 변수, 0으로 초기화) / Heap(동적 할당, 위로 성장) / Stack(함수 호출, 아래로 성장) 5개 영역으로 구성됩니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">fork() / exec()</h3>
+                            <p class="overview-card__desc">fork()는 부모 프로세스를 복제해 자식 프로세스를 생성합니다. exec()는 현재 프로세스 이미지를 새 프로그램으로 교체합니다. 두 조합으로 새 프로세스를 실행합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">좀비 / 고아 프로세스</h3>
+                            <p class="overview-card__desc">자식이 종료됐지만 부모가 wait()을 호출하지 않은 경우 좀비 프로세스가 됩니다. 부모가 먼저 종료되면 자식은 고아(Orphan)가 되어, 가장 가까운 subreaper 프로세스에 입양됩니다(지정된 subreaper가 없으면 init, PID 1).</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Ready vs Waiting</strong> — Ready는 CPU만 할당받으면 바로 실행 가능한 상태. Waiting(Blocked)은 I/O 완료·이벤트 발생 등 외부 조건을 기다리는 상태로, CPU를 줘도 실행할 수 없습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>디스패처(Dispatcher)</strong> — 스케줄러가 선택한 프로세스를 실제로 CPU에 올리는 모듈. 컨텍스트 스위칭 + 유저 모드 전환 + PC 점프를 수행합니다. 디스패처 지연(latency)은 컨텍스트 스위치 비용의 핵심입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>멀티프로그래밍 vs 멀티태스킹</strong> — 멀티프로그래밍은 CPU 유휴 시간을 없애기 위해 여러 프로세스를 메모리에 적재. 멀티태스킹은 시분할로 짧은 퀀텀마다 전환해 동시 실행처럼 보이게 합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>프로세스 vs 스레드</strong> — 프로세스는 독립된 메모리 공간(Code/Data/Heap/Stack 모두 별도). 스레드는 같은 프로세스 내에서 Code·Data·Heap을 공유하고 Stack만 독립적으로 가집니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>IPC (Inter-Process Communication)</strong> — 독립된 주소 공간을 가진 프로세스 간 통신 방법. Pipe, Message Queue, Shared Memory, Socket, Signal 등이 있으며 각각 속도·복잡도 트레이드오프가 있습니다.</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 (시각화) -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/os/process-code :: code}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+</body>
+</html>
