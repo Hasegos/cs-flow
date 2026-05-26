@@ -98,7 +98,7 @@
             badge:  'READY → RUNNING',
             from:   'READY',
             to:     'RUNNING',
-            log:    'Step 2 — CPU 스케줄러(디스패처)가 Ready Queue에서 이 프로세스를 선택합니다. 컨텍스트 스위칭 후 CPU를 할당받아 Running 상태로 전이합니다.',
+            log:    'Step 2 — CPU 스케줄러가 Ready Queue에서 이 프로세스를 선택하고, 디스패처가 컨텍스트 스위칭을 수행해 CPU를 넘겨줍니다. 프로세스는 Running 상태로 전이합니다.',
             pcb:    { pid: '1024', state: 'RUNNING', pc: '0x0048', priority: '20', cpu: '12ms' },
         },
         {
