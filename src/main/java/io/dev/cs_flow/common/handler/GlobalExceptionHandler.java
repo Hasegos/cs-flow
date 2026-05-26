@@ -1,6 +1,7 @@
 package io.dev.cs_flow.common.handler;
 
 import io.dev.cs_flow.common.exception.NotFoundException;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.ui.Model;
@@ -20,11 +21,39 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 public class GlobalExceptionHandler {
 
     /**
+     * 요청이 브라우저에서 발생한 것인지 판별한다.
+     * <p>
+     * {@code Accept} 헤더에 {@code text/html}이 포함된 경우 브라우저 요청으로 간주한다.
+     * REST 클라이언트나 API 호출은 보통 해당 헤더를 포함하지 않으므로 이를 기준으로 구분한다.
+     * </p>
+     *
+     * @param request 현재 HTTP 요청
+     * @return 브라우저 요청이면 {@code true}, 아니면 {@code false}
+     */
+    private boolean isBrowserRequest(HttpServletRequest request){
+        String accept = request.getHeader("Accept");
+        return accept != null && accept.contains("text/html");
+    }
+
+    /**
      * favicon.ico, chrome devtools 등 브라우저 자동 요청으로 인한
      * 불필요한 ERROR 로그 오염 방지
+     * <p>
+     * 브라우저 요청이면 에러 페이지를 렌더링하고,
+     * API 요청이면 {@code 404 Not Found} 응답을 반환한다.
+     * </p>
+     *
+     * @param e       발생한 NoResourceFoundException
+     * @param request 현재 HTTP 요청
+     * @return 브라우저 요청 시 에러 페이지 뷰 이름, API 요청 시 404 ResponseEntity
      */
     @ExceptionHandler(NoResourceFoundException.class)
-    public ResponseEntity<Void> handleNoResourceFound(NoResourceFoundException e){
+    public Object handleNoResourceFound(NoResourceFoundException e,
+                                                      HttpServletRequest request){
+        if (isBrowserRequest(request)) {
+            log.warn("[404] URI: {}", request.getRequestURI());
+            return "error/error";
+        }
         return ResponseEntity.notFound().build();
     }
 
