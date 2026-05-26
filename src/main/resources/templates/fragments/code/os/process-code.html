@@ -1,0 +1,108 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">C — fork() / exec() / wait() 프로세스 생성</p>
+            <div class="code-block">
+<pre><span class="kw">#include</span> <span class="st">&lt;stdio.h&gt;</span>
+<span class="kw">#include</span> <span class="st">&lt;unistd.h&gt;</span>
+<span class="kw">#include</span> <span class="st">&lt;sys/wait.h&gt;</span>
+
+<span class="kw">int</span> <span class="fn">main</span>() {
+    pid_t pid = <span class="fn">fork</span>();  <span class="cm">// 부모 프로세스 복제 → 자식 생성</span>
+
+    <span class="kw">if</span> (pid &lt; <span class="num">0</span>) {
+        <span class="fn">perror</span>(<span class="st">"fork failed"</span>);
+        <span class="kw">return</span> <span class="num">1</span>;
+
+    } <span class="kw">else if</span> (pid == <span class="num">0</span>) {
+        <span class="cm">// ── 자식 프로세스 (fork() 반환값 = 0) ──────────────</span>
+        <span class="cm">// 상태 전이: New → Ready → Running (스케줄러 선택 시)</span>
+        <span class="fn">printf</span>(<span class="st">"Child  PID=%d, Parent PID=%d\n"</span>, <span class="fn">getpid</span>(), <span class="fn">getppid</span>());
+
+        <span class="cm">// exec(): 현재 프로세스 이미지를 ls 로 교체</span>
+        <span class="cm">// 성공하면 이 아래 코드는 절대 실행되지 않음</span>
+        <span class="kw">char</span> *args[] = { <span class="st">"ls"</span>, <span class="st">"-l"</span>, <span class="kw">NULL</span> };
+        <span class="fn">execvp</span>(args[<span class="num">0</span>], args);
+
+        <span class="cm">// exec() 실패 시에만 도달</span>
+        <span class="fn">perror</span>(<span class="st">"exec failed"</span>);
+        <span class="kw">return</span> <span class="num">1</span>;
+
+    } <span class="kw">else</span> {
+        <span class="cm">// ── 부모 프로세스 (fork() 반환값 = 자식 PID) ────────</span>
+        <span class="fn">printf</span>(<span class="st">"Parent PID=%d, Child PID=%d\n"</span>, <span class="fn">getpid</span>(), pid);
+
+        <span class="cm">// wait(): 자식 종료 대기 → Waiting 상태 진입</span>
+        <span class="cm">// 호출하지 않으면 자식이 좀비(Zombie) 프로세스가 됨</span>
+        <span class="kw">int</span> status;
+        <span class="fn">waitpid</span>(pid, &amp;status, <span class="num">0</span>);
+
+        <span class="kw">if</span> (<span class="fn">WIFEXITED</span>(status)) {
+            <span class="fn">printf</span>(<span class="st">"Child exited with code %d\n"</span>, <span class="fn">WEXITSTATUS</span>(status));
+        }
+        <span class="cm">// 부모: Waiting → Ready → Running 재진입</span>
+    }
+    <span class="kw">return</span> <span class="num">0</span>;  <span class="cm">// Terminated</span>
+}</pre>
+            </div>
+            <p class="code-desc">
+                fork()는 부모의 주소 공간을 복사해 자식을 생성합니다(Copy-on-Write 최적화 적용).<br>
+                반환값이 0이면 자식, 양수이면 부모입니다.<br>
+                exec()는 현재 프로세스 이미지를 완전히 교체하므로, fork() 직후 exec()를 호출하면 새 프로그램이 기존 PID를 유지한 채 실행됩니다.<br>
+                부모가 wait() 없이 종료하면 자식은 고아(Orphan)가 되어 가장 가까운 subreaper(지정된 subreaper가 없으면 init, PID 1)에 입양되고, 자식이 종료됐는데 부모가 wait()을 호출하지 않으면 자식 PCB가 남아 좀비(Zombie)가 됩니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — ProcessBuilder로 자식 프로세스 생성</p>
+            <div class="code-block">
+<pre><span class="kw">import</span> java.io.BufferedReader;
+<span class="kw">import</span> java.io.InputStreamReader;
+
+<span class="kw">public class</span> <span class="fn">ProcessDemo</span> {
+
+    <span class="kw">public static void</span> <span class="fn">main</span>(String[] args) <span class="kw">throws</span> Exception {
+
+        <span class="cm">// ProcessBuilder = fork() + exec() 조합에 해당</span>
+        ProcessBuilder pb = <span class="kw">new</span> ProcessBuilder(<span class="st">"ls"</span>, <span class="st">"-l"</span>);
+        pb.<span class="fn">redirectErrorStream</span>(<span class="kw">true</span>);  <span class="cm">// stderr → stdout 병합</span>
+
+        <span class="cm">// start() 호출 시 자식 프로세스 생성 → New → Ready</span>
+        Process child = pb.<span class="fn">start</span>();
+
+        <span class="kw">int</span> pid = (<span class="kw">int</span>) child.<span class="fn">pid</span>();
+        System.out.<span class="fn">println</span>(<span class="st">"Child PID: "</span> + pid);
+
+        <span class="cm">// 자식 stdout 읽기 (부모는 Waiting 상태로 I/O 대기)</span>
+        <span class="kw">try</span> (<span class="kw">var</span> reader = <span class="kw">new</span> BufferedReader(
+                <span class="kw">new</span> InputStreamReader(child.<span class="fn">getInputStream</span>()))) {
+            reader.<span class="fn">lines</span>().<span class="fn">forEach</span>(System.out::println);
+        }
+
+        <span class="cm">// waitFor(): reaper 스레드가 수집해 둔 종료 코드를 읽음</span>
+        <span class="cm">// (자식 reaping 자체는 JVM의 process reaper 스레드가 담당)</span>
+        <span class="kw">int</span> exitCode = child.<span class="fn">waitFor</span>();
+        System.out.<span class="fn">println</span>(<span class="st">"Exit code: "</span> + exitCode);
+
+        <span class="cm">// ProcessHandle로 살아있는 프로세스 정보 조회 (Java 9+)</span>
+        ProcessHandle.<span class="fn">allProcesses</span>()
+            .<span class="fn">filter</span>(h -&gt; h.<span class="fn">info</span>().<span class="fn">command</span>().<span class="fn">isPresent</span>())
+            .<span class="fn">limit</span>(<span class="num">5</span>)
+            .<span class="fn">forEach</span>(h -&gt; System.out.<span class="fn">println</span>(
+                <span class="st">"PID="</span> + h.<span class="fn">pid</span>() + <span class="st">" CMD="</span> + h.<span class="fn">info</span>().<span class="fn">command</span>().<span class="fn">orElse</span>(<span class="st">"?"</span>)
+            ));
+    }
+}</pre>
+            </div>
+            <p class="code-desc">
+                Java의 ProcessBuilder는 내부적으로 OS의 fork()+exec()를 호출합니다.<br>
+                JVM은 ProcessBuilder.start()로 생성한 자식마다 "process reaper" 데몬 스레드를 띄워, 그 스레드가 OS 레벨에서 자식 종료를 직접 기다립니다. 따라서 사용자 코드가 child.waitFor()를 호출하지 않아도 JVM이 자식을 reap하므로 일반적으로 좀비(Zombie) 프로세스는 남지 않습니다.<br>
+                child.waitFor()는 reaper가 수집해 둔 종료 코드를 읽어 오는 동작이며, 호출을 생략했을 때의 실제 위험은 좀비가 아니라 자식 출력 스트림을 읽지 않아 파이프 버퍼가 가득 차서 발생하는 데드락과 파일 디스크립터 누수입니다.<br>
+                Java 9부터 ProcessHandle API로 실행 중인 모든 프로세스를 조회하고 PID·CPU 시간·시작 시각 등 상세 정보를 얻을 수 있습니다.<br>
+                JVM 자체도 하나의 OS 프로세스이므로, JVM 내부의 스레드 스케줄링은 OS 프로세스 스케줄링과 별개 계층에서 동작합니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
