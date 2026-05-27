@@ -1,0 +1,116 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">C — pthread 생성 / 조인 / 뮤텍스</p>
+            <div class="code-block">
+<pre><span class="kw">#include</span> <span class="st">&lt;stdio.h&gt;</span>
+<span class="kw">#include</span> <span class="st">&lt;pthread.h&gt;</span>
+
+<span class="cm">// 공유 자원 — 여러 스레드가 동시에 접근하면 Race Condition 발생</span>
+<span class="kw">static int</span>            counter = <span class="num">0</span>;
+<span class="kw">static</span> pthread_mutex_t mtx     = PTHREAD_MUTEX_INITIALIZER;
+
+<span class="kw">void</span> *<span class="fn">worker</span>(<span class="kw">void</span> *arg) {
+    <span class="kw">int</span> id = *(<span class="kw">int</span> *)arg;
+    <span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">0</span>; i &lt; <span class="num">100000</span>; i++) {
+        <span class="cm">// 임계 구역(Critical Section) 진입 전 Lock 획득</span>
+        <span class="fn">pthread_mutex_lock</span>(&amp;mtx);
+        counter++;  <span class="cm">// 원자적이지 않은 read-modify-write → Lock 필수</span>
+        <span class="fn">pthread_mutex_unlock</span>(&amp;mtx);
+    }
+    <span class="fn">printf</span>(<span class="st">"Thread %d done\n"</span>, id);
+    <span class="kw">return NULL</span>;
+}
+
+<span class="kw">int</span> <span class="fn">main</span>() {
+    <span class="kw">const int</span> N = <span class="num">4</span>;
+    pthread_t  threads[N];
+    <span class="kw">int</span>        ids[N];
+
+    <span class="cm">// 스레드 생성: 각 스레드는 독립 Stack + PC 를 가지고</span>
+    <span class="cm">// counter / mtx 를 공유함 (Code·Data·Heap 공유)</span>
+    <span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">0</span>; i &lt; N; i++) {
+        ids[i] = i;
+        <span class="fn">pthread_create</span>(&amp;threads[i], <span class="kw">NULL</span>, worker, &amp;ids[i]);
+    }
+
+    <span class="cm">// join(): 스레드 종료 대기 + 자원 회수 (프로세스의 wait()에 해당)</span>
+    <span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">0</span>; i &lt; N; i++) {
+        <span class="fn">pthread_join</span>(threads[i], <span class="kw">NULL</span>);
+    }
+
+    <span class="fn">printf</span>(<span class="st">"Final counter: %d (expected %d)\n"</span>, counter, N * <span class="num">100000</span>);
+    <span class="fn">pthread_mutex_destroy</span>(&amp;mtx);
+    <span class="kw">return</span> <span class="num">0</span>;
+}</pre>
+            </div>
+            <p class="code-desc">
+                pthread_create()는 새 스레드를 생성합니다. 각 스레드는 독립된 Stack과 PC를 가지지만 counter·mtx 등 전역 변수는 공유합니다.<br>
+                counter++ 연산은 읽기(load) → 증가 → 쓰기(store) 3단계로 이루어져 원자적이지 않습니다. Mutex 없이 실행하면 최종값이 N×100000보다 작게 나오는 Race Condition을 확인할 수 있습니다.<br>
+                기본 attribute(PTHREAD_CREATE_JOINABLE)로 생성된 스레드는 pthread_join()을 호출하지 않으면 좀비 스레드로 남아 시스템 자원이 누수됩니다(누적되면 새 스레드 생성 불가).<br>
+                join이 필요 없는 경우에는 pthread_detach() 또는 PTHREAD_CREATE_DETACHED 속성으로 생성해 종료 시 자동으로 회수되도록 합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — Thread / ExecutorService / volatile</p>
+            <div class="code-block">
+<pre><span class="kw">import</span> java.util.concurrent.*;
+<span class="kw">import</span> java.util.concurrent.atomic.AtomicInteger;
+
+<span class="kw">public class</span> <span class="fn">ThreadDemo</span> {
+
+    <span class="cm">// AtomicInteger: CAS(Compare-And-Swap) 기반 락-프리 원자 연산</span>
+    <span class="kw">private static final</span> AtomicInteger counter = <span class="kw">new</span> AtomicInteger(<span class="num">0</span>);
+
+    <span class="cm">// volatile: happens-before 관계 보장 (가시성 + 재정렬 금지)</span>
+    <span class="cm">// 단, 복합 연산(i++)의 원자성은 보장하지 않음</span>
+    <span class="kw">private static volatile boolean</span> running = <span class="kw">true</span>;
+
+    <span class="kw">public static void</span> <span class="fn">main</span>(String[] args) <span class="kw">throws</span> Exception {
+
+        <span class="cm">// 스레드 풀: 최대 4개 스레드를 재사용</span>
+        ExecutorService pool = Executors.<span class="fn">newFixedThreadPool</span>(<span class="num">4</span>);
+
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">0</span>; i &lt; <span class="num">4</span>; i++) {
+            <span class="kw">final int</span> id = i;
+            pool.<span class="fn">submit</span>(() -&gt; {               <span class="cm">// Callable / Runnable 제출</span>
+                <span class="kw">for</span> (<span class="kw">int</span> j = <span class="num">0</span>; j &lt; <span class="num">100_000</span>; j++) {
+                    counter.<span class="fn">incrementAndGet</span>(); <span class="cm">// 원자적 증가</span>
+                }
+                System.out.<span class="fn">println</span>(<span class="st">"Worker "</span> + id + <span class="st">" done"</span>);
+            });
+        }
+
+        <span class="cm">// shutdown(): 새 작업 제출 거부 + 기존 작업 완료 후 종료</span>
+        pool.<span class="fn">shutdown</span>();
+        pool.<span class="fn">awaitTermination</span>(<span class="num">10</span>, TimeUnit.SECONDS);
+
+        System.out.<span class="fn">println</span>(<span class="st">"Final: "</span> + counter.<span class="fn">get</span>()); <span class="cm">// 400000</span>
+
+        <span class="cm">// 가상 스레드 (Java 21, Project Loom, JEP 444)</span>
+        <span class="cm">// JVM이 carrier thread 위에 M:N으로 스케줄링 — 수백만 개 생성 가능</span>
+        <span class="kw">try</span> (<span class="kw">var</span> vtPool = Executors.<span class="fn">newVirtualThreadPerTaskExecutor</span>()) {
+            Future&lt;String&gt; future = vtPool.<span class="fn">submit</span>(() -&gt; {
+                Thread.<span class="fn">sleep</span>(<span class="num">100</span>);      <span class="cm">// I/O·sleep 블로킹 시 carrier에서 unmount</span>
+                <span class="kw">return</span> <span class="st">"virtual thread result"</span>;
+            });
+            System.out.<span class="fn">println</span>(future.<span class="fn">get</span>());
+        }
+    }
+}</pre>
+            </div>
+            <p class="code-desc">
+                Java의 스레드 풀(ExecutorService)은 미리 생성된 스레드를 재사용해 생성·삭제 비용을 없앱니다. 제출된 작업은 내부 큐에 쌓이고 유휴 스레드가 꺼내 실행합니다.<br>
+                AtomicInteger는 CAS 명령어를 활용해 Mutex 없이도 원자적 증가를 보장합니다. 경쟁이 낮을 때는 synchronized 블록보다 오버헤드가 적지만, 경쟁이 매우 높으면 CAS 재시도 비용으로 성능이 떨어질 수 있습니다.<br>
+                volatile은 메모리 배리어를 삽입해 레지스터 캐싱·명령어 재정렬을 금지하고 happens-before 관계를 보장합니다. 한 스레드의 쓰기가 이후 다른 스레드의 읽기에 즉시 보이므로 단순 플래그 변수에 적합합니다. 단, read-modify-write 복합 연산의 원자성은 보장하지 않습니다.<br>
+                Java 21의 가상 스레드(Virtual Thread, JEP 444)는 OS 스레드 1:1 매핑이 아닌 JVM 스케줄러(ForkJoinPool 기반 carrier thread)에 M:N으로 마운트됩니다.<br>
+                I/O·Thread.sleep 등 블로킹 시 carrier에서 unmount되어 다른 가상 스레드가 실행되므로, 수백만 개의 동시 작업을 적은 OS 스레드로 처리할 수 있습니다.<br>
+                다만 Java 21~23에서는 synchronized 블록 내부에서 블로킹하면 carrier가 pinning되어 unmount되지 않으므로 이런 경우 ReentrantLock 사용이 권장됩니다(JEP 491에서 Java 24부터 해소).<br>
+                가상 스레드의 스택도 힙에 저장되므로 메모리는 소모하지만 OS 스레드보다 훨씬 가볍습니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
