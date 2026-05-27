@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">스레드 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/os/thread.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/os}" class="topic-breadcrumb__link">운영체제</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">스레드</span>
+                </nav>
+
+                <span class="topic-hero__slug">os · 02</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">스레드</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        스레드(Thread)는 <strong>프로세스 내부의 실행 단위</strong>입니다.
+                        하나의 프로세스는 여러 스레드를 가질 수 있으며, 스레드들은 Code·Data·Heap 영역을 공유하고 Stack과 레지스터만 독립적으로 유지합니다.
+                        이 구조 덕분에 프로세스보다 훨씬 가볍게 생성·전환할 수 있습니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">스레드 구성 요소</h3>
+                            <p class="overview-card__desc">각 스레드는 독립적인 Stack(지역변수·함수 호출), PC(Program Counter), 레지스터 세트를 가집니다. 반면 Code·Data·Heap·열린 파일 등은 같은 프로세스의 스레드끼리 모두 공유합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">멀티스레딩의 장점</h3>
+                            <p class="overview-card__desc">응답성(Responsiveness) — 한 스레드가 I/O 블로킹 중에도 다른 스레드가 실행됩니다. 자원 공유 — 프로세스 간 IPC 없이 메모리를 직접 공유합니다. 경제성 — 프로세스 생성보다 스레드 생성이 훨씬 빠릅니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">커널 스레드 vs 유저 스레드</h3>
+                            <p class="overview-card__desc">커널 스레드(1:1 모델)는 OS가 직접 관리하며 멀티코어를 완전히 활용합니다. 유저 스레드(N:1)는 라이브러리가 관리해 컨텍스트 스위치 비용이 낮지만, 하나가 블로킹되면 전체가 멈춥니다. 현대 OS(Linux NPTL, Windows)는 1:1 모델을 사용합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">스레드 안전(Thread Safety)</h3>
+                            <p class="overview-card__desc">여러 스레드가 공유 자원에 동시 접근하면 Race Condition이 발생합니다. Mutex·Lock으로 임계 구역(Critical Section)을 보호하거나, 불변 객체(Immutable Object)·스레드 로컬 저장소(TLS)를 활용해 공유를 피합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">스레드 풀(Thread Pool)</h3>
+                            <p class="overview-card__desc">미리 스레드를 생성해 두고 작업을 큐에 넣어 재사용하는 패턴입니다. 매 요청마다 스레드를 생성·삭제하는 비용을 없애고, 최대 스레드 수를 제한해 자원 고갈을 방지합니다. Java의 ExecutorService, .NET의 ThreadPool, Tomcat connector pool이 대표적입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">프로세스 vs 스레드</h3>
+                            <p class="overview-card__desc">프로세스는 독립된 주소 공간을 가져 하나가 죽어도 다른 프로세스에 영향이 없습니다. 스레드는 주소 공간을 공유하므로 하나가 잘못된 메모리에 접근하면 같은 프로세스의 모든 스레드가 죽습니다. 컨텍스트 스위치 비용은 스레드가 훨씬 작습니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>TCB (Thread Control Block)</strong> — 프로세스의 PCB에 대응하는 스레드 단위 자료구조. TID, 스택 포인터, PC, 레지스터 스냅샷, 상태(Running/Ready/Blocked), 우선순위 등을 저장합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>컨텍스트 스위치 비용</strong> — 같은 프로세스 내 스레드 전환은 주소 공간(TLB, 페이지 테이블)을 교체할 필요가 없어 프로세스 간 전환보다 훨씬 빠릅니다. 다만 캐시 오염(Cache Pollution)은 여전히 발생합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>데몬 스레드(Daemon Thread)</strong> — Java 등에서 백그라운드 작업(GC, 로그 등)을 위해 사용. 모든 비데몬 스레드가 종료되면 JVM과 함께 자동 종료됩니다. 중요한 작업에는 사용하면 안 됩니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>스택 크기와 OOM</strong> — 각 스레드는 독립 스택을 가지므로 스레드 수가 많을수록 메모리 사용이 증가합니다. HotSpot JVM의 기본 스택 크기는 환경별로 다르며, 64-bit JVM은 1MB(Linux·Windows), 32-bit는 약 320KB가 일반적입니다(-Xss로 조정 가능). 스레드를 무한정 생성하면 OutOfMemoryError가 발생합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>인터럽트와 시그널</strong> — POSIX에서 시그널은 프로세스 단위로 전달되며, 어느 스레드가 처리할지는 OS가 결정합니다. Java의 Thread.interrupt()는 특정 스레드에 인터럽트 플래그를 세우는 더 명확한 협력 취소 메커니즘입니다.</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 (시각화) -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/os/thread-code :: code}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+</body>
+</html>
