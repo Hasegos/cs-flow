@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">CPU 스케줄링 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/os/cpu-scheduling.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/os}" class="topic-breadcrumb__link">운영체제</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">CPU 스케줄링</span>
+                </nav>
+
+                <span class="topic-hero__slug">os · 03</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">CPU 스케줄링</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        CPU 스케줄링은 <strong>Ready Queue에 있는 프로세스 중 어느 것을 CPU에 올릴지 결정</strong>하는 OS의 핵심 기능입니다.
+                        좋은 스케줄링은 CPU 이용률을 높이고, 응답 시간·대기 시간·반환 시간을 최소화합니다.
+                        알고리즘에 따라 공정성과 효율 사이의 트레이드오프가 달라집니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">스케줄링 성능 지표</h3>
+                            <p class="overview-card__desc">CPU 이용률(Utilization), 처리량(Throughput), 반환 시간(Turnaround Time = 완료 - 도착), 대기 시간(Waiting Time = Ready Queue 대기 합계), 응답 시간(Response Time = 첫 응답까지)으로 알고리즘 성능을 비교합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">FCFS (First-Come, First-Served)</h3>
+                            <p class="overview-card__desc">도착 순서대로 CPU를 할당합니다. 구현이 가장 단순하지만 긴 프로세스 뒤에 짧은 프로세스가 오래 기다리는 호위 효과(Convoy Effect)가 발생합니다. 비선점형입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">SJF (Shortest Job First)</h3>
+                            <p class="overview-card__desc">CPU 버스트 시간이 가장 짧은 프로세스를 먼저 실행합니다. 평균 대기 시간이 최소인 최적 알고리즘이지만 다음 CPU 버스트 시간을 미리 알 수 없어 실제 구현은 예측값(지수 평균)을 사용합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">Round Robin (RR)</h3>
+                            <p class="overview-card__desc">각 프로세스에 타임 퀀텀(Time Quantum, q)만큼 CPU를 할당하고 시간이 지나면 선점합니다. 공정하고 응답 시간이 짧지만 q가 너무 작으면 컨텍스트 스위치 오버헤드가 커집니다. 시분할(Time-sharing) 시스템의 기반이며, 현대 OS의 스케줄러도 RR의 선점·시간 분할 개념을 발전시킨 형태입니다(Linux CFS/EEVDF는 비례 공정 분배, POSIX SCHED_RR은 순수 RR).</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">선점 vs 비선점</h3>
+                            <p class="overview-card__desc">비선점(Non-preemptive)은 프로세스가 CPU를 자발적으로 반납할 때까지 실행합니다. 선점(Preemptive)은 OS가 강제로 CPU를 빼앗습니다. Round Robin·SRTF는 선점형, FCFS·SJF(기본)는 비선점형입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">디스패처 (Dispatcher)</h3>
+                            <p class="overview-card__desc">스케줄러가 선택한 프로세스를 실제로 CPU에 올리는 모듈입니다. 컨텍스트 스위치 + 유저 모드 전환 + 선택된 PC 주소로 점프를 수행합니다. 디스패처 지연(Dispatch Latency)은 스케줄링 오버헤드의 핵심입니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Convoy Effect (호위 효과)</strong> — FCFS에서 CPU 버스트가 긴 프로세스 하나가 Ready Queue를 막아 짧은 프로세스들이 줄줄이 대기하는 현상. 전체 평균 대기 시간이 크게 늘고, I/O 장치도 유휴 상태가 되어 자원 활용이 떨어집니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>기아(Starvation) vs 에이징(Aging)</strong> — 우선순위 스케줄링에서 낮은 우선순위 프로세스가 영원히 실행되지 못하는 현상이 기아입니다. 에이징은 대기 시간에 비례해 우선순위를 높여 기아를 방지합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>타임 퀀텀 크기의 영향</strong> — q가 매우 크면 FCFS와 동일해지고, q가 매우 작으면 프로세서 공유(Processor Sharing)처럼 동작합니다. 일반적으로 10~100ms 범위를 사용합니다(Linux SCHED_RR 기본 100ms). 단, Linux의 일반 프로세스 스케줄러(CFS/EEVDF)는 고정 퀀텀 없이 sched_latency_ns·sched_min_granularity_ns로 동적 시간 슬라이스를 계산합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>멀티레벨 큐 (MLQ)</strong> — 프로세스를 포그라운드/백그라운드 등 여러 큐로 분류하고 큐마다 다른 스케줄링 알고리즘을 적용합니다. 큐 간 스케줄링에는 보통 우선순위나 시분할을 사용합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>CFS / EEVDF</strong> — CFS(Completely Fair Scheduler)는 2007년부터 Linux의 기본 스케줄러로, 각 프로세스의 가상 실행 시간(vruntime)을 red-black tree로 관리해 vruntime이 가장 작은 프로세스를 선택하고 nice 값으로 CPU 비율을 조절합니다. Linux 6.6(2023년 10월)부터는 SCHED_NORMAL의 기본 스케줄러가 EEVDF(Earliest Eligible Virtual Deadline First)로 교체되어, lag/virtual deadline 기반으로 더 낮은 지연을 제공합니다.</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 (시각화) -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/os/cpu-scheduling-code :: code}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+</body>
+</html>
