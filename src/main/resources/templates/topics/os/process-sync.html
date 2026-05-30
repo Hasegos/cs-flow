@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">프로세스 동기화 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/os/process-sync.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/os}" class="topic-breadcrumb__link">운영체제</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">프로세스 동기화</span>
+                </nav>
+
+                <span class="topic-hero__slug">os · 04</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">프로세스 동기화</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        여러 프로세스·스레드가 공유 자원에 동시에 접근하면 <strong>Race Condition</strong>이 발생합니다.
+                        프로세스 동기화는 임계 구역(Critical Section)을 보호해 실행 순서와 무관하게 항상 올바른 결과를 보장하는 기법입니다.
+                        Mutex와 Semaphore가 대표적인 해결 도구입니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">임계 구역 (Critical Section)</h3>
+                            <p class="overview-card__desc">공유 자원에 접근하는 코드 구간입니다. 올바른 동기화는 상호 배제(Mutual Exclusion) · 진행(Progress) · 한정 대기(Bounded Waiting) 세 조건을 모두 만족해야 합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">Race Condition</h3>
+                            <p class="overview-card__desc">둘 이상의 스레드가 공유 자원을 동시에 읽고 쓸 때 실행 순서에 따라 결과가 달라지는 현상입니다. counter++ 같은 비원자적 연산이 대표적인 발생 지점입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">Mutex (상호 배제 락)</h3>
+                            <p class="overview-card__desc">한 번에 하나의 스레드만 Lock을 획득하고 임계 구역에 진입할 수 있습니다. Lock을 보유한 스레드만 Unlock할 수 있습니다. 소유권(Ownership) 개념이 있어 이진 Semaphore와 구별됩니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">Semaphore</h3>
+                            <p class="overview-card__desc">정수 카운터(S)로 자원 접근을 제어합니다. wait(P): S가 0이면 블로킹, 0 초과면 S-- 후 진입. signal(V): S++하여 대기 중인 프로세스를 깨웁니다. 이진(0/1)과 계수형(N)으로 나뉩니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">Monitor</h3>
+                            <p class="overview-card__desc">상호 배제와 조건 동기화를 언어 레벨에서 제공하는 고수준 추상화입니다. Java의 synchronized + wait()/notify()가 대표적인 예이며, Python에서는 threading.Condition이 이에 대응합니다(단순 with Lock은 상호 배제만 제공). 내부적으로 Mutex + Condition Variable로 구성됩니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">Spinlock vs Blocking</h3>
+                            <p class="overview-card__desc">Spinlock은 Lock이 해제될 때까지 CPU를 점유하며 바쁜 대기(Busy Waiting)합니다. 컨텍스트 스위치 비용이 없어 짧은 대기에 유리합니다. Blocking은 스레드를 Sleep 시켜 CPU를 양보하므로 긴 대기에 적합합니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>상호 배제 (Mutual Exclusion)</strong> — 임계 구역에는 한 번에 하나의 프로세스만 진입해야 합니다. 동기화 메커니즘이 보장해야 하는 가장 기본 조건입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Deadlock 위험</strong> — Mutex 두 개를 서로 다른 순서로 획득하면 교착 상태가 발생합니다. Lock 획득 순서를 전역적으로 통일하거나, tryLock + timeout 패턴으로 방지합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>메모리 가시성 (Visibility)</strong> — 한 스레드의 쓰기가 다른 스레드에 즉시 보이지 않을 수 있습니다. Java의 volatile, C의 memory barrier(fence)로 CPU 캐시와 컴파일러 재정렬을 제어합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>생산자-소비자 문제</strong> — Semaphore의 대표 응용. empty(N)·full(0) 두 Semaphore와 mutex(1) 하나를 조합해 버퍼 크기 제한과 상호 배제를 동시에 해결합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>CAS (Compare-And-Swap)</strong> — 하드웨어 원자 명령어로 락 없이 공유 변수를 안전하게 갱신합니다. Java의 AtomicInteger, C의 __atomic_compare_exchange가 내부적으로 사용합니다. Lock-Free 알고리즘의 기반입니다.</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 (시각화) -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/os/process-sync-code :: code}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+</body>
+</html>

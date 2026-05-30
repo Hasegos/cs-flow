@@ -1,0 +1,166 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">C — Mutex로 임계 구역 보호</p>
+            <div class="code-block">
+<pre><span class="kw">#include</span> <span class="st">&lt;stdio.h&gt;</span>
+<span class="kw">#include</span> <span class="st">&lt;pthread.h&gt;</span>
+
+<span class="kw">static int</span>            counter = <span class="num">0</span>;
+<span class="kw">static</span> pthread_mutex_t mtx     = PTHREAD_MUTEX_INITIALIZER;
+
+<span class="kw">void</span> *<span class="fn">worker</span>(<span class="kw">void</span> *arg) {
+    <span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">0</span>; i &lt; <span class="num">100000</span>; i++) {
+
+        <span class="fn">pthread_mutex_lock</span>(&amp;mtx);    <span class="cm">// 임계 구역 진입</span>
+        counter++;                   <span class="cm">// 읽기 → 증가 → 쓰기 (원자적 보장)</span>
+        <span class="fn">pthread_mutex_unlock</span>(&amp;mtx);  <span class="cm">// 임계 구역 탈출</span>
+    }
+    <span class="kw">return NULL</span>;
+}
+
+<span class="kw">int</span> <span class="fn">main</span>() {
+    pthread_t t1, t2;
+    <span class="fn">pthread_create</span>(&amp;t1, <span class="kw">NULL</span>, worker, <span class="kw">NULL</span>);
+    <span class="fn">pthread_create</span>(&amp;t2, <span class="kw">NULL</span>, worker, <span class="kw">NULL</span>);
+    <span class="fn">pthread_join</span>(t1, <span class="kw">NULL</span>);
+    <span class="fn">pthread_join</span>(t2, <span class="kw">NULL</span>);
+    <span class="fn">printf</span>(<span class="st">"counter = %d (expected 200000)\n"</span>, counter);
+    <span class="fn">pthread_mutex_destroy</span>(&amp;mtx);
+    <span class="kw">return</span> <span class="num">0</span>;
+}</pre>
+            </div>
+            <p class="code-desc">
+                counter++ 연산은 load→add→store 세 단계로 이루어져 비원자적입니다. Mutex 없이 실행하면 갱신 분실(Lost Update)이 발생해 최종값이 200000보다 작게 나옵니다.<br>
+                pthread_mutex_lock()은 Mutex가 이미 잠겨 있으면 호출 스레드가 블로킹되어 일반적으로 Sleep 상태로 CPU를 양보합니다(Blocking). 다만 POSIX는 "블로킹"만 규정하므로 대기 중 CPU 점유 여부는 구현에 따라 다릅니다. glibc 기본 Mutex는 Sleep 전 짧게 Spin할 수 있고, ADAPTIVE 타입은 명시적으로 Spin합니다. 이는 바쁜 대기(Busy Waiting)로 CPU를 계속 점유하는 Spinlock과 대비됩니다.<br>
+                Lock과 Unlock은 반드시 쌍으로 호출해야 합니다. 예외 발생 등으로 Unlock을 빠뜨리면 데드락이 됩니다. C에서는 cleanup handler, C++에서는 RAII(lock_guard)로 자동 해제를 보장합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">C — Semaphore로 생산자-소비자 문제 해결</p>
+            <div class="code-block">
+<pre><span class="kw">#include</span> <span class="st">&lt;stdio.h&gt;</span>
+<span class="kw">#include</span> <span class="st">&lt;pthread.h&gt;</span>
+<span class="kw">#include</span> <span class="st">&lt;semaphore.h&gt;</span>
+
+<span class="kw">#define</span> BUF_SIZE <span class="num">5</span>
+
+<span class="kw">int</span>  buffer[BUF_SIZE];
+<span class="kw">int</span>  in  = <span class="num">0</span>, out = <span class="num">0</span>;
+
+sem_t empty;   <span class="cm">// 빈 슬롯 수 (초기값: BUF_SIZE)</span>
+sem_t full;    <span class="cm">// 찬 슬롯 수 (초기값: 0)</span>
+pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZER;
+
+<span class="kw">void</span> *<span class="fn">producer</span>(<span class="kw">void</span> *arg) {
+    <span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">0</span>; i &lt; <span class="num">10</span>; i++) {
+        <span class="fn">sem_wait</span>(&amp;empty);            <span class="cm">// 빈 슬롯 대기 (empty--)</span>
+        <span class="fn">pthread_mutex_lock</span>(&amp;mtx);
+        buffer[in] = i;
+        in = (in + <span class="num">1</span>) % BUF_SIZE;
+        <span class="fn">pthread_mutex_unlock</span>(&amp;mtx);
+        <span class="fn">sem_post</span>(&amp;full);             <span class="cm">// 찬 슬롯 증가 (full++)</span>
+    }
+    <span class="kw">return NULL</span>;
+}
+
+<span class="kw">void</span> *<span class="fn">consumer</span>(<span class="kw">void</span> *arg) {
+    <span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">0</span>; i &lt; <span class="num">10</span>; i++) {
+        <span class="fn">sem_wait</span>(&amp;full);             <span class="cm">// 찬 슬롯 대기 (full--)</span>
+        <span class="fn">pthread_mutex_lock</span>(&amp;mtx);
+        <span class="kw">int</span> item = buffer[out];
+        out = (out + <span class="num">1</span>) % BUF_SIZE;
+        <span class="fn">pthread_mutex_unlock</span>(&amp;mtx);
+        <span class="fn">sem_post</span>(&amp;empty);            <span class="cm">// 빈 슬롯 증가 (empty++)</span>
+        <span class="fn">printf</span>(<span class="st">"consumed: %d\n"</span>, item);
+    }
+    <span class="kw">return NULL</span>;
+}
+
+<span class="kw">int</span> <span class="fn">main</span>() {
+    <span class="fn">sem_init</span>(&amp;empty, <span class="num">0</span>, BUF_SIZE);  <span class="cm">// 빈 슬롯 5개</span>
+    <span class="fn">sem_init</span>(&amp;full,  <span class="num">0</span>, <span class="num">0</span>);         <span class="cm">// 찬 슬롯 0개</span>
+    pthread_t p, c;
+    <span class="fn">pthread_create</span>(&amp;p, <span class="kw">NULL</span>, producer, <span class="kw">NULL</span>);
+    <span class="fn">pthread_create</span>(&amp;c, <span class="kw">NULL</span>, consumer, <span class="kw">NULL</span>);
+    <span class="fn">pthread_join</span>(p, <span class="kw">NULL</span>);
+    <span class="fn">pthread_join</span>(c, <span class="kw">NULL</span>);
+    <span class="fn">sem_destroy</span>(&amp;empty);
+    <span class="fn">sem_destroy</span>(&amp;full);
+    <span class="kw">return</span> <span class="num">0</span>;
+}</pre>
+            </div>
+            <p class="code-desc">
+                생산자-소비자 문제는 세 개의 동기화 변수를 조합해 해결합니다. empty(빈 슬롯)와 full(찬 슬롯)은 Semaphore로 버퍼 상태를 관리하고, mtx(Mutex)는 버퍼 인덱스(in/out)에 대한 상호 배제를 보장합니다.<br>
+                sem_wait()은 P 연산(Proberen, "검사/시도")으로 카운터를 감소시키며 0이면 블로킹합니다. sem_post()는 V 연산(Verhogen, "증가")으로 카운터를 증가시켜 대기 중인 스레드를 깨웁니다.<br>
+                Semaphore의 wait/signal 순서가 바뀌면 데드락이 발생합니다. 반드시 Semaphore를 먼저 획득하고 Mutex를 나중에 획득하는 순서를 지켜야 합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — synchronized / ReentrantLock / AtomicInteger</p>
+            <div class="code-block">
+<pre><span class="kw">import</span> java.util.concurrent.locks.ReentrantLock;
+<span class="kw">import</span> java.util.concurrent.atomic.AtomicInteger;
+
+<span class="kw">public class</span> <span class="fn">SyncDemo</span> {
+
+    <span class="cm">// 방법 1: synchronized — Monitor 기반, 가장 단순</span>
+    <span class="kw">private int</span> counter1 = <span class="num">0</span>;
+    <span class="kw">public synchronized void</span> <span class="fn">increment1</span>() {
+        counter1++;   <span class="cm">// 메서드 전체가 임계 구역</span>
+    }
+
+    <span class="cm">// 방법 2: ReentrantLock — 세밀한 제어, tryLock / fairness 지원</span>
+    <span class="kw">private int</span>           counter2 = <span class="num">0</span>;
+    <span class="kw">private final</span> ReentrantLock lock = <span class="kw">new</span> ReentrantLock(<span class="kw">true</span>); <span class="cm">// fair lock</span>
+
+    <span class="kw">public void</span> <span class="fn">increment2</span>() {
+        lock.<span class="fn">lock</span>();
+        <span class="kw">try</span> {
+            counter2++;   <span class="cm">// 임계 구역</span>
+        } <span class="kw">finally</span> {
+            lock.<span class="fn">unlock</span>();  <span class="cm">// 예외 발생해도 반드시 해제 (RAII 대체)</span>
+        }
+    }
+
+    <span class="cm">// 방법 3: AtomicInteger — CAS 기반 Lock-Free, 가장 고성능</span>
+    <span class="kw">private final</span> AtomicInteger counter3 = <span class="kw">new</span> AtomicInteger(<span class="num">0</span>);
+
+    <span class="kw">public void</span> <span class="fn">increment3</span>() {
+        counter3.<span class="fn">incrementAndGet</span>();  <span class="cm">// CAS 원자 명령어 → 락 불필요</span>
+    }
+
+    <span class="kw">public static void</span> <span class="fn">main</span>(String[] args) <span class="kw">throws</span> Exception {
+        SyncDemo demo = <span class="kw">new</span> <span class="fn">SyncDemo</span>();
+
+        <span class="cm">// 두 스레드가 각 메서드를 10만 번씩 호출</span>
+        Runnable r1 = () -&gt; { <span class="kw">for</span> (<span class="kw">int</span> i=<span class="num">0</span>;i&lt;<span class="num">100_000</span>;i++) demo.<span class="fn">increment1</span>(); };
+        Runnable r2 = () -&gt; { <span class="kw">for</span> (<span class="kw">int</span> i=<span class="num">0</span>;i&lt;<span class="num">100_000</span>;i++) demo.<span class="fn">increment2</span>(); };
+        Runnable r3 = () -&gt; { <span class="kw">for</span> (<span class="kw">int</span> i=<span class="num">0</span>;i&lt;<span class="num">100_000</span>;i++) demo.<span class="fn">increment3</span>(); };
+
+        Thread[] ts = {
+            <span class="kw">new</span> Thread(r1), <span class="kw">new</span> Thread(r1),
+            <span class="kw">new</span> Thread(r2), <span class="kw">new</span> Thread(r2),
+            <span class="kw">new</span> Thread(r3), <span class="kw">new</span> Thread(r3),
+        };
+        <span class="kw">for</span> (Thread t : ts) t.<span class="fn">start</span>();
+        <span class="kw">for</span> (Thread t : ts) t.<span class="fn">join</span>();
+
+        System.out.<span class="fn">println</span>(<span class="st">"synchronized : "</span>  + demo.counter1); <span class="cm">// 200000</span>
+        System.out.<span class="fn">println</span>(<span class="st">"ReentrantLock: "</span>  + demo.counter2); <span class="cm">// 200000</span>
+        System.out.<span class="fn">println</span>(<span class="st">"AtomicInteger: "</span>  + demo.counter3.<span class="fn">get</span>()); <span class="cm">// 200000</span>
+    }
+}</pre>
+            </div>
+            <p class="code-desc">
+                synchronized는 Java Monitor를 사용하는 가장 간단한 방법입니다. 메서드나 블록 단위로 적용할 수 있으며 예외 시 자동으로 Lock이 해제됩니다.<br>
+                ReentrantLock은 tryLock(timeout), lockInterruptibly(), 공정성(fairness) 옵션을 지원합니다. 반드시 finally 블록에서 unlock()을 호출해야 합니다.<br>
+                AtomicInteger는 CAS(Compare-And-Swap) 하드웨어 명령어를 사용해 OS 레벨의 Mutex 없이도 원자적 연산을 보장합니다. 단순 카운터에서는 가장 빠릅니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
