@@ -27,10 +27,14 @@ jobs:
         with:
           node-version: '20'
 
-      # JS 파일 난독화 (Maven 빌드 전에 실행 → JAR에 난독화된 파일 포함)
-      - name: JS 파일 난독화
+      # JS 파일 난독화 + 저작권 헤더 주입
+      # 헤더는 난독화 "이후"에 주입한다: 난독화 도구가 일반 주석을 제거하므로
+      - name: JS 파일 난독화 + 저작권 헤더 주입
         run: |
           npm install -g javascript-obfuscator
+
+          COPYRIGHT_HEADER='/*! © 2025-2026 CS Flow. All rights reserved. 무단 복제·재배포·리버스 엔지니어링 금지. */'
+
           find src/main/resources/static/js -name "*.js" | while read f; do
             javascript-obfuscator "$f" --output "$f" \
               --compact true \
@@ -39,7 +43,11 @@ jobs:
               --self-defending false \
               --string-array true \
               --string-array-threshold 0.75
-            echo "난독화 완료: $f"
+
+            tmp="$(mktemp)"
+            { printf '%s\n' "$COPYRIGHT_HEADER"; cat "$f"; } > "$tmp" && mv "$tmp" "$f"
+
+            echo "난독화 + 헤더 주입 완료: $f"
           done
 
       # maven 으로 jar 빌드
