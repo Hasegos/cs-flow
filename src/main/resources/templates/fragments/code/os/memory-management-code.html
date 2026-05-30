@@ -1,0 +1,148 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">C — mmap / malloc 으로 메모리 할당 원리 확인</p>
+            <div class="code-block">
+<pre><span class="kw">#include</span> <span class="st">&lt;stdio.h&gt;</span>
+<span class="kw">#include</span> <span class="st">&lt;stdlib.h&gt;</span>
+<span class="kw">#include</span> <span class="st">&lt;string.h&gt;</span>
+<span class="kw">#include</span> <span class="st">&lt;sys/mman.h&gt;</span>
+
+<span class="cm">/* ── malloc: Heap 영역 동적 할당 (내부적으로 sbrk/mmap 사용) ── */</span>
+<span class="kw">void</span> <span class="fn">demo_malloc</span>() {
+    <span class="kw">size_t</span> size = <span class="num">16</span> * <span class="num">1024</span>;  <span class="cm">// 16KB (작은 할당 — 모두 128KB 미만이라 힙에 연속 배치)</span>
+
+    <span class="kw">void</span> *p1 = <span class="fn">malloc</span>(size);   <span class="cm">// 연속 16KB 요청</span>
+    <span class="kw">void</span> *p2 = <span class="fn">malloc</span>(size * <span class="num">2</span>); <span class="cm">// 연속 32KB 요청</span>
+    <span class="kw">void</span> *p3 = <span class="fn">malloc</span>(size / <span class="num">2</span>); <span class="cm">// 연속 8KB 요청</span>
+
+    <span class="fn">printf</span>(<span class="st">"p1: %p\np2: %p\np3: %p\n"</span>, p1, p2, p3);
+    <span class="cm">/* 주소를 보면 p1→p2→p3 순으로 연속 배치됨 */</span>
+
+    <span class="fn">free</span>(p2);   <span class="cm">// p2 해제 → p1과 p3 사이에 '구멍' 발생 (외부 단편화)</span>
+
+    <span class="kw">void</span> *p4 = <span class="fn">malloc</span>(<span class="num">640</span> * <span class="num">1024</span>); <span class="cm">// 640KB(128KB 초과): glibc는 내부적으로 mmap 사용</span>
+    <span class="cm">// p4의 주소가 p1·p3와 전혀 다른 영역 — 페이지 단위로 분리 배치</span>
+    <span class="fn">printf</span>(<span class="st">"p4: %p\n"</span>, p4);
+
+    <span class="fn">free</span>(p1); <span class="fn">free</span>(p3); <span class="fn">free</span>(p4);
+}
+
+<span class="cm">/* ── mmap: OS에 직접 페이지 단위 메모리 요청 ────────────────── */</span>
+<span class="kw">void</span> <span class="fn">demo_mmap</span>() {
+    <span class="kw">size_t</span> page = <span class="num">4096</span>;   <span class="cm">// 일반적인 페이지 크기 4KB</span>
+
+    <span class="cm">// MAP_ANONYMOUS: 파일 없이 순수 메모리 할당 (페이징 직접 사용)</span>
+    <span class="kw">void</span> *mem = <span class="fn">mmap</span>(<span class="kw">NULL</span>, page * <span class="num">5</span>,
+                     PROT_READ | PROT_WRITE,
+                     MAP_PRIVATE | MAP_ANONYMOUS,
+                     -<span class="num">1</span>, <span class="num">0</span>);
+
+    <span class="kw">if</span> (mem == MAP_FAILED) { <span class="fn">perror</span>(<span class="st">"mmap"</span>); <span class="kw">return</span>; }
+
+    <span class="fn">memset</span>(mem, <span class="num">0</span>, page * <span class="num">5</span>);
+    <span class="fn">printf</span>(<span class="st">"mmap 주소: %p (페이지 정렬됨)\n"</span>, mem);
+    <span class="cm">// 주소가 항상 페이지 크기(4096)의 배수 → 페이징 단위로 관리</span>
+
+    <span class="fn">munmap</span>(mem, page * <span class="num">5</span>); <span class="cm">// 해제: 프레임 반환</span>
+}
+
+<span class="kw">int</span> <span class="fn">main</span>() {
+    <span class="fn">demo_malloc</span>();
+    <span class="fn">demo_mmap</span>();
+    <span class="kw">return</span> <span class="num">0</span>;
+}</pre>
+            </div>
+            <p class="code-desc">
+                malloc은 내부적으로 glibc가 Heap 영역을 관리합니다. 작은 할당은 sbrk()로 Heap을 늘리고, 큰 할당(기본 128KB 이상)은 mmap()으로 독립된 페이지를 직접 요청합니다.<br>
+                free(p2) 후 p1과 p3 사이에 구멍이 생기지만, OS는 이를 모릅니다. glibc의 메모리 할당자가 free list로 관리하며 다음 malloc 시 재사용합니다. 이것이 사용자 공간의 단편화입니다.<br>
+                mmap으로 얻은 주소는 항상 페이지 크기(일반적으로 4096B)의 배수입니다.<br>
+                OS가 페이지 단위로만 메모리를 관리하기 때문입니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 페이지 테이블 개념을 코드로 시뮬레이션</p>
+            <div class="code-block">
+<pre><span class="kw">import</span> java.util.*;
+
+<span class="cm">/**
+ * 페이지 테이블 시뮬레이션
+ * 실제 OS의 페이지 테이블 동작을 단순화해 구현합니다.
+ */</span>
+<span class="kw">public class</span> <span class="fn">PagingSimulator</span> {
+
+    <span class="kw">static final int</span> PAGE_SIZE  = <span class="num">64</span>;   <span class="cm">// 64KB (단위 생략)</span>
+    <span class="kw">static final int</span> N_FRAMES   = <span class="num">8</span>;    <span class="cm">// 물리 메모리: 8 프레임</span>
+
+    <span class="cm">// 물리 프레임 테이블: -1 = 빈 프레임, 그 외 = 점유한 PID</span>
+    <span class="kw">static int</span>[] frames = <span class="kw">new int</span>[N_FRAMES];
+
+    <span class="cm">// 프로세스별 페이지 테이블: pid → (논리 페이지 → 물리 프레임)</span>
+    <span class="kw">static</span> Map&lt;Integer, Map&lt;Integer, Integer&gt;&gt; pageTables = <span class="kw">new</span> HashMap&lt;&gt;();
+
+    <span class="kw">static</span> {
+        Arrays.<span class="fn">fill</span>(frames, -<span class="num">1</span>); <span class="cm">// 초기화: 모든 프레임 비어 있음</span>
+    }
+
+    <span class="cm">/** 프로세스에 필요한 페이지 수만큼 프레임을 비연속 할당 */</span>
+    <span class="kw">static boolean</span> <span class="fn">allocate</span>(<span class="kw">int</span> pid, <span class="kw">int</span> sizeKB) {
+        <span class="kw">int</span> pages = (<span class="kw">int</span>) Math.<span class="fn">ceil</span>((double) sizeKB / PAGE_SIZE);
+        Map&lt;Integer, Integer&gt; table = <span class="kw">new</span> LinkedHashMap&lt;&gt;();
+
+        <span class="kw">int</span> page = <span class="num">0</span>;
+        <span class="kw">for</span> (<span class="kw">int</span> f = <span class="num">0</span>; f &lt; N_FRAMES &amp;&amp; page &lt; pages; f++) {
+            <span class="kw">if</span> (frames[f] == -<span class="num">1</span>) {        <span class="cm">// 빈 프레임 발견</span>
+                frames[f] = pid;          <span class="cm">// 프레임 점유</span>
+                table.<span class="fn">put</span>(page++, f);   <span class="cm">// 논리 페이지 → 물리 프레임 매핑</span>
+            }
+        }
+
+        <span class="kw">if</span> (page &lt; pages) {               <span class="cm">// 프레임 부족</span>
+            table.<span class="fn">keySet</span>().<span class="fn">forEach</span>(p -&gt; frames[table.<span class="fn">get</span>(p)] = -<span class="num">1</span>);
+            <span class="kw">return false</span>;
+        }
+
+        pageTables.<span class="fn">put</span>(pid, table);
+        System.out.<span class="fn">printf</span>(<span class="st">"P%d 할당 (%dKB, %d 페이지): %s%n"</span>,
+            pid, sizeKB, pages, table);
+        <span class="kw">return true</span>;
+    }
+
+    <span class="cm">/** 논리 주소 → 물리 주소 변환 (MMU 역할) */</span>
+    <span class="kw">static int</span> <span class="fn">translate</span>(<span class="kw">int</span> pid, <span class="kw">int</span> logicalAddr) {
+        <span class="kw">int</span> pageNum  = logicalAddr / PAGE_SIZE;  <span class="cm">// 논리 페이지 번호</span>
+        <span class="kw">int</span> offset   = logicalAddr % PAGE_SIZE;  <span class="cm">// 페이지 내 오프셋</span>
+        <span class="kw">int</span> frameNum = pageTables.<span class="fn">get</span>(pid).<span class="fn">get</span>(pageNum); <span class="cm">// 페이지 테이블 조회</span>
+        <span class="kw">return</span> frameNum * PAGE_SIZE + offset;    <span class="cm">// 물리 주소</span>
+    }
+
+    <span class="kw">public static void</span> <span class="fn">main</span>(String[] args) {
+        <span class="fn">allocate</span>(<span class="num">1</span>, <span class="num">128</span>); <span class="cm">// P1: 128KB = 2 페이지 → F0, F1</span>
+        <span class="fn">allocate</span>(<span class="num">2</span>, <span class="num">256</span>); <span class="cm">// P2: 256KB = 4 페이지 → F2~F5</span>
+        <span class="fn">allocate</span>(<span class="num">3</span>, <span class="num">64</span>);  <span class="cm">// P3: 64KB  = 1 페이지 → F6</span>
+
+        <span class="cm">// P2 종료 → 프레임 해제</span>
+        pageTables.<span class="fn">get</span>(<span class="num">2</span>).<span class="fn">values</span>().<span class="fn">forEach</span>(f -&gt; frames[f] = -<span class="num">1</span>);
+        pageTables.<span class="fn">remove</span>(<span class="num">2</span>);
+        System.out.<span class="fn">println</span>(<span class="st">"P2 해제 후 프레임: " + Arrays.toString(frames)</span>);
+
+        <span class="cm">// P4: 320KB = 5 페이지 → 비연속으로 F2,F3,F4,F5,F7 할당 성공!</span>
+        <span class="fn">allocate</span>(<span class="num">4</span>, <span class="num">320</span>);
+
+        <span class="cm">// 논리 주소 변환 예시</span>
+        System.out.<span class="fn">printf</span>(<span class="st">"P4 논리주소 200 → 물리주소 %d%n"</span>, <span class="fn">translate</span>(<span class="num">4</span>, <span class="num">200</span>));
+    }
+}</pre>
+            </div>
+            <p class="code-desc">
+                페이지 테이블은 논리 주소(프로세스 관점)를 물리 주소(실제 RAM)로 변환하는 자료구조입니다. 각 프로세스는 자신만의 독립적인 페이지 테이블을 가집니다.<br>
+                논리 주소 변환: 페이지 번호 = 논리 주소 / 페이지 크기, 오프셋 = 논리 주소 % 페이지 크기, 물리 주소 = 프레임 번호 × 페이지 크기 + 오프셋.<br>
+                실제 OS에서는 TLB(Translation Lookaside Buffer)가 최근 변환 결과를 캐시합니다.<br>
+                TLB Hit 시 메모리 접근 없이 즉시 변환(~1 사이클), Miss 시 페이지 테이블 조회(~수십~수백 사이클)가 발생합니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
