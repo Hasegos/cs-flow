@@ -1,0 +1,167 @@
+/* 메모리 관리 시각화 전용 */
+
+/* === .mem-viz 최상위 컨테이너 === */
+.mem-viz {
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  overflow: visible;
+  min-height: 540px;
+}
+
+/* === 툴바 === */
+.mem-viz__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mem-viz__toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.mem-viz__title {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-purple);
+}
+
+/* === 단계 배지 === */
+.mem-viz__step-badge {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  padding: 4px 12px;
+  border-radius: 20px;
+  border: 1px solid rgba(108, 99, 255, 0.3);
+  color: var(--color-text-muted);
+  letter-spacing: 0.08em;
+  transition: all 0.25s ease;
+}
+
+.mem-viz__step-badge--active {
+  border-color: var(--color-purple);
+  color: var(--color-purple);
+  background: rgba(108, 99, 255, 0.1);
+}
+
+/* === 속도 버튼 === */
+.mem-viz__speed {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mem-viz__speed-label {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--color-text-muted);
+  letter-spacing: 0.08em;
+}
+
+.mem-viz__speed-btn {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  padding: 4px 10px;
+  border: 1px solid #2a2a3a;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all 0.2s ease;
+}
+
+.mem-viz__speed-btn:hover,
+.mem-viz__speed-btn--active {
+  border-color: var(--color-purple);
+  color: var(--color-purple);
+}
+
+.mem-viz__speed-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* === 캔버스 === */
+.mem-viz__canvas-wrap {
+  flex: 1;
+  position: relative;
+  min-height: 420px;
+}
+
+.mem-viz__canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* === 로그 바 === */
+.mem-viz__log {
+  padding: 10px 24px;
+  border-top: 1px solid var(--color-border);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--color-purple);
+  letter-spacing: 0.04em;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  line-height: 1.6;
+}
+
+/* === 컨트롤 === */
+.mem-viz__controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 24px;
+  border-top: 1px solid rgba(108, 99, 255, 0.1);
+  flex-shrink: 0;
+}
+
+.mem-viz__btn {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  padding: 8px 20px;
+  border: 1px solid #2a2a3a;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+  letter-spacing: 0.06em;
+}
+
+.mem-viz__btn:hover {
+  border-color: var(--color-purple);
+  color: var(--color-purple);
+}
+
+.mem-viz__btn--primary {
+  border-color: var(--color-purple);
+  color: var(--color-purple);
+}
+
+.mem-viz__btn--primary:hover {
+  background: var(--color-purple);
+  color: #0f0f1a;
+}
+
+.mem-viz__btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
