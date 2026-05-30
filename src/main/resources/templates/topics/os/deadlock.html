@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">교착 상태 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/os/deadlock.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/os}" class="topic-breadcrumb__link">운영체제</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">교착 상태</span>
+                </nav>
+
+                <span class="topic-hero__slug">os · 05</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">교착 상태</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        교착 상태(Deadlock)는 두 개 이상의 프로세스가 <strong>서로 상대방이 보유한 자원을 기다리며 영원히 진행되지 못하는 상태</strong>입니다.
+                        OS는 교착 상태를 예방·회피·탐지·복구하는 네 가지 전략으로 대응합니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">교착 상태 4조건 (코프만)</h3>
+                            <p class="overview-card__desc">상호 배제(Mutual Exclusion) · 점유와 대기(Hold and Wait) · 비선점(No Preemption) · 순환 대기(Circular Wait) — 네 조건이 동시에 성립할 때만 교착 상태가 발생합니다. 하나만 깨도 예방됩니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">자원 할당 그래프 (RAG)</h3>
+                            <p class="overview-card__desc">프로세스(원)와 자원(사각형)의 관계를 방향 그래프로 표현합니다. 요청 간선: 프로세스→자원. 할당 간선: 자원→프로세스. 그래프에 사이클이 존재하면 교착 상태이거나 교착 상태 가능성이 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">교착 상태 예방</h3>
+                            <p class="overview-card__desc">4조건 중 하나를 원천 차단합니다. 순환 대기 예방이 가장 실용적 — Lock 획득 순서를 전역적으로 통일합니다. 비선점 허용(우선순위 기반 선점)이나 점유와 대기 금지(모든 자원 한꺼번에 요청)도 방법입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">은행원 알고리즘 (회피)</h3>
+                            <p class="overview-card__desc">자원을 할당하기 전에 "안전 상태"인지 시뮬레이션합니다. 모든 프로세스가 순차적으로 완료될 수 있는 안전 순서가 존재하면 할당합니다. 최대 자원 요구량을 미리 선언해야 하는 단점이 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">교착 상태 탐지 · 복구</h3>
+                            <p class="overview-card__desc">주기적으로 자원 할당 그래프의 사이클을 탐지합니다. 복구 방법: 프로세스 종료(하나씩 또는 전체), 자원 선점(특정 프로세스에서 자원 강제 회수 후 롤백). 복구 비용이 커서 현실에서는 무시(Ostrich Algorithm)하는 경우도 많습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">라이브락 · 기아</h3>
+                            <p class="overview-card__desc">라이브락(Livelock)은 프로세스가 실행은 되지만 상태가 계속 바뀌면서 진행되지 못하는 상태입니다. 기아(Starvation)는 낮은 우선순위 프로세스가 계속 자원을 할당받지 못합니다. 둘 다 교착 상태는 아니지만 유사한 문제입니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>상호 배제</strong> — 자원을 한 번에 하나의 프로세스만 사용할 수 있습니다. 읽기 전용 자원은 공유 가능하므로 교착 상태 대상이 아닙니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>점유와 대기</strong> — 자원을 하나 이상 보유한 채 다른 자원을 추가 요청하며 대기합니다. 예방: 필요한 모든 자원을 실행 전에 한꺼번에 요청합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>비선점</strong> — 프로세스가 자발적으로 반납하기 전까지 자원을 빼앗을 수 없습니다. CPU처럼 선점 가능한 자원은 교착 상태를 일으키지 않습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>순환 대기</strong> — P1→R1→P2→R2→P1처럼 프로세스-자원 간 대기 사슬이 원을 이룹니다. 자원에 번호를 부여해 오름차순으로만 요청하면 순환이 불가능합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>현실에서의 교착 상태</strong> — Linux/Windows 커널은 대부분 Lock 획득 순서를 코딩 규칙으로 강제해 예방합니다. Java의 synchronized 중첩, 데이터베이스 트랜잭션 락 충돌이 대표적인 응용 교착 상태입니다.</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/os/deadlock-code :: code}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+</body>
+</html>

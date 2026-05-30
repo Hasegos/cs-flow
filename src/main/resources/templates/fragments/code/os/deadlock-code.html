@@ -1,0 +1,143 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">C — 교착 상태 발생 / Lock 순서 통일로 예방</p>
+            <div class="code-block">
+<pre><span class="kw">#include</span> <span class="st">&lt;stdio.h&gt;</span>
+<span class="kw">#include</span> <span class="st">&lt;pthread.h&gt;</span>
+
+pthread_mutex_t r1 = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t r2 = PTHREAD_MUTEX_INITIALIZER;
+
+<span class="cm">/* ── 교착 상태 발생 버전 ─────────────────────────────────── */</span>
+<span class="kw">void</span> *<span class="fn">thread1_bad</span>(<span class="kw">void</span> *arg) {
+    <span class="fn">pthread_mutex_lock</span>(&amp;r1);   <span class="cm">// R1 획득</span>
+    <span class="fn">pthread_mutex_lock</span>(&amp;r2);   <span class="cm">// R2 요청 → T2가 보유 시 블로킹</span>
+    <span class="cm">/* 임계 구역 */</span>
+    <span class="fn">pthread_mutex_unlock</span>(&amp;r2);
+    <span class="fn">pthread_mutex_unlock</span>(&amp;r1);
+    <span class="kw">return NULL</span>;
+}
+
+<span class="kw">void</span> *<span class="fn">thread2_bad</span>(<span class="kw">void</span> *arg) {
+    <span class="fn">pthread_mutex_lock</span>(&amp;r2);   <span class="cm">// R2 획득</span>
+    <span class="fn">pthread_mutex_lock</span>(&amp;r1);   <span class="cm">// R1 요청 → T1이 보유 시 블로킹 → 교착!</span>
+    <span class="cm">/* 임계 구역 */</span>
+    <span class="fn">pthread_mutex_unlock</span>(&amp;r1);
+    <span class="fn">pthread_mutex_unlock</span>(&amp;r2);
+    <span class="kw">return NULL</span>;
+}
+
+<span class="cm">/* ── 예방 버전: 항상 r1 → r2 순서로 획득 ───────────────────── */</span>
+<span class="kw">void</span> *<span class="fn">thread1_safe</span>(<span class="kw">void</span> *arg) {
+    <span class="fn">pthread_mutex_lock</span>(&amp;r1);   <span class="cm">// 낮은 번호(r1) 먼저</span>
+    <span class="fn">pthread_mutex_lock</span>(&amp;r2);   <span class="cm">// 높은 번호(r2) 나중</span>
+    <span class="cm">/* 임계 구역 — 순환 대기 불가 */</span>
+    <span class="fn">pthread_mutex_unlock</span>(&amp;r2);
+    <span class="fn">pthread_mutex_unlock</span>(&amp;r1);
+    <span class="kw">return NULL</span>;
+}
+
+<span class="kw">void</span> *<span class="fn">thread2_safe</span>(<span class="kw">void</span> *arg) {
+    <span class="fn">pthread_mutex_lock</span>(&amp;r1);   <span class="cm">// T1·T2 모두 r1 먼저 → 순환 없음</span>
+    <span class="fn">pthread_mutex_lock</span>(&amp;r2);
+    <span class="cm">/* 임계 구역 */</span>
+    <span class="fn">pthread_mutex_unlock</span>(&amp;r2);
+    <span class="fn">pthread_mutex_unlock</span>(&amp;r1);
+    <span class="kw">return NULL</span>;
+}
+
+<span class="kw">int</span> <span class="fn">main</span>() {
+    pthread_t t1, t2;
+    <span class="cm">/* safe 버전 실행 */</span>
+    <span class="fn">pthread_create</span>(&amp;t1, <span class="kw">NULL</span>, thread1_safe, <span class="kw">NULL</span>);
+    <span class="fn">pthread_create</span>(&amp;t2, <span class="kw">NULL</span>, thread2_safe, <span class="kw">NULL</span>);
+    <span class="fn">pthread_join</span>(t1, <span class="kw">NULL</span>);
+    <span class="fn">pthread_join</span>(t2, <span class="kw">NULL</span>);
+    <span class="fn">printf</span>(<span class="st">"완료 — 교착 상태 없음\n"</span>);
+    <span class="kw">return</span> <span class="num">0</span>;
+}</pre>
+            </div>
+            <p class="code-desc">
+                교착 상태는 Lock 획득 순서를 정반대로 할 때 발생합니다. T1이 r1→r2, T2가 r2→r1 순서로 획득하면 각자 첫 번째 Lock을 보유한 채 두 번째 Lock을 기다리는 순환 대기가 형성됩니다.<br>
+                예방책: 모든 스레드에서 Lock 번호 오름차순(r1 → r2)으로만 획득합니다. 이렇게 하면 순환 대기 조건이 성립할 수 없어 교착 상태가 발생하지 않습니다.<br>
+                pthread_mutex_trylock()은 Lock이 이미 잠겨 있으면 즉시 EBUSY로 실패하는 비블로킹(non-blocking) 함수입니다. 시간 제한 대기가 필요하면 pthread_mutex_timedlock()을 사용합니다. trylock 실패 시 보유한 Lock을 풀고 재시도하는 방식으로 교착을 회피할 수 있지만, 라이브락 가능성이 있으므로 재시도 간격에 지수 백오프(Exponential Backoff)를 적용해야 합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 교착 상태 + tryLock 타임아웃으로 회피</p>
+            <div class="code-block">
+<pre><span class="kw">import</span> java.util.concurrent.locks.ReentrantLock;
+<span class="kw">import</span> java.util.concurrent.TimeUnit;
+
+<span class="kw">public class</span> <span class="fn">DeadlockDemo</span> {
+
+    <span class="kw">private static final</span> ReentrantLock r1 = <span class="kw">new</span> ReentrantLock();
+    <span class="kw">private static final</span> ReentrantLock r2 = <span class="kw">new</span> ReentrantLock();
+
+    <span class="cm">/* ── 교착 상태 발생 가능 버전 ──────────────────────────────── */</span>
+    <span class="kw">static void</span> <span class="fn">badTask1</span>() <span class="kw">throws</span> InterruptedException {
+        r1.<span class="fn">lock</span>();
+        Thread.<span class="fn">sleep</span>(<span class="num">50</span>);  <span class="cm">// T2가 r2를 잡을 시간 부여</span>
+        r2.<span class="fn">lock</span>();         <span class="cm">// T2가 r2 보유 시 블로킹 → 교착 위험</span>
+        <span class="kw">try</span> { <span class="cm">/* 작업 */</span> } <span class="kw">finally</span> { r2.<span class="fn">unlock</span>(); r1.<span class="fn">unlock</span>(); }
+    }
+
+    <span class="cm">/* ── tryLock 타임아웃으로 회피 ─────────────────────────────── */</span>
+    <span class="kw">static boolean</span> <span class="fn">safeTask</span>(ReentrantLock first, ReentrantLock second)
+            <span class="kw">throws</span> InterruptedException {
+
+        <span class="kw">if</span> (!first.<span class="fn">tryLock</span>(<span class="num">100</span>, TimeUnit.MILLISECONDS)) {
+            <span class="kw">return false</span>;  <span class="cm">// 100ms 내 획득 실패 → 포기</span>
+        }
+        <span class="kw">try</span> {
+            <span class="kw">if</span> (!second.<span class="fn">tryLock</span>(<span class="num">100</span>, TimeUnit.MILLISECONDS)) {
+                <span class="kw">return false</span>;  <span class="cm">// 두 번째 획득 실패 → first도 자동 해제(finally)</span>
+            }
+            <span class="kw">try</span> {
+                <span class="cm">/* 두 Lock 모두 보유 — 안전하게 작업 */</span>
+                System.out.<span class="fn">println</span>(<span class="st">"작업 완료"</span>);
+                <span class="kw">return true</span>;
+            } <span class="kw">finally</span> {
+                second.<span class="fn">unlock</span>();
+            }
+        } <span class="kw">finally</span> {
+            first.<span class="fn">unlock</span>();
+        }
+    }
+
+    <span class="kw">public static void</span> <span class="fn">main</span>(String[] args) <span class="kw">throws</span> Exception {
+        Thread t1 = <span class="kw">new</span> Thread(() -&gt; {
+            <span class="kw">try</span> {
+                <span class="kw">while</span> (!<span class="fn">safeTask</span>(r1, r2)) {
+                    Thread.<span class="fn">sleep</span>(<span class="num">10</span> + (<span class="kw">long</span>)(Math.<span class="fn">random</span>()*<span class="num">40</span>)); <span class="cm">// 지수 백오프 대체</span>
+                }
+            } <span class="kw">catch</span> (InterruptedException e) { Thread.<span class="fn">currentThread</span>().<span class="fn">interrupt</span>(); }
+        });
+
+        Thread t2 = <span class="kw">new</span> Thread(() -&gt; {
+            <span class="kw">try</span> {
+                <span class="cm">// 동일 순서(r1→r2)로 요청 — 순환 대기 예방</span>
+                <span class="kw">while</span> (!<span class="fn">safeTask</span>(r1, r2)) {
+                    Thread.<span class="fn">sleep</span>(<span class="num">10</span> + (<span class="kw">long</span>)(Math.<span class="fn">random</span>()*<span class="num">40</span>));
+                }
+            } <span class="kw">catch</span> (InterruptedException e) { Thread.<span class="fn">currentThread</span>().<span class="fn">interrupt</span>(); }
+        });
+
+        t1.<span class="fn">start</span>(); t2.<span class="fn">start</span>();
+        t1.<span class="fn">join</span>();  t2.<span class="fn">join</span>();
+    }
+}</pre>
+            </div>
+            <p class="code-desc">
+                ReentrantLock.tryLock(timeout)은 지정 시간 내에 Lock을 획득하지 못하면 false를 반환합니다. 두 번째 Lock 획득에 실패하면 첫 번째 Lock도 finally 블록에서 즉시 해제되어 교착 상태를 회피합니다.<br>
+                tryLock 방식은 라이브락 가능성이 있으므로 재시도 간격에 랜덤 지연(Jitter)을 추가해야 합니다. 두 스레드가 정확히 같은 간격으로 재시도하면 계속 충돌할 수 있습니다.<br>
+                가장 안전한 방법은 Lock 획득 순서를 코드 레벨에서 강제(항상 낮은 번호 → 높은 번호)하는 것입니다.<br>
+                Java의 System.identityHashCode()로 객체 ID 기준 정렬 후 획득하는 패턴이 실무에서 사용됩니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
