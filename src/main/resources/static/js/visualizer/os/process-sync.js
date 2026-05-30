@@ -369,7 +369,6 @@
             };
         }
 
-        /* Semaphore: T1 T2 T3, SEM 중앙, Resources 하단 */
         const tW3  = mob ? Math.round((W - 36) / 3) : Math.round(W * 0.20);
         const tGap3 = mob ? 8 : Math.round((W - tW3*3 - 40) / 2);
         const tStart3 = Math.round((W - (tW3*3 + tGap3*2)) / 2);
@@ -402,7 +401,7 @@
         tooltipHits = [];
 
         const L    = buildLayout();
-        const step = stepIdx >= 0 ? MODES[modeIdx].steps[stepIdx] : null;
+        const step = stepIdx >= 0 ? MODES[modeIdx].steps[stepIdx] : MODES[modeIdx].steps[0];
 
         if      (modeIdx === 0) drawRace(L, step);
         else if (modeIdx === 1) drawMutex(L, step);
@@ -478,7 +477,6 @@
     /* ===================== Race 모드 ===================== */
     function drawRace(L, step) {
         const { nodes, fSm, mob } = L;
-        if (!step) { drawIdle(L); return; }
 
         ['T1','T2'].forEach(function (k) {
             const tn = nodes[k], mn = nodes.MEM;
@@ -506,7 +504,6 @@
     /* ===================== Mutex 모드 ===================== */
     function drawMutex(L, step) {
         const { nodes, fMd, fSm, lockX, lockY, lockW, lockH, memX, memY, memW, memH } = L;
-        if (!step) { drawIdle(L); return; }
 
         const locked  = step.mutex === 'LOCKED';
         const lockCol = locked ? P.red : P.green;
@@ -562,7 +559,6 @@
     function drawSemaphore(L, step) {
         const { nodes, fMd, fSm, semX, semY, semW, semH,
                 resX, resY, resW, resH, slotW, slotH, mob } = L;
-        if (!step) { drawIdle(L); return; }
 
         const semCol = step.sem > 0 ? P.teal : P.red;
         const tKeys  = ['T1','T2','T3'];

@@ -21,6 +21,27 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
+      # Node.js 환경 셋팅 (난독화 도구용)
+      - name: Node.js 환경 셋팅
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      # JS 파일 난독화 (Maven 빌드 전에 실행 → JAR에 난독화된 파일 포함)
+      - name: JS 파일 난독화
+        run: |
+          npm install -g javascript-obfuscator
+          find src/main/resources/static/js -name "*.js" | while read f; do
+            javascript-obfuscator "$f" --output "$f" \
+              --compact true \
+              --identifier-names-generator hexadecimal \
+              --rename-globals false \
+              --self-defending false \
+              --string-array true \
+              --string-array-threshold 0.75
+            echo "난독화 완료: $f"
+          done
+
       # maven 으로 jar 빌드
       - name: maven jar 빌드
         run: |
