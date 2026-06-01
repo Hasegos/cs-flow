@@ -1,0 +1,142 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">C — LRU 페이지 교체 시뮬레이션</p>
+            <div class="code-block">
+<pre><span class="kw">#include</span> <span class="st">&lt;stdio.h&gt;</span>
+<span class="kw">#include</span> <span class="st">&lt;string.h&gt;</span>
+<span class="kw">#include</span> <span class="st">&lt;limits.h&gt;</span>
+
+<span class="kw">#define</span> N_FRAMES <span class="num">3</span>
+<span class="kw">#define</span> N_REFS   <span class="num">13</span>
+
+<span class="kw">int</span> refs[N_REFS] = {<span class="num">7</span>,<span class="num">0</span>,<span class="num">1</span>,<span class="num">2</span>,<span class="num">0</span>,<span class="num">3</span>,<span class="num">0</span>,<span class="num">4</span>,<span class="num">2</span>,<span class="num">3</span>,<span class="num">0</span>,<span class="num">3</span>,<span class="num">2</span>};
+
+<span class="kw">int</span> <span class="fn">lru</span>() {
+    <span class="kw">int</span> frames[N_FRAMES];
+    <span class="kw">int</span> lastUsed[N_FRAMES]; <span class="cm">// 각 프레임의 마지막 사용 시각</span>
+    <span class="kw">int</span> faults = <span class="num">0</span>;
+
+    <span class="fn">memset</span>(frames,   -<span class="num">1</span>, <span class="kw">sizeof</span>(frames));
+    <span class="fn">memset</span>(lastUsed, -<span class="num">1</span>, <span class="kw">sizeof</span>(lastUsed));
+
+    <span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">0</span>; i &lt; N_REFS; i++) {
+        <span class="kw">int</span> pg  = refs[i];
+        <span class="kw">int</span> hit = <span class="num">0</span>;
+
+        <span class="cm">/* 1. Hit 확인 */</span>
+        <span class="kw">for</span> (<span class="kw">int</span> f = <span class="num">0</span>; f &lt; N_FRAMES; f++) {
+            <span class="kw">if</span> (frames[f] == pg) {
+                lastUsed[f] = i;   <span class="cm">// 사용 시각 갱신</span>
+                hit = <span class="num">1</span>;
+                <span class="kw">break</span>;
+            }
+        }
+
+        <span class="kw">if</span> (!hit) {
+            faults++;
+            <span class="cm">/* 2. 빈 프레임 먼저 */</span>
+            <span class="kw">int</span> slot = -<span class="num">1</span>;
+            <span class="kw">for</span> (<span class="kw">int</span> f = <span class="num">0</span>; f &lt; N_FRAMES; f++) {
+                <span class="kw">if</span> (frames[f] == -<span class="num">1</span>) { slot = f; <span class="kw">break</span>; }
+            }
+
+            <span class="cm">/* 3. 빈 프레임 없으면 LRU 교체 */</span>
+            <span class="kw">if</span> (slot == -<span class="num">1</span>) {
+                <span class="kw">int</span> minTime = INT_MAX;
+                <span class="kw">for</span> (<span class="kw">int</span> f = <span class="num">0</span>; f &lt; N_FRAMES; f++) {
+                    <span class="kw">if</span> (lastUsed[f] &lt; minTime) {
+                        minTime = lastUsed[f];
+                        slot    = f;
+                    }
+                }
+            }
+
+            frames[slot]   = pg;
+            lastUsed[slot] = i;
+        }
+
+        <span class="cm">/* 상태 출력 */</span>
+        <span class="fn">printf</span>(<span class="st">"ref=%d [%s] frames: "</span>,
+               pg, hit ? <span class="st">"HIT  "</span> : <span class="st">"FAULT"</span>);
+        <span class="kw">for</span> (<span class="kw">int</span> f = <span class="num">0</span>; f &lt; N_FRAMES; f++) {
+            <span class="kw">if</span> (frames[f] >= <span class="num">0</span>) <span class="fn">printf</span>(<span class="st">"%d "</span>, frames[f]);
+            <span class="kw">else</span>              <span class="fn">printf</span>(<span class="st">"- "</span>);
+        }
+        <span class="fn">printf</span>(<span class="st">"\n"</span>);
+    }
+    <span class="kw">return</span> faults;
+}
+
+<span class="kw">int</span> <span class="fn">main</span>() {
+    <span class="kw">int</span> f = <span class="fn">lru</span>();
+    <span class="fn">printf</span>(<span class="st">"총 페이지 폴트: %d / %d\n"</span>, f, N_REFS);
+    <span class="kw">return</span> <span class="num">0</span>;
+}</pre>
+            </div>
+            <p class="code-desc">
+                LRU는 각 프레임의 마지막 사용 시각(lastUsed)을 추적합니다. 교체 시 lastUsed 값이 가장 작은(가장 오래 전에 사용된) 프레임을 선택합니다.<br>
+                실제 OS에서 완전한 LRU 구현은 모든 메모리 접근마다 타임스탬프를 갱신해야 해 하드웨어 지원 없이는 비용이 큽니다. Linux는 Clock 알고리즘(Second Chance)으로 LRU를 근사합니다.<br>
+                참조 지역성(Locality of Reference)이 있는 프로그램에서 LRU는 FIFO 대비 폴트를 크게 줄입니다.<br>
+                이 예제에서 FIFO는 10폴트, LRU는 9폴트, Optimal은 7폴트입니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — LinkedHashMap으로 LRU 캐시 구현</p>
+            <div class="code-block">
+<pre><span class="kw">import</span> java.util.LinkedHashMap;
+<span class="kw">import</span> java.util.Map;
+
+<span class="cm">/**
+ * LinkedHashMap의 accessOrder=true로 LRU 캐시 구현
+ * OS 페이지 교체의 사용자 공간 유사체 — HashMap보다 접근 순서 보장
+ */</span>
+<span class="kw">public class</span> <span class="fn">LRUCache</span>&lt;K, V&gt; <span class="kw">extends</span> LinkedHashMap&lt;K, V&gt; {
+
+    <span class="kw">private final int</span> capacity;
+
+    <span class="kw">public</span> <span class="fn">LRUCache</span>(<span class="kw">int</span> capacity) {
+        <span class="cm">// accessOrder=true: get/put 호출 시 해당 항목을 tail(최근)로 이동</span>
+        <span class="kw">super</span>(capacity, 0.75f, <span class="kw">true</span>);
+        <span class="kw">this</span>.capacity = capacity;
+    }
+
+    <span class="cm">// 용량 초과 시 가장 오래된(head) 항목 제거 — 페이지 교체에 해당</span>
+    <span class="kw">@Override</span>
+    <span class="kw">protected boolean</span> <span class="fn">removeEldestEntry</span>(Map.Entry&lt;K, V&gt; eldest) {
+        <span class="kw">return</span> <span class="fn">size</span>() &gt; capacity;
+    }
+
+    <span class="kw">public static void</span> <span class="fn">main</span>(String[] args) {
+        LRUCache&lt;Integer, String&gt; cache = <span class="kw">new</span> <span class="fn">LRUCache</span>&lt;&gt;(<span class="num">3</span>);
+
+        <span class="kw">int</span>[] refs = {<span class="num">7</span>, <span class="num">0</span>, <span class="num">1</span>, <span class="num">2</span>, <span class="num">0</span>, <span class="num">3</span>, <span class="num">0</span>, <span class="num">4</span>, <span class="num">2</span>, <span class="num">3</span>, <span class="num">0</span>, <span class="num">3</span>, <span class="num">2</span>};
+        <span class="kw">int</span> faults = <span class="num">0</span>;
+
+        <span class="kw">for</span> (<span class="kw">int</span> pg : refs) {
+            <span class="kw">boolean</span> hit = cache.<span class="fn">containsKey</span>(pg);
+            <span class="kw">if</span> (!hit) {
+                faults++;
+                cache.<span class="fn">put</span>(pg, <span class="st">"P"</span> + pg);  <span class="cm">// 용량 초과 시 자동으로 LRU 제거</span>
+            } <span class="kw">else</span> {
+                cache.<span class="fn">get</span>(pg);             <span class="cm">// accessOrder=true: 접근 시 tail로 이동</span>
+            }
+            System.out.<span class="fn">printf</span>(<span class="st">"ref=%d [%s] frames=%s%n"</span>,
+                pg, hit ? <span class="st">"HIT  "</span> : <span class="st">"FAULT"</span>, cache.<span class="fn">keySet</span>());
+        }
+        System.out.<span class="fn">println</span>(<span class="st">"총 폴트: "</span> + faults);
+    }
+}</pre>
+            </div>
+            <p class="code-desc">
+                Java의 LinkedHashMap은 accessOrder=true 설정으로 LRU 순서를 자동 관리합니다. get()·put() 호출 시 해당 항목이 내부적으로 tail(가장 최근)로 이동합니다.<br>
+                removeEldestEntry()를 오버라이드하면 용량 초과 시 head(가장 오래된, LRU 대상)가 자동 제거됩니다. 코드 몇 줄로 페이지 교체와 동일한 동작을 구현합니다.<br>
+                실제로 Java의 LinkedHashMap 기반 LRU는 웹 서버 캐시, 데이터베이스 버퍼 풀, CDN 콘텐츠 캐시에 널리 사용됩니다.<br>
+                시간 복잡도는 get/put 모두 O(1)입니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>

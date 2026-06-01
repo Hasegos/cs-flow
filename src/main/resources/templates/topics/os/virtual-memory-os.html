@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">가상 메모리 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/os/virtual-memory-os.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/os}" class="topic-breadcrumb__link">운영체제</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">가상 메모리</span>
+                </nav>
+
+                <span class="topic-hero__slug">os · 07</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">가상 메모리</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        가상 메모리는 <strong>실제 물리 메모리보다 더 큰 주소 공간을 프로세스에 제공</strong>하는 기법입니다.
+                        필요한 페이지만 물리 메모리에 올리고(Demand Paging), 부족하면 교체 알고리즘으로 어떤 페이지를 내보낼지 결정합니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">요구 페이징 (Demand Paging)</h3>
+                            <p class="overview-card__desc">프로세스 실행 시 모든 페이지를 메모리에 올리지 않고, 실제 접근할 때만 적재합니다. 페이지 폴트(Page Fault)가 발생하면 OS가 디스크에서 해당 페이지를 읽어옵니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">FIFO (First-In, First-Out)</h3>
+                            <p class="overview-card__desc">가장 먼저 적재된 페이지를 교체합니다. 구현이 단순하지만 프레임 수를 늘려도 폴트가 증가하는 Belady's Anomaly가 발생할 수 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">LRU (Least Recently Used)</h3>
+                            <p class="overview-card__desc">가장 오랫동안 사용되지 않은 페이지를 교체합니다. 최근 사용 기록을 기반으로 미래를 예측합니다. 구현 비용이 높지만 실용적으로 좋은 성능을 보입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">Optimal (OPT)</h3>
+                            <p class="overview-card__desc">앞으로 가장 오랫동안 사용되지 않을 페이지를 교체합니다. 미래를 알아야 하므로 실제 구현 불가능하지만 다른 알고리즘 성능 비교의 기준(Upper Bound)이 됩니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">스래싱 (Thrashing)</h3>
+                            <p class="overview-card__desc">프로세스가 페이지 교체에만 시간을 쏟아 실제 작업을 못하는 현상입니다. 물리 메모리 프레임 수가 프로세스의 워킹셋(Working Set)보다 작을 때 발생합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">워킹셋 (Working Set)</h3>
+                            <p class="overview-card__desc">특정 시간 윈도우 내에 프로세스가 참조한 페이지 집합입니다. 워킹셋 크기만큼 프레임이 확보되면 폴트율이 급격히 낮아집니다. 지역성(Locality) 원리를 기반으로 합니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Belady's Anomaly</strong> — FIFO에서 프레임 수를 늘렸는데 오히려 페이지 폴트가 증가하는 현상입니다. LRU·OPT는 이 현상이 없어 Stack Algorithm이라 불립니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Copy-on-Write (CoW)</strong> — fork() 시 부모·자식이 같은 물리 페이지를 공유하다가 쓰기 발생 시점에만 복사합니다. 불필요한 복사를 줄여 fork() 성능을 크게 향상시킵니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>페이지 폴트 처리 순서</strong> — ① 유효 비트 확인 → ② OS 트랩 → ③ 빈 프레임 확인 → ④ 교체 알고리즘 선택 → ⑤ 디스크 I/O → ⑥ 페이지 테이블 갱신 → ⑦ 프로세스 재개. 디스크 I/O가 포함되어 수 밀리초가 소요됩니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Clock 알고리즘 (Second Chance)</strong> — FIFO의 변형으로 참조 비트(R)를 추가합니다. 교체 대상이 R=1이면 R을 0으로 바꾸고 기회를 한 번 더 줍니다. LRU의 근사 구현으로 Linux에서 사용합니다.</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/os/virtual-memory-os-code :: code}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+</body>
+</html>
