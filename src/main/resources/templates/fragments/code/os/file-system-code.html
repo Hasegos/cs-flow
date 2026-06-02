@@ -1,0 +1,107 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">C — open() / read() / write() 시스템 콜</p>
+            <div class="code-block">
+<pre><span class="kw">#include</span> <span class="st">&lt;fcntl.h&gt;</span>
+<span class="kw">#include</span> <span class="st">&lt;unistd.h&gt;</span>
+<span class="kw">#include</span> <span class="st">&lt;stdio.h&gt;</span>
+<span class="kw">#include</span> <span class="st">&lt;string.h&gt;</span>      <span class="cm">// strlen</span>
+<span class="kw">#include</span> <span class="st">&lt;sys/stat.h&gt;</span>    <span class="cm">// struct stat, fstat</span>
+
+<span class="kw">int</span> <span class="fn">main</span>() {
+    <span class="cm">/* open(): 경로 탐색 → inode 확인 → 파일 디스크립터 반환 */</span>
+    <span class="kw">int</span> fd = <span class="fn">open</span>(<span class="st">"/home/user/hello.txt"</span>, O_RDWR | O_CREAT, <span class="num">0644</span>);
+    <span class="kw">if</span> (fd &lt; <span class="num">0</span>) { <span class="fn">perror</span>(<span class="st">"open"</span>); <span class="kw">return</span> <span class="num">1</span>; }
+    <span class="cm">// fd: 0=stdin, 1=stdout, 2=stderr 이후 가장 작은 정수 (보통 3)</span>
+
+    <span class="cm">/* write(): fd → 파일 테이블 → inode → 데이터 블록 쓰기 */</span>
+    <span class="kw">const char</span> *msg = <span class="st">"Hello, File System!\n"</span>;
+    <span class="kw">ssize_t</span> n = <span class="fn">write</span>(fd, msg, <span class="fn">strlen</span>(msg));
+    <span class="kw">if</span> (n &lt; <span class="num">0</span>) { <span class="fn">perror</span>(<span class="st">"write"</span>); }
+
+    <span class="cm">/* lseek(): 파일 오프셋 이동 (inode의 파일 위치 포인터 변경) */</span>
+    <span class="fn">lseek</span>(fd, <span class="num">0</span>, SEEK_SET);   <span class="cm">// 처음으로 돌아가기</span>
+
+    <span class="cm">/* read(): 커널이 inode → 블록 포인터 → 디스크 읽기 → 버퍼 복사 */</span>
+    <span class="kw">char</span> buf[<span class="num">64</span>];
+    n = <span class="fn">read</span>(fd, buf, <span class="kw">sizeof</span>(buf) - <span class="num">1</span>);
+    <span class="kw">if</span> (n &gt; <span class="num">0</span>) { buf[n] = <span class="st">'\0'</span>; <span class="fn">printf</span>(<span class="st">"%s"</span>, buf); }
+
+    <span class="cm">/* stat(): inode 메타데이터 조회 (크기, 권한, 타임스탬프) */</span>
+    <span class="kw">struct</span> stat st;
+    <span class="fn">fstat</span>(fd, &amp;st);
+    <span class="fn">printf</span>(<span class="st">"inode: %lu, size: %ld, blocks: %ld\n"</span>,
+           st.st_ino, st.st_size, st.st_blocks);
+
+    <span class="fn">close</span>(fd);   <span class="cm">// fd 해제 (inode 링크 카운트는 유지)</span>
+    <span class="kw">return</span> <span class="num">0</span>;
+}</pre>
+            </div>
+            <p class="code-desc">
+                open()은 경로를 탐색해 inode를 찾고, 프로세스의 파일 디스크립터 테이블에 항목을 추가한 뒤 정수 fd를 반환합니다.<br>
+                write()는 즉시 디스크에 쓰지 않고 커널 페이지 캐시(Page Cache)에 씁니다. fsync()를 호출해야 디스크에 확실히 반영됩니다.<br>
+                fstat()로 st_ino(inode 번호), st_size(바이트 단위 크기), st_blocks(512B 단위 블록 수)를 조회할 수 있습니다. st_nlink가 하드 링크 개수입니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — NIO.2 / Files API로 inode 정보 확인</p>
+            <div class="code-block">
+<pre><span class="kw">import</span> java.nio.file.*;
+<span class="kw">import</span> java.nio.file.attribute.*;
+<span class="kw">import</span> java.nio.ByteBuffer;
+<span class="kw">import</span> java.nio.channels.FileChannel;
+
+<span class="kw">public class</span> <span class="fn">FileSystemDemo</span> {
+
+    <span class="kw">public static void</span> <span class="fn">main</span>(String[] args) <span class="kw">throws</span> Exception {
+        Path path = Path.<span class="fn">of</span>(<span class="st">"/home/user/hello.txt"</span>);
+
+        <span class="cm">// ── inode 메타데이터 조회 ──────────────────────────────────</span>
+        BasicFileAttributes attr = Files.<span class="fn">readAttributes</span>(path, BasicFileAttributes.<span class="kw">class</span>);
+        System.out.<span class="fn">println</span>(<span class="st">"크기: "</span>     + attr.<span class="fn">size</span>());
+        System.out.<span class="fn">println</span>(<span class="st">"생성: "</span>     + attr.<span class="fn">creationTime</span>());
+        System.out.<span class="fn">println</span>(<span class="st">"수정: "</span>     + attr.<span class="fn">lastModifiedTime</span>());
+        System.out.<span class="fn">println</span>(<span class="st">"디렉토리: "</span> + attr.<span class="fn">isDirectory</span>());
+
+        <span class="cm">// Linux inode 번호 (UnixPath에서만 가용)</span>
+        <span class="kw">if</span> (attr <span class="kw">instanceof</span> PosixFileAttributes) {
+            <span class="cm">// unix:ino — 플랫폼 의존 속성, Unix/Linux에서만 가용</span>
+            Object inode = Files.<span class="fn">getAttribute</span>(path, <span class="st">"unix:ino"</span>);
+            System.out.<span class="fn">println</span>(<span class="st">"inode: "</span> + inode);
+        }
+
+        <span class="cm">// ── FileChannel: 블록 단위 직접 I/O ─────────────────────────</span>
+        <span class="kw">try</span> (<span class="kw">var</span> fc = FileChannel.<span class="fn">open</span>(path, StandardOpenOption.READ)) {
+            ByteBuffer buf = ByteBuffer.<span class="fn">allocate</span>(<span class="num">1024</span>);
+            <span class="kw">int</span> n = fc.<span class="fn">read</span>(buf);       <span class="cm">// 커널 → JVM 버퍼로 복사</span>
+            buf.<span class="fn">flip</span>();
+            <span class="kw">byte</span>[] bytes = <span class="kw">new byte</span>[n];
+            buf.<span class="fn">get</span>(bytes);
+            System.out.<span class="fn">println</span>(<span class="kw">new</span> String(bytes));
+        }
+
+        <span class="cm">// ── 하드 링크 생성 (같은 inode를 가리키는 새 경로) ────────</span>
+        Path link = Path.<span class="fn">of</span>(<span class="st">"/home/user/hello_hard.txt"</span>);
+        Files.<span class="fn">createLink</span>(link, path);     <span class="cm">// 링크 카운트 +1</span>
+
+        <span class="cm">// ── 심볼릭 링크 (경로를 가리키는 별도 inode) ──────────────</span>
+        Path sym = Path.<span class="fn">of</span>(<span class="st">"/home/user/hello_sym.txt"</span>);
+        Files.<span class="fn">createSymbolicLink</span>(sym, path);
+
+        System.out.<span class="fn">println</span>(<span class="st">"하드링크 대상: "</span> + Files.<span class="fn">isSameFile</span>(path, link));
+        System.out.<span class="fn">println</span>(<span class="st">"심볼릭 대상: "</span>  + Files.<span class="fn">readSymbolicLink</span>(sym));
+    }
+}</pre>
+            </div>
+            <p class="code-desc">
+                Java NIO.2의 Files.readAttributes()는 내부적으로 fstat() 시스템 콜을 호출합니다. BasicFileAttributes는 크기·타임스탬프, PosixFileAttributes는 권한·소유자까지 제공합니다.<br>
+                FileChannel은 전통적인 InputStream보다 블록 단위로 효율적으로 I/O하며, 메모리 맵 파일(MappedByteBuffer)로 사용하면 디스크 블록을 메모리처럼 직접 접근할 수 있습니다.<br>
+                Files.createLink()는 하드 링크(같은 inode)를 만들어 링크 카운트를 1 증가시킵니다. 원본 파일을 삭제해도 카운트가 0이 되지 않으면 데이터는 유지됩니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
