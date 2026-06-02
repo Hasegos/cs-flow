@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">파일 시스템 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/os/file-system.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/os}" class="topic-breadcrumb__link">운영체제</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">파일 시스템</span>
+                </nav>
+
+                <span class="topic-hero__slug">os · 08</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">파일 시스템</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        파일 시스템은 <strong>데이터를 파일 단위로 저장하고 디렉토리로 계층 구조를 만들어 관리하는 OS의 핵심 기능</strong>입니다.
+                        inode 기반(Linux ext4)과 FAT 기반(Windows FAT32/exFAT)이 대표적인 두 가지 방식입니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">inode (Index Node)</h3>
+                            <p class="overview-card__desc">파일의 메타데이터(크기, 권한, 타임스탬프, 소유자)와 데이터 블록 포인터를 저장하는 자료구조입니다. 파일명은 inode에 없고 디렉토리 엔트리에 있습니다. ls -i 명령으로 inode 번호를 확인할 수 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">디렉토리 구조</h3>
+                            <p class="overview-card__desc">디렉토리는 파일명과 inode 번호의 쌍을 저장하는 특수 파일입니다. 경로 탐색 시 OS는 루트(/)부터 각 디렉토리의 inode를 거쳐 목표 파일의 inode를 찾습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">FAT (File Allocation Table)</h3>
+                            <p class="overview-card__desc">디스크 블록(클러스터)의 연결 관계를 테이블로 관리합니다. 각 항목이 다음 블록 번호를 가리키는 연결 리스트 방식입니다. 단순하지만 랜덤 접근이 느리고 FAT 손상 시 파일 전체를 잃을 수 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">하드 링크 vs 심볼릭 링크</h3>
+                            <p class="overview-card__desc">하드 링크는 같은 inode를 가리키는 또 다른 디렉토리 엔트리입니다. 원본 삭제 후에도 데이터가 유지됩니다. 심볼릭 링크(소프트 링크)는 경로를 저장하는 별도 파일로 원본 삭제 시 깨집니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">저널링 (Journaling)</h3>
+                            <p class="overview-card__desc">파일 시스템 변경 전 로그(저널)에 먼저 기록합니다. 시스템 충돌 시 저널을 재실행해 일관성을 복구합니다. Linux ext4, NTFS, macOS APFS 모두 저널링을 지원합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">VFS (Virtual File System)</h3>
+                            <p class="overview-card__desc">다양한 파일 시스템(ext4, FAT, NTFS, tmpfs)을 동일한 인터페이스로 추상화하는 Linux 커널 계층입니다. open(), read(), write() 같은 시스템 콜이 어떤 파일 시스템에서도 동일하게 동작하는 이유입니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>블록 포인터 구조</strong> — 전통적 Unix inode(ext2·ext3)는 직접 포인터(12개), 1단계 간접 포인터, 2단계 간접 포인터, 3단계 간접 포인터로 구성됩니다. 블록 크기 4KB 기준으로 수 TB 크기의 파일을 지원합니다. ext4는 이 방식 대신 연속된 블록 범위를 묶어 표현하는 Extent Tree를 기본으로 사용해 대용량 파일에서 더 효율적입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>파일 삭제의 실제 동작</strong> — rm 명령은 데이터를 지우지 않습니다. 디렉토리 엔트리를 제거하고 inode의 링크 카운트를 1 감소시킵니다. 카운트가 0이 되면 블록이 해제됩니다. 이것이 복구 도구가 작동하는 원리입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>ext4 vs NTFS vs APFS</strong> — ext4는 Linux 기본으로 안정적이고 빠릅니다. NTFS는 Windows 기본으로 권한 관리와 암호화를 지원합니다. APFS는 macOS/iOS 기본으로 SSD 최적화, 스냅샷, 복사 시 쓰기(CoW)를 지원합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>파일 디스크립터 (fd)</strong> — open() 시스템 콜이 반환하는 정수입니다. 프로세스의 파일 테이블 인덱스이며 실제 inode를 가리킵니다. 0(stdin), 1(stdout), 2(stderr)는 예약되어 있습니다.</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/os/file-system-code :: code}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+</body>
+</html>
