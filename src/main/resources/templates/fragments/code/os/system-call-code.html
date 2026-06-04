@@ -1,0 +1,103 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">C — 시스템 콜 직접 호출 vs 라이브러리 래퍼</p>
+            <div class="code-block">
+<pre><span class="kw">#include</span> <span class="st">&lt;unistd.h&gt;</span>
+<span class="kw">#include</span> <span class="st">&lt;fcntl.h&gt;</span>
+<span class="kw">#include</span> <span class="st">&lt;sys/syscall.h&gt;</span>
+
+<span class="kw">int</span> <span class="fn">main</span>() {
+    <span class="cm">/* ── 방법 1: glibc 래퍼 (일반적) ──────────────────── */</span>
+    <span class="kw">int</span> fd1 = <span class="fn">open</span>(<span class="st">"/etc/passwd"</span>, O_RDONLY);
+    <span class="cm">// glibc → syscall 명령어 → 커널 sys_open → fd 반환</span>
+
+    <span class="cm">/* ── 방법 2: syscall() 함수로 직접 호출 ───────────── */</span>
+    <span class="kw">int</span> fd2 = <span class="fn">syscall</span>(SYS_open, <span class="st">"/etc/passwd"</span>, O_RDONLY);
+    <span class="cm">// SYS_open = 2 (x86-64 Linux)</span>
+
+    <span class="cm">/* ── 방법 3: 인라인 어셈블리 (x86-64) ─────────────── */</span>
+    <span class="kw">long</span> fd3;
+    <span class="kw">__asm__ volatile</span> (
+        <span class="st">"syscall"</span>
+        : <span class="st">"=a"</span>(fd3)                  <span class="cm">// RAX = 반환값</span>
+        : <span class="st">"0"</span>(<span class="num">2</span>),                    <span class="cm">// RAX = 2 (open)</span>
+          <span class="st">"D"</span>(<span class="st">"/etc/passwd"</span>),       <span class="cm">// RDI = 경로</span>
+          <span class="st">"S"</span>((<span class="kw">long</span>)O_RDONLY),      <span class="cm">// RSI = 플래그</span>
+          <span class="st">"d"</span>((<span class="kw">long</span>)<span class="num">0644</span>)           <span class="cm">// RDX = 모드</span>
+        : <span class="st">"rcx"</span>, <span class="st">"r11"</span>, <span class="st">"memory"</span>
+    );
+
+    <span class="cm">/* ── strace 확인 명령어 ───────────────────────────── */</span>
+    <span class="cm">// $ strace -e trace=open,openat ./a.out</span>
+    <span class="cm">// openat(AT_FDCWD, "/etc/passwd", O_RDONLY) = 3</span>
+
+    <span class="fn">close</span>(fd1);
+    <span class="kw">return</span> <span class="num">0</span>;
+}</pre>
+            </div>
+            <p class="code-desc">
+                open()을 호출하면 glibc가 RAX=2(x86-64에서 open 번호), RDI=경로, RSI=플래그를 설정하고 syscall 명령어를 실행합니다. CPU는 Ring 3→Ring 0으로 전환하고 커널의 sys_open을 실행합니다.<br>
+                syscall() 함수는 시스템 콜을 직접 호출할 때 사용합니다. 커널 버전별로 시스템 콜 번호가 다를 수 있어 일반적으로는 glibc 래퍼 사용을 권장합니다.<br>
+                인라인 어셈블리로도 직접 호출 가능하지만, 이식성이 없어 커널 개발이나 저수준 실험 목적으로만 사용합니다.<br>
+                대부분의 운영 코드는 glibc 래퍼를 사용합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — JNI 없이 시스템 콜 흐름 추적</p>
+            <div class="code-block">
+<pre><span class="kw">import</span> java.io.*;
+<span class="kw">import</span> java.nio.file.*;
+<span class="kw">import</span> java.lang.management.*;
+
+<span class="kw">public class</span> <span class="fn">SystemCallTrace</span> {
+
+    <span class="kw">public static void</span> <span class="fn">main</span>(String[] args) <span class="kw">throws</span> Exception {
+        <span class="cm">// JVM 내부에서 발생하는 시스템 콜 확인</span>
+        <span class="cm">// $ strace -p &lt;PID&gt; -e trace=openat,read,write,close</span>
+
+        <span class="cm">// ── FileInputStream: open() 시스템 콜 발생 ────────────</span>
+        <span class="kw">try</span> (<span class="kw">var</span> fis = <span class="kw">new</span> FileInputStream(<span class="st">"/etc/passwd"</span>)) {
+            <span class="cm">// JVM → JNI → open() → syscall → 커널 sys_openat</span>
+            <span class="kw">byte</span>[] buf = fis.<span class="fn">readAllBytes</span>(); <span class="cm">// read() 시스템 콜</span>
+            System.out.<span class="fn">printf</span>(<span class="st">"읽은 바이트: %d%n"</span>, buf.length);
+        } <span class="cm">// close() 시스템 콜 (try-with-resources)</span>
+
+        <span class="cm">// ── ProcessBuilder: fork() + execve() 시스템 콜 ───────</span>
+        ProcessBuilder pb = <span class="kw">new</span> ProcessBuilder(<span class="st">"ls"</span>, <span class="st">"-la"</span>);
+        pb.<span class="fn">redirectErrorStream</span>(<span class="kw">true</span>);
+        Process proc = pb.<span class="fn">start</span>(); <span class="cm">// fork() + execve()</span>
+
+        <span class="kw">try</span> (<span class="kw">var</span> reader = <span class="kw">new</span> BufferedReader(
+                <span class="kw">new</span> InputStreamReader(proc.<span class="fn">getInputStream</span>()))) {
+            reader.<span class="fn">lines</span>().<span class="fn">forEach</span>(System.out::<span class="fn">println</span>);
+        }
+        proc.<span class="fn">waitFor</span>(); <span class="cm">// wait4() 시스템 콜</span>
+
+        <span class="cm">// ── JVM이 사용하는 주요 시스템 콜 목록 ────────────────</span>
+        <span class="cm">// mmap     : 힙/스택/JIT 코드 메모리 할당</span>
+        <span class="cm">// futex    : synchronized 블록 잠금</span>
+        <span class="cm">// clone    : 스레드 생성 (pthread_create)</span>
+        <span class="cm">// epoll    : NIO Selector (비동기 I/O)</span>
+        <span class="cm">// brk      : 힙 크기 조정</span>
+        <span class="cm">// getpid   : Thread.currentThread().getId()</span>
+
+        <span class="cm">// JVM PID 확인 (getpid 시스템 콜)</span>
+        <span class="kw">long</span> pid = ProcessHandle.<span class="fn">current</span>().<span class="fn">pid</span>();
+        System.out.<span class="fn">println</span>(<span class="st">"JVM PID: " + pid</span>);
+        System.out.<span class="fn">println</span>(<span class="st">"strace -p " + pid + " -e trace=all"</span>);
+    }
+}</pre>
+            </div>
+            <p class="code-desc">
+                Java의 파일 I/O는 JVM → JNI → POSIX API → 시스템 콜 경로로 실행됩니다. FileInputStream.read()는 내부적으로 read() 시스템 콜을 호출합니다.<br>
+                ProcessBuilder.start()는 fork()와 execve() 두 개의 시스템 콜을 순서대로 발생시킵니다. fork()로 현재 프로세스를 복사하고, execve()로 새 프로그램을 실행합니다.<br>
+                strace -p PID로 실행 중인 JVM의 시스템 콜을 실시간 모니터링할 수 있습니다.<br>
+                성능 문제 분석 시 특정 시스템 콜이 병목인지 확인하는 데 유용합니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
