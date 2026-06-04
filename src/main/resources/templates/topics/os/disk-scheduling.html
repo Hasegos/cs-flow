@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">디스크 스케줄링 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/os/disk-scheduling.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/os}" class="topic-breadcrumb__link">운영체제</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">디스크 스케줄링</span>
+                </nav>
+
+                <span class="topic-hero__slug">os · 09</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">디스크 스케줄링</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        디스크 스케줄링은 <strong>여러 I/O 요청이 들어왔을 때 디스크 헤드의 이동 순서를 결정해 총 이동 거리(탐색 시간)를 최소화</strong>하는 OS 기법입니다.
+                        HDD에서 탐색 시간이 전체 I/O 시간의 대부분을 차지하기 때문에 스케줄링이 중요합니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">FCFS (First-Come, First-Served)</h3>
+                            <p class="overview-card__desc">요청이 들어온 순서대로 처리합니다. 구현이 가장 단순하지만 헤드가 불필요하게 왔다갔다 해 총 이동 거리가 가장 깁니다. 공정하지만 비효율적입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">SSTF (Shortest Seek Time First)</h3>
+                            <p class="overview-card__desc">현재 헤드 위치에서 가장 가까운 트랙을 먼저 처리합니다. 총 이동 거리는 크게 줄어들지만 헤드에서 멀리 있는 요청은 기아(Starvation)가 발생할 수 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">SCAN (엘리베이터 알고리즘)</h3>
+                            <p class="overview-card__desc">헤드가 한쪽 끝까지 이동하면서 요청을 처리하고, 끝에 도달하면 방향을 바꿔 반대쪽으로 이동합니다. 기아 현상 없이 균등하게 처리하며 실제 엘리베이터와 유사합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">C-SCAN (Circular SCAN)</h3>
+                            <p class="overview-card__desc">SCAN의 변형으로 한쪽 끝에 도달하면 반대 방향으로 돌아오는 대신, 처음(트랙 0)으로 바로 돌아가 같은 방향으로만 처리합니다. 대기 시간이 더 균등합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">탐색 시간 (Seek Time)</h3>
+                            <p class="overview-card__desc">헤드를 원하는 트랙으로 이동시키는 시간입니다. 전체 디스크 I/O 시간(탐색+회전지연+전송) 중 가장 큰 비중을 차지합니다. SSD는 기계적 헤드가 없어 탐색 시간이 사실상 0입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">현대 디스크 스케줄링</h3>
+                            <p class="overview-card__desc">Linux 커널은 Deadline, CFQ, BFQ, mq-deadline 스케줄러를 제공합니다. SSD 환경에서는 none 또는 mq-deadline을 사용합니다. NVMe SSD는 큐 깊이가 수만 개로 OS 스케줄링보다 하드웨어 자체 처리가 효율적입니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>디스크 구조</strong> — 플래터(원판)가 회전하고 헤드가 방사형으로 움직입니다. 트랙(동심원)→섹터(트랙 분할)→클러스터(섹터 묶음) 순으로 구성됩니다. 7200RPM HDD의 회전 지연은 평균 4.2ms입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>LOOK / C-LOOK</strong> — SCAN/C-SCAN의 최적화 버전입니다. 디스크의 끝(0 또는 최대)까지 이동하지 않고, 마지막 요청 위치까지만 이동합니다. 불필요한 이동이 줄어들어 실제 OS에서 더 많이 사용됩니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>SSTF vs SCAN</strong> — SSTF는 평균 탐색 시간이 짧지만 기아 가능성이 있습니다. SCAN은 약간 더 이동하지만 모든 요청에 공평합니다. 실제 시스템은 SCAN 계열(Deadline, BFQ)을 주로 사용합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>SSD와 스케줄링</strong> — SSD는 기계적 헤드가 없어 탐색 시간이 없습니다. 하지만 Write Amplification, 가비지 컬렉션 때문에 여전히 I/O 스케줄링이 필요합니다. Linux는 SSD에 none 또는 mq-deadline 스케줄러를 권장합니다.</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/os/disk-scheduling-code :: code}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+</body>
+</html>

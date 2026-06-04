@@ -1,0 +1,161 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">C — FCFS / SSTF / SCAN / C-SCAN 구현</p>
+            <div class="code-block">
+<pre><span class="kw">#include</span> <span class="st">&lt;stdio.h&gt;</span>
+<span class="kw">#include</span> <span class="st">&lt;stdlib.h&gt;</span>
+<span class="kw">#include</span> <span class="st">&lt;string.h&gt;</span>
+
+<span class="kw">#define</span> MAX_TRACK <span class="num">199</span>
+<span class="kw">#define</span> N         <span class="num">8</span>
+
+<span class="kw">int</span> requests[N] = {<span class="num">98</span>, <span class="num">183</span>, <span class="num">37</span>, <span class="num">122</span>, <span class="num">14</span>, <span class="num">124</span>, <span class="num">65</span>, <span class="num">67</span>};
+<span class="kw">int</span> head = <span class="num">53</span>;
+
+<span class="cm">/* ── FCFS ─────────────────────────────────────── */</span>
+<span class="kw">int</span> <span class="fn">fcfs</span>() {
+    <span class="kw">int</span> cur = head, dist = <span class="num">0</span>;
+    <span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">0</span>; i &lt; N; i++) {
+        dist += abs(requests[i] - cur);
+        cur   = requests[i];
+    }
+    <span class="kw">return</span> dist;
+}
+
+<span class="cm">/* ── SSTF ─────────────────────────────────────── */</span>
+<span class="kw">int</span> <span class="fn">sstf</span>() {
+    <span class="kw">int</span> rem[N], n = N, cur = head, dist = <span class="num">0</span>;
+    <span class="fn">memcpy</span>(rem, requests, <span class="kw">sizeof</span>(requests));
+
+    <span class="kw">while</span> (n &gt; <span class="num">0</span>) {
+        <span class="kw">int</span> minD = <span class="num">99999</span>, idx = <span class="num">0</span>;
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">0</span>; i &lt; n; i++) {
+            <span class="kw">int</span> d = abs(rem[i] - cur);
+            <span class="kw">if</span> (d &lt; minD) { minD = d; idx = i; }
+        }
+        dist += minD;
+        cur   = rem[idx];
+        rem[idx] = rem[--n];   <span class="cm">// 처리된 요청 제거</span>
+    }
+    <span class="kw">return</span> dist;
+}
+
+<span class="cm">/* ── SCAN ─────────────────────────────────────── */</span>
+<span class="kw">int</span> <span class="fn">scan</span>() {
+    <span class="kw">int</span> sorted[N], cur = head, dist = <span class="num">0</span>;
+    <span class="fn">memcpy</span>(sorted, requests, <span class="kw">sizeof</span>(requests));
+
+    <span class="cm">// 오름차순 정렬</span>
+    <span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">0</span>; i &lt; N-<span class="num">1</span>; i++)
+        <span class="kw">for</span> (<span class="kw">int</span> j = i+<span class="num">1</span>; j &lt; N; j++)
+            <span class="kw">if</span> (sorted[j] &lt; sorted[i]) {
+                <span class="kw">int</span> tmp = sorted[i]; sorted[i] = sorted[j]; sorted[j] = tmp;
+            }
+
+    <span class="cm">// 위 방향: 헤드 이상 요청을 오름차순으로 처리</span>
+    <span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">0</span>; i &lt; N; i++)
+        <span class="kw">if</span> (sorted[i] &gt;= head) { dist += abs(sorted[i] - cur); cur = sorted[i]; }
+
+    <span class="cm">// 디스크 끝(MAX_TRACK)까지 이동 후 방향 전환</span>
+    dist += abs(MAX_TRACK - cur); cur = MAX_TRACK;
+
+    <span class="cm">// 아래 방향: 헤드 미만 요청을 내림차순으로 처리</span>
+    <span class="kw">for</span> (<span class="kw">int</span> i = N-<span class="num">1</span>; i &gt;= <span class="num">0</span>; i--)
+        <span class="kw">if</span> (sorted[i] &lt; head) { dist += abs(sorted[i] - cur); cur = sorted[i]; }
+    <span class="kw">return</span> dist;
+}
+
+<span class="kw">int</span> <span class="fn">main</span>() {
+    <span class="fn">printf</span>(<span class="st">"FCFS   총 이동: %d 트랙\n"</span>, <span class="fn">fcfs</span>());
+    <span class="fn">printf</span>(<span class="st">"SSTF   총 이동: %d 트랙\n"</span>, <span class="fn">sstf</span>());
+    <span class="fn">printf</span>(<span class="st">"SCAN   총 이동: %d 트랙\n"</span>, <span class="fn">scan</span>());
+    <span class="kw">return</span> <span class="num">0</span>;
+}</pre>
+            </div>
+            <p class="code-desc">
+                SSTF는 매 단계마다 남은 요청 중 현재 헤드에서 가장 가까운 트랙을 선택합니다. 그리디 알고리즘이라 전역 최적이 보장되지 않으며, 극단적인 경우 먼 트랙이 계속 처리되지 못하는 기아(Starvation)가 발생합니다.<br>
+                SCAN은 정렬 후 현재 헤드 위치 기준으로 이상·이하를 나눠 처리합니다. 헤드가 한쪽 끝까지 이동하므로 모든 요청이 반드시 처리됩니다.<br>
+                실제 Linux I/O 스케줄러는 이 알고리즘들을 기반으로 하지만, 우선순위·데드라인·공정성을 함께 고려합니다.<br>
+                HDD에는 BFQ, SSD에는 none(no-op) 또는 mq-deadline이 권장됩니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — SSTF 구현 (PriorityQueue 활용)</p>
+            <div class="code-block">
+<pre><span class="kw">import</span> java.util.*;
+
+<span class="kw">public class</span> <span class="fn">DiskScheduler</span> {
+
+    <span class="kw">static final int</span> HEAD  = <span class="num">53</span>;
+    <span class="kw">static final int</span>[] REQ = {<span class="num">98</span>, <span class="num">183</span>, <span class="num">37</span>, <span class="num">122</span>, <span class="num">14</span>, <span class="num">124</span>, <span class="num">65</span>, <span class="num">67</span>};
+
+    <span class="cm">/** SSTF: 현재 위치 기준 가장 가까운 트랙을 우선 처리 */</span>
+    <span class="kw">static int</span> <span class="fn">sstf</span>(<span class="kw">int</span> head, <span class="kw">int</span>[] requests) {
+        List&lt;Integer&gt; rem = <span class="kw">new</span> ArrayList&lt;&gt;();
+        <span class="kw">for</span> (<span class="kw">int</span> r : requests) rem.<span class="fn">add</span>(r);
+
+        <span class="kw">int</span> cur = head, total = <span class="num">0</span>;
+        System.out.<span class="fn">printf</span>(<span class="st">"HEAD: %d%n"</span>, cur);
+
+        <span class="kw">while</span> (!rem.<span class="fn">isEmpty</span>()) {
+            <span class="cm">// 가장 가까운 트랙 탐색</span>
+            <span class="kw">int</span> finalCur = cur;
+            rem.<span class="fn">sort</span>(Comparator.<span class="fn">comparingInt</span>(t -&gt; Math.<span class="fn">abs</span>(t - finalCur)));
+
+            <span class="kw">int</span> next = rem.<span class="fn">remove</span>(<span class="num">0</span>);
+            <span class="kw">int</span> dist = Math.<span class="fn">abs</span>(next - cur);
+            total += dist;
+
+            System.out.<span class="fn">printf</span>(<span class="st">"%d → %d  (거리: %d, 누적: %d)%n"</span>,
+                cur, next, dist, total);
+            cur = next;
+        }
+        <span class="kw">return</span> total;
+    }
+
+    <span class="cm">/** C-SCAN: 한 방향으로만, 끝에서 0으로 점프 */</span>
+    <span class="kw">static int</span> <span class="fn">cscan</span>(<span class="kw">int</span> head, <span class="kw">int</span>[] requests) {
+        <span class="kw">int</span>[] sorted = requests.<span class="fn">clone</span>();
+        Arrays.<span class="fn">sort</span>(sorted);
+
+        List&lt;Integer&gt; order = <span class="kw">new</span> ArrayList&lt;&gt;();
+
+        <span class="cm">// head 이상: 오름차순</span>
+        <span class="kw">for</span> (<span class="kw">int</span> t : sorted) <span class="kw">if</span> (t &gt;= head) order.<span class="fn">add</span>(t);
+        <span class="cm">// 끝(199)까지 이동 후 0으로 점프</span>
+        order.<span class="fn">add</span>(<span class="num">199</span>);
+        order.<span class="fn">add</span>(<span class="num">0</span>);
+        <span class="cm">// head 미만: 오름차순</span>
+        <span class="kw">for</span> (<span class="kw">int</span> t : sorted) <span class="kw">if</span> (t &lt; head) order.<span class="fn">add</span>(t);
+
+        <span class="kw">int</span> cur = head, total = <span class="num">0</span>;
+        <span class="kw">for</span> (<span class="kw">int</span> next : order) {
+            total += Math.<span class="fn">abs</span>(next - cur);
+            cur    = next;
+        }
+        <span class="kw">return</span> total;
+    }
+
+    <span class="kw">public static void</span> <span class="fn">main</span>(String[] args) {
+        System.out.<span class="fn">println</span>(<span class="st">"=== SSTF ==="</span>);
+        <span class="kw">int</span> d1 = <span class="fn">sstf</span>(HEAD, REQ);
+        System.out.<span class="fn">println</span>(<span class="st">"총 이동: " + d1 + " 트랙\n"</span>);
+
+        System.out.<span class="fn">println</span>(<span class="st">"=== C-SCAN ==="</span>);
+        <span class="kw">int</span> d2 = <span class="fn">cscan</span>(HEAD, REQ);
+        System.out.<span class="fn">println</span>(<span class="st">"총 이동: " + d2 + " 트랙"</span>);
+    }
+}</pre>
+            </div>
+            <p class="code-desc">
+                SSTF에서 매 반복마다 리스트를 현재 위치 기준으로 정렬해 첫 번째 요소가 항상 최단 거리 트랙이 되도록 합니다. Java의 Comparator.comparingInt()를 사용하면 람다로 간결하게 표현할 수 있습니다.<br>
+                C-SCAN은 요청을 정렬한 뒤 현재 헤드 이상·이하로 나눠 처리합니다. 끝(199)까지 이동 후 0으로 점프하는 부분을 명시적으로 리스트에 추가합니다.<br>
+                실제 HDD 드라이버는 I/O 큐를 배열이 아닌 레드-블랙 트리나 링크드 리스트로 관리해 O(log n) 삽입·삭제를 보장합니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
