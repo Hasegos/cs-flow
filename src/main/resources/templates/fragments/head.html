@@ -45,6 +45,10 @@
     <link rel="stylesheet" th:href="@{/css/common/header.css}">
     <link rel="stylesheet" th:href="@{/css/common/footer.css}">
 
+    <!-- JS preload (토픽 페이지 전용) -->
+    <link th:if="${topic}" rel="preload" th:href="@{/js/common.js}" as="script">
+    <link th:if="${topic}" rel="preload" th:href="@{/js/visualizer/viz-common.js}" as="script">
+
     <!-- JSON-LD -->
     <script type="application/ld+json">
         {

@@ -27,11 +27,11 @@ jobs:
         with:
           node-version: '20'
 
-      # JS 파일 난독화 + 저작권 헤더 주입
+      # JS 파일 난독화 + 저작권 헤더 주입 / CSS 파일 minify
       # 헤더는 난독화 "이후"에 주입한다: 난독화 도구가 일반 주석을 제거하므로
-      - name: JS 파일 난독화 + 저작권 헤더 주입
+      - name: JS 파일 난독화 + 저작권 헤더 주입 / CSS 파일 minify
         run: |
-          npm install -g javascript-obfuscator
+          npm install -g javascript-obfuscator clean-css-cli
 
           COPYRIGHT_HEADER='/*! © 2025-2026 CS Flow. All rights reserved. 무단 복제·재배포·리버스 엔지니어링 금지. */'
 
@@ -48,6 +48,11 @@ jobs:
             { printf '%s\n' "$COPYRIGHT_HEADER"; cat "$f"; } > "$tmp" && mv "$tmp" "$f"
 
             echo "난독화 + 헤더 주입 완료: $f"
+          done
+
+          find src/main/resources/static/css -name "*.css" | while read f; do
+            cleancss -o "$f" "$f"
+            echo "CSS minify 완료: $f"
           done
 
       # maven 으로 jar 빌드
