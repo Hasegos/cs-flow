@@ -5,6 +5,7 @@ import io.dev.cs_flow.model.Subject;
 import io.dev.cs_flow.repository.SubjectRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +30,7 @@ public class SubjectService {
      *
      * @return 공개된 과목 목록, 없으면 빈 리스트 반환
      */
+    @Cacheable("subjects")
     @Transactional(readOnly = true)
     public List<Subject> getPublishedSubjects(){
         log.info("공개된 과목 목록 조회");
@@ -50,6 +52,7 @@ public class SubjectService {
      * @return 공개된 과목
      * @throws NotFoundException 해당 slug의 공개된 과목이 없을 경우
      */
+    @Cacheable(value = "subject", key = "#slug")
     @Transactional(readOnly = true)
     public Subject getPublishedSubject(String slug){
         log.info("과목 단건 조회 - slug: {}", slug);
