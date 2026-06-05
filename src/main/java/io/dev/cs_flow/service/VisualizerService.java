@@ -5,6 +5,7 @@ import io.dev.cs_flow.model.Visualizer;
 import io.dev.cs_flow.repository.VisualizerRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +30,7 @@ public class VisualizerService {
      * @return 시각화 정보
      * @throws NotFoundException 해당 토픽의 시각화 정보가 없을 경우
      */
+    @Cacheable(value = "visualizer", key = "#topicId")
     @Transactional(readOnly = true)
     public Visualizer getVisualizer (Long topicId){
         log.info("시각화 정보 조회 - topicId: {}", topicId);
