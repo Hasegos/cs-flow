@@ -57,6 +57,7 @@ public interface TopicRepository extends JpaRepository<Topic,Long> {
      */
     @Query("""
             SELECT t FROM Topic t
+            LEFT JOIN FETCH t.subject
             LEFT JOIN FETCH t.tags
             WHERE t.subject.slug = :subjectSlug
             AND t.slug = :topicSlug
