@@ -6,10 +6,7 @@ import io.dev.cs_flow.repository.TopicRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -62,6 +59,11 @@ public class TopicService {
 
     /**
      * 과목 slug에 해당하는 공개된 토픽 목록을 페이지 단위로 조회한다.
+     * <p>
+     * collection fetch join과 Pageable 충돌을 피하기 위해 2단계로 조회한다.
+     * 1단계: topicId만 페이징 조회 (DB에서 정확한 LIMIT/OFFSET 적용)
+     * 2단계: 해당 ID로 tags 포함 조회
+     * </p>
      *
      * @param subjectSlug 과목 영문 식별자
      * @param page        페이지 번호 (0-based)
@@ -72,6 +74,10 @@ public class TopicService {
     public Page<Topic> getPublishedTopicsPageable(String subjectSlug, int page, int size){
         log.info("토픽 목록 조회 - subjectSlug: {}, page: {}, size: {}", subjectSlug, page, size);
         Pageable pageable = PageRequest.of(page, size, Sort.by("topicId").ascending());
-        return topicRepository.findPublishedTopicsBySubjectSlugPageable(subjectSlug, pageable);
+
+        Page<Long> idPage = topicRepository.findPublishedTopicIdsBySubjectSlug(subjectSlug, pageable);
+        List<Topic> topics = topicRepository.findTopicsWithTagsByIds(idPage.getContent());
+
+        return new PageImpl<>(topics, pageable, idPage.getTotalElements());
     }
 }
