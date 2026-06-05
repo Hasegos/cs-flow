@@ -20,33 +20,46 @@ import java.util.Optional;
 public interface TopicRepository extends JpaRepository<Topic,Long> {
 
     /**
-     * 과목 slug에 해당하는 공개된 토픽 목록을 페이지 단위로 조회한다.
+     * 과목 slug에 해당하는 공개된 토픽 ID 목록을 페이지 단위로 조회한다.
      * <p>
-     * LEFT JOIN FETCH와 Pageable을 함께 사용하면 HibernateException이 발생하므로
-     * countQuery를 별도로 분리한다.
+     * collection fetch join과 Pageable 충돌을 피하기 위해 ID만 먼저 페이징 조회한다.
+     * 이후 {@link #findTopicsWithTagsByIds(List)}로 tags를 함께 로딩한다.
      * </p>
      *
-     * @param subjectSlug 과목 영문 식별자 (URL 경로에 사용)
-     * @param pageable    페이지 정보 (page, size, sort)
-     * @return 공개된 토픽 Page 객체
+     * @param subjectSlug 과목 영문 식별자
+     * @param pageable    페이지 정보
+     * @return 공개된 토픽 ID Page 객체
      */
     @Query(
-        value = """
-                SELECT t FROM Topic t
-                LEFT JOIN FETCH t.tags
-                WHERE t.subject.slug = :subjectSlug
-                AND t.isPublished = true
-                """,
-        countQuery = """
-                SELECT COUNT(t) FROM Topic t
-                WHERE t.subject.slug = :subjectSlug
-                AND t.isPublished = true
-                """
+            value = """
+            SELECT t.topicId FROM Topic t
+            WHERE t.subject.slug = :subjectSlug
+            AND t.isPublished = true
+            """,
+            countQuery = """
+            SELECT COUNT(t) FROM Topic t
+            WHERE t.subject.slug = :subjectSlug
+            AND t.isPublished = true
+            """
     )
-    Page<Topic> findPublishedTopicsBySubjectSlugPageable(
+    Page<Long> findPublishedTopicIdsBySubjectSlug(
             @Param("subjectSlug") String subjectSlug,
             Pageable pageable
     );
+
+    /**
+     * 토픽 ID 목록으로 tags를 포함한 토픽 목록을 조회한다.
+     *
+     * @param topicIds 조회할 토픽 ID 목록
+     * @return tags가 로딩된 토픽 목록
+     */
+    @Query("""
+            SELECT t FROM Topic t
+            LEFT JOIN FETCH t.tags
+            WHERE t.topicId IN :topicIds
+            ORDER BY t.topicId ASC
+            """)
+    List<Topic> findTopicsWithTagsByIds(@Param("topicIds") List<Long> topicIds);
 
     /**
      * 과목 slug와 토픽 slug로 공개된 토픽 단건을 조회한다.
