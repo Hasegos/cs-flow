@@ -1,0 +1,125 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — 소켓 통신으로 보는 OSI 계층 흐름</p>
+            <div class="code-block">
+<pre><span class="kw">import</span> socket
+<span class="kw">import</span> ssl
+
+<span class="cm"># ── 송신 측 (클라이언트) ──────────────────────</span>
+<span class="cm"># Layer 7 — Application: HTTP 요청 메시지 생성</span>
+request = (
+    <span class="st">"GET / HTTP/1.1\r\n"</span>
+    <span class="st">"Host: example.com\r\n"</span>
+    <span class="st">"Connection: close\r\n\r\n"</span>
+)
+
+<span class="cm"># Layer 4 — Transport: TCP 소켓 생성 (OS가 처리)</span>
+<span class="cm"># socket.SOCK_STREAM = TCP, SOCK_DGRAM = UDP</span>
+raw_sock = socket.<span class="fn">socket</span>(socket.AF_INET, socket.SOCK_STREAM)
+
+<span class="cm"># Layer 6 — Presentation: TLS 래핑 (암호화)</span>
+context = ssl.<span class="fn">create_default_context</span>()
+sock = context.<span class="fn">wrap_socket</span>(raw_sock, server_hostname=<span class="st">"example.com"</span>)
+
+<span class="cm"># Layer 3 — Network: IP 주소로 목적지 지정</span>
+<span class="cm"># OS가 DNS 조회 → IP 확보 → 라우팅 테이블 참조</span>
+sock.<span class="fn">connect</span>((<span class="st">"example.com"</span>, <span class="num">443</span>))
+<span class="cm"># ↑ connect() 시점에 TCP 3-way handshake 발생</span>
+<span class="cm">#   Layer 2 — Data Link: Ethernet 프레임 생성 (NIC/OS)</span>
+<span class="cm">#   Layer 1 — Physical:  전기 신호로 변환 (NIC 하드웨어)</span>
+
+<span class="cm"># Layer 7: 데이터 전송 (하위 계층들이 캡슐화 처리)</span>
+sock.<span class="fn">sendall</span>(request.<span class="fn">encode</span>())
+
+<span class="cm"># ── 수신 측 (서버) — 역캡슐화 ──────────────────────</span>
+<span class="cm"># Physical → Data Link → Network → Transport → Application</span>
+<span class="cm"># 각 계층이 헤더를 벗겨내고 상위 계층에 전달</span>
+response = <span class="st">b""</span>
+<span class="kw">while</span> chunk := sock.<span class="fn">recv</span>(<span class="num">4096</span>):
+    response += chunk
+
+sock.<span class="fn">close</span>()
+
+<span class="cm"># 애플리케이션 계층에 도착한 순수 HTTP 응답</span>
+<span class="fn">print</span>(response.<span class="fn">decode</span>()[:200])</pre>
+            </div>
+            <p class="code-desc">
+                Python socket API는 Transport 계층(L4) 위에서 동작합니다.<br>
+                소켓을 생성하면 OS가 TCP 헤더를 붙이고(L4), IP 헤더를 붙이고(L3), Ethernet 프레임으로 감싸(L2), NIC가 전기 신호로 변환(L1)합니다.<br>
+                개발자는 Application 계층의 데이터(HTTP 메시지)만 다루며, L1~L4의 캡슐화/역캡슐화는 OS와 하드웨어가 자동으로 처리합니다.<br>
+                ssl.wrap_socket()은 L6(Presentation) 역할을 합니다. TLS 핸드셰이크로 암호화 키를 교환하고 이후 데이터를 암호화합니다.<br>
+                connect()를 호출하는 순간 3-way handshake(SYN→SYN-ACK→ACK)가 발생하며 이는 L4 TCP의 연결 수립 과정입니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — Wireshark 없이 패킷 헤더 직접 파싱</p>
+            <div class="code-block">
+<pre><span class="kw">import</span> java.net.*;
+<span class="kw">import</span> java.nio.*;
+
+<span class="kw">public class</span> <span class="fn">OsiLayerDemo</span> {
+
+    <span class="cm">/**
+     * 각 OSI 계층의 헤더 구조를 상수로 표현
+     * 실제 패킷을 파싱할 때 이 오프셋으로 필드를 추출
+     */</span>
+
+    <span class="cm">// Layer 2 — Ethernet 프레임 헤더 (14바이트)</span>
+    <span class="kw">static final int</span> ETH_DST_MAC  = <span class="num">0</span>;  <span class="cm">// 6바이트: 목적지 MAC</span>
+    <span class="kw">static final int</span> ETH_SRC_MAC  = <span class="num">6</span>;  <span class="cm">// 6바이트: 출발지 MAC</span>
+    <span class="kw">static final int</span> ETH_TYPE     = <span class="num">12</span>; <span class="cm">// 2바이트: 0x0800=IPv4</span>
+
+    <span class="cm">// Layer 3 — IPv4 헤더 (최소 20바이트)</span>
+    <span class="kw">static final int</span> IP_VERSION   = <span class="num">14</span>; <span class="cm">// 상위 4비트: 버전(4)</span>
+    <span class="kw">static final int</span> IP_TTL       = <span class="num">22</span>; <span class="cm">// 1바이트: TTL</span>
+    <span class="kw">static final int</span> IP_PROTOCOL  = <span class="num">23</span>; <span class="cm">// 1바이트: 6=TCP, 17=UDP</span>
+    <span class="kw">static final int</span> IP_SRC       = <span class="num">26</span>; <span class="cm">// 4바이트: 출발지 IP</span>
+    <span class="kw">static final int</span> IP_DST       = <span class="num">30</span>; <span class="cm">// 4바이트: 목적지 IP</span>
+
+    <span class="cm">// Layer 4 — TCP 헤더 (최소 20바이트, IP 헤더 이후)</span>
+    <span class="kw">static final int</span> TCP_SRC_PORT = <span class="num">34</span>; <span class="cm">// 2바이트: 출발지 포트</span>
+    <span class="kw">static final int</span> TCP_DST_PORT = <span class="num">36</span>; <span class="cm">// 2바이트: 목적지 포트 (80/443)</span>
+    <span class="kw">static final int</span> TCP_SEQ      = <span class="num">38</span>; <span class="cm">// 4바이트: 시퀀스 번호</span>
+    <span class="kw">static final int</span> TCP_FLAGS    = <span class="num">47</span>; <span class="cm">// TCP 시작(34)+13: SYN=0x02, ACK=0x10, FIN=0x01 (오프셋 46은 Data Offset 바이트)</span>
+
+    <span class="cm">// Layer 7 — HTTP 데이터 시작 위치 (TCP 옵션 없을 때)</span>
+    <span class="kw">static final int</span> HTTP_PAYLOAD = <span class="num">54</span>; <span class="cm">// ETH(14)+IP(20)+TCP(20)</span>
+
+    <span class="kw">static void</span> <span class="fn">parsePacket</span>(<span class="kw">byte</span>[] raw) {
+        ByteBuffer buf = ByteBuffer.<span class="fn">wrap</span>(raw);
+
+        <span class="cm">// L2 파싱</span>
+        <span class="kw">short</span> ethType = buf.<span class="fn">getShort</span>(ETH_TYPE);
+        <span class="kw">boolean</span> isIPv4 = (ethType & <span class="num">0xFFFF</span>) == <span class="num">0x0800</span>;
+
+        <span class="cm">// L3 파싱</span>
+        <span class="kw">byte</span> protocol = buf.<span class="fn">get</span>(IP_PROTOCOL);
+        <span class="kw">boolean</span> isTCP = protocol == <span class="num">6</span>;
+
+        <span class="cm">// L4 파싱</span>
+        <span class="kw">int</span> dstPort = buf.<span class="fn">getShort</span>(TCP_DST_PORT) & <span class="num">0xFFFF</span>;
+        <span class="kw">byte</span> flags   = buf.<span class="fn">get</span>(TCP_FLAGS);
+        <span class="kw">boolean</span> isSyn = (flags & <span class="num">0x02</span>) != <span class="num">0</span>;
+
+        <span class="cm">// L7: HTTP 페이로드 (54바이트 이후)</span>
+        <span class="kw">if</span> (raw.length > HTTP_PAYLOAD) {
+            String payload = <span class="kw">new</span> String(raw, HTTP_PAYLOAD, raw.length - HTTP_PAYLOAD);
+            <span class="cm">// "GET / HTTP/1.1\r\nHost: ..."</span>
+        }
+    }
+}</pre>
+            </div>
+            <p class="code-desc">
+                실제 이더넷 프레임의 바이트 오프셋을 직접 정의했습니다. 패킷 캡처 도구(Wireshark, tcpdump)는 이 구조로 raw 바이트를 파싱해 계층별 필드를 표시합니다.<br>
+                HTTP 페이로드는 Ethernet(14) + IP(20) + TCP(20) = 54바이트 이후에 위치합니다. TCP 옵션이 있으면 오프셋이 더 뒤로 밀립니다.<br>
+                TCP flags 바이트에서 비트 마스킹으로 SYN·ACK·FIN을 구분합니다. 3-way handshake는 SYN → SYN+ACK → ACK 순서로 flags가 변합니다.<br>
+                Java에서 실제 raw 소켓에 접근하려면 JNI 또는 pcap4j 같은 라이브러리가 필요합니다.<br>
+                일반 socket API는 L4(TCP/UDP)부터만 접근 가능합니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
