@@ -1,0 +1,127 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — DNS 조회 및 레코드 분석</p>
+            <div class="code-block">
+<pre><span class="kw">import</span> java.net.*;
+<span class="kw">import</span> javax.naming.*;
+<span class="kw">import</span> javax.naming.directory.*;
+
+<span class="kw">public class</span> <span class="fn">DnsLookup</span> {
+
+    <span class="kw">public static void</span> <span class="fn">main</span>(String[] args) <span class="kw">throws</span> Exception {
+
+        <span class="cm">// ── 기본 A 레코드 조회 (InetAddress) ─────────────────</span>
+        <span class="cm">// OS의 /etc/resolv.conf에 설정된 DNS 리졸버 사용</span>
+        InetAddress[] addrs = InetAddress.<span class="fn">getAllByName</span>(<span class="st">"example.com"</span>);
+        <span class="kw">for</span> (InetAddress addr : addrs) {
+            System.out.<span class="fn">println</span>(<span class="st">"A: " + addr.getHostAddress()</span>); <span class="cm">// 93.184.216.34</span>
+        }
+
+        <span class="cm">// 역방향 조회 (PTR 레코드)</span>
+        InetAddress ip = InetAddress.<span class="fn">getByName</span>(<span class="st">"8.8.8.8"</span>);
+        System.out.<span class="fn">println</span>(<span class="st">"PTR: " + ip.getHostName()</span>); <span class="cm">// dns.google</span>
+
+        <span class="cm">// ── JNDI로 다양한 DNS 레코드 조회 ─────────────────────</span>
+        <span class="kw">var</span> env = <span class="kw">new</span> java.util.Hashtable&lt;String, String&gt;();
+        env.<span class="fn">put</span>(Context.INITIAL_CONTEXT_FACTORY,
+               <span class="st">"com.sun.jndi.dns.DnsContextFactory"</span>);
+        env.<span class="fn">put</span>(Context.PROVIDER_URL, <span class="st">"dns://8.8.8.8"</span>); <span class="cm">// Google DNS 직접 지정</span>
+
+        DirContext ctx = <span class="kw">new</span> InitialDirContext(env);
+
+        <span class="cm">// MX 레코드 조회 (메일 서버)</span>
+        Attributes mx = ctx.<span class="fn">getAttributes</span>(<span class="st">"gmail.com"</span>, <span class="kw">new</span> String[]{<span class="st">"MX"</span>});
+        NamingEnumeration&lt;?&gt; mxVals = mx.<span class="fn">get</span>(<span class="st">"MX"</span>).<span class="fn">getAll</span>();
+        <span class="kw">while</span> (mxVals.<span class="fn">hasMore</span>()) {
+            System.out.<span class="fn">println</span>(<span class="st">"MX: " + mxVals.next()</span>);
+            <span class="cm">// "10 alt1.gmail-smtp-in.l.google.com."</span>
+        }
+
+        <span class="cm">// TXT 레코드 조회 (SPF, DKIM 등)</span>
+        Attributes txt = ctx.<span class="fn">getAttributes</span>(<span class="st">"example.com"</span>, <span class="kw">new</span> String[]{<span class="st">"TXT"</span>});
+        System.out.<span class="fn">println</span>(<span class="st">"TXT: " + txt.get("TXT")</span>);
+
+        <span class="cm">// NS 레코드 조회 (권한 네임서버)</span>
+        Attributes ns = ctx.<span class="fn">getAttributes</span>(<span class="st">"example.com"</span>, <span class="kw">new</span> String[]{<span class="st">"NS"</span>});
+        System.out.<span class="fn">println</span>(<span class="st">"NS: " + ns.get("NS")</span>);
+        <span class="cm">// "a.iana-servers.net., b.iana-servers.net."</span>
+
+        ctx.<span class="fn">close</span>();
+    }
+}</pre>
+            </div>
+            <p class="code-desc">
+                InetAddress.getAllByName()은 JVM이 OS의 DNS 리졸버를 통해 A 레코드를 조회합니다.<br>
+                결과는 JVM 내부에 캐시되며, networkaddress.cache.ttl 시스템 프로퍼티로 TTL을 제어합니다.<br>
+                JNDI DnsContextFactory를 사용하면 A 레코드 외에 MX·NS·TXT·SOA 등 다양한 레코드를 조회할 수 있습니다.<br>
+                DNS 서버 주소를 직접 지정해 특정 리졸버로 우회할 수도 있습니다.<br>
+                MX 레코드의 숫자 접두사는 우선순위(낮을수록 높음)입니다. 메일 서버는 우선순위가 낮은 MX부터 시도합니다.<br>
+                Spring 환경에서는 JVM DNS 캐시가 영구 캐싱되어 문제가 될 수 있습니다.<br>
+                networkaddress.cache.ttl=60으로 설정하면 60초마다 재조회합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — DNS 질의 패킷 직접 분석 (dnspython)</p>
+            <div class="code-block">
+<pre><span class="kw">import</span> dns.resolver
+<span class="kw">import</span> dns.message
+<span class="kw">import</span> dns.query
+<span class="kw">import</span> dns.rdatatype
+
+<span class="cm"># ── 기본 A 레코드 조회 ──────────────────────────────────</span>
+resolver = dns.resolver.<span class="fn">Resolver</span>()
+resolver.nameservers = [<span class="st">'8.8.8.8'</span>, <span class="st">'1.1.1.1'</span>]  <span class="cm"># Google / Cloudflare DNS</span>
+
+answers = resolver.<span class="fn">resolve</span>(<span class="st">'example.com'</span>, <span class="st">'A'</span>)
+<span class="kw">for</span> rdata <span class="kw">in</span> answers:
+    <span class="fn">print</span>(<span class="st">f"A: {rdata.address}"</span>)          <span class="cm"># 93.184.216.34</span>
+    <span class="fn">print</span>(<span class="st">f"TTL: {answers.ttl}초"</span>)        <span class="cm"># 3600</span>
+
+<span class="cm"># ── 재귀 질의 직접 추적 (iterative) ─────────────────────</span>
+<span class="kw">def</span> <span class="fn">trace_dns</span>(domain: str):
+    <span class="cm"># 루트 서버부터 시작</span>
+    nameservers = [<span class="st">'198.41.0.4'</span>]   <span class="cm"># a.root-servers.net</span>
+
+    <span class="kw">for</span> level <span class="kw">in</span> [<span class="st">'루트'</span>, <span class="st">'TLD'</span>, <span class="st">'권한'</span>]:
+        qname = dns.name.<span class="fn">from_text</span>(domain)
+        req   = dns.message.<span class="fn">make_query</span>(qname, dns.rdatatype.A)
+
+        <span class="kw">try</span>:
+            resp = dns.query.<span class="fn">udp</span>(req, nameservers[<span class="num">0</span>], timeout=<span class="num">3</span>)
+        <span class="kw">except</span> Exception <span class="kw">as</span> e:
+            <span class="fn">print</span>(<span class="st">f"{level} 질의 실패: {e}"</span>); <span class="kw">break</span>
+
+        <span class="cm"># 최종 답변이 있으면 종료</span>
+        <span class="kw">if</span> resp.answer:
+            <span class="fn">print</span>(<span class="st">f"{level} → 최종 답변: {resp.answer[0]}"</span>)
+            <span class="kw">break</span>
+
+        <span class="cm"># 위임 정보(NS)로 다음 서버 추출</span>
+        next_ns = []
+        <span class="kw">for</span> rrset <span class="kw">in</span> resp.additional:
+            <span class="kw">if</span> rrset.rdtype == dns.rdatatype.A:
+                next_ns.<span class="fn">append</span>(str(rrset[<span class="num">0</span>]))
+        <span class="fn">print</span>(<span class="st">f"{level} → 다음 NS: {next_ns[:2]}"</span>)
+        <span class="kw">if</span> next_ns: nameservers = next_ns
+
+<span class="fn">trace_dns</span>(<span class="st">'example.com'</span>)
+
+<span class="cm"># ── 캐시 확인 (로컬 시스템) ─────────────────────────────</span>
+<span class="cm"># macOS:  sudo dscacheutil -cachedump -entries Host</span>
+<span class="cm"># Linux:  systemd-resolve --statistics</span>
+<span class="cm"># Windows: ipconfig /displaydns</span></pre>
+            </div>
+            <p class="code-desc">
+                dnspython은 DNS 프로토콜을 직접 다루는 라이브러리입니다. 특정 DNS 서버를 지정해 질의하거나, UDP 패킷을 직접 구성해 전송할 수 있습니다.<br>
+                trace_dns 함수는 브라우저 없이 DNS 재귀 질의 과정을 직접 추적합니다. 루트→TLD→권한 서버를 단계별로 질의하며 위임 체인을 따라갑니다.<br>
+                resp.additional 섹션에는 위임된 NS 서버의 IP(글루 레코드)가 포함됩니다. 이를 통해 닭과 달걀 문제를 해결합니다.<br>
+                실제 운영 환경에서는 시스템 DNS 캐시를 주기적으로 플러시해야 도메인 변경이 즉시 반영됩니다.<br>
+                TTL 만료 전에는 캐시된 이전 IP로 연결될 수 있습니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
