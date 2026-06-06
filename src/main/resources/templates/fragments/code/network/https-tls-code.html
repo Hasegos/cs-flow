@@ -1,0 +1,163 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — Spring Boot HTTPS 설정 및 TLS 인증서 적용</p>
+            <div class="code-block">
+<pre><span class="cm">## application.yml — TLS 설정</span>
+<span class="cm">##</span>
+<span class="cm">## server:</span>
+<span class="cm">##   port: 443</span>
+<span class="cm">##   ssl:</span>
+<span class="cm">##     enabled: true</span>
+<span class="cm">##     key-store: classpath:keystore.p12</span>
+<span class="cm">##     key-store-password: ${SSL_KEY_STORE_PASSWORD}</span>
+<span class="cm">##     key-store-type: PKCS12</span>
+<span class="cm">##     protocol: TLS</span>
+<span class="cm">##     enabled-protocols: TLSv1.3,TLSv1.2</span>
+
+<span class="kw">import</span> org.springframework.boot.web.embedded.tomcat.*;
+<span class="kw">import</span> org.springframework.context.annotation.*;
+<span class="kw">import</span> javax.net.ssl.*;
+<span class="kw">import</span> java.net.http.*;
+<span class="kw">import</span> java.net.URI;
+
+<span class="cm">/* ── HTTPS 리다이렉트 설정 ─────────────────────────────── */</span>
+<span class="kw">@Configuration</span>
+<span class="kw">public class</span> <span class="fn">HttpsConfig</span> {
+
+    <span class="cm">// HTTP(8080) → HTTPS(443) 자동 리다이렉트</span>
+    <span class="kw">@Bean</span>
+    <span class="kw">public</span> TomcatServletWebServerFactory <span class="fn">servletContainer</span>() {
+        <span class="kw">var</span> factory = <span class="kw">new</span> TomcatServletWebServerFactory();
+        factory.<span class="fn">addAdditionalTomcatConnectors</span>(<span class="fn">httpConnector</span>());
+        <span class="kw">return</span> factory;
+    }
+
+    <span class="kw">private</span> Connector <span class="fn">httpConnector</span>() {
+        <span class="kw">var</span> connector = <span class="kw">new</span> Connector(TomcatServletWebServerFactory.DEFAULT_PROTOCOL);
+        connector.<span class="fn">setScheme</span>(<span class="st">"http"</span>);
+        connector.<span class="fn">setPort</span>(<span class="num">8080</span>);
+        connector.<span class="fn">setSecure</span>(<span class="kw">false</span>);
+        connector.<span class="fn">setRedirectPort</span>(<span class="num">443</span>); <span class="cm">// HTTP → HTTPS 리다이렉트</span>
+        <span class="kw">return</span> connector;
+    }
+}
+
+<span class="cm">/* ── HSTS 헤더 설정 ────────────────────────────────────── */</span>
+<span class="kw">@Configuration</span>
+<span class="kw">@EnableWebSecurity</span>
+<span class="kw">public class</span> <span class="fn">SecurityConfig</span> {
+
+    <span class="kw">@Bean</span>
+    <span class="kw">public</span> SecurityFilterChain <span class="fn">filterChain</span>(HttpSecurity http) <span class="kw">throws</span> Exception {
+        http
+            .<span class="fn">requiresChannel</span>(ch -> ch.<span class="fn">anyRequest</span>().<span class="fn">requiresSecure</span>())
+            .<span class="fn">headers</span>(headers -> headers
+                .<span class="fn">httpStrictTransportSecurity</span>(hsts -> hsts
+                    .<span class="fn">maxAgeInSeconds</span>(<span class="num">31536000</span>) <span class="cm">// HSTS 1년</span>
+                    .<span class="fn">includeSubDomains</span>(<span class="kw">true</span>)
+                    .<span class="fn">preload</span>(<span class="kw">true</span>)
+                )
+            );
+        <span class="kw">return</span> http.<span class="fn">build</span>();
+    }
+}
+
+<span class="cm">/* ── Java HTTP Client로 HTTPS 요청 ─────────────────────── */</span>
+<span class="kw">public class</span> <span class="fn">HttpsClient</span> {
+    <span class="kw">public static void</span> <span class="fn">main</span>(String[] args) <span class="kw">throws</span> Exception {
+        <span class="kw">var</span> client = HttpClient.<span class="fn">newBuilder</span>()
+            .<span class="fn">version</span>(HttpClient.Version.HTTP_2)
+            <span class="cm">// TLS 1.3 자동 협상, 인증서 검증 포함</span>
+            .<span class="fn">build</span>();
+
+        <span class="kw">var</span> request = HttpRequest.<span class="fn">newBuilder</span>()
+            .<span class="fn">uri</span>(URI.<span class="fn">create</span>(<span class="st">"https://example.com"</span>))
+            .<span class="fn">GET</span>()
+            .<span class="fn">build</span>();
+
+        <span class="kw">var</span> response = client.<span class="fn">send</span>(request,
+            HttpResponse.BodyHandlers.<span class="fn">ofString</span>());
+
+        System.out.<span class="fn">println</span>(<span class="st">"상태: " + response.statusCode()</span>);
+        System.out.<span class="fn">println</span>(<span class="st">"버전: " + response.version()</span>);
+    }
+}</pre>
+            </div>
+            <p class="code-desc">
+                Spring Boot에서 HTTPS를 설정하려면 PKCS12 형식의 키스토어를 준비하고 application.yml에 경로를 설정합니다.<br>
+                실제 운영에서는 Let's Encrypt로 발급한 인증서를 certbot이 자동 갱신합니다.<br>
+                HSTS 헤더는 브라우저에 "이 도메인은 항상 HTTPS만 사용하라"고 지시합니다.<br>
+                max-age=31536000은 1년간 강제 HTTPS를 의미합니다. preload=true로 설정하면 브라우저에 사전 등록할 수 있습니다.<br>
+                Java 11+의 HttpClient는 TLS 1.3을 자동으로 협상하며 인증서 검증을 기본으로 수행합니다.<br>
+                개발 환경에서 자체 서명 인증서를 사용할 때만 검증을 비활성화합니다.<br>
+                키스토어 비밀번호는 절대 소스 코드나 설정 파일에 하드코딩하지 않고 환경 변수나 시크릿 매니저를 사용합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — TLS 핸드셰이크 상세 정보 확인</p>
+            <div class="code-block">
+<pre><span class="kw">import</span> ssl
+<span class="kw">import</span> socket
+<span class="kw">import</span> json
+
+<span class="cm"># ── TLS 연결 정보 상세 확인 ─────────────────────────────</span>
+<span class="kw">def</span> <span class="fn">inspect_tls</span>(host: str, port: <span class="kw">int</span> = <span class="num">443</span>):
+    context = ssl.<span class="fn">create_default_context</span>()
+
+    <span class="kw">with</span> socket.<span class="fn">create_connection</span>((host, port)) <span class="kw">as</span> sock:
+        <span class="kw">with</span> context.<span class="fn">wrap_socket</span>(sock, server_hostname=host) <span class="kw">as</span> ssock:
+
+            <span class="cm"># TLS 버전 확인</span>
+            <span class="fn">print</span>(<span class="st">f"TLS 버전: {ssock.version()}"</span>)        <span class="cm"># TLSv1.3</span>
+
+            <span class="cm"># 협상된 암호 스위트</span>
+            cipher = ssock.<span class="fn">cipher</span>()
+            <span class="fn">print</span>(<span class="st">f"암호 스위트: {cipher[0]}"</span>)         <span class="cm"># TLS_AES_256_GCM_SHA384</span>
+            <span class="fn">print</span>(<span class="st">f"프로토콜: {cipher[1]}"</span>)            <span class="cm"># TLSv1.3</span>
+            <span class="fn">print</span>(<span class="st">f"키 길이: {cipher[2]} bits"</span>)       <span class="cm"># 256</span>
+
+            <span class="cm"># 서버 인증서 정보</span>
+            cert = ssock.<span class="fn">getpeercert</span>()
+            subject = dict(x[<span class="num">0</span>] <span class="kw">for</span> x <span class="kw">in</span> cert[<span class="st">'subject'</span>])
+            issuer  = dict(x[<span class="num">0</span>] <span class="kw">for</span> x <span class="kw">in</span> cert[<span class="st">'issuer'</span>])
+
+            <span class="fn">print</span>(<span class="st">f"도메인: {subject.get('commonName')}"</span>)
+            <span class="fn">print</span>(<span class="st">f"발급자: {issuer.get('organizationName')}"</span>)
+            <span class="fn">print</span>(<span class="st">f"만료일: {cert['notAfter']}"</span>)
+
+            <span class="cm"># SAN (Subject Alternative Names)</span>
+            sans = cert.<span class="fn">get</span>(<span class="st">'subjectAltName'</span>, [])
+            <span class="fn">print</span>(<span class="st">f"SAN: {[s[1] for s in sans]}"</span>)
+
+<span class="cm"># ── 인증서 체인 확인 ────────────────────────────────────</span>
+<span class="kw">def</span> <span class="fn">check_cert_chain</span>(host: str):
+    context = ssl.<span class="fn">create_default_context</span>()
+    context.check_hostname = <span class="kw">True</span>
+    context.verify_mode    = ssl.CERT_REQUIRED
+
+    <span class="kw">with</span> socket.<span class="fn">create_connection</span>((host, <span class="num">443</span>)) <span class="kw">as</span> sock:
+        <span class="kw">with</span> context.<span class="fn">wrap_socket</span>(sock, server_hostname=host) <span class="kw">as</span> ssock:
+            <span class="cm"># DER 형식 인증서 체인</span>
+            der_certs = ssock.<span class="fn">getpeercert</span>(binary_form=<span class="kw">True</span>)
+            <span class="fn">print</span>(<span class="st">f"인증서 체인 크기: {len(der_certs)} bytes"</span>)
+
+<span class="cm"># ── 실행</span>
+<span class="fn">inspect_tls</span>(<span class="st">"example.com"</span>)
+<span class="cm"># $ openssl s_client -connect example.com:443 -tls1_3 로도 확인 가능</span></pre>
+            </div>
+            <p class="code-desc">
+                ssl.create_default_context()는 시스템의 CA 번들을 사용해 인증서를 검증합니다.<br>
+                check_hostname=True와 verify_mode=CERT_REQUIRED가 기본값으로, 인증서 검증을 건너뛰지 않는 것이 중요합니다.<br>
+                cipher() 메서드로 실제 협상된 암호 스위트를 확인할 수 있습니다.<br>
+                TLS 1.3에서는 TLS_AES_256_GCM_SHA384 또는 TLS_CHACHA20_POLY1305_SHA256 중 하나가 선택됩니다.<br>
+                SAN(Subject Alternative Names)은 하나의 인증서가 여러 도메인을 커버하는 데 사용됩니다.<br>
+                와일드카드(*.example.com)도 SAN에 포함됩니다.<br>
+                openssl s_client 명령은 TLS 핸드셰이크 전체 과정을 터미널에서 디버깅할 때 가장 유용한 도구입니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
