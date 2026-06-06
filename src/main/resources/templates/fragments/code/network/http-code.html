@@ -1,0 +1,157 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — Spring Boot HTTP 요청/응답 및 상태 코드 처리</p>
+            <div class="code-block">
+<pre><span class="kw">import</span> org.springframework.web.bind.annotation.*;
+<span class="kw">import</span> org.springframework.http.*;
+<span class="kw">import</span> org.springframework.web.client.RestTemplate;
+
+<span class="cm">/* ── REST 컨트롤러 (서버 측) ──────────────────────────── */</span>
+<span class="kw">@RestController</span>
+<span class="kw">@RequestMapping</span>(<span class="st">"/api"</span>)
+<span class="kw">public class</span> <span class="fn">HttpDemoController</span> {
+
+    <span class="cm">// GET — 200 OK / 404 Not Found</span>
+    <span class="kw">@GetMapping</span>(<span class="st">"/users/{id}"</span>)
+    <span class="kw">public</span> ResponseEntity&lt;User&gt; <span class="fn">getUser</span>(<span class="kw">@PathVariable Long</span> id) {
+        <span class="kw">return</span> userRepository.<span class="fn">findById</span>(id)
+            .<span class="fn">map</span>(ResponseEntity::<span class="fn">ok</span>)              <span class="cm">// 200 OK</span>
+            .<span class="fn">orElse</span>(ResponseEntity.<span class="fn">notFound</span>().<span class="fn">build</span>()); <span class="cm">// 404</span>
+    }
+
+    <span class="cm">// POST — 201 Created + Location 헤더</span>
+    <span class="kw">@PostMapping</span>(<span class="st">"/users"</span>)
+    <span class="kw">public</span> ResponseEntity&lt;User&gt; <span class="fn">createUser</span>(<span class="kw">@RequestBody</span> UserDto dto) {
+        User saved = userService.<span class="fn">create</span>(dto);
+        URI location = URI.<span class="fn">create</span>(<span class="st">"/api/users/" + saved.getId()</span>);
+        <span class="kw">return</span> ResponseEntity.<span class="fn">created</span>(location).<span class="fn">body</span>(saved); <span class="cm">// 201</span>
+    }
+
+    <span class="cm">// 캐시 제어 헤더 설정</span>
+    <span class="kw">@GetMapping</span>(<span class="st">"/static/{file}"</span>)
+    <span class="kw">public</span> ResponseEntity&lt;Resource&gt; <span class="fn">getStatic</span>(<span class="kw">@PathVariable String</span> file) {
+        <span class="kw">return</span> ResponseEntity.<span class="fn">ok</span>()
+            .<span class="fn">cacheControl</span>(CacheControl.<span class="fn">maxAge</span>(<span class="num">1</span>, TimeUnit.HOURS)
+                                      .<span class="fn">cachePublic</span>())   <span class="cm">// Cache-Control: public, max-age=3600</span>
+            .<span class="fn">eTag</span>(<span class="fn">computeETag</span>(file))                   <span class="cm">// ETag 헤더</span>
+            .<span class="fn">body</span>(loadResource(file));
+    }
+
+    <span class="cm">// CORS 직접 설정 (전역은 WebMvcConfigurer 사용)</span>
+    <span class="kw">@CrossOrigin</span>(origins = <span class="st">"https://frontend.example.com"</span>)
+    <span class="kw">@GetMapping</span>(<span class="st">"/public"</span>)
+    <span class="kw">public</span> ResponseEntity&lt;String&gt; <span class="fn">publicApi</span>() {
+        <span class="kw">return</span> ResponseEntity.<span class="fn">ok</span>(<span class="st">"OK"</span>); <span class="cm">// Access-Control-Allow-Origin 헤더 포함</span>
+    }
+}
+
+<span class="cm">/* ── HTTP 클라이언트 (RestTemplate) ───────────────────── */</span>
+<span class="kw">@Service</span>
+<span class="kw">public class</span> <span class="fn">HttpClientService</span> {
+
+    <span class="kw">private final</span> RestTemplate rest = <span class="kw">new</span> RestTemplate();
+
+    <span class="kw">public void</span> <span class="fn">demo</span>() {
+        <span class="cm">// GET 요청 — 응답 바디를 객체로 역직렬화</span>
+        ResponseEntity&lt;User&gt; res = rest.<span class="fn">getForEntity</span>(
+            <span class="st">"https://api.example.com/users/1"</span>, User.<span class="kw">class</span>
+        );
+        System.out.<span class="fn">println</span>(res.<span class="fn">getStatusCode</span>()); <span class="cm">// 200 OK</span>
+        System.out.<span class="fn">println</span>(res.<span class="fn">getHeaders</span>().<span class="fn">getContentType</span>());
+
+        <span class="cm">// POST 요청 — 헤더 직접 설정</span>
+        HttpHeaders headers = <span class="kw">new</span> HttpHeaders();
+        headers.<span class="fn">setContentType</span>(MediaType.APPLICATION_JSON);
+        headers.<span class="fn">setBearerAuth</span>(<span class="st">"eyJhbGci..."</span>); <span class="cm">// Authorization: Bearer ...</span>
+
+        HttpEntity&lt;UserDto&gt; req = <span class="kw">new</span> HttpEntity&lt;&gt;(dto, headers);
+        ResponseEntity&lt;User&gt; created = rest.<span class="fn">postForEntity</span>(
+            <span class="st">"https://api.example.com/users"</span>, req, User.<span class="kw">class</span>
+        );
+        <span class="cm">// 201 Created → Location 헤더에서 새 리소스 URI 확인</span>
+        URI newUri = created.<span class="fn">getHeaders</span>().<span class="fn">getLocation</span>();
+    }
+}</pre>
+            </div>
+            <p class="code-desc">
+                Spring의 ResponseEntity를 사용하면 HTTP 상태 코드와 헤더를 명시적으로 제어할 수 있습니다.<br>
+                orElse(notFound().build())처럼 Optional과 조합하면 404 처리가 간결해집니다.<br>
+                POST 생성 시 201 Created와 Location 헤더를 반환하는 것이 REST 표준입니다.<br>
+                클라이언트는 Location을 보고 새 리소스 URI를 알 수 있습니다.<br>
+                CacheControl 빌더로 Cache-Control 헤더를 설정하면 브라우저·CDN 캐싱을 제어합니다.<br>
+                ETag와 함께 사용하면 조건부 요청(304)으로 불필요한 데이터 전송을 줄입니다.<br>
+                실무에서는 RestTemplate보다 WebClient(비동기) 또는 OpenFeign(선언적)을 더 많이 사용합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — HTTP 요청 분석 및 HTTP/2 비교</p>
+            <div class="code-block">
+<pre><span class="kw">import</span> httpx   <span class="cm"># HTTP/1.1 + HTTP/2 모두 지원</span>
+<span class="kw">import</span> time
+
+<span class="cm"># ── HTTP/1.1 순차 요청 ──────────────────────────────────</span>
+<span class="kw">def</span> <span class="fn">http1_sequential</span>():
+    urls = [
+        <span class="st">"https://example.com/index.html"</span>,
+        <span class="st">"https://example.com/style.css"</span>,
+        <span class="st">"https://example.com/script.js"</span>,
+    ]
+    start = time.<span class="fn">time</span>()
+    <span class="kw">with</span> httpx.<span class="fn">Client</span>(http2=<span class="kw">False</span>) <span class="kw">as</span> client:
+        <span class="kw">for</span> url <span class="kw">in</span> urls:
+            res = client.<span class="fn">get</span>(url)
+            <span class="fn">print</span>(<span class="st">f"{res.status_code} {url}"</span>)
+            <span class="cm"># HOL 블로킹: 앞 요청 완료 후 다음 전송</span>
+    <span class="fn">print</span>(<span class="st">f"HTTP/1.1 총 시간: {time.time()-start:.2f}s"</span>)
+
+<span class="cm"># ── HTTP/2 멀티플렉싱 ────────────────────────────────────</span>
+<span class="kw">import</span> asyncio
+
+<span class="kw">async def</span> <span class="fn">http2_multiplex</span>():
+    urls = [
+        <span class="st">"https://example.com/index.html"</span>,
+        <span class="st">"https://example.com/style.css"</span>,
+        <span class="st">"https://example.com/script.js"</span>,
+    ]
+    start = time.<span class="fn">time</span>()
+    <span class="kw">async with</span> httpx.<span class="fn">AsyncClient</span>(http2=<span class="kw">True</span>) <span class="kw">as</span> client:
+        <span class="cm"># 3개 요청 동시 전송 (멀티플렉싱)</span>
+        tasks = [client.<span class="fn">get</span>(url) <span class="kw">for</span> url <span class="kw">in</span> urls]
+        responses = <span class="kw">await</span> asyncio.<span class="fn">gather</span>(*tasks)
+        <span class="kw">for</span> res <span class="kw">in</span> responses:
+            <span class="fn">print</span>(<span class="st">f"{res.status_code} HTTP/{res.http_version}"</span>)
+    <span class="fn">print</span>(<span class="st">f"HTTP/2 총 시간: {time.time()-start:.2f}s"</span>)
+
+<span class="cm"># ── 응답 헤더 분석 ──────────────────────────────────────</span>
+<span class="kw">def</span> <span class="fn">inspect_headers</span>():
+    <span class="kw">with</span> httpx.<span class="fn">Client</span>() <span class="kw">as</span> client:
+        res = client.<span class="fn">get</span>(<span class="st">"https://httpbin.org/get"</span>)
+
+        <span class="fn">print</span>(<span class="st">f"상태 코드: {res.status_code}"</span>)              <span class="cm"># 200</span>
+        <span class="fn">print</span>(<span class="st">f"Content-Type: {res.headers['content-type']}"</span>)
+        <span class="fn">print</span>(<span class="st">f"X-RateLimit-Remaining: {res.headers.get('x-ratelimit-remaining', 'N/A')}"</span>)
+
+        <span class="cm"># 조건부 요청 (ETag 활용)</span>
+        etag = res.headers.<span class="fn">get</span>(<span class="st">'etag'</span>)
+        <span class="kw">if</span> etag:
+            res2 = client.<span class="fn">get</span>(
+                <span class="st">"https://httpbin.org/get"</span>,
+                headers={<span class="st">"If-None-Match"</span>: etag}
+            )
+            <span class="fn">print</span>(<span class="st">f"조건부 요청: {res2.status_code}"</span>)  <span class="cm"># 304 Not Modified</span>
+
+<span class="cm"># asyncio.run(http2_multiplex())</span></pre>
+            </div>
+            <p class="code-desc">
+                httpx 라이브러리는 HTTP/1.1과 HTTP/2를 모두 지원합니다. http2=True 옵션만으로 멀티플렉싱을 활성화할 수 있습니다.<br>
+                HTTP/1.1 순차 요청과 HTTP/2 멀티플렉싱을 같은 URL로 비교하면 RTT 차이를 직접 확인할 수 있습니다. 리소스가 많을수록 HTTP/2의 이점이 커집니다.<br>
+                ETag를 활용한 조건부 요청은 변경이 없으면 304 Not Modified를 반환해 바디 전송을 생략합니다. 정적 리소스 캐싱에 매우 효과적입니다.<br>
+                실제 HTTP/2 멀티플렉싱 효과는 네트워크 지연(RTT)이 클수록 두드러집니다. 로컬 환경에서는 차이가 미미할 수 있습니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>

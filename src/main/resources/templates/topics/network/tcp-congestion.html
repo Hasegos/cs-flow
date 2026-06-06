@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">TCP 혼잡 제어 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/network/tcp-congestion.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/network}" class="topic-breadcrumb__link">네트워크</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">TCP 혼잡 제어</span>
+                </nav>
+
+                <span class="topic-hero__slug">network · 06</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">TCP 혼잡 제어</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        TCP 혼잡 제어는 <strong>네트워크 과부하를 방지하기 위해 송신 속도를 동적으로 조절하는 메커니즘</strong>입니다.
+                        혼잡 윈도우(cwnd)를 통해 한 번에 보낼 수 있는 데이터 양을 제어하며,
+                        Slow Start·Congestion Avoidance·Fast Retransmit·Fast Recovery 4단계로 동작합니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">Slow Start</h3>
+                            <p class="overview-card__desc">연결 초기 또는 타임아웃 후 시작합니다. cwnd를 1 MSS에서 시작해 ACK를 받을 때마다 1씩 증가합니다(RTT마다 2배). ssthresh(Slow Start Threshold)에 도달하면 Congestion Avoidance로 전환합니다. 이름은 "Slow"지만 지수적으로 증가합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">Congestion Avoidance</h3>
+                            <p class="overview-card__desc">ssthresh 도달 후 선형 증가로 전환합니다. RTT마다 cwnd를 1 MSS씩만 증가합니다(각 ACK마다 1/cwnd 증가). 네트워크 용량에 조심스럽게 접근하며 안정적인 전송을 유지합니다. 패킷 손실이 감지될 때까지 계속됩니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">Fast Retransmit</h3>
+                            <p class="overview-card__desc">3개의 중복 ACK(Duplicate ACK)를 수신하면 타임아웃을 기다리지 않고 즉시 손실된 패킷을 재전송합니다. 중복 ACK는 패킷 손실을 의미하지만, 이후 패킷들은 수신되고 있다는 신호이기도 합니다. 타임아웃보다 빠른 복구가 가능합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">Fast Recovery (TCP Reno)</h3>
+                            <p class="overview-card__desc">3-Dup ACK 감지 시: ssthresh = cwnd/2, cwnd = ssthresh + 3으로 설정하고 Congestion Avoidance로 진입합니다. Slow Start로 돌아가지 않아 타임아웃보다 빠르게 회복합니다. TCP Tahoe는 Fast Recovery 없이 항상 Slow Start로 복귀했습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">혼잡 윈도우 (cwnd)</h3>
+                            <p class="overview-card__desc">송신자가 ACK 없이 보낼 수 있는 최대 데이터 양입니다. 실제 송신 윈도우 = min(cwnd, rwnd)로, 수신 측 버퍼(rwnd)와 혼잡 윈도우 중 작은 값을 사용합니다. cwnd는 네트워크 상태에 따라 동적으로 변하며 혼잡을 감지하면 줄어듭니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">TCP CUBIC / BBR</h3>
+                            <p class="overview-card__desc">현대 OS는 TCP Reno 대신 CUBIC(Linux 기본)이나 BBR을 사용합니다. CUBIC은 3차 함수로 cwnd를 조절해 고속·장거리 네트워크에서 효율적입니다. BBR(Bottleneck Bandwidth and RTT)은 손실 기반이 아닌 대역폭·지연 측정 기반으로 더 정확합니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>ssthresh (Slow Start Threshold)</strong> — 혼잡 감지 시 cwnd/2로 설정됩니다. 다음 Slow Start 단계에서 ssthresh에 도달하면 Congestion Avoidance로 전환하는 임계값입니다. 초기값은 보통 65535바이트(64KB)로 설정됩니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>타임아웃 vs 3-Dup ACK</strong> — 타임아웃은 더 심각한 혼잡 신호입니다. 타임아웃 발생 시 cwnd=1로 리셋하고 Slow Start부터 재시작합니다. 3-Dup ACK는 덜 심각하며 Fast Recovery를 통해 더 빠르게 복구합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>AIMD (Additive Increase Multiplicative Decrease)</strong> — Congestion Avoidance의 핵심 원리입니다. 혼잡이 없으면 선형 증가(+1), 혼잡 감지 시 반으로 감소(×0.5)합니다. 이 비대칭적 조절이 네트워크 공정성과 안정성을 보장합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>ECN (Explicit Congestion Notification)</strong> — 패킷 손실 없이 라우터가 혼잡을 미리 알려주는 메커니즘입니다. IP 헤더의 ECN 비트로 혼잡을 신호하면, 수신자가 이를 ACK에 포함해 송신자에게 전달합니다. 손실 전에 선제적으로 전송 속도를 줄일 수 있습니다.</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/network/tcp-congestion-code :: code}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+</body>
+</html>

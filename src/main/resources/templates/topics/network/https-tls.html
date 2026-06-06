@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">HTTPS / TLS | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/network/https-tls.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/network}" class="topic-breadcrumb__link">네트워크</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">HTTPS / TLS</span>
+                </nav>
+
+                <span class="topic-hero__slug">network · 07</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">HTTPS / TLS</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        HTTPS는 <strong>HTTP에 TLS(Transport Layer Security) 암호화를 적용한 보안 프로토콜</strong>입니다.
+                        TLS 핸드셰이크를 통해 서버 인증과 암호화 키 교환을 수행한 뒤,
+                        이후 모든 HTTP 통신을 암호화해 도청·위변조·중간자 공격을 방지합니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">TLS 1.3 핸드셰이크</h3>
+                            <p class="overview-card__desc">TLS 1.3은 1-RTT 핸드셰이크를 사용합니다. 클라이언트가 ClientHello(지원 암호 스위트, 키 공유)를 보내면, 서버가 ServerHello(선택된 암호 스위트, 키 공유), 인증서, Finished를 한 번에 응답합니다. 클라이언트 Finished 후 즉시 암호화 통신이 시작됩니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">공개키 암호화</h3>
+                            <p class="overview-card__desc">서버는 공개키·개인키 쌍을 가집니다. 인증서에 공개키가 포함되어 있어 누구나 공개키로 암호화할 수 있지만, 복호화는 서버의 개인키로만 가능합니다. TLS에서는 공개키 암호화로 세션 키를 안전하게 교환하고, 이후 빠른 대칭키 암호화를 사용합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">인증서와 CA</h3>
+                            <p class="overview-card__desc">서버 인증서는 CA(Certificate Authority)가 서버의 신원을 보증하는 디지털 서명입니다. 브라우저는 신뢰하는 CA 목록을 내장하며, 인증서 체인을 검증해 서버의 신원을 확인합니다. Let's Encrypt로 무료 인증서를 발급받을 수 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">ECDHE 키 교환</h3>
+                            <p class="overview-card__desc">TLS 1.3은 ECDHE(Elliptic Curve Diffie-Hellman Ephemeral)로 키를 교환합니다. 클라이언트와 서버가 각각 임시 키 쌍을 생성하고 공개키를 교환해 공통 비밀(Pre-master Secret)을 계산합니다. 세션마다 다른 키를 사용해 완전 전방 보안(PFS)을 보장합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">대칭키 암호화 (AES-GCM)</h3>
+                            <p class="overview-card__desc">핸드셰이크 후 실제 데이터는 AES-GCM 같은 대칭키 알고리즘으로 암호화합니다. 대칭키는 공개키 방식보다 수백 배 빠릅니다. AES-GCM은 암호화와 함께 무결성 검증(MAC)을 제공하는 인증 암호화(AEAD) 방식입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">0-RTT (세션 재개)</h3>
+                            <p class="overview-card__desc">TLS 1.3의 세션 재개 기능입니다. 이전 연결에서 받은 PSK(Pre-Shared Key)를 사용해 핸드셰이크 없이 첫 요청과 함께 데이터를 전송합니다. 단, 재전송 공격(Replay Attack) 취약점이 있어 멱등성 있는 요청(GET)에만 사용을 권장합니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>TLS 1.2 vs TLS 1.3</strong> — TLS 1.2는 2-RTT 핸드셰이크로 연결 지연이 큽니다. TLS 1.3은 1-RTT로 줄이고, 취약한 암호화 알고리즘(RSA 키 교환, RC4, SHA-1)을 제거했습니다. 현재 모든 주요 서버는 TLS 1.3을 지원하며 TLS 1.0/1.1은 폐기됐습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>SNI (Server Name Indication)</strong> — 하나의 IP에 여러 HTTPS 도메인을 호스팅할 때 필요합니다. ClientHello에 목적지 도메인명을 평문으로 포함해 서버가 올바른 인증서를 선택하게 합니다. ECH(Encrypted Client Hello)는 SNI까지 암호화합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>HSTS (HTTP Strict Transport Security)</strong> — 서버가 응답 헤더로 "이 도메인은 항상 HTTPS만 사용"을 브라우저에 지시합니다. 지정된 기간 동안 브라우저가 HTTP 요청을 자동으로 HTTPS로 업그레이드합니다. SSL Stripping 공격을 방지합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>인증서 투명성 (CT)</strong> — CA가 발급한 모든 인증서를 공개 로그에 기록하는 시스템입니다. 잘못 발급된 인증서를 빠르게 발견할 수 있습니다. Chrome은 CT 로그에 없는 인증서를 신뢰하지 않습니다.</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/network/https-tls-code :: code}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+</body>
+</html>
