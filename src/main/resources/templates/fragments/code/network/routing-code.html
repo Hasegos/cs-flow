@@ -1,0 +1,141 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 다익스트라 알고리즘으로 OSPF 최단 경로 구현</p>
+            <div class="code-block">
+<pre><span class="kw">import</span> java.util.*;
+
+<span class="kw">public class</span> <span class="fn">OspfDijkstra</span> {
+
+    <span class="cm">// 라우터 그래프: 인접 리스트 (노드, 비용)</span>
+    <span class="kw">static final int</span> INF = Integer.MAX_VALUE / <span class="num">2</span>;
+    <span class="kw">static int</span> N = <span class="num">6</span>; <span class="cm">// A=0, B=1, C=2, D=3, E=4, F=5</span>
+
+    <span class="kw">static</span> List&lt;int[]&gt;[] <span class="fn">buildGraph</span>() {
+        List&lt;int[]&gt;[] graph = <span class="kw">new</span> List[N];
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">0</span>; i &lt; N; i++) graph[i] = <span class="kw">new</span> ArrayList&lt;&gt;();
+
+        <span class="cm">// {인접노드, OSPF비용}</span>
+        <span class="kw">int</span>[][] edges = {
+            {<span class="num">0</span>,<span class="num">1</span>,<span class="num">1</span>}, {<span class="num">1</span>,<span class="num">2</span>,<span class="num">1</span>}, {<span class="num">2</span>,<span class="num">5</span>,<span class="num">1</span>},  <span class="cm">// A-B, B-C, C-F</span>
+            {<span class="num">0</span>,<span class="num">3</span>,<span class="num">5</span>}, {<span class="num">3</span>,<span class="num">4</span>,<span class="num">1</span>}, {<span class="num">4</span>,<span class="num">5</span>,<span class="num">1</span>},  <span class="cm">// A-D(비용5), D-E, E-F</span>
+            {<span class="num">1</span>,<span class="num">4</span>,<span class="num">2</span>},                         <span class="cm">// B-E(비용2)</span>
+        };
+        <span class="kw">for</span> (<span class="kw">int</span>[] e : edges) {
+            graph[e[<span class="num">0</span>]].<span class="fn">add</span>(<span class="kw">new int</span>[]{e[<span class="num">1</span>], e[<span class="num">2</span>]});
+            graph[e[<span class="num">1</span>]].<span class="fn">add</span>(<span class="kw">new int</span>[]{e[<span class="num">0</span>], e[<span class="num">2</span>]});
+        }
+        <span class="kw">return</span> graph;
+    }
+
+    <span class="cm">// 다익스트라: src에서 모든 노드까지 최단 비용</span>
+    <span class="kw">static int</span>[] <span class="fn">dijkstra</span>(List&lt;int[]&gt;[] graph, <span class="kw">int</span> src) {
+        <span class="kw">int</span>[] dist = <span class="kw">new int</span>[N];
+        <span class="kw">int</span>[] prev = <span class="kw">new int</span>[N]; <span class="cm">// 경로 역추적용</span>
+        Arrays.<span class="fn">fill</span>(dist, INF);
+        Arrays.<span class="fn">fill</span>(prev, -<span class="num">1</span>);
+        dist[src] = <span class="num">0</span>;
+
+        <span class="cm">// {비용, 노드} — 최소 힙</span>
+        PriorityQueue&lt;int[]&gt; pq = <span class="kw">new</span> PriorityQueue&lt;&gt;(
+            Comparator.<span class="fn">comparingInt</span>(a -> a[<span class="num">0</span>])
+        );
+        pq.<span class="fn">offer</span>(<span class="kw">new int</span>[]{<span class="num">0</span>, src});
+
+        <span class="kw">while</span> (!pq.<span class="fn">isEmpty</span>()) {
+            <span class="kw">int</span>[] cur  = pq.<span class="fn">poll</span>();
+            <span class="kw">int</span>  cost  = cur[<span class="num">0</span>], node = cur[<span class="num">1</span>];
+            <span class="kw">if</span> (cost &gt; dist[node]) <span class="kw">continue</span>; <span class="cm">// 이미 처리됨</span>
+
+            <span class="kw">for</span> (<span class="kw">int</span>[] next : graph[node]) {
+                <span class="kw">int</span> newCost = dist[node] + next[<span class="num">1</span>];
+                <span class="kw">if</span> (newCost &lt; dist[next[<span class="num">0</span>]]) {
+                    dist[next[<span class="num">0</span>]] = newCost;
+                    prev[next[<span class="num">0</span>]] = node;
+                    pq.<span class="fn">offer</span>(<span class="kw">new int</span>[]{newCost, next[<span class="num">0</span>]});
+                }
+            }
+        }
+        <span class="kw">return</span> dist; <span class="cm">// dist[5] = A→F 최단 비용</span>
+    }
+
+    <span class="kw">public static void</span> <span class="fn">main</span>(String[] args) {
+        <span class="kw">var</span> graph = <span class="fn">buildGraph</span>();
+        <span class="kw">int</span>[] dist = <span class="fn">dijkstra</span>(graph, <span class="num">0</span>); <span class="cm">// A=0 출발</span>
+        String[] names = {"A","B","C","D","E","F"};
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">0</span>; i &lt; N; i++)
+            System.out.<span class="fn">printf</span>(<span class="st">"A→%s: %d%n"</span>, names[i], dist[i]);
+        <span class="cm">// A→F: 3 (A→B→C→F = 1+1+1)</span>
+    }
+}</pre>
+            </div>
+            <p class="code-desc">
+                OSPF가 내부적으로 실행하는 SPF(Shortest Path First) 알고리즘은 다익스트라와 동일합니다.<br>
+                우선순위 큐를 사용해 O((V+E)logV) 복잡도로 최단 경로를 찾습니다.<br>
+                A-D 링크 비용이 5로 높아 D를 경유하는 경로는 선택되지 않습니다.<br>
+                실제 OSPF에서 비용은 10^8/대역폭(bps)으로 계산하므로 빠른 링크일수록 비용이 낮습니다.<br>
+                prev 배열로 경로를 역추적합니다. dst에서 src까지 prev를 따라가면 최단 경로를 복원할 수 있습니다.<br>
+                실제 OSPF 구현에서는 Area 개념, DR/BDR 선출, LSA 플러딩 등 추가 메커니즘이 있습니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — RIP 거리 벡터 시뮬레이션</p>
+            <div class="code-block">
+<pre><span class="kw">from</span> copy <span class="kw">import</span> deepcopy
+
+<span class="cm"># 그래프: 인접 행렬 (RIP는 홉 수만 사용, 비용은 모두 1)</span>
+INF = float(<span class="st">'inf'</span>)
+N   = <span class="num">6</span>  <span class="cm"># A=0, B=1, C=2, D=3, E=4, F=5</span>
+
+adj = [[INF]*N <span class="kw">for</span> _ <span class="kw">in</span> range(N)]
+<span class="kw">for</span> i <span class="kw">in</span> range(N): adj[i][i] = <span class="num">0</span>
+
+<span class="kw">for</span> a, b <span class="kw">in</span> [(<span class="num">0</span>,<span class="num">1</span>),(<span class="num">1</span>,<span class="num">2</span>),(<span class="num">2</span>,<span class="num">5</span>),(<span class="num">0</span>,<span class="num">3</span>),(<span class="num">3</span>,<span class="num">4</span>),(<span class="num">4</span>,<span class="num">5</span>),(<span class="num">1</span>,<span class="num">4</span>)]:
+    adj[a][b] = adj[b][a] = <span class="num">1</span>  <span class="cm"># RIP: 홉 수 = 1</span>
+
+<span class="cm"># RIP 거리 벡터: 각 라우터의 라우팅 테이블</span>
+<span class="cm"># dist[i][j] = 라우터 i에서 j까지의 홉 수</span>
+dist = [[adj[i][j] <span class="kw">for</span> j <span class="kw">in</span> range(N)] <span class="kw">for</span> i <span class="kw">in</span> range(N)]
+
+<span class="kw">def</span> <span class="fn">rip_update</span>():
+    <span class="st">"""벨만-포드 기반 거리 벡터 갱신 (한 라운드)"""</span>
+    changed = <span class="kw">False</span>
+    new_dist = <span class="fn">deepcopy</span>(dist)
+    <span class="kw">for</span> i <span class="kw">in</span> range(N):           <span class="cm"># 각 라우터</span>
+        <span class="kw">for</span> j <span class="kw">in</span> range(N):       <span class="cm"># 목적지</span>
+            <span class="kw">for</span> k <span class="kw">in</span> range(N):   <span class="cm"># 인접 라우터를 통한 경로</span>
+                <span class="kw">if</span> adj[i][k] &lt; INF <span class="kw">and</span> dist[k][j] &lt; INF:
+                    via_k = adj[i][k] + dist[k][j]
+                    <span class="kw">if</span> via_k &lt; new_dist[i][j]:
+                        new_dist[i][j] = via_k
+                        changed = <span class="kw">True</span>
+    dist[:] = new_dist
+    <span class="kw">return</span> changed
+
+<span class="cm"># 수렴할 때까지 반복</span>
+names = list(<span class="st">"ABCDEF"</span>)
+<span class="kw">for</span> round_num <span class="kw">in</span> range(<span class="num">1</span>, <span class="num">16</span>):  <span class="cm"># 최대 15홉 (RIP 제한)</span>
+    <span class="kw">if</span> <span class="kw">not</span> <span class="fn">rip_update</span>():
+        <span class="fn">print</span>(<span class="st">f"라운드 {round_num}에서 수렴"</span>)
+        <span class="kw">break</span>
+
+<span class="cm"># A(0)의 최종 라우팅 테이블</span>
+<span class="fn">print</span>(<span class="st">"A의 라우팅 테이블:"</span>)
+<span class="kw">for</span> j <span class="kw">in</span> range(N):
+    <span class="fn">print</span>(<span class="st">f"  → {names[j]}: {dist[0][j]}홉"</span>)
+<span class="cm"># → F: 3홉 (A→B→C→F 또는 A→B→E→F 또는 A→D→E→F)</span></pre>
+            </div>
+            <p class="code-desc">
+                RIP는 벨만-포드 알고리즘을 기반으로 합니다. 각 라우터가 자신의 거리 벡터를 인접 라우터와 교환하고, 더 짧은 경로를 발견하면 갱신합니다.<br>
+                수렴에 최대 N-1 라운드가 필요합니다. 네트워크가 클수록 수렴이 느려지는 것이 RIP의 단점입니다.<br>
+                OSPF의 다익스트라는 한 번의 계산으로 모든 최단 경로를 구합니다.<br>
+                실제 RIP는 30초마다 전체 라우팅 테이블을 브로드캐스트합니다. 대규모 네트워크에서는 불필요한 트래픽이 많아집니다.<br>
+                분할 지평선(Split Horizon)을 추가하면 라우팅 루프를 방지할 수 있습니다.<br>
+                경로를 배운 인터페이스로 같은 경로를 다시 광고하지 않는 기법입니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
