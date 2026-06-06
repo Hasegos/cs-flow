@@ -1,0 +1,135 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — TCP 서버 / 클라이언트 소켓 (3-way handshake 흐름)</p>
+            <div class="code-block">
+<pre><span class="kw">import</span> java.net.*;
+<span class="kw">import</span> java.io.*;
+
+<span class="cm">/* ── 서버: LISTEN → SYN_RECEIVED → ESTABLISHED ────── */</span>
+<span class="kw">public class</span> <span class="fn">TcpServer</span> {
+    <span class="kw">public static void</span> <span class="fn">main</span>(String[] args) <span class="kw">throws</span> Exception {
+
+        <span class="cm">// ServerSocket.bind() → 서버 LISTEN 상태</span>
+        ServerSocket server = <span class="kw">new</span> ServerSocket(<span class="num">8080</span>);
+        System.out.<span class="fn">println</span>(<span class="st">"서버 LISTEN — 포트 8080"</span>);
+
+        <span class="cm">// accept()는 블로킹 — 클라이언트 SYN을 기다림</span>
+        <span class="cm">// SYN 수신 → OS가 SYN+ACK 자동 전송 → ACK 수신</span>
+        <span class="cm">// → 3-way handshake 완료 → ESTABLISHED</span>
+        Socket client = server.<span class="fn">accept</span>(); <span class="cm">// 여기서 handshake 완료</span>
+        System.out.<span class="fn">println</span>(<span class="st">"ESTABLISHED: " + client.getRemoteSocketAddress()</span>);
+
+        <span class="kw">try</span> (<span class="kw">var</span> out = <span class="kw">new</span> PrintWriter(client.<span class="fn">getOutputStream</span>(), <span class="kw">true</span>);
+             <span class="kw">var</span> in  = <span class="kw">new</span> BufferedReader(
+                           <span class="kw">new</span> InputStreamReader(client.<span class="fn">getInputStream</span>()))) {
+            String msg = in.<span class="fn">readLine</span>();
+            out.<span class="fn">println</span>(<span class="st">"Echo: " + msg</span>);
+        }
+        <span class="cm">// try-with-resources → close() → 4-way termination 자동 수행</span>
+        server.<span class="fn">close</span>();
+    }
+}
+
+<span class="cm">/* ── 클라이언트: CLOSED → SYN_SENT → ESTABLISHED ───── */</span>
+<span class="kw">public class</span> <span class="fn">TcpClient</span> {
+    <span class="kw">public static void</span> <span class="fn">main</span>(String[] args) <span class="kw">throws</span> Exception {
+
+        <span class="cm">// new Socket() → SYN 전송 → SYN+ACK 수신 → ACK 전송</span>
+        <span class="cm">// → ESTABLISHED (3-way handshake를 생성자에서 완료)</span>
+        <span class="kw">try</span> (Socket sock = <span class="kw">new</span> Socket(<span class="st">"localhost"</span>, <span class="num">8080</span>)) {
+            System.out.<span class="fn">println</span>(<span class="st">"ESTABLISHED"</span>);
+
+            <span class="cm">// TCP 옵션 설정 예시</span>
+            sock.<span class="fn">setTcpNoDelay</span>(<span class="kw">true</span>);          <span class="cm">// Nagle 알고리즘 비활성</span>
+            sock.<span class="fn">setSoTimeout</span>(<span class="num">5000</span>);          <span class="cm">// read 타임아웃 5초</span>
+            sock.<span class="fn">setKeepAlive</span>(<span class="kw">true</span>);          <span class="cm">// TCP Keep-Alive 활성</span>
+
+            <span class="kw">var</span> out = <span class="kw">new</span> PrintWriter(sock.<span class="fn">getOutputStream</span>(), <span class="kw">true</span>);
+            <span class="kw">var</span> in  = <span class="kw">new</span> BufferedReader(
+                          <span class="kw">new</span> InputStreamReader(sock.<span class="fn">getInputStream</span>()));
+            out.<span class="fn">println</span>(<span class="st">"Hello TCP"</span>);
+            System.out.<span class="fn">println</span>(in.<span class="fn">readLine</span>());
+        }
+        <span class="cm">// 소켓 닫힘 → FIN 전송 → 4-way termination</span>
+    }
+}</pre>
+            </div>
+            <p class="code-desc">
+                Java에서 new Socket("host", port)를 호출하는 순간 OS가 TCP 3-way handshake를 수행합니다.<br>
+                개발자는 생성자가 반환되면 이미 ESTABLISHED 상태임을 알 수 있습니다.<br>
+                ServerSocket.accept()는 OS의 백로그 큐에서 완료된 연결을 꺼냅니다. SYN_RECEIVED → ESTABLISHED 과정은 OS 커널이 자동으로 처리합니다.<br>
+                Socket.close()를 호출하면 OS가 4-way termination을 수행합니다.<br>
+                try-with-resources를 사용하면 예외 발생 시에도 FIN이 전송됩니다.<br>
+                setTcpNoDelay(true)는 Nagle 알고리즘을 끄는 옵션으로, 소량의 패킷을 즉시 전송해야 하는 실시간 애플리케이션에 사용합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — TCP 상태 확인 및 Raw 시퀀스 번호 분석</p>
+            <div class="code-block">
+<pre><span class="kw">import</span> socket
+<span class="kw">import</span> struct
+<span class="kw">import</span> subprocess
+
+<span class="cm"># ── TCP 상태 확인 (ss 명령어 래핑) ─────────────────────</span>
+<span class="kw">def</span> <span class="fn">show_tcp_states</span>():
+    result = subprocess.<span class="fn">run</span>(
+        [<span class="st">'ss'</span>, <span class="st">'-tn'</span>, <span class="st">'state'</span>, <span class="st">'established'</span>],
+        capture_output=<span class="kw">True</span>, text=<span class="kw">True</span>
+    )
+    <span class="fn">print</span>(result.stdout)
+    <span class="cm"># Recv-Q Send-Q LocalAddr:Port PeerAddr:Port</span>
+    <span class="cm"># Recv-Q: 수신 버퍼 미처리 데이터 (0이어야 정상)</span>
+    <span class="cm"># Send-Q: 미전송 데이터 (0이면 전송 완료)</span>
+
+<span class="cm"># ── TCP 헤더 파싱 (raw socket, root 권한 필요) ─────────</span>
+<span class="kw">def</span> <span class="fn">parse_tcp_header</span>(raw: bytes):
+    <span class="cm"># IP 헤더 이후 TCP 헤더 파싱</span>
+    ip_ihl = (raw[<span class="num">0</span>] & <span class="num">0x0F</span>) * <span class="num">4</span>          <span class="cm"># IP 헤더 길이</span>
+    tcp    = raw[ip_ihl:]
+
+    <span class="cm"># !HHLLBBHHH: big-endian, 각 필드 언팩</span>
+    src_port, dst_port, seq, ack_num, \
+    offset_flags, flags, window, checksum, urg = \
+        struct.<span class="fn">unpack</span>(<span class="st">'!HHLLBBHHH'</span>, tcp[:<span class="num">20</span>])
+
+    syn = (flags & <span class="num">0x02</span>) != <span class="num">0</span>
+    ack = (flags & <span class="num">0x10</span>) != <span class="num">0</span>
+    fin = (flags & <span class="num">0x01</span>) != <span class="num">0</span>
+    rst = (flags & <span class="num">0x04</span>) != <span class="num">0</span>
+
+    <span class="fn">print</span>(<span class="st">f"포트: {src_port} → {dst_port}"</span>)
+    <span class="fn">print</span>(<span class="st">f"seq={seq}, ack={ack_num}"</span>)
+    <span class="fn">print</span>(<span class="st">f"SYN={syn} ACK={ack} FIN={fin} RST={rst}"</span>)
+    <span class="fn">print</span>(<span class="st">f"window={window}, checksum=0x{checksum:04X}"</span>)
+
+    <span class="kw">if</span> syn <span class="kw">and not</span> ack:
+        <span class="fn">print</span>(<span class="st">"→ 3-way handshake Step 1: SYN"</span>)
+    <span class="kw">elif</span> syn <span class="kw">and</span> ack:
+        <span class="fn">print</span>(<span class="st">"→ 3-way handshake Step 2: SYN+ACK"</span>)
+    <span class="kw">elif</span> fin:
+        <span class="fn">print</span>(<span class="st">"→ 4-way termination: FIN"</span>)
+
+<span class="cm"># ── TIME_WAIT 확인 ──────────────────────────────────────</span>
+<span class="cm"># $ ss -tn state time-wait</span>
+<span class="cm"># TIME_WAIT는 2MSL(~60초) 후 자동 해제</span>
+<span class="cm"># SO_REUSEADDR 옵션으로 TIME_WAIT 중 포트 재사용 가능</span>
+
+sock = socket.<span class="fn">socket</span>(socket.AF_INET, socket.SOCK_STREAM)
+sock.<span class="fn">setsockopt</span>(socket.SOL_SOCKET, socket.SO_REUSEADDR, <span class="num">1</span>)
+sock.<span class="fn">bind</span>((<span class="st">''</span>, <span class="num">8080</span>))</pre>
+            </div>
+            <p class="code-desc">
+                ss -tn 명령어로 현재 시스템의 TCP 연결 상태를 확인할 수 있습니다. Recv-Q와 Send-Q가 지속적으로 0이 아니라면 버퍼 병목을 의심해야 합니다.<br>
+                raw socket으로 TCP 헤더를 파싱하면 SYN·ACK·FIN 플래그를 비트 마스킹으로 추출할 수 있습니다. Wireshark·tcpdump가 이 방식으로 동작합니다.<br>
+                SO_REUSEADDR 옵션을 서버 소켓에 설정하면 TIME_WAIT 상태의 포트를 즉시 재사용할 수 있습니다.<br>
+                개발 서버 재시작 시 "Address already in use" 오류를 방지합니다.<br>
+                TIME_WAIT는 OS가 관리하며 약 60초(2MSL) 후 자동 해제됩니다.<br>
+                대용량 단기 연결이 많은 서버에서는 TIME_WAIT 소켓이 누적되어 포트 고갈이 발생할 수 있습니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
