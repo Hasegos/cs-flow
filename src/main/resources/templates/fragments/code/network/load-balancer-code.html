@@ -1,0 +1,153 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — Spring Cloud LoadBalancer 구현 (Round Robin / Random)</p>
+            <div class="code-block">
+<pre><span class="cm">// ── Spring Cloud LoadBalancer 의존성 ──────────────────────</span>
+<span class="cm">// implementation 'org.springframework.cloud:spring-cloud-starter-loadbalancer'</span>
+
+<span class="kw">import</span> org.springframework.cloud.client.loadbalancer.*;
+<span class="kw">import</span> org.springframework.cloud.loadbalancer.core.*;
+<span class="kw">import</span> reactor.core.publisher.Mono;
+
+<span class="cm">/* ── 커스텀 Round Robin 로드 밸런서 ─────────────────────── */</span>
+<span class="kw">public class</span> <span class="fn">RoundRobinLoadBalancer</span> <span class="kw">implements</span> ReactorServiceInstanceLoadBalancer {
+
+    <span class="kw">private final</span> ObjectProvider&lt;ServiceInstanceListSupplier&gt; supplier;
+    <span class="kw">private final</span> AtomicInteger position = <span class="kw">new</span> AtomicInteger(<span class="num">0</span>);
+    <span class="kw">private final</span> String serviceId;
+
+    <span class="kw">@Override</span>
+    <span class="kw">public</span> Mono&lt;Response&lt;ServiceInstance&gt;&gt; <span class="fn">choose</span>(Request request) {
+        <span class="kw">return</span> supplier.<span class="fn">getIfAvailable</span>(NoopServiceInstanceListSupplier::new)
+            .<span class="fn">get</span>(request)
+            .<span class="fn">next</span>()
+            .<span class="fn">map</span>(instances -> <span class="fn">processInstanceResponse</span>(instances));
+    }
+
+    <span class="kw">private</span> Response&lt;ServiceInstance&gt; <span class="fn">processInstanceResponse</span>(
+            ServiceInstanceResponse instances) {
+        <span class="kw">var</span> list = instances.<span class="fn">getInstances</span>();
+        <span class="kw">if</span> (list.<span class="fn">isEmpty</span>()) <span class="kw">return new</span> EmptyResponse&lt;&gt;();
+
+        <span class="cm">// Round Robin: AtomicInteger로 스레드 안전하게 순환</span>
+        <span class="kw">int</span> pos  = Math.<span class="fn">abs</span>(position.<span class="fn">getAndIncrement</span>());
+        <span class="kw">var</span> inst = list.<span class="fn">get</span>(pos % list.<span class="fn">size</span>());
+        <span class="kw">return new</span> DefaultResponse&lt;&gt;(inst);
+    }
+}
+
+<span class="cm">/* ── Least Connection 로드 밸런서 ────────────────────────── */</span>
+<span class="kw">public class</span> <span class="fn">LeastConnectionLoadBalancer</span> <span class="kw">implements</span> ReactorServiceInstanceLoadBalancer {
+
+    <span class="cm">// 서버별 활성 연결 수 추적</span>
+    <span class="kw">private final</span> ConcurrentHashMap&lt;String, AtomicInteger&gt; connectionCounts
+        = <span class="kw">new</span> ConcurrentHashMap&lt;&gt;();
+
+    <span class="kw">public</span> ServiceInstance <span class="fn">selectInstance</span>(List&lt;ServiceInstance&gt; instances) {
+        <span class="kw">return</span> instances.<span class="fn">stream</span>()
+            .<span class="fn">min</span>(Comparator.<span class="fn">comparingInt</span>(inst ->
+                connectionCounts
+                    .<span class="fn">computeIfAbsent</span>(inst.<span class="fn">getInstanceId</span>(),
+                                      k -> <span class="kw">new</span> AtomicInteger(<span class="num">0</span>))
+                    .<span class="fn">get</span>()
+            ))
+            .<span class="fn">orElseThrow</span>();
+    }
+
+    <span class="kw">public void</span> <span class="fn">incrementConn</span>(String instanceId) {
+        connectionCounts.<span class="fn">computeIfAbsent</span>(instanceId, k -> <span class="kw">new</span> AtomicInteger(<span class="num">0</span>))
+                        .<span class="fn">incrementAndGet</span>();
+    }
+
+    <span class="kw">public void</span> <span class="fn">decrementConn</span>(String instanceId) {
+        connectionCounts.<span class="fn">computeIfPresent</span>(instanceId,
+            (k, v) -> { v.<span class="fn">decrementAndGet</span>(); <span class="kw">return</span> v; });
+    }
+}
+
+<span class="cm">/* ── RestTemplate에 로드 밸런서 적용 ────────────────────── */</span>
+<span class="kw">@Configuration</span>
+<span class="kw">public class</span> <span class="fn">LoadBalancerConfig</span> {
+
+    <span class="kw">@Bean</span>
+    <span class="kw">@LoadBalanced</span>  <span class="cm">// 서비스명으로 자동 로드 밸런싱</span>
+    <span class="kw">public</span> RestTemplate <span class="fn">restTemplate</span>() {
+        <span class="kw">return new</span> RestTemplate();
+    }
+}
+
+<span class="cm">// 사용: 서비스 이름으로 호출 → LB가 자동으로 인스턴스 선택</span>
+<span class="cm">// restTemplate.getForObject("http://order-service/api/orders", ...)</span></pre>
+            </div>
+            <p class="code-desc">
+                Spring Cloud LoadBalancer는 서비스 디스커버리(Eureka, Consul)와 연동해 동적으로 인스턴스를 관리합니다.<br>
+                @LoadBalanced 어노테이션 하나로 RestTemplate에 로드 밸런싱이 적용됩니다.<br>
+                Least Connection 구현에서 AtomicInteger로 동시성을 처리합니다.<br>
+                요청 완료 시 반드시 decrementConn을 호출해야 하므로, 실제로는 try-finally나 인터셉터를 사용합니다.<br>
+                Round Robin에서 position.getAndIncrement()의 오버플로우를 방지하기 위해 Math.abs()를 사용합니다.<br>
+                Integer.MIN_VALUE의 abs()는 여전히 음수이므로 주의가 필요합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">nginx — L7 로드 밸런서 설정</p>
+            <div class="code-block">
+<pre><span class="cm"># /etc/nginx/conf.d/load-balancer.conf</span>
+
+<span class="cm"># ── upstream 서버 풀 정의 ──────────────────────────────────</span>
+upstream backend {
+    <span class="cm"># Round Robin (기본값)</span>
+    server 10.0.0.1:8080 weight=3;  <span class="cm"># 가중치 3 (더 많은 요청)</span>
+    server 10.0.0.2:8080 weight=2;
+    server 10.0.0.3:8080 weight=1;
+
+    <span class="cm"># Least Connection 방식</span>
+    <span class="cm"># least_conn;</span>
+
+    <span class="cm"># IP Hash (세션 유지)</span>
+    <span class="cm"># ip_hash;</span>
+
+    <span class="cm"># 헬스 체크 설정</span>
+    keepalive 32;  <span class="cm"># 연결 재사용</span>
+}
+
+upstream api_backend {
+    least_conn;  <span class="cm"># API는 처리 시간 다양 → Least Connection 적합</span>
+    server 10.0.0.4:8081;
+    server 10.0.0.5:8081 backup;  <span class="cm"># 나머지 전부 다운 시에만 사용</span>
+    server 10.0.0.6:8081 down;    <span class="cm"># 일시적으로 비활성화</span>
+}
+
+server {
+    listen 80;
+
+    <span class="cm"># L7 콘텐츠 기반 라우팅</span>
+    location /api/ {
+        proxy_pass http://api_backend;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+    location / {
+        proxy_pass http://backend;
+        proxy_set_header Host $host;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";  <span class="cm"># keepalive 활성화</span>
+
+        <span class="cm"># 헬스 체크 (nginx plus 기능)</span>
+        <span class="cm"># health_check interval=5 fails=3 passes=2 uri=/health;</span>
+    }
+}</pre>
+            </div>
+            <p class="code-desc">
+                nginx는 upstream 블록으로 서버 풀을 정의합니다. 기본값은 Round Robin이며, least_conn이나 ip_hash 디렉티브로 방식을 변경합니다.<br>
+                weight 파라미터로 Weighted Round Robin을 구현합니다. weight=3인 서버는 전체 요청의 3/6=50%를 처리합니다.<br>
+                backup 서버는 일반 서버가 모두 응답 불가일 때만 활성화됩니다. down은 임시 점검 시 서버를 풀에서 제외합니다.<br>
+                proxy_http_version 1.1과 Connection="" 설정으로 upstream과의 keepalive 연결을 유지해 연결 오버헤드를 줄입니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
