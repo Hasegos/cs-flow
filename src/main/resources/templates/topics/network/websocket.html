@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">WebSocket | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/network/websocket.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/network}" class="topic-breadcrumb__link">네트워크</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">WebSocket</span>
+                </nav>
+
+                <span class="topic-hero__slug">network · 09</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">WebSocket</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        WebSocket은 <strong>하나의 TCP 연결 위에서 클라이언트와 서버가 양방향으로 실시간 통신할 수 있는 프로토콜</strong>입니다.
+                        HTTP Upgrade 핸드셰이크로 연결을 수립한 뒤, 이후부터는 HTTP 오버헤드 없이 프레임 단위로 데이터를 주고받습니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">HTTP vs WebSocket</h3>
+                            <p class="overview-card__desc">HTTP는 요청-응답 모델로, 서버가 먼저 데이터를 보낼 수 없습니다. 실시간 데이터가 필요하면 클라이언트가 계속 폴링해야 합니다. WebSocket은 연결 수립 후 양방향 채널이 열려 서버도 언제든 데이터를 푸시할 수 있습니다. 헤더 오버헤드도 없어 효율적입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">HTTP Upgrade 핸드셰이크</h3>
+                            <p class="overview-card__desc">WebSocket 연결은 HTTP GET 요청으로 시작합니다. 클라이언트가 Upgrade: websocket, Connection: Upgrade 헤더와 Sec-WebSocket-Key를 전송합니다. 서버가 101 Switching Protocols로 응답하면 프로토콜이 전환됩니다. 이후 HTTP는 사용하지 않습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">WebSocket 프레임</h3>
+                            <p class="overview-card__desc">WebSocket 데이터는 프레임 단위로 전송됩니다. 프레임 헤더는 2~10바이트로 매우 작습니다. OpCode로 Text(0x1), Binary(0x2), Ping(0x9), Pong(0xA), Close(0x8) 등을 구분합니다. 클라이언트→서버 메시지는 반드시 마스킹해야 합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">Ping / Pong</h3>
+                            <p class="overview-card__desc">연결 유지(Keep-alive) 메커니즘입니다. 서버가 Ping 프레임을 보내면 클라이언트는 Pong으로 응답합니다. 네트워크 장애나 클라이언트 비정상 종료를 감지하는 데 사용됩니다. Pong 응답이 없으면 서버는 연결을 닫습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">서브프로토콜과 확장</h3>
+                            <p class="overview-card__desc">Sec-WebSocket-Protocol 헤더로 서브프로토콜을 협상합니다. STOMP(메시지 브로커), MQTT(IoT), GraphQL-WS 등이 WebSocket 위에서 동작합니다. permessage-deflate 확장으로 메시지를 압축해 대역폭을 절약할 수 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">SSE vs WebSocket</h3>
+                            <p class="overview-card__desc">SSE(Server-Sent Events)는 서버→클라이언트 단방향 스트림으로, HTTP 위에서 동작합니다. 자동 재연결, EventSource API 등 간단한 장점이 있습니다. 단방향 알림(주식 시세, 뉴스 피드)에는 SSE가, 채팅·게임 같은 양방향 통신에는 WebSocket이 적합합니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>폴링 vs 롱폴링 vs WebSocket</strong> — 폴링은 주기적으로 요청을 보냅니다. 롱폴링은 서버가 데이터가 생길 때까지 응답을 지연합니다. WebSocket은 연결을 유지하며 즉시 전달합니다. 동시 접속자가 많을수록 WebSocket의 효율이 압도적으로 높습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Spring WebSocket + STOMP</strong> — Spring에서 @EnableWebSocketMessageBroker로 STOMP 메시지 브로커를 활성화합니다. /topic 구독으로 브로드캐스트, /queue로 1:1 메시지를 구현합니다. SockJS는 WebSocket 미지원 환경에서 폴링으로 폴백합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>로드 밸런서와 WebSocket</strong> — WebSocket은 장시간 연결을 유지하므로 로드 밸런서에서 Sticky Session이 필요합니다. nginx에서 proxy_http_version 1.1과 Upgrade 헤더 전달 설정이 필요합니다. Redis Pub/Sub으로 여러 서버 인스턴스 간 메시지를 전달합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>보안</strong> — wss://(WebSocket Secure)는 TLS 위에서 동작합니다. CORS와 달리 WebSocket은 Origin 헤더만 있어 서버에서 반드시 Origin을 검증해야 합니다. CSRF 공격도 가능하므로 토큰 기반 인증을 사용합니다.</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/network/websocket-code :: code}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+</body>
+</html>
