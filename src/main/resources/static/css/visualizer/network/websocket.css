@@ -1,0 +1,143 @@
+/* WebSocket 시각화 전용 */
+
+.ws-viz {
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  overflow: visible;
+  min-height: 540px;
+}
+
+.ws-viz__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ws-viz__toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.ws-viz__title {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-purple);
+}
+
+.ws-viz__speed {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ws-viz__speed-label {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--color-text-muted);
+  letter-spacing: 0.08em;
+}
+
+.ws-viz__speed-btn {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  padding: 4px 10px;
+  border: 1px solid #2a2a3a;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all 0.2s ease;
+}
+
+.ws-viz__speed-btn:hover,
+.ws-viz__speed-btn--active {
+  border-color: var(--color-purple);
+  color: var(--color-purple);
+}
+
+.ws-viz__speed-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.ws-viz__canvas-wrap {
+  flex: 1;
+  position: relative;
+  min-height: 580px;
+}
+
+.ws-viz__canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.ws-viz__log {
+  padding: 10px 24px;
+  border-top: 1px solid var(--color-border);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--color-purple);
+  letter-spacing: 0.04em;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  line-height: 1.6;
+}
+
+.ws-viz__controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 24px;
+  border-top: 1px solid rgba(108, 99, 255, 0.1);
+  flex-shrink: 0;
+}
+
+.ws-viz__btn {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  padding: 8px 20px;
+  border: 1px solid #2a2a3a;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+  letter-spacing: 0.06em;
+}
+
+.ws-viz__btn:hover {
+  border-color: var(--color-purple);
+  color: var(--color-purple);
+}
+
+.ws-viz__btn--primary {
+  border-color: var(--color-purple);
+  color: var(--color-purple);
+}
+
+.ws-viz__btn--primary:hover {
+  background: var(--color-purple);
+  color: #0f0f1a;
+}
+
+.ws-viz__btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
