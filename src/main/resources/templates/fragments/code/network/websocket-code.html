@@ -1,0 +1,152 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — Spring WebSocket + STOMP 서버 구현</p>
+            <div class="code-block">
+<pre><span class="kw">import</span> org.springframework.web.socket.*;
+<span class="kw">import</span> org.springframework.messaging.handler.annotation.*;
+<span class="kw">import</span> org.springframework.messaging.simp.SimpMessagingTemplate;
+
+<span class="cm">/* ── WebSocket 설정 ──────────────────────────────────────── */</span>
+<span class="kw">@Configuration</span>
+<span class="kw">@EnableWebSocketMessageBroker</span>
+<span class="kw">public class</span> <span class="fn">WebSocketConfig</span> <span class="kw">implements</span> WebSocketMessageBrokerConfigurer {
+
+    <span class="kw">@Override</span>
+    <span class="kw">public void</span> <span class="fn">configureMessageBroker</span>(MessageBrokerRegistry registry) {
+        <span class="cm">// 인메모리 메시지 브로커 — /topic(브로드캐스트), /queue(1:1)</span>
+        registry.<span class="fn">enableSimpleBroker</span>(<span class="st">"/topic"</span>, <span class="st">"/queue"</span>);
+        <span class="cm">// 클라이언트 → 서버 메시지 prefix</span>
+        registry.<span class="fn">setApplicationDestinationPrefixes</span>(<span class="st">"/app"</span>);
+    }
+
+    <span class="kw">@Override</span>
+    <span class="kw">public void</span> <span class="fn">registerStompEndpoints</span>(StompEndpointRegistry registry) {
+        registry.<span class="fn">addEndpoint</span>(<span class="st">"/ws"</span>)
+                .<span class="fn">setAllowedOriginPatterns</span>(<span class="st">"*"</span>)
+                .<span class="fn">withSockJS</span>(); <span class="cm">// WebSocket 미지원 환경 폴백</span>
+    }
+}
+
+<span class="cm">/* ── 채팅 컨트롤러 ──────────────────────────────────────── */</span>
+<span class="kw">@Controller</span>
+<span class="kw">public class</span> <span class="fn">ChatController</span> {
+
+    <span class="kw">private final</span> SimpMessagingTemplate messagingTemplate;
+
+    <span class="kw">public</span> <span class="fn">ChatController</span>(SimpMessagingTemplate messagingTemplate) {
+        <span class="kw">this</span>.messagingTemplate = messagingTemplate;
+    }
+
+    <span class="cm">// 클라이언트 → /app/chat.send → 브로드캐스트</span>
+    <span class="kw">@MessageMapping</span>(<span class="st">"/chat.send"</span>)
+    <span class="kw">@SendTo</span>(<span class="st">"/topic/chat"</span>)
+    <span class="kw">public</span> ChatMessage <span class="fn">handleMessage</span>(ChatMessage message) {
+        message.<span class="fn">setTimestamp</span>(Instant.<span class="fn">now</span>());
+        <span class="kw">return</span> message; <span class="cm">// /topic/chat 구독자 전체에 전달</span>
+    }
+
+    <span class="cm">// 서버에서 특정 사용자에게 1:1 메시지 전송</span>
+    <span class="kw">public void</span> <span class="fn">sendToUser</span>(String userId, String message) {
+        messagingTemplate.<span class="fn">convertAndSendToUser</span>(
+            userId, <span class="st">"/queue/notification"</span>,
+            <span class="kw">new</span> Notification(message)
+        );
+    }
+
+    <span class="cm">// 연결/해제 이벤트 처리</span>
+    <span class="kw">@EventListener</span>
+    <span class="kw">public void</span> <span class="fn">handleConnect</span>(SessionConnectedEvent event) {
+        log.<span class="fn">info</span>(<span class="st">"WebSocket 연결: {}"</span>, event.<span class="fn">getUser</span>());
+    }
+
+    <span class="kw">@EventListener</span>
+    <span class="kw">public void</span> <span class="fn">handleDisconnect</span>(SessionDisconnectEvent event) {
+        log.<span class="fn">info</span>(<span class="st">"WebSocket 해제: {}"</span>, event.<span class="fn">getSessionId</span>());
+    }
+}</pre>
+            </div>
+            <p class="code-desc">
+                @EnableWebSocketMessageBroker로 STOMP 메시지 브로커를 활성화합니다.<br>
+                enableSimpleBroker는 인메모리 브로커로, 운영 환경에서는 Redis를 브로커로 사용해 여러 서버 인스턴스 간 메시지를 공유합니다.<br>
+                @MessageMapping은 /app/chat.send로 오는 메시지를 처리하고, @SendTo는 /topic/chat 구독자 전체에 결과를 브로드캐스트합니다.<br>
+                withSockJS()는 WebSocket을 지원하지 않는 환경에서 롱폴링 등으로 자동 폴백합니다.<br>
+                현대 브라우저에서는 대부분 불필요하지만 기업 네트워크 프록시 환경에서 유용합니다.<br>
+                setAllowedOriginPatterns("*")는 개발 환경용입니다. 운영 환경에서는 실제 도메인만 허용해야 합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">JavaScript — WebSocket 클라이언트 + 재연결 로직</p>
+            <div class="code-block">
+<pre><span class="cm">// ── 기본 WebSocket API ───────────────────────────────────</span>
+<span class="kw">const</span> ws = <span class="kw">new</span> <span class="fn">WebSocket</span>(<span class="st">'wss://example.com/ws'</span>);
+
+ws.onopen = () => {
+    console.<span class="fn">log</span>(<span class="st">'연결 수립'</span>, ws.readyState); <span class="cm">// OPEN = 1</span>
+    ws.<span class="fn">send</span>(<span class="st">'안녕하세요!'</span>);               <span class="cm">// 텍스트 전송</span>
+    ws.<span class="fn">send</span>(<span class="kw">new</span> <span class="fn">Uint8Array</span>([<span class="num">1</span>,<span class="num">2</span>,<span class="num">3</span>]));    <span class="cm">// 바이너리 전송</span>
+};
+
+ws.onmessage = (event) => {
+    <span class="kw">if</span> (<span class="kw">typeof</span> event.data === <span class="st">'string'</span>) {
+        <span class="kw">const</span> msg = JSON.<span class="fn">parse</span>(event.data);
+        console.<span class="fn">log</span>(<span class="st">'수신:'</span>, msg);
+    }
+};
+
+ws.onclose = (event) => {
+    <span class="cm">// event.code: 1000(정상), 1006(비정상), 1011(서버오류)</span>
+    console.<span class="fn">log</span>(<span class="st">`종료: ${event.code} ${event.reason}`</span>);
+};
+
+ws.onerror = (error) => console.<span class="fn">error</span>(<span class="st">'오류:'</span>, error);
+
+<span class="cm">// ── 자동 재연결 래퍼 ─────────────────────────────────────</span>
+<span class="kw">class</span> <span class="fn">ReconnectingWebSocket</span> {
+    <span class="kw">constructor</span>(url, options = {}) {
+        <span class="kw">this</span>.url        = url;
+        <span class="kw">this</span>.maxRetries = options.maxRetries || <span class="num">5</span>;
+        <span class="kw">this</span>.retryDelay = options.retryDelay || <span class="num">1000</span>;
+        <span class="kw">this</span>.retries    = <span class="num">0</span>;
+        <span class="kw">this</span>.<span class="fn">connect</span>();
+    }
+
+    <span class="fn">connect</span>() {
+        <span class="kw">this</span>.ws = <span class="kw">new</span> <span class="fn">WebSocket</span>(<span class="kw">this</span>.url);
+
+        <span class="kw">this</span>.ws.onopen = () => {
+            <span class="kw">this</span>.retries = <span class="num">0</span>; <span class="cm">// 성공 시 카운터 리셋</span>
+            <span class="kw">this</span>.onopen?.();
+        };
+
+        <span class="kw">this</span>.ws.onmessage = (e) => <span class="kw">this</span>.onmessage?.(e);
+
+        <span class="kw">this</span>.ws.onclose = (e) => {
+            <span class="kw">if</span> (e.code !== <span class="num">1000</span> && <span class="kw">this</span>.retries &lt; <span class="kw">this</span>.maxRetries) {
+                <span class="kw">const</span> delay = <span class="kw">this</span>.retryDelay * Math.<span class="fn">pow</span>(<span class="num">2</span>, <span class="kw">this</span>.retries);
+                <span class="fn">setTimeout</span>(() => <span class="kw">this</span>.<span class="fn">connect</span>(), delay); <span class="cm">// 지수 백오프</span>
+                <span class="kw">this</span>.retries++;
+            }
+        };
+    }
+
+    <span class="fn">send</span>(data) {
+        <span class="kw">if</span> (<span class="kw">this</span>.ws.readyState === WebSocket.OPEN)
+            <span class="kw">this</span>.ws.<span class="fn">send</span>(JSON.<span class="fn">stringify</span>(data));
+    }
+}</pre>
+            </div>
+            <p class="code-desc">
+                WebSocket.readyState는 CONNECTING(0), OPEN(1), CLOSING(2), CLOSED(3) 네 가지 상태를 가집니다.<br>
+                send() 호출 전 OPEN 상태인지 확인해야 합니다.<br>
+                ws://는 평문, wss://는 TLS 암호화 WebSocket입니다. 운영 환경에서는 반드시 wss://를 사용합니다.<br>
+                자동 재연결 시 지수 백오프(exponential backoff)를 적용합니다.<br>
+                재연결 실패 시 점점 늘어나는 대기 시간으로 서버 부하를 줄입니다.<br>
+                close 코드 1000은 정상 종료이며 재연결하지 않습니다. 1006은 비정상 종료(네트워크 단절 등)로 재연결을 시도합니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
