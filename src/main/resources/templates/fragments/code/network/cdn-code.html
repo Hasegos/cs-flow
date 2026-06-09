@@ -1,0 +1,141 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — Spring Boot Cache-Control 헤더 설정</p>
+            <div class="code-block">
+<pre><span class="kw">import</span> org.springframework.http.CacheControl;
+<span class="kw">import</span> org.springframework.web.servlet.config.annotation.*;
+
+<span class="cm">/* ── 정적 리소스 Cache-Control 설정 ─────────────────────── */</span>
+<span class="kw">@Configuration</span>
+<span class="kw">public class</span> <span class="fn">WebConfig</span> <span class="kw">implements</span> WebMvcConfigurer {
+
+    <span class="kw">@Override</span>
+    <span class="kw">public void</span> <span class="fn">addResourceHandlers</span>(ResourceHandlerRegistry registry) {
+        <span class="cm">// JS/CSS: 콘텐츠 해시 파일명 사용 → 1년 캐싱 + immutable</span>
+        registry.<span class="fn">addResourceHandler</span>(<span class="st">"/js/**"</span>, <span class="st">"/css/**"</span>)
+                .<span class="fn">addResourceLocations</span>(<span class="st">"classpath:/static/js/"</span>,
+                                       <span class="st">"classpath:/static/css/"</span>)
+                .<span class="fn">setCacheControl</span>(CacheControl
+                    .<span class="fn">maxAge</span>(<span class="num">365</span>, TimeUnit.DAYS)
+                    .<span class="fn">cachePublic</span>()
+                    .<span class="fn">immutable</span>());
+
+        <span class="cm">// 이미지: 1시간 캐싱</span>
+        registry.<span class="fn">addResourceHandler</span>(<span class="st">"/images/**"</span>)
+                .<span class="fn">addResourceLocations</span>(<span class="st">"classpath:/static/images/"</span>)
+                .<span class="fn">setCacheControl</span>(CacheControl
+                    .<span class="fn">maxAge</span>(<span class="num">1</span>, TimeUnit.HOURS)
+                    .<span class="fn">cachePublic</span>());
+    }
+}
+
+<span class="cm">/* ── HTML 응답: 캐싱 방지 ────────────────────────────────── */</span>
+<span class="kw">@Controller</span>
+<span class="kw">public class</span> <span class="fn">TopicController</span> {
+
+    <span class="kw">@GetMapping</span>(<span class="st">"/{subject}/{topic}"</span>)
+    <span class="kw">public</span> ResponseEntity&lt;String&gt; <span class="fn">topic</span>(
+            <span class="kw">@PathVariable</span> String subject,
+            <span class="kw">@PathVariable</span> String topic,
+            Model model) {
+
+        <span class="cm">// HTML은 캐시 금지 — 내용이 바뀔 수 있음</span>
+        HttpHeaders headers = <span class="kw">new</span> HttpHeaders();
+        headers.<span class="fn">setCacheControl</span>(
+            CacheControl.<span class="fn">noStore</span>().<span class="fn">getHeaderValue</span>()
+        );
+        <span class="kw">return</span> ResponseEntity
+            .<span class="fn">ok</span>()
+            .<span class="fn">headers</span>(headers)
+            .<span class="fn">body</span>(<span class="st">"topics/" + subject + "/" + topic</span>);
+    }
+}
+
+<span class="cm">/* ── Cloudflare 캐시 퍼지 (배포 시 자동 실행) ──────────── */</span>
+<span class="kw">public class</span> <span class="fn">CloudflarePurgeService</span> {
+
+    <span class="kw">private final</span> String zoneId = System.<span class="fn">getenv</span>(<span class="st">"CF_ZONE_ID"</span>);
+    <span class="kw">private final</span> String apiKey = System.<span class="fn">getenv</span>(<span class="st">"CF_API_KEY"</span>);
+
+    <span class="kw">public void</span> <span class="fn">purgeAll</span>() {
+        <span class="kw">var</span> client = HttpClient.<span class="fn">newHttpClient</span>();
+        <span class="kw">var</span> request = HttpRequest.<span class="fn">newBuilder</span>()
+            .<span class="fn">uri</span>(URI.<span class="fn">create</span>(
+                <span class="st">"https://api.cloudflare.com/client/v4/zones/"</span>
+                + zoneId + <span class="st">"/purge_cache"</span>))
+            .<span class="fn">header</span>(<span class="st">"Authorization"</span>, <span class="st">"Bearer " + apiKey</span>)
+            .<span class="fn">header</span>(<span class="st">"Content-Type"</span>, <span class="st">"application/json"</span>)
+            .<span class="fn">POST</span>(HttpRequest.BodyPublishers.<span class="fn">ofString</span>(
+                <span class="st">"{\"purge_everything\": true}"</span>))
+            .<span class="fn">build</span>();
+
+        client.<span class="fn">sendAsync</span>(request, HttpResponse.BodyHandlers.<span class="fn">ofString</span>())
+              .<span class="fn">thenAccept</span>(res -> log.<span class="fn">info</span>(<span class="st">"CF purge: {}"</span>, res.<span class="fn">body</span>()));
+    }
+}</pre>
+            </div>
+            <p class="code-desc">
+                정적 리소스(JS, CSS)는 콘텐츠 해시가 파일명에 포함되므로 파일이 변경되면 URL 자체가 바뀝니다.<br>
+                따라서 max-age=1년 + immutable로 설정해도 안전합니다. Spring은 ResourceHandlerRegistry에서 이를 자동으로 처리합니다.<br>
+                HTML은 항상 최신 버전을 보여야 하므로 no-store로 캐싱을 금지합니다. Cloudflare는 이 헤더를 존중해 HTML을 캐싱하지 않습니다.<br>
+                배포 시 Cloudflare API로 캐시를 퍼지합니다. API 키는 반드시 환경 변수에서 읽어야 합니다.<br>
+                GitHub Actions에서 배포 완료 후 purge_cache API를 호출하는 스텝을 추가하면 됩니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">nginx — CDN 오리진 서버 설정</p>
+            <div class="code-block">
+<pre><span class="cm"># nginx.conf — Cloudflare가 앞단에서 CDN 역할</span>
+
+server {
+    listen 80;
+    server_name csflow.kr;
+
+    <span class="cm"># Cloudflare Real IP 복원</span>
+    real_ip_header CF-Connecting-IP;
+
+    <span class="cm"># HTML — CDN 캐싱 금지</span>
+    location / {
+        proxy_pass http://csflow_backend;
+        add_header Cache-Control "no-store";
+        add_header Vary "Accept-Encoding";
+    }
+
+    <span class="cm"># 정적 리소스 — CDN이 1년 캐싱</span>
+    location ~* \.(css|js|png|jpg|svg|ico|woff|woff2)$ {
+        proxy_pass http://csflow_backend;
+        proxy_set_header Host $host;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+
+        <span class="cm"># Cloudflare가 이 헤더를 보고 엣지에 캐싱</span>
+        expires 1y;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+
+    <span class="cm"># API — 캐싱 금지</span>
+    location /api/ {
+        proxy_pass http://csflow_backend;
+        add_header Cache-Control "no-store, no-cache";
+        add_header Pragma "no-cache";
+    }
+
+    <span class="cm"># Actuator — 외부 차단</span>
+    location /actuator {
+        deny all;
+        return 403;
+    }
+}</pre>
+            </div>
+            <p class="code-desc">
+                Cloudflare가 앞단에서 CDN 역할을 할 때 nginx는 오리진 서버로 동작합니다. Cache-Control 헤더를 통해 Cloudflare가 어떤 콘텐츠를 캐싱할지 결정합니다.<br>
+                정적 리소스에 max-age=31536000 immutable을 설정하면 Cloudflare 엣지 서버가 1년간 캐싱합니다. 이후 해당 파일 요청은 오리진까지 오지 않습니다.<br>
+                API 응답은 no-store로 캐싱을 막습니다. 캐시된 API 응답이 다른 사용자에게 전달되면 보안 문제가 발생할 수 있습니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
