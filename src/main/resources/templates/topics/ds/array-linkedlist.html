@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">배열 vs 연결 리스트 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/ds/array-linkedlist.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/ds}" class="topic-breadcrumb__link">자료구조</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">배열 vs 연결 리스트</span>
+                </nav>
+
+                <span class="topic-hero__slug">ds · 01</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">배열 vs 연결 리스트</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        배열(Array)과 연결 리스트(Linked List)는 <strong>데이터를 순서 있게 저장하는 가장 기본적인 자료구조</strong>입니다.
+                        배열은 메모리에 연속으로 저장해 인덱스로 즉시 접근하고, 연결 리스트는 노드가 다음 노드의 주소를 가리키며 분산 저장합니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">배열의 메모리 구조</h3>
+                            <p class="overview-card__desc">배열은 같은 타입의 데이터를 메모리에 연속으로 저장합니다. 시작 주소와 인덱스만 알면 임의 원소에 O(1)으로 접근할 수 있습니다. 크기는 선언 시 고정되며, 중간 삽입·삭제 시 원소를 한 칸씩 이동해야 해 O(n)이 걸립니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">연결 리스트의 메모리 구조</h3>
+                            <p class="overview-card__desc">연결 리스트의 각 노드는 데이터(data)와 다음 노드를 가리키는 포인터(next)로 구성됩니다. 노드들이 메모리에 분산 저장되어 삽입·삭제가 O(1)이지만, 특정 위치까지 순차 탐색이 필요해 임의 접근은 O(n)입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">시간 복잡도 비교</h3>
+                            <p class="overview-card__desc">임의 접근: 배열 O(1) vs 연결 리스트 O(n). 맨 앞 삽입: 배열 O(n) vs 연결 리스트 O(1). 맨 뒤 삽입: 배열 O(1) vs 연결 리스트 O(n) 또는 tail 포인터 유지 시 O(1). 탐색(값으로): 둘 다 O(n).</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">캐시 지역성(Cache Locality)</h3>
+                            <p class="overview-card__desc">배열은 연속 메모리이므로 CPU 캐시 히트율이 높습니다. 연결 리스트는 노드가 힙 메모리 곳곳에 흩어져 있어 캐시 미스가 자주 발생합니다. 실제 성능은 이론적 복잡도보다 캐시 효율 차이가 더 크게 영향을 줍니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">단순/이중/원형 연결 리스트</h3>
+                            <p class="overview-card__desc">단순 연결 리스트(Singly)는 next 포인터만 가집니다. 이중 연결 리스트(Doubly)는 prev·next 포인터를 모두 가져 양방향 순회와 O(1) 삭제가 가능합니다. 원형(Circular)은 마지막 노드가 첫 노드를 가리켜 순환 구조를 이룹니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">동적 배열(Dynamic Array)</h3>
+                            <p class="overview-card__desc">Java의 ArrayList, Python의 list가 동적 배열입니다. 내부적으로 고정 배열을 사용하되, 크기 초과 시 더 큰 배열을 새로 할당해 복사합니다. 성장 배율은 구현마다 다른데, Java ArrayList는 1.5배(oldCapacity + oldCapacity/2)로 늘립니다. 분할 상환 분석(Amortized)으로 append는 O(1)이며, 배열의 인덱스 접근 장점과 동적 크기 조정을 모두 갖습니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>언제 배열을 쓰나?</strong> — 크기가 고정되어 있거나, 인덱스로 빈번하게 임의 접근이 필요한 경우. 수치 연산, 행렬, 버퍼, 정렬된 데이터 탐색 등에 적합합니다. 메모리 효율도 높아 포인터 오버헤드가 없습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>언제 연결 리스트를 쓰나?</strong> — 삽입·삭제가 빈번하고 크기가 자주 바뀌는 경우. 스택, 큐, LRU 캐시 등의 내부 구현에 활용됩니다. Java의 LinkedList, Deque, 그래프의 인접 리스트가 대표 예시입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Java에서의 선택</strong> — ArrayList는 조회 위주, LinkedList는 삽입/삭제 위주라고 알려졌지만, 실제로는 캐시 지역성 덕분에 ArrayList가 대부분 더 빠릅니다. LinkedList가 유리한 경우는 Deque(양끝 삽입/삭제)로 사용할 때입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>메모리 사용량</strong> — 배열은 데이터만 저장해 공간 효율이 높습니다. 연결 리스트는 노드마다 포인터(8바이트, 64비트 기준)를 추가로 저장하고, 객체 헤더 오버헤드도 발생합니다. 소규모 데이터에서는 이 차이가 크게 체감됩니다.</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/ds/array-linkedlist-code :: code}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+</body>
+</html>
