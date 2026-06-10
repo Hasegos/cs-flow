@@ -1,0 +1,96 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 배열 직접 구현 vs ArrayList</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── 고정 배열 — 인덱스 직접 접근 ─────────────────────── */</span>
+<span class="kw">int</span>[] arr = <span class="kw">new int</span>[<span class="num">5</span>];          <span class="cm">// 크기 고정, 연속 메모리 할당</span>
+arr[<span class="num">0</span>] = <span class="num">10</span>; arr[<span class="num">1</span>] = <span class="num">30</span>;        <span class="cm">// O(1) 임의 접근</span>
+
+<span class="cm">/* ── 중간 삽입: O(n) — 원소 이동 필요 ──────────────────── */</span>
+<span class="kw">public static void</span> <span class="fn">insertAt</span>(<span class="kw">int</span>[] arr, <span class="kw">int</span> idx, <span class="kw">int</span> val, <span class="kw">int</span> size) {
+    <span class="cm">// 뒤에서부터 한 칸씩 오른쪽으로 이동</span>
+    <span class="kw">for</span> (<span class="kw">int</span> i = size - <span class="num">1</span>; i >= idx; i--) {
+        arr[i + <span class="num">1</span>] = arr[i];
+    }
+    arr[idx] = val;
+}
+
+<span class="cm">/* ── 동적 배열 ArrayList — 내부는 배열, 크기 자동 조정 ──── */</span>
+List&lt;Integer&gt; list = <span class="kw">new</span> ArrayList&lt;&gt;();
+list.<span class="fn">add</span>(<span class="num">10</span>);                      <span class="cm">// Amortized O(1) — 공간 초과 시 2배 재할당</span>
+list.<span class="fn">add</span>(<span class="num">1</span>, <span class="num">20</span>);                  <span class="cm">// O(n) — 이후 원소 이동</span>
+list.<span class="fn">get</span>(<span class="num">0</span>);                      <span class="cm">// O(1) — 인덱스 직접 접근</span>
+list.<span class="fn">remove</span>(<span class="num">0</span>);                   <span class="cm">// O(n) — 이후 원소 앞으로 이동</span>
+
+<span class="cm">// ArrayList 내부 재할당 원리</span>
+<span class="cm">// DEFAULT_CAPACITY = 10, 초과 시 newCapacity = oldCapacity * 1.5</span>
+<span class="cm">// Arrays.copyOf()로 새 배열에 복사 후 참조 교체</span>
+
+<span class="cm">/* ── 배열 이진 탐색 — 정렬된 배열에서 O(log n) ─────────── */</span>
+<span class="kw">int</span>[] sorted = {<span class="num">10</span>, <span class="num">20</span>, <span class="num">30</span>, <span class="num">40</span>, <span class="num">50</span>};
+<span class="kw">int</span> idx = Arrays.<span class="fn">binarySearch</span>(sorted, <span class="num">30</span>); <span class="cm">// idx = 2</span></pre>
+            </div>
+            <p class="code-desc">
+                배열은 메모리에 연속으로 저장되므로 arr[i] 접근은 시작 주소 + i × 타입크기로 계산해 O(1)입니다.<br>
+                중간 삽입·삭제는 이후 원소를 이동해야 하므로 O(n)입니다.<br>
+                ArrayList는 내부 배열이 꽉 차면 1.5배 크기의 새 배열을 할당하고 복사합니다. add()의 분할 상환 복잡도는 O(1)입니다.<br>
+                정렬된 배열에서는 이진 탐색으로 O(log n) 탐색이 가능합니다.<br>
+                연결 리스트는 이진 탐색 불가능(임의 접근 없음)합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 연결 리스트 직접 구현 vs LinkedList</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── 단순 연결 리스트 노드 ──────────────────────────────── */</span>
+<span class="kw">class</span> <span class="fn">Node</span>&lt;T&gt; {
+    T data;
+    Node&lt;T&gt; next;
+    <span class="fn">Node</span>(T data) { <span class="kw">this</span>.data = data; }
+}
+
+<span class="cm">/* ── 중간 삽입: O(1) — 포인터 교환만 필요 ──────────────── */</span>
+<span class="kw">public void</span> <span class="fn">insertAfter</span>(Node&lt;Integer&gt; prev, <span class="kw">int</span> val) {
+    Node&lt;Integer&gt; newNode = <span class="kw">new</span> <span class="fn">Node</span>&lt;&gt;(val);
+    newNode.next = prev.next;  <span class="cm">// 새 노드가 다음 노드 가리킴</span>
+    prev.next    = newNode;    <span class="cm">// 이전 노드가 새 노드 가리킴</span>
+    <span class="cm">// 포인터 2번 변경으로 완료 — 원소 이동 없음</span>
+}
+
+<span class="cm">/* ── 탐색: O(n) — 순차 순회 필요 ───────────────────────── */</span>
+<span class="kw">public</span> Node&lt;Integer&gt; <span class="fn">findNode</span>(Node&lt;Integer&gt; head, <span class="kw">int</span> val) {
+    Node&lt;Integer&gt; cur = head;
+    <span class="kw">while</span> (cur != <span class="kw">null</span>) {
+        <span class="kw">if</span> (cur.data == val) <span class="kw">return</span> cur;
+        cur = cur.next;
+    }
+    <span class="kw">return null</span>;
+}
+
+<span class="cm">/* ── Java LinkedList — 이중 연결 리스트 ─────────────────── */</span>
+LinkedList&lt;Integer&gt; linked = <span class="kw">new</span> LinkedList&lt;&gt;();
+linked.<span class="fn">addFirst</span>(<span class="num">10</span>);             <span class="cm">// O(1) — head 포인터 변경</span>
+linked.<span class="fn">addLast</span>(<span class="num">50</span>);              <span class="cm">// O(1) — tail 포인터 변경</span>
+linked.<span class="fn">add</span>(<span class="num">1</span>, <span class="num">20</span>);               <span class="cm">// O(n) 탐색 + O(1) 삽입</span>
+linked.<span class="fn">get</span>(<span class="num">2</span>);                   <span class="cm">// O(n) — 순차 탐색</span>
+linked.<span class="fn">removeFirst</span>();             <span class="cm">// O(1) — head 포인터 변경</span>
+
+<span class="cm">/* ── Deque로 사용 시 — 양끝 O(1) ───────────────────────── */</span>
+Deque&lt;Integer&gt; deque = <span class="kw">new</span> LinkedList&lt;&gt;();
+deque.<span class="fn">offerFirst</span>(<span class="num">1</span>);             <span class="cm">// 앞에 추가</span>
+deque.<span class="fn">offerLast</span>(<span class="num">2</span>);              <span class="cm">// 뒤에 추가</span>
+deque.<span class="fn">pollFirst</span>();               <span class="cm">// 앞에서 제거</span></pre>
+            </div>
+            <p class="code-desc">
+                연결 리스트 삽입·삭제는 포인터 2개만 바꾸면 되므로 위치를 알고 있을 때 O(1)입니다.<br>
+                단, 삽입 위치까지 탐색하는 과정이 O(n)이므로 전체 복잡도는 탐색+삽입입니다.<br>
+                Java의 LinkedList는 이중 연결 리스트로 prev·next 포인터를 모두 갖습니다. head/tail 포인터도 유지해 맨 앞/뒤 삽입·삭제는 O(1)입니다.<br>
+                임의 접근(get(i))은 O(n)이므로 인덱스 기반 조회가 많다면 ArrayList가 훨씬 유리합니다.<br>
+                실무에서 LinkedList가 가장 빛나는 용도는 양끝 삽입/삭제가 빈번한 Deque 구현입니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
