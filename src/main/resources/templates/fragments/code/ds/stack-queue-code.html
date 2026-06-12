@@ -1,0 +1,145 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 스택 직접 구현 vs Deque 활용</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── 배열 기반 스택 직접 구현 ───────────────────────────── */</span>
+<span class="kw">public class</span> <span class="fn">ArrayStack</span>&lt;T&gt; {
+    <span class="kw">private</span> Object[] data;
+    <span class="kw">private int</span> top = -<span class="num">1</span>;
+
+    <span class="kw">public</span> <span class="fn">ArrayStack</span>(<span class="kw">int</span> capacity) {
+        data = <span class="kw">new</span> Object[capacity];
+    }
+
+    <span class="kw">public void</span> <span class="fn">push</span>(T item) {
+        <span class="kw">if</span> (top == data.length - <span class="num">1</span>) <span class="kw">throw new</span> <span class="fn">RuntimeException</span>(<span class="st">"Stack Overflow"</span>);
+        data[++top] = item; <span class="cm">// top 먼저 올리고 저장</span>
+    }
+
+    <span class="kw">@SuppressWarnings</span>(<span class="st">"unchecked"</span>)
+    <span class="kw">public</span> T <span class="fn">pop</span>() {
+        <span class="kw">if</span> (top == -<span class="num">1</span>) <span class="kw">throw new</span> <span class="fn">RuntimeException</span>(<span class="st">"Stack Underflow"</span>);
+        T item = (T) data[top];
+        data[top--] = <span class="kw">null</span>; <span class="cm">// GC 참조 해제 후 top 낮춤</span>
+        <span class="kw">return</span> item;
+    }
+
+    <span class="kw">@SuppressWarnings</span>(<span class="st">"unchecked"</span>)
+    <span class="kw">public</span> T <span class="fn">peek</span>() {
+        <span class="kw">if</span> (top == -<span class="num">1</span>) <span class="kw">throw new</span> <span class="fn">RuntimeException</span>(<span class="st">"Empty Stack"</span>);
+        <span class="kw">return</span> (T) data[top]; <span class="cm">// top만 반환, 제거 안 함</span>
+    }
+
+    <span class="kw">public boolean</span> <span class="fn">isEmpty</span>() { <span class="kw">return</span> top == -<span class="num">1</span>; }
+    <span class="kw">public int</span> <span class="fn">size</span>()       { <span class="kw">return</span> top + <span class="num">1</span>; }
+}
+
+<span class="cm">/* ── Java 표준 — ArrayDeque를 Stack으로 사용 (권장) ─────── */</span>
+Deque&lt;Integer&gt; stack = <span class="kw">new</span> ArrayDeque&lt;&gt;();
+stack.<span class="fn">push</span>(<span class="num">10</span>);       <span class="cm">// = addFirst(), 앞에 추가</span>
+stack.<span class="fn">push</span>(<span class="num">20</span>);
+stack.<span class="fn">pop</span>();          <span class="cm">// = removeFirst(), 20 반환 — LIFO</span>
+stack.<span class="fn">peek</span>();         <span class="cm">// = peekFirst(), 제거 없이 조회</span>
+
+<span class="cm">// Stack 클래스보다 ArrayDeque를 권장하는 이유:</span>
+<span class="cm">// Stack은 Vector 상속 → 모든 메서드 synchronized → 불필요한 동기화 비용</span>
+<span class="cm">// ArrayDeque는 동기화 없음 → 단일 스레드에서 훨씬 빠름</span>
+
+<span class="cm">/* ── 활용 예: 괄호 유효성 검사 ─────────────────────────── */</span>
+<span class="kw">public boolean</span> <span class="fn">isValid</span>(String s) {
+    Deque&lt;Character&gt; stack = <span class="kw">new</span> ArrayDeque&lt;&gt;();
+    <span class="kw">for</span> (<span class="kw">char</span> c : s.<span class="fn">toCharArray</span>()) {
+        <span class="kw">if</span> (c == <span class="st">'('</span> || c == <span class="st">'{'</span> || c == <span class="st">'['</span>) {
+            stack.<span class="fn">push</span>(c);
+        } <span class="kw">else</span> {
+            <span class="kw">if</span> (stack.<span class="fn">isEmpty</span>()) <span class="kw">return false</span>;
+            <span class="kw">char</span> top = stack.<span class="fn">pop</span>();
+            <span class="kw">if</span> (c == <span class="st">')'</span> &amp;&amp; top != <span class="st">'('</span>) <span class="kw">return false</span>;
+            <span class="kw">if</span> (c == <span class="st">'}'</span> &amp;&amp; top != <span class="st">'{'</span>) <span class="kw">return false</span>;
+            <span class="kw">if</span> (c == <span class="st">']'</span> &amp;&amp; top != <span class="st">'['</span>) <span class="kw">return false</span>;
+        }
+    }
+    <span class="kw">return</span> stack.<span class="fn">isEmpty</span>();
+}</pre>
+            </div>
+            <p class="code-desc">
+                스택은 push 시 top을 먼저 올리고 저장하며, pop 시 값을 꺼낸 뒤 top을 낮춥니다.<br>
+                pop 후 배열 참조를 null로 지워야 GC가 메모리를 회수할 수 있습니다.<br>
+                Java의 Stack 클래스는 Vector를 상속해 synchronized 오버헤드가 있으므로, 단일 스레드에서는 ArrayDeque를 Deque 인터페이스로 사용하는 것이 표준 권장 방법입니다.<br>
+                괄호 유효성 검사는 스택의 대표적인 활용 예로, 여는 괄호는 push하고 닫는 괄호가 오면 pop해서 쌍을 맞춥니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 큐 직접 구현 vs ArrayDeque 활용</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── 원형 배열 큐 직접 구현 ─────────────────────────────── */</span>
+<span class="kw">public class</span> <span class="fn">CircularQueue</span>&lt;T&gt; {
+    <span class="kw">private</span> Object[] data;
+    <span class="kw">private int</span> front = <span class="num">0</span>, rear = <span class="num">0</span>, size = <span class="num">0</span>;
+    <span class="kw">private final int</span> capacity;
+
+    <span class="kw">public</span> <span class="fn">CircularQueue</span>(<span class="kw">int</span> capacity) {
+        <span class="kw">this</span>.capacity = capacity;
+        data = <span class="kw">new</span> Object[capacity];
+    }
+
+    <span class="kw">public void</span> <span class="fn">enqueue</span>(T item) {
+        <span class="kw">if</span> (size == capacity) <span class="kw">throw new</span> <span class="fn">RuntimeException</span>(<span class="st">"Queue Full"</span>);
+        data[rear] = item;
+        rear = (rear + <span class="num">1</span>) % capacity; <span class="cm">// 원형 인덱스 — 끝에 도달하면 0으로</span>
+        size++;
+    }
+
+    <span class="kw">@SuppressWarnings</span>(<span class="st">"unchecked"</span>)
+    <span class="kw">public</span> T <span class="fn">dequeue</span>() {
+        <span class="kw">if</span> (size == <span class="num">0</span>) <span class="kw">throw new</span> <span class="fn">RuntimeException</span>(<span class="st">"Queue Empty"</span>);
+        T item = (T) data[front];
+        data[front] = <span class="kw">null</span>;
+        front = (front + <span class="num">1</span>) % capacity; <span class="cm">// front도 원형으로 이동</span>
+        size--;
+        <span class="kw">return</span> item;
+    }
+
+    <span class="kw">public boolean</span> <span class="fn">isEmpty</span>() { <span class="kw">return</span> size == <span class="num">0</span>; }
+    <span class="kw">public boolean</span> <span class="fn">isFull</span>()  { <span class="kw">return</span> size == capacity; }
+}
+
+<span class="cm">/* ── Java 표준 — ArrayDeque를 Queue로 사용 (권장) ──────── */</span>
+Queue&lt;Integer&gt; queue = <span class="kw">new</span> ArrayDeque&lt;&gt;();
+queue.<span class="fn">offer</span>(<span class="num">10</span>);    <span class="cm">// enqueue — 실패 시 false 반환 (add는 예외)</span>
+queue.<span class="fn">offer</span>(<span class="num">20</span>);
+queue.<span class="fn">poll</span>();     <span class="cm">// dequeue — 10 반환, 비어있으면 null (remove는 예외)</span>
+queue.<span class="fn">peek</span>();     <span class="cm">// front 조회 — 제거 없음, 비어있으면 null</span>
+
+<span class="cm">/* ── 활용 예: BFS (너비 우선 탐색) ──────────────────────── */</span>
+<span class="kw">public void</span> <span class="fn">bfs</span>(<span class="kw">int</span> start, List&lt;List&lt;Integer&gt;&gt; graph) {
+    Queue&lt;Integer&gt; queue = <span class="kw">new</span> ArrayDeque&lt;&gt;();
+    <span class="kw">boolean</span>[] visited = <span class="kw">new boolean</span>[graph.<span class="fn">size</span>()];
+    queue.<span class="fn">offer</span>(start);
+    visited[start] = <span class="kw">true</span>;
+
+    <span class="kw">while</span> (!queue.<span class="fn">isEmpty</span>()) {
+        <span class="kw">int</span> node = queue.<span class="fn">poll</span>(); <span class="cm">// FIFO — 가장 먼저 넣은 노드부터 처리</span>
+        System.out.<span class="fn">print</span>(node + <span class="st">" "</span>);
+        <span class="kw">for</span> (<span class="kw">int</span> next : graph.<span class="fn">get</span>(node)) {
+            <span class="kw">if</span> (!visited[next]) {
+                visited[next] = <span class="kw">true</span>;
+                queue.<span class="fn">offer</span>(next); <span class="cm">// 인접 노드를 rear에 추가</span>
+            }
+        }
+    }
+}</pre>
+            </div>
+            <p class="code-desc">
+                원형 큐에서 인덱스 이동은 (index + 1) % capacity로 계산해 배열 끝에서 0으로 순환합니다.<br>
+                front와 rear가 같으면 빈 큐이고, size로 가득 찼는지 별도 추적합니다.<br>
+                Java 표준에서 큐는 offer/poll/peek를 사용합니다. add/remove는 실패 시 예외를 던지므로 용량 제한이 있는 큐가 아니면 offer/poll이 안전합니다.<br>
+                BFS는 큐의 대표적인 활용입니다. 시작 노드를 큐에 넣고, 꺼낸 노드의 인접 노드를 순서대로 큐에 넣어 레벨별(거리별) 탐색을 보장합니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
