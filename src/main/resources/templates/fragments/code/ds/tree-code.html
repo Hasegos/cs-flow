@@ -1,0 +1,113 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 이진 트리 노드 정의 및 삽입</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── 이진 트리 노드 ─────────────────────────────────────── */</span>
+<span class="kw">public class</span> <span class="fn">TreeNode</span> {
+    <span class="kw">int</span> value;
+    TreeNode left;
+    TreeNode right;
+
+    <span class="fn">TreeNode</span>(<span class="kw">int</span> value) {
+        <span class="kw">this</span>.value = value;
+    }
+}
+
+<span class="cm">/* ── 레벨 순서로 채워 넣는 완전 이진 트리 구성 ─────────────── */</span>
+<span class="cm">// 배열 인덱스 i의 자식은 2i+1(왼쪽), 2i+2(오른쪽)에 대응합니다.</span>
+<span class="kw">public class</span> <span class="fn">BinaryTree</span> {
+    TreeNode root;
+
+    <span class="kw">public</span> TreeNode <span class="fn">buildFromArray</span>(<span class="kw">int</span>[] values) {
+        <span class="kw">if</span> (values.length == <span class="num">0</span>) <span class="kw">return null</span>;
+        TreeNode[] nodes = <span class="kw">new</span> TreeNode[values.length];
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">0</span>; i &lt; values.length; i++) {
+            nodes[i] = <span class="kw">new</span> <span class="fn">TreeNode</span>(values[i]);
+        }
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">0</span>; i &lt; values.length; i++) {
+            <span class="kw">int</span> leftIdx = <span class="num">2</span> * i + <span class="num">1</span>;
+            <span class="kw">int</span> rightIdx = <span class="num">2</span> * i + <span class="num">2</span>;
+            <span class="kw">if</span> (leftIdx &lt; values.length)  nodes[i].left  = nodes[leftIdx];
+            <span class="kw">if</span> (rightIdx &lt; values.length) nodes[i].right = nodes[rightIdx];
+        }
+        root = nodes[<span class="num">0</span>];
+        <span class="kw">return</span> root;
+    }
+}</pre>
+            </div>
+            <p class="code-desc">
+                일반 이진 트리는 정렬 조건이 없으므로, 배열을 레벨 순서(Level-order)로 그대로 노드에 대응시켜 완전 이진 트리 형태로 구성할 수 있습니다.<br>
+                BST(이진 탐색 트리)처럼 "왼쪽 자식 &lt; 부모 &lt; 오른쪽 자식" 조건이 없는 순수 구조라는 점이 다음 토픽인 BST와의 차이입니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 전위 / 중위 / 후위 순회 (재귀)</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── 전위 순회: Root → Left → Right ─────────────────────── */</span>
+<span class="kw">public void</span> <span class="fn">preorder</span>(TreeNode node, List&lt;Integer&gt; result) {
+    <span class="kw">if</span> (node == <span class="kw">null</span>) <span class="kw">return</span>;       <span class="cm">// 재귀 종료 조건</span>
+    result.<span class="fn">add</span>(node.value);                 <span class="cm">// 1. 루트 방문</span>
+    <span class="fn">preorder</span>(node.left, result);          <span class="cm">// 2. 왼쪽 서브트리</span>
+    <span class="fn">preorder</span>(node.right, result);         <span class="cm">// 3. 오른쪽 서브트리</span>
+}
+
+<span class="cm">/* ── 중위 순회: Left → Root → Right ─────────────────────── */</span>
+<span class="kw">public void</span> <span class="fn">inorder</span>(TreeNode node, List&lt;Integer&gt; result) {
+    <span class="kw">if</span> (node == <span class="kw">null</span>) <span class="kw">return</span>;
+    <span class="fn">inorder</span>(node.left, result);           <span class="cm">// 1. 왼쪽 서브트리</span>
+    result.<span class="fn">add</span>(node.value);                 <span class="cm">// 2. 루트 방문</span>
+    <span class="fn">inorder</span>(node.right, result);          <span class="cm">// 3. 오른쪽 서브트리</span>
+}
+
+<span class="cm">/* ── 후위 순회: Left → Right → Root ─────────────────────── */</span>
+<span class="kw">public void</span> <span class="fn">postorder</span>(TreeNode node, List&lt;Integer&gt; result) {
+    <span class="kw">if</span> (node == <span class="kw">null</span>) <span class="kw">return</span>;
+    <span class="fn">postorder</span>(node.left, result);         <span class="cm">// 1. 왼쪽 서브트리</span>
+    <span class="fn">postorder</span>(node.right, result);        <span class="cm">// 2. 오른쪽 서브트리</span>
+    result.<span class="fn">add</span>(node.value);                 <span class="cm">// 3. 루트 방문</span>
+}
+
+<span class="cm">/* ── 호출 예시 ──────────────────────────────────────────── */</span>
+List&lt;Integer&gt; result = <span class="kw">new</span> ArrayList&lt;&gt;();
+<span class="fn">preorder</span>(root, result);
+<span class="cm">// result: [루트, 왼쪽 서브트리 전위, 오른쪽 서브트리 전위] 순서로 채워집니다.</span></pre>
+            </div>
+            <p class="code-desc">
+                세 순회 함수는 재귀 호출 순서만 다를 뿐 구조가 동일합니다.<br>
+                <span class="st">result.add()</span>를 어느 위치에 두느냐가 전위·중위·후위를 가릅니다.<br>
+                각 재귀 호출은 호출 스택에 현재 노드를 쌓고, null을 만나면(리프의 자식) 스택을 거슬러 올라갑니다 — 시각화의 "스택 깊이"가 바로 이 호출 스택입니다.<br>
+                시간복잡도는 모든 노드를 정확히 한 번 방문하므로 O(n), 공간복잡도는 재귀 호출 스택 깊이만큼인 O(h) (h = 트리 높이, 최악의 경우 편향 트리에서 O(n))입니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 레벨 순회 (BFS, 참고)</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── 레벨 순회: 큐를 이용한 너비 우선 탐색 ──────────────── */</span>
+<span class="cm">// 전위·중위·후위가 깊이 우선(DFS)인 것과 달리, 레벨 순회는 큐 기반 BFS입니다.</span>
+<span class="kw">public void</span> <span class="fn">levelOrder</span>(TreeNode root, List&lt;Integer&gt; result) {
+    <span class="kw">if</span> (root == <span class="kw">null</span>) <span class="kw">return</span>;
+
+    Queue&lt;TreeNode&gt; queue = <span class="kw">new</span> LinkedList&lt;&gt;();
+    queue.<span class="fn">offer</span>(root);
+
+    <span class="kw">while</span> (!queue.<span class="fn">isEmpty</span>()) {
+        TreeNode node = queue.<span class="fn">poll</span>();
+        result.<span class="fn">add</span>(node.value);
+        <span class="kw">if</span> (node.left  != <span class="kw">null</span>) queue.<span class="fn">offer</span>(node.left);
+        <span class="kw">if</span> (node.right != <span class="kw">null</span>) queue.<span class="fn">offer</span>(node.right);
+    }
+}</pre>
+            </div>
+            <p class="code-desc">
+                재귀 대신 큐(Queue)에 자식 노드를 순서대로 넣고 빼면서 레벨 단위로 방문합니다.<br>
+                트리의 폭(너비)이 넓을수록 큐가 커지므로 공간복잡도는 O(w) (w = 최대 레벨 너비)입니다.<br>
+                레벨 순회는 이번 시각화의 핵심 범위는 아니지만, DFS(전위·중위·후위)와 BFS(레벨 순회)의 차이를 이해하는 데 참고가 됩니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
