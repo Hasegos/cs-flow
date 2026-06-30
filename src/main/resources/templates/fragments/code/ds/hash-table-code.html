@@ -1,0 +1,148 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — HashMap 사용 및 내부 동작 이해</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── HashMap 기본 사용 ──────────────────────────────────── */</span>
+Map&lt;String, Integer&gt; map = <span class="kw">new</span> HashMap&lt;&gt;();
+
+<span class="cm">// 삽입 — 평균 O(1)</span>
+map.<span class="fn">put</span>(<span class="st">"apple"</span>,  <span class="num">3</span>);
+map.<span class="fn">put</span>(<span class="st">"banana"</span>, <span class="num">5</span>);
+map.<span class="fn">put</span>(<span class="st">"cherry"</span>, <span class="num">2</span>);
+
+<span class="cm">// 탐색 — 평균 O(1)</span>
+<span class="kw">int</span> count = map.<span class="fn">getOrDefault</span>(<span class="st">"apple"</span>, <span class="num">0</span>); <span class="cm">// 3</span>
+
+<span class="cm">// 존재 확인</span>
+<span class="kw">boolean</span> has = map.<span class="fn">containsKey</span>(<span class="st">"banana"</span>);  <span class="cm">// true</span>
+
+<span class="cm">// 삭제 — 평균 O(1)</span>
+map.<span class="fn">remove</span>(<span class="st">"cherry"</span>);
+
+<span class="cm">// 순회 (순서 보장 없음)</span>
+<span class="kw">for</span> (Map.Entry&lt;String, Integer&gt; e : map.<span class="fn">entrySet</span>()) {
+    System.out.<span class="fn">println</span>(e.<span class="fn">getKey</span>() + <span class="st">" → "</span> + e.<span class="fn">getValue</span>());
+}
+
+<span class="cm">/* ── 빈도 카운팅 패턴 ───────────────────────────────────── */</span>
+<span class="kw">int</span>[] nums = {<span class="num">1</span>, <span class="num">2</span>, <span class="num">2</span>, <span class="num">3</span>, <span class="num">3</span>, <span class="num">3</span>};
+Map&lt;Integer, Integer&gt; freq = <span class="kw">new</span> HashMap&lt;&gt;();
+<span class="kw">for</span> (<span class="kw">int</span> n : nums) {
+    freq.<span class="fn">merge</span>(n, <span class="num">1</span>, Integer::sum); <span class="cm">// 없으면 1, 있으면 +1</span>
+}
+<span class="cm">// freq: {1=1, 2=2, 3=3}</span>
+
+<span class="cm">/* ── HashMap 내부 구조 파라미터 ─────────────────────────── */</span>
+<span class="cm">// 기본 용량 = 16 (항상 2의 거듭제곱)</span>
+<span class="cm">// 기본 부하율 = 0.75</span>
+<span class="cm">// 임계값 = 용량 * 부하율 = 12</span>
+<span class="cm">// 13번째 삽입으로 size가 임계값 12를 초과 → 용량 32로 리사이징 + 전체 재해싱</span>
+
+<span class="cm">// 초기 용량 예측 가능 시 직접 지정으로 리사이징 방지</span>
+Map&lt;String, Integer&gt; presized =
+    <span class="kw">new</span> HashMap&lt;&gt;(<span class="num">1 &lt;&lt; 7</span>); <span class="cm">// 128 (2의 거듭제곱)</span>
+
+<span class="cm">/* ── 키로 사용할 클래스의 필수 규칙 ────────────────────── */</span>
+<span class="kw">public class</span> <span class="fn">Point</span> {
+    <span class="kw">private final int</span> x, y;
+
+    <span class="kw">@Override</span>
+    <span class="kw">public int</span> <span class="fn">hashCode</span>() {
+        <span class="cm">// Objects.hash는 null 안전, 여러 필드 조합에 적합</span>
+        <span class="kw">return</span> Objects.<span class="fn">hash</span>(x, y);
+    }
+
+    <span class="kw">@Override</span>
+    <span class="kw">public boolean</span> <span class="fn">equals</span>(Object o) {
+        <span class="kw">if</span> (<span class="kw">this</span> == o) <span class="kw">return true</span>;
+        <span class="kw">if</span> (!(o <span class="kw">instanceof</span> Point)) <span class="kw">return false</span>;
+        Point p = (Point) o;
+        <span class="kw">return</span> x == p.x &amp;&amp; y == p.y;
+    }
+    <span class="cm">// hashCode와 equals를 반드시 함께 재정의해야 합니다.</span>
+    <span class="cm">// equals()가 true면 hashCode()도 같아야 하는 규약 때문입니다.</span>
+}</pre>
+            </div>
+            <p class="code-desc">
+                HashMap은 key.hashCode()로 버킷 인덱스를 계산하고 equals()로 동등성을 비교합니다.<br>
+                hashCode()와 equals()를 함께 재정의하지 않으면 같은 논리적 키가 서로 다른 버킷에 들어가 탐색 실패가 발생합니다.<br>
+                merge(key, 1, Integer::sum)은 key가 없으면 1로 초기화하고, 있으면 현재 값에 1을 더합니다. 빈도 카운팅의 관용구입니다.<br>
+                초기 용량을 예상 항목 수 / 0.75보다 크게 설정하면 리사이징을 방지해 성능을 높일 수 있습니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 체이닝 해시 테이블 직접 구현</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── 체이닝 해시 테이블 구현 ────────────────────────────── */</span>
+<span class="kw">public class</span> <span class="fn">ChainingHashTable</span>&lt;K, V&gt; {
+    <span class="kw">private static final int</span> DEFAULT_CAP   = <span class="num">16</span>;
+    <span class="kw">private static final float</span> LOAD_FACTOR = <span class="num">0.75f</span>;
+
+    <span class="kw">private</span> LinkedList&lt;Entry&lt;K,V&gt;&gt;[] buckets;
+    <span class="kw">private int</span> size;
+
+    <span class="kw">private static class</span> <span class="fn">Entry</span>&lt;K, V&gt; {
+        K key; V value;
+        <span class="fn">Entry</span>(K k, V v) { key = k; value = v; }
+    }
+
+    <span class="kw">@SuppressWarnings</span>(<span class="st">"unchecked"</span>)
+    <span class="kw">public</span> <span class="fn">ChainingHashTable</span>() {
+        buckets = <span class="kw">new</span> LinkedList[DEFAULT_CAP];
+    }
+
+    <span class="kw">private int</span> <span class="fn">bucketIdx</span>(K key) {
+        <span class="cm">// & 0x7FFFFFFF으로 음수 해시값을 양수로 변환</span>
+        <span class="kw">return</span> (key.<span class="fn">hashCode</span>() &amp; <span class="num">0x7FFFFFFF</span>) % buckets.length;
+    }
+
+    <span class="kw">public void</span> <span class="fn">put</span>(K key, V value) {
+        <span class="kw">int</span> idx = <span class="fn">bucketIdx</span>(key);
+        <span class="kw">if</span> (buckets[idx] == <span class="kw">null</span>) buckets[idx] = <span class="kw">new</span> LinkedList&lt;&gt;();
+
+        <span class="cm">// 같은 키 존재 시 값 갱신</span>
+        <span class="kw">for</span> (Entry&lt;K,V&gt; e : buckets[idx]) {
+            <span class="kw">if</span> (e.key.<span class="fn">equals</span>(key)) { e.value = value; <span class="kw">return</span>; }
+        }
+        buckets[idx].<span class="fn">add</span>(<span class="kw">new</span> <span class="fn">Entry</span>&lt;&gt;(key, value));
+        size++;
+
+        <span class="cm">// 부하율 초과 시 리사이징</span>
+        <span class="kw">if</span> ((<span class="kw">float</span>) size / buckets.length &gt; LOAD_FACTOR) <span class="fn">resize</span>();
+    }
+
+    <span class="kw">public</span> V <span class="fn">get</span>(K key) {
+        <span class="kw">int</span> idx = <span class="fn">bucketIdx</span>(key);
+        <span class="kw">if</span> (buckets[idx] == <span class="kw">null</span>) <span class="kw">return null</span>;
+        <span class="kw">for</span> (Entry&lt;K,V&gt; e : buckets[idx]) {
+            <span class="kw">if</span> (e.key.<span class="fn">equals</span>(key)) <span class="kw">return</span> e.value;
+        }
+        <span class="kw">return null</span>;
+    }
+
+    <span class="kw">@SuppressWarnings</span>(<span class="st">"unchecked"</span>)
+    <span class="kw">private void</span> <span class="fn">resize</span>() {
+        LinkedList&lt;Entry&lt;K,V&gt;&gt;[] old = buckets;
+        buckets = <span class="kw">new</span> LinkedList[old.length * <span class="num">2</span>]; <span class="cm">// 2배 확장</span>
+        size = <span class="num">0</span>;
+        <span class="kw">for</span> (LinkedList&lt;Entry&lt;K,V&gt;&gt; bucket : old) {
+            <span class="kw">if</span> (bucket == <span class="kw">null</span>) <span class="kw">continue</span>;
+            <span class="kw">for</span> (Entry&lt;K,V&gt; e : bucket) <span class="fn">put</span>(e.key, e.value); <span class="cm">// 재해싱</span>
+        }
+    }
+}</pre>
+            </div>
+            <p class="code-desc">
+                버킷 인덱스 계산 시 hashCode()가 음수일 수 있으므로 & 0x7FFFFFFF로 부호 비트를 제거한 뒤 나머지를 구합니다.<br>
+                삽입 시 같은 키가 이미 있으면 값을 갱신하고 size를 늘리지 않습니다.<br>
+                부하율이 0.75를 초과하면 배열을 2배로 늘리고 모든 항목을 새 인덱스로 재해싱합니다.<br>
+                리사이징 자체는 O(n)이지만 분할 상환 분석으로 삽입은 평균 O(1)입니다.<br>
+                Java의 실제 HashMap은 보조 해시(secondary hashing)를 적용해 상위 비트도 인덱스 계산에 반영함으로써 충돌을 줄입니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
