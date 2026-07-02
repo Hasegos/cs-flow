@@ -1,0 +1,143 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — Max-Heap 직접 구현</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── Max-Heap 배열 기반 구현 ────────────────────────────── */</span>
+<span class="kw">public class</span> <span class="fn">MaxHeap</span> {
+    <span class="kw">private int</span>[] data;
+    <span class="kw">private int</span>   size;
+
+    <span class="kw">public</span> <span class="fn">MaxHeap</span>(<span class="kw">int</span> capacity) { data = <span class="kw">new int</span>[capacity]; }
+
+    <span class="kw">private int</span>  <span class="fn">parent</span>(<span class="kw">int</span> i) { <span class="kw">return</span> (i - <span class="num">1</span>) / <span class="num">2</span>; }
+    <span class="kw">private int</span>  <span class="fn">left</span>(<span class="kw">int</span> i)   { <span class="kw">return</span> <span class="num">2</span> * i + <span class="num">1</span>; }
+    <span class="kw">private int</span>  <span class="fn">right</span>(<span class="kw">int</span> i)  { <span class="kw">return</span> <span class="num">2</span> * i + <span class="num">2</span>; }
+    <span class="kw">private void</span> <span class="fn">swap</span>(<span class="kw">int</span> i, <span class="kw">int</span> j) {
+        <span class="kw">int</span> t = data[i]; data[i] = data[j]; data[j] = t;
+    }
+
+    <span class="cm">/* 삽입 + Heapify-Up */</span>
+    <span class="kw">public void</span> <span class="fn">offer</span>(<span class="kw">int</span> val) {
+        data[size++] = val;
+        <span class="kw">int</span> i = size - <span class="num">1</span>;
+        <span class="cm">// 부모보다 크면 올라간다</span>
+        <span class="kw">while</span> (i > <span class="num">0</span> &amp;&amp; data[<span class="fn">parent</span>(i)] &lt; data[i]) {
+            <span class="fn">swap</span>(i, <span class="fn">parent</span>(i));
+            i = <span class="fn">parent</span>(i);
+        }
+    }
+
+    <span class="cm">/* 루트(최댓값) 조회 */</span>
+    <span class="kw">public int</span> <span class="fn">peek</span>()  { <span class="kw">return</span> data[<span class="num">0</span>]; }           <span class="cm">// O(1)</span>
+
+    <span class="cm">/* Extract-Max + Heapify-Down */</span>
+    <span class="kw">public int</span> <span class="fn">poll</span>() {
+        <span class="kw">int</span> max = data[<span class="num">0</span>];
+        data[<span class="num">0</span>] = data[--size];   <span class="cm">// 마지막 원소를 루트로</span>
+        <span class="fn">heapifyDown</span>(<span class="num">0</span>);
+        <span class="kw">return</span> max;
+    }
+
+    <span class="kw">private void</span> <span class="fn">heapifyDown</span>(<span class="kw">int</span> i) {
+        <span class="kw">while</span> (<span class="fn">left</span>(i) &lt; size) {
+            <span class="kw">int</span> largest = <span class="fn">left</span>(i);
+            <span class="kw">if</span> (<span class="fn">right</span>(i) &lt; size &amp;&amp; data[<span class="fn">right</span>(i)] > data[largest])
+                largest = <span class="fn">right</span>(i);
+            <span class="kw">if</span> (data[i] >= data[largest]) <span class="kw">break</span>; <span class="cm">// 힙 조건 만족</span>
+            <span class="fn">swap</span>(i, largest);
+            i = largest;
+        }
+    }
+}</pre>
+            </div>
+            <p class="code-desc">
+                배열 인덱스 i의 왼쪽 자식은 2i+1, 오른쪽 자식은 2i+2, 부모는 (i-1)/2입니다.<br>
+                Heapify-Up은 삽입 후 부모보다 크면 계속 올라가고, Heapify-Down은 삭제 후 자식 중 더 큰 쪽으로 내려갑니다.<br>
+                두 연산 모두 트리 높이(log n)만큼만 수행하므로 O(log n)입니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 힙 정렬 (Heap Sort)</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── 힙 정렬: 제자리 정렬 O(n log n), 추가 메모리 O(1) ─── */</span>
+<span class="kw">public static void</span> <span class="fn">heapSort</span>(<span class="kw">int</span>[] arr) {
+    <span class="kw">int</span> n = arr.length;
+
+    <span class="cm">// 1단계: Build Max-Heap (마지막 내부 노드부터 heapify-down)</span>
+    <span class="kw">for</span> (<span class="kw">int</span> i = n / <span class="num">2</span> - <span class="num">1</span>; i >= <span class="num">0</span>; i--)
+        <span class="fn">heapifyDown</span>(arr, i, n);   <span class="cm">// O(n)</span>
+
+    <span class="cm">// 2단계: 루트(최댓값)를 끝으로 이동하며 정렬</span>
+    <span class="kw">for</span> (<span class="kw">int</span> end = n - <span class="num">1</span>; end > <span class="num">0</span>; end--) {
+        <span class="cm">// 루트(최댓값) ↔ 마지막 원소 교환</span>
+        <span class="kw">int</span> t = arr[<span class="num">0</span>]; arr[<span class="num">0</span>] = arr[end]; arr[end] = t;
+        <span class="cm">// 힙 크기를 줄이고 루트 재정렬</span>
+        <span class="fn">heapifyDown</span>(arr, <span class="num">0</span>, end);  <span class="cm">// O(log n)</span>
+    }
+    <span class="cm">// 오름차순 정렬 완료 — O(n log n) 전체</span>
+}
+
+<span class="kw">private static void</span> <span class="fn">heapifyDown</span>(<span class="kw">int</span>[] arr, <span class="kw">int</span> i, <span class="kw">int</span> n) {
+    <span class="kw">while</span> (<span class="num">2</span> * i + <span class="num">1</span> &lt; n) {
+        <span class="kw">int</span> largest = <span class="num">2</span> * i + <span class="num">1</span>; <span class="cm">// 왼쪽 자식</span>
+        <span class="kw">if</span> (<span class="num">2</span> * i + <span class="num">2</span> &lt; n &amp;&amp; arr[<span class="num">2</span> * i + <span class="num">2</span>] > arr[largest])
+            largest = <span class="num">2</span> * i + <span class="num">2</span>; <span class="cm">// 오른쪽이 더 크면</span>
+        <span class="kw">if</span> (arr[i] >= arr[largest]) <span class="kw">break</span>;
+        <span class="kw">int</span> t = arr[i]; arr[i] = arr[largest]; arr[largest] = t;
+        i = largest;
+    }
+}</pre>
+            </div>
+            <p class="code-desc">
+                Build Max-Heap은 배열 절반 지점부터 역순으로 heapifyDown을 호출합니다.<br>
+                각 호출이 O(log n)처럼 보이지만 전체는 O(n)으로 분석됩니다.<br>
+                정렬 단계는 루트(최댓값)를 배열 끝으로 보내고 힙 크기를 줄이는 과정을 n-1번 반복합니다.<br>
+                각 반복이 O(log n)이므로 전체 정렬은 O(n log n).<br>
+                추가 배열이 필요 없는 제자리(in-place) 정렬이지만, 캐시 지역성이 낮아 실제 성능은 Quick Sort보다 느린 경우가 많습니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — PriorityQueue 활용</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── Java PriorityQueue (Min-Heap 기본) ─────────────────── */</span>
+PriorityQueue&lt;Integer&gt; minHeap = <span class="kw">new</span> PriorityQueue&lt;&gt;();
+minHeap.<span class="fn">offer</span>(<span class="num">15</span>); minHeap.<span class="fn">offer</span>(<span class="num">4</span>); minHeap.<span class="fn">offer</span>(<span class="num">42</span>);
+minHeap.<span class="fn">peek</span>();   <span class="cm">// 4  — 최솟값 O(1)</span>
+minHeap.<span class="fn">poll</span>();   <span class="cm">// 4  — 최솟값 제거 O(log n)</span>
+
+<span class="cm">/* ── Max-Heap: reverseOrder 사용 ─────────────────────────── */</span>
+PriorityQueue&lt;Integer&gt; maxHeap =
+    <span class="kw">new</span> PriorityQueue&lt;&gt;(Collections.<span class="fn">reverseOrder</span>());
+maxHeap.<span class="fn">offer</span>(<span class="num">15</span>); maxHeap.<span class="fn">offer</span>(<span class="num">4</span>); maxHeap.<span class="fn">offer</span>(<span class="num">42</span>);
+maxHeap.<span class="fn">peek</span>();   <span class="cm">// 42 — 최댓값 O(1)</span>
+
+<span class="cm">/* ── K번째 최솟값: Min-Heap 활용 패턴 ────────────────────── */</span>
+<span class="kw">public int</span> <span class="fn">kthSmallest</span>(<span class="kw">int</span>[] nums, <span class="kw">int</span> k) {
+    PriorityQueue&lt;Integer&gt; pq = <span class="kw">new</span> PriorityQueue&lt;&gt;();
+    <span class="kw">for</span> (<span class="kw">int</span> n : nums) pq.<span class="fn">offer</span>(n);
+    <span class="kw">while</span> (--k > <span class="num">0</span>) pq.<span class="fn">poll</span>();
+    <span class="kw">return</span> pq.<span class="fn">peek</span>();
+}
+
+<span class="cm">/* ── 다익스트라에서의 활용 (최소 비용 노드 추출) ─────────── */</span>
+PriorityQueue&lt;<span class="kw">int</span>[]&gt; pq =
+    <span class="kw">new</span> PriorityQueue&lt;&gt;((a, b) -&gt; a[<span class="num">1</span>] - b[<span class="num">1</span>]); <span class="cm">// 비용 기준 Min-Heap</span>
+pq.<span class="fn">offer</span>(<span class="kw">new int</span>[]{<span class="num">0</span>, <span class="num">0</span>});  <span class="cm">// {노드, 비용}</span>
+<span class="kw">while</span> (!pq.<span class="fn">isEmpty</span>()) {
+    <span class="kw">int</span>[] cur = pq.<span class="fn">poll</span>();     <span class="cm">// 현재 최소 비용 노드</span>
+    <span class="cm">// 인접 노드 탐색 및 거리 갱신...</span>
+}</pre>
+            </div>
+            <p class="code-desc">
+                Java PriorityQueue는 기본이 Min-Heap입니다.<br>
+                Max-Heap이 필요하면 Collections.reverseOrder() 또는 람다 Comparator를 사용합니다.<br>
+                K번째 최솟값, 다익스트라 최단 경로, CPU 스케줄링처럼 "현재 가장 우선순위 높은 항목을 빠르게 꺼내야 하는" 문제에서 PriorityQueue(힙)가 핵심 도구입니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>

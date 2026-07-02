@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">힙 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/ds/heap.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/ds}" class="topic-breadcrumb__link">자료구조</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">힙</span>
+                </nav>
+
+                <span class="topic-hero__slug">ds · 06</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">힙</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        힙(Heap)은 <strong>완전 이진 트리 기반의 자료구조로, 부모 노드가 항상 자식 노드보다 크거나(Max-Heap) 작은(Min-Heap) 조건을 만족</strong>합니다.
+                        최댓값 또는 최솟값을 O(1)에 조회하고 O(log n)에 삽입·삭제할 수 있어 우선순위 큐의 핵심 구현체로 사용됩니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">힙 조건 (Heap Property)</h3>
+                            <p class="overview-card__desc">Max-Heap: 모든 부모 노드의 값 ≥ 자식 노드의 값. 루트가 전체 최댓값입니다. Min-Heap: 모든 부모 노드의 값 ≤ 자식 노드의 값. 루트가 최솟값입니다. BST와 달리 형제 노드 사이에는 대소 관계가 없습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">완전 이진 트리와 배열 표현</h3>
+                            <p class="overview-card__desc">힙은 완전 이진 트리(마지막 레벨을 제외하고 모두 채워진 트리, 마지막 레벨은 왼쪽부터 채움)입니다. 배열로 표현할 때 인덱스 i의 왼쪽 자식은 2i+1, 오른쪽 자식은 2i+2, 부모는 (i-1)/2입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">삽입 — Heapify-Up</h3>
+                            <p class="overview-card__desc">새 원소를 배열 끝(트리의 마지막 위치)에 추가한 뒤, 부모와 비교하며 힙 조건을 만족할 때까지 위로 올립니다. 최대 트리 높이(log n)번 스왑이 발생하므로 O(log n)입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">삭제 — Heapify-Down</h3>
+                            <p class="overview-card__desc">루트(최댓값)를 제거하고 배열 마지막 원소를 루트로 이동합니다. 이후 두 자식 중 더 큰 자식과 비교하며 힙 조건을 만족할 때까지 아래로 내립니다. 마찬가지로 O(log n)입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">힙 정렬 (Heap Sort)</h3>
+                            <p class="overview-card__desc">① 배열을 Max-Heap으로 만들고 ② 루트(최댓값)를 배열 끝으로 이동한 뒤 힙 크기를 줄이고 Heapify-Down을 반복합니다. n번의 Extract-Max로 오름차순 정렬이 완성됩니다. 시간복잡도 O(n log n), 추가 메모리 O(1)의 제자리 정렬입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">우선순위 큐와 Java PriorityQueue</h3>
+                            <p class="overview-card__desc">Java의 PriorityQueue는 Min-Heap 기반입니다. peek()으로 최솟값을 O(1)에 조회, offer()로 O(log n) 삽입, poll()로 O(log n) 삭제. Max-Heap이 필요하면 Collections.reverseOrder()나 람다 Comparator를 사용합니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>시간복잡도</strong> — peek(최댓값 조회) O(1), offer(삽입) O(log n), poll(삭제) O(log n). Build-Heap(n개 원소로 힙 구성)은 O(n). 힙 정렬 전체는 O(n log n).</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>힙 vs BST</strong> — 힙은 최댓값/최솟값 접근에 특화되어 있고 배열로 표현해 캐시 효율이 좋습니다. BST는 임의 원소 탐색과 정렬 순서 접근이 가능합니다. 우선순위 큐는 힙, 정렬 유지가 필요한 맵/셋은 BST(TreeMap/TreeSet)가 적합합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>힙 정렬 vs 다른 정렬</strong> — Quick Sort는 평균 O(n log n)이지만 최악 O(n²). Merge Sort는 O(n log n)이지만 추가 메모리 O(n) 필요. Heap Sort는 최악도 O(n log n)이고 추가 메모리 O(1)이나, 캐시 지역성이 낮아 실제 성능은 Quick Sort보다 느린 경우가 많습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>활용 사례</strong> — 다익스트라 최단 경로(최소 비용 노드 추출), 프림 MST 알고리즘, 운영체제 CPU 스케줄링(우선순위 기반), K번째 최댓값/최솟값 탐색, 실시간 중앙값 유지(Max-Heap + Min-Heap 조합).</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/ds/heap-code :: code}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+</body>
+</html>
