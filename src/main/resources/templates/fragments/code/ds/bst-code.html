@@ -1,0 +1,112 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — BST 노드 정의 및 삽입</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── BST 노드 ───────────────────────────────────────────── */</span>
+<span class="kw">public class</span> <span class="fn">BSTNode</span> {
+    <span class="kw">int</span> val;
+    BSTNode left, right;
+    <span class="fn">BSTNode</span>(<span class="kw">int</span> val) { <span class="kw">this</span>.val = val; }
+}
+
+<span class="cm">/* ── 삽입: 루트부터 비교하며 null 위치를 찾아 삽입 ─────── */</span>
+<span class="kw">public</span> BSTNode <span class="fn">insert</span>(BSTNode root, <span class="kw">int</span> val) {
+    <span class="kw">if</span> (root == <span class="kw">null</span>) <span class="kw">return new</span> <span class="fn">BSTNode</span>(val); <span class="cm">// 삽입 위치</span>
+    <span class="kw">if</span> (val &lt; root.val)
+        root.left  = <span class="fn">insert</span>(root.left,  val);    <span class="cm">// 왼쪽으로</span>
+    <span class="kw">else if</span> (val &gt; root.val)
+        root.right = <span class="fn">insert</span>(root.right, val);    <span class="cm">// 오른쪽으로</span>
+    <span class="kw">return</span> root;                                   <span class="cm">// 이미 존재하면 무시</span>
+}
+
+<span class="cm">/* ── 탐색 ────────────────────────────────────────────────── */</span>
+<span class="kw">public boolean</span> <span class="fn">search</span>(BSTNode root, <span class="kw">int</span> val) {
+    <span class="kw">if</span> (root == <span class="kw">null</span>) <span class="kw">return false</span>;  <span class="cm">// 탐색 실패</span>
+    <span class="kw">if</span> (val == root.val) <span class="kw">return true</span>; <span class="cm">// 탐색 성공</span>
+    <span class="kw">return</span> val &lt; root.val
+        ? <span class="fn">search</span>(root.left,  val)
+        : <span class="fn">search</span>(root.right, val);
+}</pre>
+            </div>
+            <p class="code-desc">
+                삽입과 탐색 모두 현재 노드와 값을 비교해 왼쪽/오른쪽을 결정하는 동일한 패턴을 씁니다.<br>
+                재귀 구조 덕분에 각 서브트리를 독립적으로 처리하며, 균형 잡힌 트리에서 높이는 log n이므로 평균 O(log n)입니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 삭제 3케이스</p>
+            <div class="code-block">
+<pre><span class="kw">public</span> BSTNode <span class="fn">delete</span>(BSTNode root, <span class="kw">int</span> val) {
+    <span class="kw">if</span> (root == <span class="kw">null</span>) <span class="kw">return null</span>;  <span class="cm">// 값이 없음</span>
+
+    <span class="kw">if</span> (val &lt; root.val) {
+        root.left  = <span class="fn">delete</span>(root.left,  val); <span class="cm">// 왼쪽 서브트리에서 삭제</span>
+    } <span class="kw">else if</span> (val &gt; root.val) {
+        root.right = <span class="fn">delete</span>(root.right, val); <span class="cm">// 오른쪽 서브트리에서 삭제</span>
+    } <span class="kw">else</span> {
+        <span class="cm">// 삭제 대상 발견</span>
+        <span class="kw">if</span> (root.left  == <span class="kw">null</span>) <span class="kw">return</span> root.right; <span class="cm">// Case 1,2: 왼쪽 없음</span>
+        <span class="kw">if</span> (root.right == <span class="kw">null</span>) <span class="kw">return</span> root.left;  <span class="cm">// Case 2: 오른쪽 없음</span>
+
+        <span class="cm">// Case 3: 자식 2개 → 중위 후계자(오른쪽 서브트리의 최솟값)로 대체</span>
+        BSTNode successor = <span class="fn">findMin</span>(root.right);
+        root.val   = successor.val;                       <span class="cm">// 값만 교체</span>
+        root.right = <span class="fn">delete</span>(root.right, successor.val); <span class="cm">// 후계자 제거</span>
+    }
+    <span class="kw">return</span> root;
+}
+
+<span class="kw">private</span> BSTNode <span class="fn">findMin</span>(BSTNode node) {
+    <span class="kw">while</span> (node.left != <span class="kw">null</span>) node = node.left; <span class="cm">// 가장 왼쪽 = 최솟값</span>
+    <span class="kw">return</span> node;
+}</pre>
+            </div>
+            <p class="code-desc">
+                Case 1(리프): 자식이 없으므로 null을 반환해 부모와의 연결을 끊습니다.<br>
+                Case 2(자식 1개): 남은 자식을 반환해 부모가 손자를 직접 가리키게 합니다.<br>
+                Case 3(자식 2개): 중위 후계자(오른쪽 서브트리 최솟값)의 값을 현재 노드에 복사한 뒤, 후계자를 재귀적으로 삭제합니다.<br>
+                후계자는 왼쪽 자식이 없으므로 Case 1 또는 2로 처리됩니다.<br>
+                이 재귀 패턴은 BST 조건을 유지하면서 O(h) 시간 안에 삭제를 완료합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — TreeMap으로 BST 활용</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── TreeMap: Red-Black Tree 기반 BST — 항상 O(log n) 보장 */</span>
+TreeMap&lt;Integer, String&gt; map = <span class="kw">new</span> TreeMap&lt;&gt;();
+
+map.<span class="fn">put</span>(<span class="num">50</span>, <span class="st">"root"</span>);
+map.<span class="fn">put</span>(<span class="num">30</span>, <span class="st">"left"</span>);
+map.<span class="fn">put</span>(<span class="num">70</span>, <span class="st">"right"</span>);
+
+<span class="cm">// 정렬 순서 보장</span>
+map.<span class="fn">firstKey</span>();          <span class="cm">// 30  — 최솟값 O(log n)</span>
+map.<span class="fn">lastKey</span>();           <span class="cm">// 70  — 최댓값 O(log n)</span>
+
+<span class="cm">// 범위 탐색: 30 이상 70 미만 키를 정렬 순서로</span>
+map.<span class="fn">subMap</span>(<span class="num">30</span>, <span class="num">70</span>).<span class="fn">forEach</span>((k, v) -&gt;
+    System.out.<span class="fn">println</span>(k + <span class="st">" → "</span> + v)
+);
+
+<span class="cm">// 50보다 작은 가장 큰 키 (전임자)</span>
+map.<span class="fn">lowerKey</span>(<span class="num">50</span>);        <span class="cm">// 30</span>
+
+<span class="cm">// 50보다 크거나 같은 가장 작은 키 (후임자)</span>
+map.<span class="fn">ceilingKey</span>(<span class="num">50</span>);     <span class="cm">// 50</span>
+
+<span class="cm">/* ── HashMap vs TreeMap 비교 ─────────────────────────────── */</span>
+<span class="cm">// HashMap : 평균 O(1) 탐색/삽입, 순서 없음</span>
+<span class="cm">// TreeMap : O(log n) 탐색/삽입, 정렬 순서 보장, 범위 탐색 지원</span></pre>
+            </div>
+            <p class="code-desc">
+                Java의 TreeMap/TreeSet은 Red-Black Tree를 사용해 편향 트리 문제 없이 항상 O(log n)을 보장합니다.<br>
+                정렬 순서가 필요하거나 범위 탐색(subMap, headMap, tailMap), 전임자/후임자 조회가 필요하면 TreeMap을, 순서가 필요 없고 단순 탐색 속도만 중요하면 HashMap을 사용합니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>

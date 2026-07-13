@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">트리 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/ds/tree.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/ds}" class="topic-breadcrumb__link">자료구조</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">트리</span>
+                </nav>
+
+                <span class="topic-hero__slug">ds · 04</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">트리</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        트리(Tree)는 <strong>노드(Node)와 간선(Edge)으로 이루어진 계층적 자료구조</strong>입니다.
+                        하나의 루트에서 시작해 각 노드가 0개 이상의 자식 노드를 가지며, 사이클이 존재하지 않습니다.
+                        파일 시스템, HTML DOM, 조직도처럼 계층 관계를 표현하는 데 자연스럽게 사용됩니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">노드와 간선</h3>
+                            <p class="overview-card__desc">노드(Node)는 데이터를 담는 단위이고, 간선(Edge)은 노드 사이의 연결입니다. 최상위 노드를 루트(Root)라 하며, 자식이 없는 노드를 리프(Leaf)라 합니다. 노드 N개로 이루어진 트리는 항상 N-1개의 간선을 가집니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">레벨과 높이</h3>
+                            <p class="overview-card__desc">레벨(Level)은 루트로부터의 거리로, 루트는 레벨 0입니다. 높이(Height)는 루트에서 가장 깊은 리프까지의 레벨입니다. 루트에서 특정 노드로 가는 경로는 항상 유일하게 하나만 존재합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">이진 트리 (Binary Tree)</h3>
+                            <p class="overview-card__desc">각 노드가 최대 2개의 자식(왼쪽 자식, 오른쪽 자식)만 가질 수 있는 트리입니다. 모든 레벨이 노드로 가득 찬 트리를 포화 이진 트리, 마지막 레벨을 제외하고 왼쪽부터 채워진 트리를 완전 이진 트리라 합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">전위 순회 (Preorder)</h3>
+                            <p class="overview-card__desc">루트 → 왼쪽 서브트리 → 오른쪽 서브트리 순서로 방문합니다. 루트를 가장 먼저 처리하므로 트리 구조를 복사하거나 디렉토리 목록을 출력할 때 사용합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">중위 순회 (Inorder)</h3>
+                            <p class="overview-card__desc">왼쪽 서브트리 → 루트 → 오른쪽 서브트리 순서로 방문합니다. 이진 탐색 트리(BST)에서 중위 순회를 하면 값이 오름차순으로 정렬되어 나오는 특성이 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">후위 순회 (Postorder)</h3>
+                            <p class="overview-card__desc">왼쪽 서브트리 → 오른쪽 서브트리 → 루트 순서로 방문합니다. 자식을 모두 처리한 뒤 부모를 처리하므로 트리 삭제, 디렉토리 용량 합산처럼 하위 결과가 필요한 작업에 사용합니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>재귀와 트리</strong> — 모든 서브트리는 그 자체로 또 하나의 트리입니다. 이 자기 유사성 때문에 트리 순회는 재귀로 구현하는 것이 자연스럽고, 함수가 자기 자신을 호출할 때마다 호출 스택에 현재 노드가 쌓입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>시간복잡도</strong> — 전위·중위·후위 순회 모두 모든 노드를 정확히 한 번씩 방문하므로 O(n)입니다. 재귀 호출 스택 깊이는 트리 높이에 비례해 O(h), 최악의 경우(편향 트리) O(n)까지 늘어날 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>깊이 우선 vs 너비 우선</strong> — 전위·중위·후위는 한 방향으로 끝까지 내려갔다 올라오는 깊이 우선 탐색(DFS)입니다. 반면 레벨 순서대로 방문하는 레벨 순회(Level-order)는 큐를 사용한 너비 우선 탐색(BFS)입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>활용 사례</strong> — 일반 이진 트리는 수식 트리(연산자 우선순위 표현), 허프만 코딩 트리, 트리 기반 자료구조의 기본 골격으로 쓰입니다. 탐색에 특화된 이진 탐색 트리(BST)는 다음 토픽에서 다룹니다.</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/ds/tree-code :: code}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+</body>
+</html>

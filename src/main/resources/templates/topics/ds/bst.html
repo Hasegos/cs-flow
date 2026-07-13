@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">이진 탐색 트리 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/ds/bst.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/ds}" class="topic-breadcrumb__link">자료구조</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">이진 탐색 트리</span>
+                </nav>
+
+                <span class="topic-hero__slug">ds · 05</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">이진 탐색 트리</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        이진 탐색 트리(BST)는 <strong>모든 노드가 "왼쪽 서브트리 &lt; 현재 노드 &lt; 오른쪽 서브트리" 조건을 만족하는 이진 트리</strong>입니다.
+                        이 정렬 조건 덕분에 탐색·삽입·삭제 연산을 평균 O(log n)에 수행할 수 있으며, 정렬된 순서로 데이터를 순회할 수 있습니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">BST 조건</h3>
+                            <p class="overview-card__desc">모든 노드 N에 대해 N의 왼쪽 서브트리에 있는 모든 값은 N보다 작고, 오른쪽 서브트리에 있는 모든 값은 N보다 큽니다. 이 조건이 재귀적으로 모든 서브트리에도 성립해야 합니다. 중복 값을 허용하지 않는 것이 일반적입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">삽입 (Insert)</h3>
+                            <p class="overview-card__desc">루트부터 시작해 삽입 값과 현재 노드를 비교합니다. 작으면 왼쪽, 크면 오른쪽으로 이동하며, null을 만나는 위치에 새 노드를 추가합니다. 비교는 트리 높이만큼만 수행하므로 평균 O(log n)입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">탐색 (Search)</h3>
+                            <p class="overview-card__desc">삽입과 동일한 경로로 타깃 값을 찾습니다. 현재 노드보다 작으면 왼쪽, 크면 오른쪽으로 이동합니다. 값을 찾거나 null에 도달하면 종료합니다. 이진 탐색과 동일한 원리로 평균 O(log n)입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">삭제 3케이스</h3>
+                            <p class="overview-card__desc">① 리프 노드: 단순 제거. ② 자식이 1개: 삭제 노드의 부모와 자식을 직접 연결. ③ 자식이 2개: 중위 후계자(Inorder Successor — 오른쪽 서브트리의 최솟값)로 삭제 노드의 값을 대체한 뒤 후계자를 삭제합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">불균형과 편향 트리</h3>
+                            <p class="overview-card__desc">정렬된 순서(1→2→3→…)로 삽입하면 모든 노드가 한쪽 방향으로만 추가되어 연결 리스트와 같은 편향 트리(Skewed Tree)가 됩니다. 이 경우 높이가 n이 되어 탐색이 O(n)으로 저하됩니다. 이를 해결하기 위해 AVL 트리, Red-Black 트리 같은 자가 균형 BST가 사용됩니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">중위 순회와 정렬</h3>
+                            <p class="overview-card__desc">BST를 중위 순회(Left → Root → Right)하면 저장된 값이 오름차순으로 정렬되어 나옵니다. 이 성질을 이용해 BST는 정렬된 데이터의 동적 유지, 범위 탐색(특정 범위의 모든 값 조회)에 활용됩니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>시간복잡도</strong> — 평균 O(log n) 탐색·삽입·삭제. 균형 잡힌 트리에서는 높이 h = log n이므로 각 연산이 O(log n)입니다. 최악(편향 트리)은 O(n). Java의 TreeMap은 내부적으로 Red-Black Tree를 사용해 항상 O(log n)을 보장합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>BST vs 해시 테이블</strong> — 해시 테이블은 평균 O(1) 탐색이지만 순서를 보장하지 않습니다. BST는 O(log n)이지만 중위 순회로 정렬된 순서 접근, 범위 탐색, 최솟값/최댓값 조회가 가능합니다. 순서가 필요하면 BST, 빠른 단순 탐색만 필요하면 해시 테이블이 적합합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>자가 균형 BST</strong> — AVL 트리는 모든 노드에서 왼쪽/오른쪽 서브트리 높이 차이가 1 이하로 엄격하게 균형을 유지합니다. Red-Black 트리는 색 규칙으로 높이를 2log(n+1) 이하로 제한합니다. Java TreeMap/TreeSet, C++ std::set/std::map이 Red-Black Tree를 사용합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>언제 BST를 쓰나</strong> — 정렬 순서 유지가 필요하면서도 삽입·삭제가 빈번한 경우. 범위 탐색(예: 100~200 사이의 모든 키), 전임자/후임자 조회가 필요한 경우. Java의 TreeMap/TreeSet, C++의 std::map/std::set이 대표적인 BST 기반 컬렉션입니다.</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/ds/bst-code :: code}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+</body>
+</html>
