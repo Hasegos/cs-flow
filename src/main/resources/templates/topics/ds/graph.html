@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">그래프 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/ds/graph.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/ds}" class="topic-breadcrumb__link">자료구조</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">그래프</span>
+                </nav>
+
+                <span class="topic-hero__slug">ds · 07</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">그래프</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        그래프(Graph)는 <strong>정점(Vertex)과 간선(Edge)으로 이루어진 자료구조</strong>입니다.
+                        트리와 달리 루트가 없고 사이클이 존재할 수 있으며, 하나의 정점이 여러 정점과 자유롭게 연결될 수 있습니다.
+                        소셜 네트워크의 친구 관계, 지도의 도로망, 웹페이지의 하이퍼링크처럼 복잡하게 얽힌 관계를 표현하는 데 사용됩니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">정점과 간선</h3>
+                            <p class="overview-card__desc">정점(Vertex)은 데이터를 담는 단위이고, 간선(Edge)은 두 정점 사이의 연결입니다. 간선에 방향이 없으면 무방향 그래프, 방향이 있으면 방향 그래프라 합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">인접과 차수</h3>
+                            <p class="overview-card__desc">두 정점 사이에 간선이 있으면 서로 인접(Adjacent)하다고 합니다. 차수(Degree)는 한 정점에 연결된 간선의 개수로, 그래프에서 해당 정점의 연결 중요도를 나타냅니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">인접 행렬 (Adjacency Matrix)</h3>
+                            <p class="overview-card__desc">V×V 2차원 배열로 간선 존재 여부를 표현합니다. 공간복잡도는 O(V²)이지만 두 정점 사이 간선 조회는 O(1)로 빠릅니다. 정점 대비 간선이 적은 희소 그래프에는 비효율적입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">인접 리스트 (Adjacency List)</h3>
+                            <p class="overview-card__desc">각 정점마다 연결된 정점들의 목록만 저장합니다. 공간복잡도 O(V+E)로 희소 그래프에 효율적이지만, 간선 존재 조회는 O(degree)로 인접 행렬보다 느릴 수 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">BFS (너비 우선 탐색)</h3>
+                            <p class="overview-card__desc">큐(Queue, FIFO)를 사용해 시작 정점과 가까운 정점부터 순서대로 방문합니다. 최단 경로(가중치 없는 그래프)를 구할 때 유용합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">DFS (깊이 우선 탐색)</h3>
+                            <p class="overview-card__desc">스택(재귀 호출 스택, LIFO)을 사용해 한 방향으로 최대한 깊이 들어간 뒤 되돌아옵니다. 사이클 탐지, 위상 정렬 등에 사용됩니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>트리는 그래프의 특수한 형태</strong> — 트리는 사이클이 없고 정점 N개에 간선이 정확히 N-1개인 그래프입니다. 반대로 모든 그래프가 트리인 것은 아니며, 사이클과 다중 경로가 자유롭게 존재할 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>시간복잡도</strong> — BFS와 DFS 모두 인접 리스트 기준으로 모든 정점과 간선을 정확히 한 번씩 확인하므로 O(V+E)입니다. 인접 행렬을 사용하면 각 정점마다 전체 행을 확인해야 하므로 O(V²)로 늘어납니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>표현 방식 선택 기준</strong> — 정점 수 대비 간선이 많은 밀집 그래프이거나 빠른 간선 조회가 중요하면 인접 행렬을, 정점 수 대비 간선이 적은 희소 그래프이거나 메모리가 중요하면 인접 리스트를 선택합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>활용 사례</strong> — BFS는 최단 경로 탐색(가중치 없는 그래프), 네트워크 브로드캐스트에 사용됩니다. DFS는 사이클 탐지, 위상 정렬, 연결 요소 찾기의 기반이 되며, 다음 토픽인 다익스트라 알고리즘은 BFS를 가중치 그래프로 확장한 개념입니다.</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/ds/graph-code :: code}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+</body>
+</html>
