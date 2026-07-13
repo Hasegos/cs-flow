@@ -1,0 +1,126 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 그래프 정의 (인접 리스트)</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── 그래프 정의: 정점(Integer) → 인접 정점 목록(List) ──── */</span>
+<span class="kw">public class</span> <span class="fn">Graph</span> {
+    <span class="kw">private final</span> Map&lt;Integer, List&lt;Integer&gt;&gt; adj = <span class="kw">new</span> HashMap&lt;&gt;();
+
+    <span class="kw">public void</span> <span class="fn">addVertex</span>(<span class="kw">int</span> v) {
+        adj.<span class="fn">putIfAbsent</span>(v, <span class="kw">new</span> ArrayList&lt;&gt;());
+    }
+
+    <span class="cm">// 무방향 그래프: 간선 하나를 양쪽 정점 리스트에 모두 추가합니다.</span>
+    <span class="kw">public void</span> <span class="fn">addEdge</span>(<span class="kw">int</span> v1, <span class="kw">int</span> v2) {
+        <span class="fn">addVertex</span>(v1);
+        <span class="fn">addVertex</span>(v2);
+        adj.<span class="fn">get</span>(v1).<span class="fn">add</span>(v2);
+        adj.<span class="fn">get</span>(v2).<span class="fn">add</span>(v1);
+    }
+
+    <span class="kw">public</span> List&lt;Integer&gt; <span class="fn">neighbors</span>(<span class="kw">int</span> v) {
+        <span class="kw">return</span> adj.<span class="fn">getOrDefault</span>(v, Collections.<span class="fn">emptyList</span>());
+    }
+}</pre>
+            </div>
+            <p class="code-desc">
+                인접 리스트는 정점마다 연결된 정점의 목록만 저장하므로 공간복잡도가 O(V+E)입니다.<br>
+                반면 인접 행렬은 <span class="st">boolean[][] matrix = new boolean[V][V]</span> 형태로 O(V²) 공간을 사용하는 대신, <span class="st">matrix[i][j]</span> 조회가 O(1)로 빠릅니다.<br>
+                정점 수 대비 간선이 적은 희소 그래프에서는 인접 리스트가, 간선이 많은 밀집 그래프이거나 빠른 조회가 중요하면 인접 행렬이 유리합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — BFS (너비 우선 탐색, Queue)</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── BFS: 큐(Queue, FIFO)를 이용해 가까운 정점부터 방문 ──── */</span>
+<span class="kw">public</span> List&lt;Integer&gt; <span class="fn">bfs</span>(Graph graph, <span class="kw">int</span> start) {
+    List&lt;Integer&gt; visitOrder = <span class="kw">new</span> ArrayList&lt;&gt;();
+    Set&lt;Integer&gt; visited = <span class="kw">new</span> HashSet&lt;&gt;();
+    Queue&lt;Integer&gt; queue = <span class="kw">new</span> LinkedList&lt;&gt;();
+
+    visited.<span class="fn">add</span>(start);            <span class="cm">// 큐에 넣을 때 바로 방문 처리</span>
+    queue.<span class="fn">offer</span>(start);
+
+    <span class="kw">while</span> (!queue.<span class="fn">isEmpty</span>()) {
+        <span class="kw">int</span> cur = queue.<span class="fn">poll</span>();
+        visitOrder.<span class="fn">add</span>(cur);          <span class="cm">// 1. 방문 순서에 추가</span>
+
+        <span class="kw">for</span> (<span class="kw">int</span> next : graph.<span class="fn">neighbors</span>(cur)) {
+            <span class="kw">if</span> (!visited.<span class="fn">contains</span>(next)) {
+                visited.<span class="fn">add</span>(next);      <span class="cm">// 2. 중복 삽입 방지를 위해 미리 방문 처리</span>
+                queue.<span class="fn">offer</span>(next);
+            }
+        }
+    }
+    <span class="kw">return</span> visitOrder;
+}</pre>
+            </div>
+            <p class="code-desc">
+                핵심은 <span class="st">visited.add(next)</span>를 큐에 <span class="st">offer</span>하는 시점에 실행하는 것입니다.<br>
+                꺼낼 때(poll) 방문 처리하면 같은 정점이 큐에 여러 번 들어가 중복 방문이 발생할 수 있습니다.<br>
+                시간복잡도는 모든 정점과 간선을 정확히 한 번씩 확인하므로 O(V+E), 공간복잡도는 큐와 visited 집합을 위한 O(V)입니다.<br>
+                가중치가 없는 그래프에서 시작 정점으로부터의 최단 경로(간선 수 기준)를 구할 때도 BFS가 사용됩니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — DFS (깊이 우선 탐색, 재귀)</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── DFS: 재귀 호출 스택(LIFO)을 이용해 깊이 먼저 탐색 ───── */</span>
+<span class="kw">public void</span> <span class="fn">dfs</span>(Graph graph, <span class="kw">int</span> cur, Set&lt;Integer&gt; visited, List&lt;Integer&gt; visitOrder) {
+    visited.<span class="fn">add</span>(cur);              <span class="cm">// 1. 진입 즉시 방문 처리 (호출 스택에 push)</span>
+    visitOrder.<span class="fn">add</span>(cur);
+
+    <span class="kw">for</span> (<span class="kw">int</span> next : graph.<span class="fn">neighbors</span>(cur)) {
+        <span class="kw">if</span> (!visited.<span class="fn">contains</span>(next)) {
+            <span class="fn">dfs</span>(graph, next, visited, visitOrder);  <span class="cm">// 2. 재귀 호출</span>
+        }
+    }
+}                                       <span class="cm">// 3. 함수 종료 시 호출 스택에서 pop</span>
+
+<span class="cm">/* ── 호출 예시 ──────────────────────────────────────────── */</span>
+List&lt;Integer&gt; result = <span class="kw">new</span> ArrayList&lt;&gt;();
+<span class="fn">dfs</span>(graph, start, <span class="kw">new</span> HashSet&lt;&gt;(), result);</pre>
+            </div>
+            <p class="code-desc">
+                트리의 전위 순회와 원리가 같습니다 — 방문하자마자 처리하고, 미방문 인접 정점으로 재귀 호출합니다.<br>
+                시간복잡도는 O(V+E)로 BFS와 동일하지만, 재귀 호출 스택 깊이는 그래프의 형태에 따라 최악의 경우 O(V)까지 늘어나 정점 수가 매우 많으면 <span class="st">StackOverflowError</span> 위험이 있습니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 반복적 DFS (명시적 스택, 참고)</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── 반복적 DFS: 재귀 대신 명시적 스택(Deque) 사용 ──────── */</span>
+<span class="cm">// 재귀 DFS의 StackOverflowError 위험을 피할 때 사용합니다.</span>
+<span class="kw">public</span> List&lt;Integer&gt; <span class="fn">dfsIterative</span>(Graph graph, <span class="kw">int</span> start) {
+    List&lt;Integer&gt; visitOrder = <span class="kw">new</span> ArrayList&lt;&gt;();
+    Set&lt;Integer&gt; visited = <span class="kw">new</span> HashSet&lt;&gt;();
+    Deque&lt;Integer&gt; stack = <span class="kw">new</span> ArrayDeque&lt;&gt;();
+
+    stack.<span class="fn">push</span>(start);
+
+    <span class="kw">while</span> (!stack.<span class="fn">isEmpty</span>()) {
+        <span class="kw">int</span> cur = stack.<span class="fn">pop</span>();
+        <span class="kw">if</span> (visited.<span class="fn">contains</span>(cur)) <span class="kw">continue</span>;   <span class="cm">// BFS와 달리 pop 시점에 중복 검사</span>
+        visited.<span class="fn">add</span>(cur);
+        visitOrder.<span class="fn">add</span>(cur);
+
+        <span class="kw">for</span> (<span class="kw">int</span> next : graph.<span class="fn">neighbors</span>(cur)) {
+            <span class="kw">if</span> (!visited.<span class="fn">contains</span>(next)) stack.<span class="fn">push</span>(next);
+        }
+    }
+    <span class="kw">return</span> visitOrder;
+}</pre>
+            </div>
+            <p class="code-desc">
+                BFS는 큐에 <span class="st">offer</span>하는 시점에 방문 처리해 중복 삽입을 막지만, 이 반복적 DFS는 스택에 같은 정점이 여러 번 쌓일 수 있어 <span class="st">pop</span> 시점에 방문 여부를 다시 검사합니다.<br>
+                이번 시각화의 핵심 범위는 재귀 DFS이지만, 재귀 호출 스택과 명시적 스택이 결국 같은 개념(LIFO)이라는 점을 이해하는 데 참고가 됩니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
