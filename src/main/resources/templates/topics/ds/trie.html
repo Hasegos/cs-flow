@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">트라이 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/ds/trie.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/ds}" class="topic-breadcrumb__link">자료구조</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">트라이</span>
+                </nav>
+
+                <span class="topic-hero__slug">ds · 08</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">트라이</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        트라이(Trie)는 <strong>문자열을 저장하고 검색하는 데 특화된 트리 자료구조</strong>입니다.
+                        각 간선이 문자 하나에 대응하고, 루트에서 어떤 노드까지의 경로가 하나의 문자열(접두사)을 이룹니다.
+                        검색어 자동완성, 맞춤법 검사, IP 라우팅 테이블처럼 공통 접두사를 가진 문자열을 다루는 곳에 사용됩니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">노드와 문자 간선</h3>
+                            <p class="overview-card__desc">트라이에서는 노드가 아니라 간선이 문자 하나를 나타냅니다. 루트는 빈 문자열이며, 루트에서 임의의 노드까지 내려가는 경로가 곧 하나의 문자열입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">isEnd 플래그</h3>
+                            <p class="overview-card__desc">노드가 실제로 저장된 단어의 끝이면 isEnd를 true로 표시합니다. 경로가 존재해도 isEnd가 false면 그 문자열은 저장된 완전한 단어가 아니라 단순 접두사일 뿐입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">삽입 (Insert)</h3>
+                            <p class="overview-card__desc">문자를 하나씩 따라가며 이미 있는 노드는 재사용하고, 없는 노드는 새로 만듭니다. 마지막 문자의 노드에 isEnd를 표시하며 완료합니다. 시간복잡도는 단어 길이 L에 비례한 O(L)입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">검색 (Search / contains)</h3>
+                            <p class="overview-card__desc">문자를 하나씩 따라가다 경로가 끊기면 즉시 false입니다. 끝까지 도달해도 마지막 노드의 isEnd가 false면 false를 반환합니다. 완전히 일치하는 단어인지 확인합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">접두사 검색 (startsWith)</h3>
+                            <p class="overview-card__desc">경로가 끝까지 존재하기만 하면 true입니다. isEnd 여부는 확인하지 않습니다. 자동완성 기능은 이 접두사 검색을 기반으로 후보 단어들을 찾습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">접두사 공유</h3>
+                            <p class="overview-card__desc">CAR, CARD, CARE처럼 같은 접두사를 가진 단어들은 그 접두사까지의 경로를 공유합니다. 저장된 단어가 많을수록 해시 테이블 대비 메모리 이점이 커집니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>해시 테이블과의 비교</strong> — 해시 테이블도 문자열을 O(1)~O(L)에 검색할 수 있지만, 접두사 검색(startsWith)은 지원하지 못합니다. 트라이는 접두사 기반 연산이 필요할 때 확실한 우위를 가집니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>시간복잡도</strong> — 삽입·검색·접두사 검색 모두 단어 길이 L에 비례한 O(L)입니다. 저장된 단어의 개수(N)와는 무관하다는 점이 트라이의 핵심 장점입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공간 트레이드오프</strong> — 각 노드가 자식을 가리키는 포인터(또는 배열/맵)를 들고 있어야 하므로, 저장하는 문자열의 접두사 공유가 적다면 오히려 해시 테이블보다 메모리를 더 사용할 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>활용 사례</strong> — 검색창 자동완성, 맞춤법 검사기, IP 라우팅 테이블(최장 접두사 매칭), T9 예측 입력 등 "접두사"가 의미를 갖는 모든 곳에서 트라이가 사용됩니다.</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/ds/trie-code :: code}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+</body>
+</html>
