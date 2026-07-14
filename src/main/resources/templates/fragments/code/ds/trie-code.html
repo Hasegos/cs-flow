@@ -1,0 +1,83 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 트라이 노드 정의</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── 트라이 노드: 문자 → 자식 노드 맵 + 단어 끝 표시 ─────── */</span>
+<span class="kw">public class</span> <span class="fn">TrieNode</span> {
+    Map&lt;Character, TrieNode&gt; children = <span class="kw">new</span> HashMap&lt;&gt;();
+    <span class="kw">boolean</span> isEnd = <span class="kw">false</span>;   <span class="cm">// 이 노드에서 끝나는 완전한 단어가 있는지 여부</span>
+}
+
+<span class="kw">public class</span> <span class="fn">Trie</span> {
+    <span class="kw">private final</span> TrieNode root = <span class="kw">new</span> <span class="fn">TrieNode</span>();
+}</pre>
+            </div>
+            <p class="code-desc">
+                노드 자체는 문자를 담지 않고, <span class="st">children</span> 맵의 key(문자)가 간선을 나타냅니다.<br>
+                즉 "문자는 간선에, 도착 여부는 노드에" 저장하는 구조입니다.<br>
+                <span class="st">isEnd</span>는 경로가 존재하는 것과 완전한 단어인 것을 구분하는 핵심 플래그입니다 — 예를 들어 "CARD"를 삽입하면 C→A→R 경로 위의 R 노드는 "CAR"의 끝이자 동시에 "CARD"로 가는 중간 경로이기도 합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 삽입 (Insert)</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── 삽입: 문자를 하나씩 따라가며 없는 노드는 새로 생성 ──── */</span>
+<span class="kw">public void</span> <span class="fn">insert</span>(String word) {
+    TrieNode cur = root;
+    <span class="kw">for</span> (<span class="kw">char</span> ch : word.<span class="fn">toCharArray</span>()) {
+        cur = cur.children.<span class="fn">computeIfAbsent</span>(ch, c -&gt; <span class="kw">new</span> <span class="fn">TrieNode</span>());
+    }
+    cur.isEnd = <span class="kw">true</span>;   <span class="cm">// 마지막 문자 노드에 단어의 끝 표시</span>
+}</pre>
+            </div>
+            <p class="code-desc">
+                <span class="st">computeIfAbsent</span> 한 줄이 "이미 있으면 재사용, 없으면 새로 생성"을 모두 처리합니다 — 시각화의 삽입 탭에서 본 보라색(신규 생성)·주황색(재사용) 구분이 바로 이 지점입니다.<br>
+                시간복잡도는 단어 길이 L에 비례한 O(L)이며, 트라이에 이미 저장된 단어 개수와는 무관합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 검색 (Search / contains)</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── 검색: 경로가 존재하고, 마지막 노드가 isEnd=true인지 확인 ─ */</span>
+<span class="kw">public boolean</span> <span class="fn">search</span>(String word) {
+    TrieNode node = <span class="fn">findNode</span>(word);
+    <span class="kw">return</span> node != <span class="kw">null</span> &amp;&amp; node.isEnd;
+}
+
+<span class="cm">/* ── 경로만 따라가는 공통 헬퍼 (search / startsWith 공용) ──── */</span>
+<span class="kw">private</span> TrieNode <span class="fn">findNode</span>(String s) {
+    TrieNode cur = root;
+    <span class="kw">for</span> (<span class="kw">char</span> ch : s.<span class="fn">toCharArray</span>()) {
+        cur = cur.children.<span class="fn">get</span>(ch);
+        <span class="kw">if</span> (cur == <span class="kw">null</span>) <span class="kw">return null</span>;   <span class="cm">// 경로 중간에 끊김 → 즉시 실패</span>
+    }
+    <span class="kw">return</span> cur;
+}</pre>
+            </div>
+            <p class="code-desc">
+                <span class="st">search("CA")</span>는 경로(C→A)는 존재하지만 A 노드의 <span class="st">isEnd</span>가 false이므로 false를 반환합니다 — "경로 존재"와 "완전한 단어"는 다른 개념이라는 점이 트라이 검색의 핵심입니다.<br>
+                시간복잡도는 O(L)로, 해시 테이블의 평균 O(1)~O(L)과 비슷한 수준입니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 접두사 검색 (startsWith)</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── 접두사 검색: 경로만 끝까지 있으면 true (isEnd 확인 안 함) ─ */</span>
+<span class="kw">public boolean</span> <span class="fn">startsWith</span>(String prefix) {
+    <span class="kw">return</span> <span class="fn">findNode</span>(prefix) != <span class="kw">null</span>;
+}</pre>
+            </div>
+            <p class="code-desc">
+                <span class="st">search</span>와 <span class="st">startsWith</span>는 같은 <span class="st">findNode</span> 헬퍼를 재사용하되, 마지막에 <span class="st">isEnd</span>를 확인하느냐만 다릅니다.<br>
+                예를 들어 <span class="st">startsWith("CA")</span>는 경로만 있으면 되므로 true지만, 앞서 본 <span class="st">search("CA")</span>는 isEnd가 false라서 false입니다 — 자동완성 기능은 이 startsWith를 이용해 후보 단어를 좁혀 나갑니다.<br>
+                해시 테이블은 이런 접두사 기반 조회를 지원하지 못하므로, 이 지점이 트라이가 해시 테이블보다 우위를 갖는 대표적인 이유입니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
