@@ -1,0 +1,194 @@
+/* === .sort-viz — 정렬 알고리즘 시각화 전용 === */
+
+.sort-viz {
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  overflow: visible;
+}
+
+.sort-viz__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sort-viz__toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.sort-viz__title {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-purple);
+}
+
+.sort-viz__mode {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.sort-viz__mode-btn {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  padding: 5px 14px;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all 0.2s ease;
+  letter-spacing: 0.06em;
+}
+
+.sort-viz__mode-btn:hover {
+  border-color: var(--color-purple);
+  color: var(--color-purple);
+}
+
+.sort-viz__mode-btn--active {
+  border-color: var(--color-purple);
+  color: var(--color-purple);
+  background: rgba(108, 99, 255, 0.1);
+}
+
+.sort-viz__speed {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sort-viz__speed-label {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--color-text-muted);
+  letter-spacing: 0.08em;
+}
+
+.sort-viz__speed-btn {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  padding: 4px 10px;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all 0.2s ease;
+}
+
+.sort-viz__speed-btn:hover,
+.sort-viz__speed-btn--active {
+  border-color: var(--color-purple);
+  color: var(--color-purple);
+}
+
+.sort-viz__speed-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.sort-viz__canvas-wrap {
+  flex: 1;
+  position: relative;
+  min-height: 480px;
+}
+
+.sort-viz__canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.sort-viz__log {
+  padding: 12px 24px;
+  border-top: 1px solid var(--color-border);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--color-purple);
+  letter-spacing: 0.03em;
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  line-height: 1.65;
+}
+
+.sort-viz__controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 24px;
+  border-top: 1px solid rgba(108, 99, 255, 0.1);
+  flex-shrink: 0;
+}
+
+.sort-viz__btn {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  padding: 9px 22px;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+  letter-spacing: 0.06em;
+}
+
+.sort-viz__btn:hover {
+  border-color: var(--color-purple);
+  color: var(--color-purple);
+}
+
+.sort-viz__btn--primary {
+  border-color: var(--color-purple);
+  color: var(--color-purple);
+}
+
+.sort-viz__btn--primary:hover {
+  background: var(--color-purple);
+  color: #0f0f1a;
+}
+
+.sort-viz__btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+  .sort-viz__toolbar {
+    padding: 12px 16px;
+  }
+
+  .sort-viz__log     {
+    padding: 10px 16px;
+    font-size: 0.72rem;
+  }
+
+  .sort-viz__controls {
+    padding: 10px 16px;
+    gap: 8px;
+  }
+
+  .sort-viz__btn      {
+    font-size: 0.7rem;
+    padding: 8px 16px;
+  }
+}
