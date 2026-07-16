@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">동적 프로그래밍 기초 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/ds/dp.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/ds}" class="topic-breadcrumb__link">자료구조</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">동적 프로그래밍 기초</span>
+                </nav>
+
+                <span class="topic-hero__slug">ds · 10</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">동적 프로그래밍 기초</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        동적 프로그래밍(Dynamic Programming, DP)은 <strong>큰 문제를 작은 부분 문제로 나누고, 그 결과를 저장해 재사용</strong>함으로써
+                        중복 계산을 없애는 알고리즘 설계 기법입니다. 여기서는 피보나치 수열을 예제로 완전 탐색 → 메모이제이션 → 타뷸레이션 순서로 비교합니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">최적 부분 구조</h3>
+                            <p class="overview-card__desc">큰 문제의 답이 작은 부분 문제들의 답으로 구성될 수 있는 성질입니다. fib(n) = fib(n-1) + fib(n-2)처럼, 전체 문제의 해가 부분 문제 해의 조합으로 표현됩니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">중복 부분 문제</h3>
+                            <p class="overview-card__desc">재귀로 문제를 나누다 보면 같은 부분 문제가 여러 번 나타나는 경우가 많습니다. fib(5)를 계산할 때 fib(2)는 여러 경로에서 반복해서 계산됩니다. DP는 이 중복을 제거해 속도를 높입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">완전 탐색 (재귀)</h3>
+                            <p class="overview-card__desc">부분 문제를 저장하지 않고 매번 새로 계산하는 방식입니다. 구현은 간단하지만 같은 계산을 반복해 지수 시간 O(2ⁿ)이 걸립니다. DP가 왜 필요한지 보여주는 기준점입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">메모이제이션 (Top-down)</h3>
+                            <p class="overview-card__desc">재귀 구조는 그대로 두되, 한 번 계산한 결과를 캐시(memo)에 저장해두고 재사용합니다. 재귀 호출 방향이 위(큰 문제)에서 아래(작은 문제)로 내려가 Top-down이라 부릅니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">타뷸레이션 (Bottom-up)</h3>
+                            <p class="overview-card__desc">재귀 없이 반복문으로 작은 부분 문제부터 표(table)를 채워 올라갑니다. 가장 작은 문제(기저 사례)에서 시작해 큰 문제로 향하기 때문에 Bottom-up이라 부릅니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">시간·공간 트레이드오프</h3>
+                            <p class="overview-card__desc">메모이제이션·타뷸레이션 모두 시간복잡도를 O(2ⁿ)에서 O(n)으로 낮추는 대신, 결과를 저장할 공간(캐시 또는 표)이 추가로 필요합니다 — 전형적인 시간과 공간을 맞바꾸는 전략입니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>DP를 적용할 수 있는 조건</strong> — 문제가 최적 부분 구조와 중복 부분 문제라는 두 성질을 모두 만족해야 DP로 효율을 얻을 수 있습니다. 부분 문제가 겹치지 않는다면(예: 단순 분할 정복인 병합 정렬) 캐시가 의미 없습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>메모이제이션 vs 타뷸레이션</strong> — 메모이제이션은 필요한 부분 문제만 계산하고(느슨함) 재귀 호출 스택을 사용합니다. 타뷸레이션은 모든 부분 문제를 순서대로 계산하지만 재귀가 없어 스택 오버플로 위험이 없고 대체로 더 빠릅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>피보나치를 넘어서</strong> — 같은 원리가 배낭 문제(Knapsack), 최장 공통 부분 수열(LCS), 최단 경로(다익스트라와 연계) 등 훨씬 복잡한 문제에도 그대로 적용됩니다. 핵심은 "부분 문제를 정의하고, 그 결과를 저장해 재사용한다"는 패턴입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공간 추가 최적화</strong> — 피보나치처럼 dp[i]가 바로 이전 두 값에만 의존하는 경우, 표 전체를 저장하지 않고 변수 2개만 유지해도 됩니다. 이렇게 하면 시간복잡도는 O(n)을 유지하면서 공간복잡도를 O(n)에서 O(1)로 줄일 수 있습니다.</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/ds/dp-code :: code}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+</body>
+</html>
