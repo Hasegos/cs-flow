@@ -1,0 +1,76 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 완전 탐색 (재귀)</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── 완전 탐색: 저장 없이 매번 새로 재귀 호출 ─────────────── */</span>
+<span class="kw">public int</span> <span class="fn">fibNaive</span>(<span class="kw">int</span> n) {
+    <span class="kw">if</span> (n &lt;= <span class="num">1</span>) <span class="kw">return</span> n;              <span class="cm">// 기저 사례</span>
+    <span class="kw">return</span> <span class="fn">fibNaive</span>(n - <span class="num">1</span>) + <span class="fn">fibNaive</span>(n - <span class="num">2</span>);
+}</pre>
+            </div>
+            <p class="code-desc">
+                코드는 단 세 줄이지만, <span class="st">fib(n-2)</span>가 <span class="st">fib(n-1)</span> 내부에서도 다시 호출되는 식으로 같은 부분 문제가 기하급수적으로 반복됩니다.<br>
+                호출 횟수는 대략 fib(n)에 비례해 늘어나 시간복잡도가 O(2ⁿ)에 가까워지고, n이 40만 넘어가도 체감될 만큼 느려집니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 메모이제이션 (Top-down)</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── 메모이제이션: 재귀 구조 + 캐시로 중복 계산 제거 ──────── */</span>
+<span class="kw">private</span> Map&lt;Integer, Integer&gt; memo = <span class="kw">new</span> HashMap&lt;&gt;();
+
+<span class="kw">public int</span> <span class="fn">fibMemo</span>(<span class="kw">int</span> n) {
+    <span class="kw">if</span> (n &lt;= <span class="num">1</span>) <span class="kw">return</span> n;
+    <span class="kw">if</span> (memo.<span class="fn">containsKey</span>(n)) <span class="kw">return</span> memo.<span class="fn">get</span>(n);   <span class="cm">// 캐시 적중 → 재귀 없이 즉시 반환</span>
+
+    <span class="kw">int</span> result = <span class="fn">fibMemo</span>(n - <span class="num">1</span>) + <span class="fn">fibMemo</span>(n - <span class="num">2</span>);
+    memo.<span class="fn">put</span>(n, result);                          <span class="cm">// 계산 결과를 캐시에 저장</span>
+    <span class="kw">return</span> result;
+}</pre>
+            </div>
+            <p class="code-desc">
+                <span class="st">fibNaive</span>와 재귀 구조는 동일하지만, <span class="st">memo.containsKey(n)</span> 한 줄이 결정적인 차이를 만듭니다 — 이미 계산된 n이면 재귀 호출 자체가 일어나지 않습니다.<br>
+                각 n은 정확히 한 번만 계산되므로 시간복잡도가 O(n)으로 줄어듭니다. 다만 재귀 호출 스택과 캐시(Map)를 함께 쓰므로 공간복잡도는 O(n)입니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 타뷸레이션 (Bottom-up)</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── 타뷸레이션: 재귀 없이 표를 아래에서부터 채움 ─────────── */</span>
+<span class="kw">public int</span> <span class="fn">fibTab</span>(<span class="kw">int</span> n) {
+    <span class="kw">if</span> (n &lt;= <span class="num">1</span>) <span class="kw">return</span> n;
+
+    <span class="kw">int</span>[] dp = <span class="kw">new int</span>[n + <span class="num">1</span>];
+    dp[<span class="num">0</span>] = <span class="num">0</span>;
+    dp[<span class="num">1</span>] = <span class="num">1</span>;                                <span class="cm">// 기저 사례를 먼저 채움</span>
+
+    <span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">2</span>; i &lt;= n; i++) {
+        dp[i] = dp[i - <span class="num">1</span>] + dp[i - <span class="num">2</span>];       <span class="cm">// 이전 두 값으로 다음 값 계산</span>
+    }
+    <span class="kw">return</span> dp[n];
+}
+
+<span class="cm">/* ── 참고: dp[i]는 직전 두 값에만 의존 → 변수 2개로 O(1) 공간 가능 ─ */</span>
+<span class="kw">public int</span> <span class="fn">fibOptimized</span>(<span class="kw">int</span> n) {
+    <span class="kw">if</span> (n &lt;= <span class="num">1</span>) <span class="kw">return</span> n;
+    <span class="kw">int</span> prev2 = <span class="num">0</span>, prev1 = <span class="num">1</span>;
+    <span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">2</span>; i &lt;= n; i++) {
+        <span class="kw">int</span> cur = prev1 + prev2;
+        prev2 = prev1;
+        prev1 = cur;
+    }
+    <span class="kw">return</span> prev1;
+}</pre>
+            </div>
+            <p class="code-desc">
+                재귀가 전혀 없어 호출 스택이 쌓이지 않으므로 큰 n에서도 <span class="st">StackOverflowError</span> 걱정이 없고, 반복문 하나로 끝나 실전에서 메모이제이션보다 대체로 더 빠릅니다.<br>
+                시간복잡도는 O(n)으로 메모이제이션과 같지만, <span class="st">fibOptimized</span>처럼 직전 두 값만 유지하면 배열 전체(O(n))가 아닌 변수 두 개(O(1))만으로도 충분합니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
