@@ -1,0 +1,57 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — O(1) 상수 시간</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── 입력 크기가 아무리 커져도 항상 딱 한 번만 연산 ────────── */</span>
+<span class="kw">public int</span> <span class="fn">getFirst</span>(<span class="kw">int</span>[] arr) {
+    <span class="kw">return</span> arr[<span class="num">0</span>];   <span class="cm">// 배열 길이와 무관하게 즉시 반환</span>
+}</pre>
+            </div>
+            <p class="code-desc">
+                배열이 <span class="st">10</span>개짜리든 <span class="st">1,000,000</span>개짜리든, 인덱스로 값 하나를 꺼내는 데 걸리는 연산 횟수는 항상 1번입니다.<br>
+                입력 크기 n과 실행 시간이 아예 무관하기 때문에 O(1)이라고 표기합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — O(n) 선형 시간</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── 배열을 한 번 훑으며 최댓값을 찾음 ─────────────────────── */</span>
+<span class="kw">public int</span> <span class="fn">findMax</span>(<span class="kw">int</span>[] arr) {
+    <span class="kw">int</span> max = arr[<span class="num">0</span>];
+    <span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">1</span>; i &lt; arr.length; i++) {   <span class="cm">// arr.length번 반복</span>
+        <span class="kw">if</span> (arr[i] &gt; max) max = arr[i];
+    }
+    <span class="kw">return</span> max;
+}</pre>
+            </div>
+            <p class="code-desc">
+                반복문이 <span class="st">arr.length</span>번, 즉 입력 크기 n만큼 정확히 한 번씩 실행됩니다.<br>
+                n이 2배로 늘면 연산 횟수도 2배로 늘어나는, 입력 크기에 정비례하는 O(n) 시간복잡도입니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — O(n²) 이차 시간</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── 이중 for문: 모든 쌍(i, j)을 서로 비교 ─────────────────── */</span>
+<span class="kw">public boolean</span> <span class="fn">hasDuplicate</span>(<span class="kw">int</span>[] arr) {
+    <span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">0</span>; i &lt; arr.length; i++) {
+        <span class="kw">for</span> (<span class="kw">int</span> j = i + <span class="num">1</span>; j &lt; arr.length; j++) {   <span class="cm">// i마다 arr.length번 가까이 반복</span>
+            <span class="kw">if</span> (arr[i] == arr[j]) <span class="kw">return true</span>;
+        }
+    }
+    <span class="kw">return false</span>;
+}</pre>
+            </div>
+            <p class="code-desc">
+                바깥 반복문이 n번 돌 때마다 안쪽 반복문도 매번 n번 가까이 돌기 때문에, 전체 연산 횟수는 대략 <span class="st">n × n</span>번입니다.<br>
+                n이 2배로 늘면 연산 횟수는 4배로 늘어나는 O(n²) 시간복잡도이며, ds-09(정렬 알고리즘)의 버블 정렬이 대표적인 예입니다.<br>
+                O(log n)은 다음 토픽(이진 탐색)에서, O(2ⁿ)은 ds-10(동적 프로그래밍)의 완전 탐색에서 이미 확인했습니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
