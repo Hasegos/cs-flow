@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">시간/공간 복잡도 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/algo/complexity.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/algo}" class="topic-breadcrumb__link">알고리즘</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">시간/공간 복잡도</span>
+                </nav>
+
+                <span class="topic-hero__slug">algo · 1</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">시간/공간 복잡도</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        시간/공간 복잡도(Big-O 표기법)는 입력 크기 <strong>n이 커질수록 실행 시간이나 메모리 사용량이 얼마나 빠르게 늘어나는지</strong>를
+                        나타내는 표기법입니다. 정확한 초 단위가 아니라 "커지는 추세(패턴)"에 집중한다는 점이 핵심입니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">O(1) — 상수 시간</h3>
+                            <p class="overview-card__desc">입력 크기와 상관없이 항상 일정한 횟수만 연산합니다. 예: 배열에서 인덱스로 값 하나를 바로 꺼내는 연산.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">O(log n) — 로그 시간</h3>
+                            <p class="overview-card__desc">매 단계마다 처리할 범위를 절반씩 줄여나갈 때 나타납니다. 예: 다음 토픽에서 다룰 이진 탐색.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">O(n) — 선형 시간</h3>
+                            <p class="overview-card__desc">입력 전체를 한 번씩은 훑어야 하는 경우입니다. 예: 배열을 처음부터 끝까지 순회하며 최댓값을 찾는 연산.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">O(n²) — 이차 시간</h3>
+                            <p class="overview-card__desc">입력의 모든 쌍을 서로 비교해야 할 때 나타납니다. 예: 이중 for문, 버블 정렬(자료구조-09 자료구조에서 다룸).</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">O(2ⁿ) — 지수 시간</h3>
+                            <p class="overview-card__desc">매 단계마다 선택지가 두 배씩 늘어날 때 나타납니다. 예: 캐시 없이 재귀로 계산하는 피보나치(자료구조-10에서 다룬 완전 탐색).</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">시간·공간 트레이드오프</h3>
+                            <p class="overview-card__desc">복잡도는 실행 시간뿐 아니라 메모리 사용량도 같은 방식(O(1), O(n)...)으로 표현합니다. 메모이제이션은 시간을 아끼는 대신 공간을 더 쓰는 대표적인 예입니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>왜 정확한 초 단위가 아니라 빅오인가</strong> — 컴퓨터 성능이나 사용하는 언어에 따라 실제 걸리는 시간은 달라지지만, "n이 커질 때 얼마나 빠르게 증가하는가"라는 패턴은 알고리즘 고유의 성질이라 비교 기준으로 삼기 좋습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>최선 / 평균 / 최악의 경우</strong> — 같은 알고리즘도 입력에 따라 다르게 동작할 수 있습니다(예: 이미 정렬된 배열에서는 버블 정렬도 훨씬 빠르게 끝납니다). 빅오는 보통 가장 나쁜 경우(최악)를 기준으로 표기해 안전하게 성능을 예측합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>실전에서의 의미</strong> — n이 10 정도면 어떤 알고리즘을 써도 체감 차이가 없습니다. 하지만 n이 수백만 단위로 커지면 O(n²) 알고리즘은 멈춘 것처럼 느껴지고, O(n log n)이나 O(n)은 여전히 빠릅니다. 그래서 문제 규모에 맞는 알고리즘 선택이 중요합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "그래프로 보기"에서는 n이 커질 때 다섯 복잡도가 그리는 곡선의 모양 차이를, "숫자로 비교"에서는 n=10 / 100 / 1000일 때 실제 연산 횟수가 얼마나 벌어지는지를 직접 숫자로 확인합니다.</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/algo/complexity-code :: code}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+</body>
+</html>
