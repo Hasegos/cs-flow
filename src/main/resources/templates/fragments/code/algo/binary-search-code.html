@@ -1,0 +1,71 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 선형 탐색 (비교 기준)</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── 처음부터 하나씩 확인 — 정렬 여부와 무관하게 동작 ─────── */</span>
+<span class="kw">public int</span> <span class="fn">linearSearch</span>(<span class="kw">int</span>[] arr, <span class="kw">int</span> target) {
+    <span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">0</span>; i &lt; arr.length; i++) {
+        <span class="kw">if</span> (arr[i] == target) <span class="kw">return</span> i;   <span class="cm">// 찾으면 인덱스 반환</span>
+    }
+    <span class="kw">return</span> -<span class="num">1</span>;                              <span class="cm">// 끝까지 못 찾음</span>
+}</pre>
+            </div>
+            <p class="code-desc">
+                최악의 경우(target이 맨 끝에 있거나 없을 때) <span class="st">arr.length</span>번, 즉 O(n)만큼 비교해야 합니다.<br>
+                정렬 여부와 상관없이 항상 동작하지만, 데이터가 이미 정렬되어 있다면 이진 탐색보다 훨씬 비효율적입니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 이진 탐색 (반복문)</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── 정렬된 배열 전제: 매 단계 범위를 절반으로 좁힘 ────────── */</span>
+<span class="kw">public int</span> <span class="fn">binarySearch</span>(<span class="kw">int</span>[] arr, <span class="kw">int</span> target) {
+    <span class="kw">int</span> low = <span class="num">0</span>, high = arr.length - <span class="num">1</span>;
+
+    <span class="kw">while</span> (low &lt;= high) {
+        <span class="kw">int</span> mid = low + (high - low) / <span class="num">2</span>;   <span class="cm">// 오버플로 방지 계산</span>
+        <span class="kw">if</span> (arr[mid] == target) {
+            <span class="kw">return</span> mid;                    <span class="cm">// 발견</span>
+        } <span class="kw">else if</span> (arr[mid] &lt; target) {
+            low = mid + <span class="num">1</span>;                 <span class="cm">// 오른쪽 절반만 다시 탐색</span>
+        } <span class="kw">else</span> {
+            high = mid - <span class="num">1</span>;                <span class="cm">// 왼쪽 절반만 다시 탐색</span>
+        }
+    }
+    <span class="kw">return</span> -<span class="num">1</span>;                              <span class="cm">// low &gt; high → 존재하지 않음</span>
+}</pre>
+            </div>
+            <p class="code-desc">
+                <span class="st">low &lt;= high</span>인 동안 매 반복마다 범위가 절반으로 줄어들기 때문에, 최악의 경우에도 log₂n번이면 반복이 끝납니다.<br>
+                n=16이면 최대 4번, n=1,000,000이면 최대 약 20번 — 반복 횟수가 n이 아니라 n의 로그에 비례하는 O(log n) 시간복잡도입니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 이진 탐색 (재귀)</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── 반복문 대신 재귀 호출로 같은 로직을 표현 ──────────────── */</span>
+<span class="kw">public int</span> <span class="fn">binarySearchRecursive</span>(<span class="kw">int</span>[] arr, <span class="kw">int</span> target, <span class="kw">int</span> low, <span class="kw">int</span> high) {
+    <span class="kw">if</span> (low &gt; high) <span class="kw">return</span> -<span class="num">1</span>;             <span class="cm">// 기저 사례: 더 볼 범위가 없음</span>
+
+    <span class="kw">int</span> mid = low + (high - low) / <span class="num">2</span>;
+    <span class="kw">if</span> (arr[mid] == target) {
+        <span class="kw">return</span> mid;
+    } <span class="kw">else if</span> (arr[mid] &lt; target) {
+        <span class="kw">return</span> <span class="fn">binarySearchRecursive</span>(arr, target, mid + <span class="num">1</span>, high);   <span class="cm">// 오른쪽 절반 재귀</span>
+    } <span class="kw">else</span> {
+        <span class="kw">return</span> <span class="fn">binarySearchRecursive</span>(arr, target, low, mid - <span class="num">1</span>);    <span class="cm">// 왼쪽 절반 재귀</span>
+    }
+}</pre>
+            </div>
+            <p class="code-desc">
+                반복문 버전과 시간복잡도는 동일하게 O(log n)이지만, 매 호출마다 범위가 절반으로 줄어들기 때문에 재귀 호출 깊이도 log₂n에 비례합니다.<br>
+                <span class="st">ds-10(동적 프로그래밍)</span>에서 다룬 재귀와 달리 매번 부분 문제가 하나뿐이라 중복 계산이 없어, 메모이제이션 같은 별도의 캐시가 필요하지 않습니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
