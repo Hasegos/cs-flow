@@ -1,0 +1,73 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 병합 정렬 (Merge Sort)</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── 절반으로 나누고, 정렬된 두 절반을 다시 합침 ───────────── */</span>
+<span class="kw">public void</span> <span class="fn">mergeSort</span>(<span class="kw">int</span>[] arr, <span class="kw">int</span> left, <span class="kw">int</span> right) {
+    <span class="kw">if</span> (left &gt;= right) <span class="kw">return</span>;              <span class="cm">// 기저 사례: 원소 1개는 이미 정렬됨</span>
+
+    <span class="kw">int</span> mid = left + (right - left) / <span class="num">2</span>;
+    <span class="fn">mergeSort</span>(arr, left, mid);            <span class="cm">// 왼쪽 절반 정렬</span>
+    <span class="fn">mergeSort</span>(arr, mid + <span class="num">1</span>, right);       <span class="cm">// 오른쪽 절반 정렬</span>
+    <span class="fn">merge</span>(arr, left, mid, right);        <span class="cm">// 정렬된 두 절반을 합침</span>
+}</pre>
+            </div>
+            <p class="code-desc">
+                배열을 계속 절반으로 나누면 깊이는 log₂n, 각 깊이에서 <span class="st">merge</span>가 전체 원소를 한 번씩 비교·복사하므로 O(n)입니다.<br>
+                깊이(log n) × 각 단계 작업량(n) = O(n log n)이며, 항상 정확히 절반씩 나누기 때문에 입력에 상관없이 이 시간이 보장됩니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 퀵 정렬 (Quick Sort, Lomuto 파티션)</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── 피벗보다 작은 값은 왼쪽, 큰 값은 오른쪽으로 모음 ──────── */</span>
+<span class="kw">public void</span> <span class="fn">quickSort</span>(<span class="kw">int</span>[] arr, <span class="kw">int</span> lo, <span class="kw">int</span> hi) {
+    <span class="kw">if</span> (lo &gt;= hi) <span class="kw">return</span>;
+
+    <span class="kw">int</span> pivot = arr[hi];                  <span class="cm">// 구간의 마지막 값을 피벗으로 사용</span>
+    <span class="kw">int</span> i = lo - <span class="num">1</span>;
+    <span class="kw">for</span> (<span class="kw">int</span> j = lo; j &lt; hi; j++) {
+        <span class="kw">if</span> (arr[j] &lt; pivot) {
+            i++;
+            <span class="fn">swap</span>(arr, i, j);              <span class="cm">// 피벗보다 작은 값을 앞쪽으로 이동</span>
+        }
+    }
+    <span class="fn">swap</span>(arr, i + <span class="num">1</span>, hi);              <span class="cm">// 피벗을 최종 위치로 이동</span>
+
+    <span class="kw">int</span> p = i + <span class="num">1</span>;
+    <span class="fn">quickSort</span>(arr, lo, p - <span class="num">1</span>);
+    <span class="fn">quickSort</span>(arr, p + <span class="num">1</span>, hi);
+}</pre>
+            </div>
+            <p class="code-desc">
+                피벗이 매번 배열을 절반에 가깝게 나누면 병합 정렬처럼 O(n log n)이지만, <span class="st">arr[j] &lt; pivot</span> 비교 결과에 따라 분할 비율이 달라지는 것이 병합 정렬과의 차이입니다.<br>
+                평균적으로는 O(n log n)이지만, 이미 정렬된 배열에서 항상 마지막 값을 피벗으로 고르면 매번 원소 1개씩만 떼어내는 최악의 경우 O(n²)가 될 수 있습니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 힙 정렬 (Heap Sort)</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── 최대 힙을 만든 뒤, 루트(최댓값)를 하나씩 꺼내 정렬 ────── */</span>
+<span class="kw">public void</span> <span class="fn">heapSort</span>(<span class="kw">int</span>[] arr) {
+    <span class="kw">int</span> n = arr.length;
+    <span class="kw">for</span> (<span class="kw">int</span> i = n / <span class="num">2</span> - <span class="num">1</span>; i &gt;= <span class="num">0</span>; i--) {
+        <span class="fn">siftDown</span>(arr, i, n);             <span class="cm">// 배열 전체를 최대 힙으로 구성 — O(n)</span>
+    }
+    <span class="kw">for</span> (<span class="kw">int</span> end = n - <span class="num">1</span>; end &gt; <span class="num">0</span>; end--) {
+        <span class="fn">swap</span>(arr, <span class="num">0</span>, end);              <span class="cm">// 루트(최댓값)를 정렬 영역 맨 앞으로</span>
+        <span class="fn">siftDown</span>(arr, <span class="num">0</span>, end);         <span class="cm">// 줄어든 힙을 다시 정리</span>
+    }
+}</pre>
+            </div>
+            <p class="code-desc">
+                <span class="st">siftDown</span> 한 번은 힙의 높이(log n)만큼만 비교하면 되므로, n개를 하나씩 꺼내며 매번 siftDown을 호출해도 전체는 O(n log n)입니다.<br>
+                병합 정렬처럼 최선·평균·최악이 모두 O(n log n)으로 안정적이면서도, 퀵 정렬처럼 추가 배열 없이 원본 배열 안에서 정렬을 끝내는 제자리 정렬이라는 점이 특징입니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
