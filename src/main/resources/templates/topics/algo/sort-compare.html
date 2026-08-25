@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">정렬 비교 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/algo/sort-compare.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/algo}" class="topic-breadcrumb__link">알고리즘</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">정렬 비교</span>
+                </nav>
+
+                <span class="topic-hero__slug">algo · 03</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">정렬 비교</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        자료구조 토픽(ds-09)에서는 정렬 과정 자체를 막대그래프 애니메이션으로 살펴봤다면, 여기서는 <strong>병합 정렬 · 퀵 정렬 · 힙 정렬이
+                        같은 배열을 정렬하는 데 실제로 몇 번 비교하는지</strong>를 숫자로 직접 비교합니다. 세 알고리즘 모두 평균적으로 O(n log n)이지만,
+                        구체적인 비교 횟수와 동작 방식은 서로 다릅니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">병합 정렬 — 분할 정복</h3>
+                            <p class="overview-card__desc">배열을 절반으로 계속 나눈 뒤(분할), 정렬된 두 부분을 다시 합칩니다(병합). 항상 절반씩 나누기 때문에 최선·평균·최악 모두 O(n log n)으로 안정적입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">퀵 정렬 — 피벗 기준 분할</h3>
+                            <p class="overview-card__desc">기준값(피벗)을 하나 정해 그보다 작은 값은 왼쪽, 큰 값은 오른쪽으로 나눕니다. 평균 O(n log n)이지만, 피벗이 계속 한쪽으로 치우치면 최악의 경우 O(n²)까지 느려질 수 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">힙 정렬 — 힙 자료구조 활용</h3>
+                            <p class="overview-card__desc">배열을 최대 힙(ds-06 힙 참고)으로 만든 뒤, 가장 큰 값을 하나씩 꺼내 정렬 영역으로 옮깁니다. 최선·평균·최악 모두 O(n log n)으로 안정적입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">비교 횟수는 왜 다른가</h3>
+                            <p class="overview-card__desc">같은 O(n log n)이라도 상수 배와 실제 비교 횟수는 알고리즘 구현 방식, 데이터 배치, 피벗 선택 방법에 따라 달라집니다. 이 토픽에서는 원소 8개짜리 동일한 배열에 대해 세 알고리즘의 실제 비교 횟수를 직접 셉니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">제자리 정렬 여부</h3>
+                            <p class="overview-card__desc">퀵 정렬과 힙 정렬은 추가 배열 없이 원본 배열 안에서 교환만으로 정렬하는 제자리(in-place) 정렬입니다. 병합 정렬은 병합 과정에서 임시 배열이 필요해 추가 공간 O(n)이 듭니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">안정 정렬 여부</h3>
+                            <p class="overview-card__desc">병합 정렬은 같은 값의 상대적 순서를 유지하는 안정 정렬입니다. 퀵 정렬과 힙 정렬은 교환 과정에서 같은 값의 순서가 바뀔 수 있는 불안정 정렬입니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>왜 세 알고리즘 모두 배워야 하나</strong> — 이론적 시간복잡도가 같아도 상황에 따라 유리한 알고리즘이 다릅니다. 데이터가 커서 안정성이 중요하면 병합 정렬, 메모리가 부족하면 퀵/힙 정렬처럼 상황에 맞는 선택이 필요합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>퀵 정렬의 함정</strong> — 이 시각화는 배열이 무작위에 가까워 평균 성능을 보여주지만, 이미 정렬된 배열에 항상 마지막 값을 피벗으로 고르면 매번 한쪽으로만 치우쳐 O(n²)이 됩니다. 그래서 실무에서는 피벗을 무작위로 고르거나 세 값의 중간값을 사용합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>힙 정렬과 힙 자료구조</strong> — ds-06에서 배운 "삽입할 때마다 힙을 유지하는" 방식과 달리, 힙 정렬은 배열 전체를 한 번에 힙으로 만드는 것부터 시작합니다(build-heap이 O(n)).</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — 병합·퀵·힙 정렬 탭을 각각 재생해 같은 배열이 다른 경로로 정렬되는 과정을 보고, 마지막 힙 정렬 탭 하단에서 세 알고리즘의 실제 비교 횟수를 막대그래프로 비교하세요.</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/algo/sort-compare-code :: code}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+</body>
+</html>
