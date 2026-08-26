@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">BFS / DFS | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/algo/bfs-dfs.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/algo}" class="topic-breadcrumb__link">알고리즘</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">BFS / DFS</span>
+                </nav>
+
+                <span class="topic-hero__slug">algo · 04</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">BFS / DFS</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        자료구조 토픽(ds-07)에서는 그래프의 구조와 인접 행렬·인접 리스트 표현, BFS·DFS 각각의 동작을 따로 살펴봤다면,
+                        여기서는 <strong>완전히 같은 그래프를 BFS와 DFS로 동시에 탐색했을 때 방문 순서가 왜, 어떻게 달라지는지</strong>를 비교합니다.
+                        핵심은 딱 하나 — <strong>큐(Queue)를 쓰느냐, 스택(Stack)을 쓰느냐</strong>입니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">BFS — 큐(FIFO) 기반</h3>
+                            <p class="overview-card__desc">먼저 발견한 노드를 먼저 방문합니다(First In First Out). 그래서 시작 노드와 가까운 노드부터 한 단계씩, 층(레벨) 단위로 넓게 퍼지며 탐색합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">DFS — 스택(LIFO) 기반</h3>
+                            <p class="overview-card__desc">가장 나중에 발견한 노드를 먼저 방문합니다(Last In First Out). 그래서 한 갈래를 끝까지 깊게 파고든 뒤에야 다른 갈래로 되돌아갑니다(백트래킹).</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">같은 그래프, 다른 순서</h3>
+                            <p class="overview-card__desc">그래프와 시작 노드가 완전히 같아도, 방문 대기열을 큐로 관리하는지 스택으로 관리하는지에 따라 두 번째 노드부터 방문 순서가 갈라지기 시작합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">시간복잡도는 동일</h3>
+                            <p class="overview-card__desc">BFS와 DFS 모두 모든 노드와 간선을 한 번씩만 확인하므로 시간복잡도는 인접 리스트 기준 O(V+E)로 같습니다. 차이는 속도가 아니라 "방문 순서"에 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">언제 BFS를 쓰는가</h3>
+                            <p class="overview-card__desc">시작 노드로부터 "가장 가까운" 경로나 최단 거리를 찾을 때 유리합니다. 층 단위로 퍼지기 때문에 처음 도착한 경로가 곧 최단 경로입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">언제 DFS를 쓰는가</h3>
+                            <p class="overview-card__desc">모든 경로를 끝까지 탐색해봐야 하는 경우(백트래킹, 미로 탐색, 위상 정렬 등)에 유리합니다. 재귀 호출도 결국 함수 호출 스택을 쓰는 것이라 DFS와 원리가 같습니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>구현 방식의 핵심 차이는 자료구조 하나</strong> — BFS와 DFS 코드는 거의 동일합니다. "다음에 방문할 노드를 어디서 꺼내는가"만 큐(앞에서 꺼냄)에서 스택(뒤에서 꺼냄)으로 바꾸면 BFS가 DFS로 바뀝니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>재귀 DFS와 스택 DFS</strong> — 이 시각화는 스택을 직접 다루는 반복문 방식으로 구현했지만, 재귀 함수로 구현한 DFS도 원리는 완전히 같습니다. 재귀 호출 자체가 시스템이 관리하는 스택을 사용하기 때문입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>방문 처리를 잊으면 안 되는 이유</strong> — 이미 방문한 노드를 다시 큐/스택에 넣으면 무한히 같은 노드를 맴돌거나 중복 방문할 수 있습니다. 그래서 "발견 즉시 방문 표시"가 두 알고리즘 모두에서 중요합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "BFS 탐색"과 "DFS 탐색" 탭에서 각각 큐/스택이 채워지고 비워지는 과정을 보고, "동시 비교" 탭에서 같은 노드가 두 알고리즘에서 각각 몇 번째로 방문되는지 나란히 확인하세요.</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/algo/bfs-dfs-code :: code}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+</body>
+</html>
