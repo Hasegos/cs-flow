@@ -1,0 +1,85 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — BFS (너비 우선 탐색, 큐)</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── 큐(Queue): 먼저 들어온 노드를 먼저 꺼냄(FIFO) ─────────── */</span>
+<span class="kw">public List</span>&lt;Integer&gt; <span class="fn">bfs</span>(<span class="kw">int</span> start, <span class="kw">List</span>&lt;List&lt;Integer&gt;&gt; adj) {
+    <span class="kw">List</span>&lt;Integer&gt; order = <span class="kw">new</span> ArrayList&lt;&gt;();
+    <span class="kw">boolean</span>[] visited = <span class="kw">new boolean</span>[adj.size()];
+    Queue&lt;Integer&gt; queue = <span class="kw">new</span> LinkedList&lt;&gt;();
+
+    queue.<span class="fn">offer</span>(start);
+    visited[start] = <span class="kw">true</span>;
+
+    <span class="kw">while</span> (!queue.<span class="fn">isEmpty</span>()) {
+        <span class="kw">int</span> cur = queue.<span class="fn">poll</span>();          <span class="cm">// 큐의 맨 앞에서 꺼냄</span>
+        order.<span class="fn">add</span>(cur);
+        <span class="kw">for</span> (<span class="kw">int</span> next : adj.<span class="fn">get</span>(cur)) {
+            <span class="kw">if</span> (!visited[next]) {
+                visited[next] = <span class="kw">true</span>;      <span class="cm">// 발견 즉시 방문 표시(중복 방지)</span>
+                queue.<span class="fn">offer</span>(next);        <span class="cm">// 큐의 맨 뒤에 추가</span>
+            }
+        }
+    }
+    <span class="kw">return</span> order;
+}</pre>
+            </div>
+            <p class="code-desc">
+                <span class="st">queue.poll()</span>은 항상 가장 먼저 들어온(=시작 노드에서 가장 가까운) 노드를 꺼내기 때문에, 방문 순서가 자연스럽게 "가까운 노드부터" 층 단위로 퍼집니다.<br>
+                방문 표시를 <span class="st">queue.offer()</span> 시점(발견 즉시)에 하는 것이 핵심입니다 — 방문 시점에 표시하면 같은 노드가 큐에 중복으로 쌓일 수 있습니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — DFS (깊이 우선 탐색, 스택)</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── 스택(Stack): 가장 나중에 들어온 노드를 먼저 꺼냄(LIFO) ── */</span>
+<span class="kw">public List</span>&lt;Integer&gt; <span class="fn">dfs</span>(<span class="kw">int</span> start, <span class="kw">List</span>&lt;List&lt;Integer&gt;&gt; adj) {
+    <span class="kw">List</span>&lt;Integer&gt; order = <span class="kw">new</span> ArrayList&lt;&gt;();
+    <span class="kw">boolean</span>[] visited = <span class="kw">new boolean</span>[adj.size()];
+    Deque&lt;Integer&gt; stack = <span class="kw">new</span> ArrayDeque&lt;&gt;();
+    stack.<span class="fn">push</span>(start);
+
+    <span class="kw">while</span> (!stack.<span class="fn">isEmpty</span>()) {
+        <span class="kw">int</span> cur = stack.<span class="fn">pop</span>();          <span class="cm">// 스택의 맨 위(가장 최근)에서 꺼냄</span>
+        <span class="kw">if</span> (visited[cur]) <span class="kw">continue</span>;     <span class="cm">// 중복으로 쌓였던 노드는 건너뜀</span>
+        visited[cur] = <span class="kw">true</span>;
+        order.<span class="fn">add</span>(cur);
+        <span class="kw">for</span> (<span class="kw">int</span> next : adj.<span class="fn">get</span>(cur)) {
+            <span class="kw">if</span> (!visited[next]) stack.<span class="fn">push</span>(next);
+        }
+    }
+    <span class="kw">return</span> order;
+}</pre>
+            </div>
+            <p class="code-desc">
+                BFS 코드와 비교해보면 <span class="st">Queue</span>가 <span class="st">Deque(스택)</span>으로, <span class="st">poll()</span>이 <span class="st">pop()</span>으로 바뀐 것 외에는 구조가 거의 동일합니다.<br>
+                방문 표시를 <span class="st">pop()</span> 시점(꺼낼 때)으로 옮긴 이유는, 스택은 같은 노드가 여러 경로로 중복 push될 수 있어 꺼낼 때 한 번 더 확인이 필요하기 때문입니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — DFS (재귀 버전, 스택과 동일한 원리)</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── 재귀 호출도 결국 시스템이 관리하는 스택을 사용함 ─────── */</span>
+<span class="kw">public void</span> <span class="fn">dfsRecursive</span>(<span class="kw">int</span> cur, <span class="kw">boolean</span>[] visited, <span class="kw">List</span>&lt;List&lt;Integer&gt;&gt; adj, <span class="kw">List</span>&lt;Integer&gt; order) {
+    visited[cur] = <span class="kw">true</span>;
+    order.<span class="fn">add</span>(cur);
+    <span class="kw">for</span> (<span class="kw">int</span> next : adj.<span class="fn">get</span>(cur)) {
+        <span class="kw">if</span> (!visited[next]) {
+            <span class="fn">dfsRecursive</span>(next, visited, adj, order);   <span class="cm">// 한 갈래를 끝까지 파고든 뒤 되돌아옴</span>
+        }
+    }
+}</pre>
+            </div>
+            <p class="code-desc">
+                반복문 + 명시적 스택 버전과 방문 순서가 완전히 같습니다 — <span class="st">dfsRecursive</span>가 자신을 호출할 때마다 함수 호출 스택에 쌓이고,<br>
+                더 갈 곳이 없으면 스택에서 빠져나오며(return) 이전 갈래로 되돌아가기 때문입니다.<br>
+                <span class="st">ds-10(동적 프로그래밍)</span>에서 다룬 재귀와 마찬가지로, 그래프에 사이클이 있다면 반드시 <span class="st">visited</span> 체크가 있어야 무한 재귀에 빠지지 않습니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
