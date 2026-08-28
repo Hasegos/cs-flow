@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">다익스트라 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/algo/dijkstra.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/algo}" class="topic-breadcrumb__link">알고리즘</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">다익스트라</span>
+                </nav>
+s
+                <span class="topic-hero__slug">algo · 05</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">다익스트라</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        다익스트라(Dijkstra) 알고리즘은 <strong>가중치가 있는 그래프에서 시작 노드로부터 모든 노드까지의 최단 거리</strong>를 구합니다.
+                        핵심은 "아직 확정되지 않은 노드 중 현재까지 알려진 거리가 가장 짧은 노드를 하나씩 확정해나간다"는 것입니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">거리 추정값 (dist)</h3>
+                            <p class="overview-card__desc">시작 노드는 거리 0, 나머지는 모두 ∞(무한대)로 시작합니다. 알고리즘이 진행되며 더 짧은 경로를 찾을 때마다 이 추정값이 갱신됩니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">확정(finalize)</h3>
+                            <p class="overview-card__desc">아직 확정 안 된 노드 중 거리 추정값이 가장 작은 노드를 골라 "이 거리가 최종 확정"이라고 못박습니다. 한 번 확정된 노드의 거리는 이후 절대 바뀌지 않습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">완화(relaxation)</h3>
+                            <p class="overview-card__desc">노드를 확정할 때마다 그 노드와 연결된 인접 노드들의 거리를 "확정된 노드까지 거리 + 간선 가중치"와 비교해, 더 짧으면 갱신합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">한 노드가 여러 번 갱신될 수 있다</h3>
+                            <p class="overview-card__desc">아직 확정되지 않은 노드의 거리 추정값은 더 짧은 경로가 발견될 때마다 계속 갱신됩니다. 이 시각화의 예제에서는 한 노드가 세 번이나 갱신됩니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">왜 음수 가중치는 안 되는가</h3>
+                            <p class="overview-card__desc">다익스트라는 "한 번 확정하면 그 거리가 최종"이라고 가정합니다. 간선에 음수 가중치가 있으면 나중에 더 짧은 경로가 나타나 이 가정이 깨질 수 있어, 다익스트라를 쓸 수 없습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">최단 경로 트리</h3>
+                            <p class="overview-card__desc">각 노드를 확정할 때 "어느 노드를 거쳐 왔는지(prev)"를 함께 기록해두면, 알고리즘이 끝난 뒤 시작 노드에서 임의의 노드까지의 최단 경로를 역추적할 수 있습니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>BFS와의 관계</strong> — algo-04(BFS/DFS)에서 본 BFS는 모든 간선의 가중치가 1이라고 가정한 다익스트라의 특수한 경우로 볼 수 있습니다. 가중치가 모두 같다면 "가장 적게 거친 노드"와 "가장 짧은 거리"가 같은 의미이기 때문입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>왜 미확정 노드 중 최솟값을 고르는가</strong> — 만약 더 큰 거리 추정값을 가진 노드를 먼저 확정하면, 나중에 더 작은 추정값을 가진 노드를 거쳐 그 노드로 가는 더 짧은 경로가 나타났을 때 이미 확정한 거리를 뒤집어야 합니다. 항상 최솟값부터 확정해야 이런 모순이 생기지 않습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>실제 구현에서는 우선순위 큐</strong> — 이 시각화는 매 단계 전체 노드를 훑어 최솟값을 찾지만(O(V²)), 실제 구현에서는 최소 힙 기반 우선순위 큐를 사용해 O((V+E) log V)로 더 빠르게 동작합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "진행 과정" 탭에서 거리 추정값이 갱신되는 순간을, "최단 경로 트리" 탭에서 각 노드까지의 최종 경로가 어떻게 확정되는지 확인하세요.</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/algo/dijkstra-code :: code}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+</body>
+</html>
