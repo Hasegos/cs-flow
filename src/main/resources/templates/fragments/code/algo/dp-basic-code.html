@@ -1,0 +1,78 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 0/1 배낭 문제 (2차원 DP 테이블)</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── dp[i][w]: 처음 i개 아이템, 용량 w일 때의 최대 가치 ──── */</span>
+<span class="kw">public int</span> <span class="fn">knapsack</span>(<span class="kw">int</span>[] weights, <span class="kw">int</span>[] values, <span class="kw">int</span> capacity) {
+    <span class="kw">int</span> n = weights.length;
+    <span class="kw">int</span>[][] dp = <span class="kw">new int</span>[n + <span class="num">1</span>][capacity + <span class="num">1</span>];   <span class="cm">// 0행·0열은 자동으로 0(기저 사례)</span>
+
+    <span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">1</span>; i &lt;= n; i++) {
+        <span class="kw">for</span> (<span class="kw">int</span> w = <span class="num">0</span>; w &lt;= capacity; w++) {
+            <span class="kw">int</span> without = dp[i - <span class="num">1</span>][w];              <span class="cm">// 이 아이템을 제외했을 때</span>
+            <span class="kw">int</span> with = (weights[i - <span class="num">1</span>] &lt;= w)
+                ? dp[i - <span class="num">1</span>][w - weights[i - <span class="num">1</span>]] + values[i - <span class="num">1</span>]   <span class="cm">// 포함했을 때</span>
+                : -<span class="num">1</span>;                                <span class="cm">// 무게 초과 — 포함 불가</span>
+            dp[i][w] = Math.<span class="fn">max</span>(without, with);
+        }
+    }
+    <span class="kw">return</span> dp[n][capacity];
+}</pre>
+            </div>
+            <p class="code-desc">
+                <span class="st">without</span>은 바로 위 칸(dp[i-1][w])을, <span class="st">with</span>는 대각선 위 칸(dp[i-1][w-무게])을 참조합니다 — 두 칸 모두 "이미 계산된 이전 줄"이라 순서대로 채우면 항상 값이 준비되어 있습니다.<br>
+                무게가 용량을 넘으면 애초에 넣을 수 없으므로 <span class="st">with</span>를 계산 자체를 하지 않고(-1로 처리) <span class="st">without</span>만 남습니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 선택 아이템 역추적</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── 완성된 표를 오른쪽 아래에서 왼쪽 위로 거슬러 올라감 ───── */</span>
+<span class="kw">public List</span>&lt;Integer&gt; <span class="fn">findSelectedItems</span>(<span class="kw">int</span>[][] dp, <span class="kw">int</span>[] weights, <span class="kw">int</span> n, <span class="kw">int</span> capacity) {
+    <span class="kw">List</span>&lt;Integer&gt; selected = <span class="kw">new</span> ArrayList&lt;&gt;();
+    <span class="kw">int</span> w = capacity;
+
+    <span class="kw">for</span> (<span class="kw">int</span> i = n; i &gt;= <span class="num">1</span>; i--) {
+        <span class="kw">if</span> (dp[i][w] != dp[i - <span class="num">1</span>][w]) {         <span class="cm">// 값이 다르면 이 아이템 덕분에 달라진 것</span>
+            selected.<span class="fn">add</span>(<span class="num">0</span>, i - <span class="num">1</span>);           <span class="cm">// 아이템 (i-1)을 포함했다고 기록</span>
+            w -= weights[i - <span class="num">1</span>];              <span class="cm">// 그만큼 용량을 되돌려 계속 거슬러 올라감</span>
+        }
+        <span class="cm">// 값이 같으면 이 아이템은 포함되지 않은 것 — w는 그대로 두고 한 줄 위로</span>
+    }
+    <span class="kw">return</span> selected;
+}</pre>
+            </div>
+            <p class="code-desc">
+                <span class="st">dp[i][w] != dp[i-1][w]</span>가 핵심입니다 — 아이템 i를 고려하기 전(i-1)과 후(i)의 값이 달라졌다면, 그 차이는 아이템 i를 포함했기 때문입니다.<br>
+                포함으로 판단되면 용량 <span class="st">w</span>에서 그 아이템의 무게만큼을 빼고 한 줄 위로 이동합니다 — "이 아이템을 빼면 얼마가 남았어야 하는지"를 거슬러 올라가는 것입니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 공간 최적화 (1차원 배열, O(W) 공간)</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── 매 행이 바로 이전 행만 참조하므로 배열 1개로 축소 가능 ── */</span>
+<span class="kw">public int</span> <span class="fn">knapsackOptimized</span>(<span class="kw">int</span>[] weights, <span class="kw">int</span>[] values, <span class="kw">int</span> capacity) {
+    <span class="kw">int</span>[] dp = <span class="kw">new int</span>[capacity + <span class="num">1</span>];
+
+    <span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">0</span>; i &lt; weights.length; i++) {
+        <span class="kw">for</span> (<span class="kw">int</span> w = capacity; w &gt;= weights[i]; w--) {   <span class="cm">// 반드시 오른쪽에서 왼쪽으로!</span>
+            dp[w] = Math.<span class="fn">max</span>(dp[w], dp[w - weights[i]] + values[i]);
+        }
+    }
+    <span class="kw">return</span> dp[capacity];
+}</pre>
+            </div>
+            <p class="code-desc">
+                2차원 표의 각 행은 바로 위 행만 참조하므로, 배열 하나를 재사용하면 공간을 O(nW)에서 O(W)로 줄일 수 있습니다 — ds-10(동적 프로그래밍 기초)에서 피보나치를 변수 2개로 줄인 것과 같은 최적화 원리입니다.<br>
+                단, 용량을 <span class="st">큰 값에서 작은 값 순서로</span> 갱신해야 합니다.<br>
+                왼쪽에서 오른쪽으로 갱신하면 같은 아이템을 여러 번 포함하는 것과 같은 효과가 생겨(0/1이 아니라 무제한이 되어) 답이 달라집니다.<br>
+                이 시각화의 역추적 기능은 2차원 표가 있어야 가능해, 코드 탭에서는 참고용으로만 소개합니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
