@@ -1,0 +1,97 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 다익스트라 (배열 기반, O(V²))</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── 매 단계 미확정 노드 중 거리가 가장 짧은 노드를 선택 ───── */</span>
+<span class="kw">public int</span>[] <span class="fn">dijkstra</span>(<span class="kw">int</span> src, <span class="kw">int</span>[][] adjMatrix) {
+    <span class="kw">int</span> n = adjMatrix.length;
+    <span class="kw">int</span>[] dist = <span class="kw">new int</span>[n];
+    <span class="kw">boolean</span>[] visited = <span class="kw">new boolean</span>[n];
+    Arrays.<span class="fn">fill</span>(dist, Integer.MAX_VALUE);
+    dist[src] = <span class="num">0</span>;
+
+    <span class="kw">for</span> (<span class="kw">int</span> count = <span class="num">0</span>; count &lt; n; count++) {
+        <span class="kw">int</span> u = -<span class="num">1</span>;
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">0</span>; i &lt; n; i++) {          <span class="cm">// 미확정 노드 중 최솟값 탐색 — O(V)</span>
+            <span class="kw">if</span> (!visited[i] &amp;&amp; (u == -<span class="num">1</span> || dist[i] &lt; dist[u])) u = i;
+        }
+        <span class="kw">if</span> (dist[u] == Integer.MAX_VALUE) <span class="kw">break</span>;  <span class="cm">// 남은 노드가 모두 도달 불가능</span>
+        visited[u] = <span class="kw">true</span>;
+
+        <span class="kw">for</span> (<span class="kw">int</span> v = <span class="num">0</span>; v &lt; n; v++) {              <span class="cm">// u의 모든 인접 노드 완화(relax)</span>
+            <span class="kw">if</span> (adjMatrix[u][v] &gt; <span class="num">0</span> &amp;&amp; !visited[v] &amp;&amp; dist[u] + adjMatrix[u][v] &lt; dist[v]) {
+                dist[v] = dist[u] + adjMatrix[u][v];
+            }
+        }
+    }
+    <span class="kw">return</span> dist;
+}</pre>
+            </div>
+            <p class="code-desc">
+                바깥 반복문이 n번, 매번 최솟값 탐색에 O(V) + 완화에 O(V)가 걸려 전체 O(V²)입니다. 노드 수가 적을 때는 단순하고 충분히 빠릅니다.<br>
+                <span class="st">dist[u] + adjMatrix[u][v] &lt; dist[v]</span> 비교가 바로 "완화(relaxation)" — 확정된 노드를 거쳐 가는 것이 더 짧다면 갱신합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 다익스트라 (우선순위 큐, O((V+E) log V))</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── 최소 힙으로 "다음 확정 후보"를 빠르게 꺼냄 ───────────── */</span>
+<span class="kw">public int</span>[] <span class="fn">dijkstraPQ</span>(<span class="kw">int</span> src, <span class="kw">List</span>&lt;List&lt;<span class="kw">int</span>[]&gt;&gt; adj, <span class="kw">int</span> n) {
+    <span class="kw">int</span>[] dist = <span class="kw">new int</span>[n];
+    Arrays.<span class="fn">fill</span>(dist, Integer.MAX_VALUE);
+    dist[src] = <span class="num">0</span>;
+
+    PriorityQueue&lt;<span class="kw">int</span>[]&gt; pq = <span class="kw">new</span> PriorityQueue&lt;&gt;((a, b) -&gt; a[<span class="num">1</span>] - b[<span class="num">1</span>]);  <span class="cm">// [노드, 거리] 오름차순</span>
+    pq.<span class="fn">offer</span>(<span class="kw">new int</span>[]{src, <span class="num">0</span>});
+
+    <span class="kw">while</span> (!pq.<span class="fn">isEmpty</span>()) {
+        <span class="kw">int</span>[] cur = pq.<span class="fn">poll</span>();
+        <span class="kw">int</span> u = cur[<span class="num">0</span>], d = cur[<span class="num">1</span>];
+        <span class="kw">if</span> (d &gt; dist[u]) <span class="kw">continue</span>;         <span class="cm">// 이미 더 짧은 경로로 확정된 노드 — 오래된 항목 무시</span>
+
+        <span class="kw">for</span> (<span class="kw">int</span>[] edge : adj.<span class="fn">get</span>(u)) {
+            <span class="kw">int</span> v = edge[<span class="num">0</span>], w = edge[<span class="num">1</span>];
+            <span class="kw">if</span> (d + w &lt; dist[v]) {
+                dist[v] = d + w;
+                pq.<span class="fn">offer</span>(<span class="kw">new int</span>[]{v, dist[v]});   <span class="cm">// 갱신된 거리로 큐에 다시 추가</span>
+            }
+        }
+    }
+    <span class="kw">return</span> dist;
+}</pre>
+            </div>
+            <p class="code-desc">
+                배열 버전과 원리는 같지만, "미확정 노드 중 최솟값 찾기"를 매번 O(V)로 훑는 대신 우선순위 큐가 O(log V)에 꺼내주므로 훨씬 빠릅니다.<br>
+                같은 노드가 큐에 중복으로 들어갈 수 있어 <span class="st">if (d &gt; dist[u]) continue;</span>로 이미 쓸모없어진(더 나은 경로로 갱신된) 오래된 항목을 걸러냅니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 최단 경로 역추적 (prev 배열)</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── 완화 성공 시 prev[v]=u를 기록해두면 경로 복원 가능 ────── */</span>
+<span class="kw">if</span> (dist[u] + w &lt; dist[v]) {
+    dist[v] = dist[u] + w;
+    prev[v] = u;                       <span class="cm">// "v는 u를 거쳐서 왔다"를 기록</span>
+}
+
+<span class="cm">/* ── 목표 노드에서 시작 노드 방향으로 거슬러 올라가며 경로 복원 ── */</span>
+<span class="kw">public List</span>&lt;Integer&gt; <span class="fn">reconstructPath</span>(<span class="kw">int</span> target, <span class="kw">int</span>[] prev) {
+    <span class="kw">List</span>&lt;Integer&gt; path = <span class="kw">new</span> LinkedList&lt;&gt;();
+    <span class="kw">for</span> (<span class="kw">int</span> at = target; at != -<span class="num">1</span>; at = prev[at]) {
+        path.<span class="fn">add</span>(<span class="num">0</span>, at);              <span class="cm">// 맨 앞에 삽입 → 최종적으로 시작→목표 순서가 됨</span>
+    }
+    <span class="kw">return</span> path;
+}</pre>
+            </div>
+            <p class="code-desc">
+                거리(dist)만 구하면 "얼마나 가까운지"는 알 수 있지만 "어떤 경로로 가는지"는 알 수 없습니다. <span class="st">prev</span> 배열이 그 경로 정보를 담습니다.<br>
+                목표 노드에서 시작 노드까지 <span class="st">prev</span>를 따라 거슬러 올라간 뒤 순서를 뒤집으면(또는 맨 앞에 삽입하면), 시작 노드부터 목표 노드까지의 최단 경로가 만들어집니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>

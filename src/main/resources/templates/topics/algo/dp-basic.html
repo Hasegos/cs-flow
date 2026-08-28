@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">DP 기초 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/algo/dp-basic.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/algo}" class="topic-breadcrumb__link">알고리즘</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">DP 기초</span>
+                </nav>
+
+                <span class="topic-hero__slug">algo · 06</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">DP 기초</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        ds-10(동적 프로그래밍 기초)에서는 피보나치 하나로 완전탐색·메모이제이션·타뷸레이션을 비교했다면, 여기서는
+                        <strong>0/1 배낭 문제(Knapsack)</strong>로 DP를 한 단계 확장합니다. 피보나치는 1차원 표였지만, 배낭 문제는
+                        <strong>"아이템 개수"와 "배낭 용량"이라는 두 축을 가진 2차원 표</strong>를 채워야 합니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">0/1 배낭 문제란</h3>
+                            <p class="overview-card__desc">무게와 가치가 정해진 아이템들이 있을 때, 정해진 무게 한도(배낭 용량) 안에서 가치의 합이 최대가 되도록 아이템을 고르는 문제입니다. 각 아이템은 "넣거나(1) 안 넣거나(0)"만 가능합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">2차원 DP 테이블</h3>
+                            <p class="overview-card__desc">dp[i][w]는 "처음 i개의 아이템만 고려했을 때, 용량 w로 얻을 수 있는 최대 가치"를 의미합니다. 행은 아이템 개수, 열은 용량을 나타냅니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">점화식: 포함 vs 제외</h3>
+                            <p class="overview-card__desc">매 칸마다 "이 아이템을 포함했을 때"와 "포함하지 않았을 때" 중 더 큰 값을 선택합니다: dp[i][w] = max(dp[i-1][w], dp[i-1][w-무게]+가치).</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">기저 사례</h3>
+                            <p class="overview-card__desc">아이템이 0개(0행)이거나 용량이 0(0열)이면 담을 수 있는 가치도 항상 0입니다. 이 두 경계가 모든 계산의 출발점입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">값만으론 부족하다 — 역추적</h3>
+                            <p class="overview-card__desc">테이블의 오른쪽 아래 칸은 "최댓값"만 알려줄 뿐, "어떤 아이템을 골랐는지"는 알려주지 않습니다. 어떤 아이템이 선택됐는지 알려면 표를 거슬러 올라가는 역추적이 필요합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">시간·공간 복잡도</h3>
+                            <p class="overview-card__desc">아이템 수 n, 용량 W일 때 표의 칸 수는 n×W개이고 각 칸은 O(1)에 계산되므로 시간복잡도는 O(nW)입니다. 표 전체를 저장하므로 공간복잡도도 O(nW)입니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>피보나치와 무엇이 다른가</strong> — 피보나치는 dp[i] 하나의 축만 있는 1차원 DP였지만, 배낭 문제는 dp[i][w]처럼 두 개의 축(아이템, 용량)이 필요한 2차원 DP입니다. 축이 늘어도 "포함 vs 제외 중 더 나은 것을 고른다"는 핵심 원리는 같습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>왜 "0/1"인가</strong> — 같은 아이템을 여러 번 넣을 수 있다면 "분할 가능 배낭 문제"가 되어 그리디(algo-07)로도 풀 수 있지만, 0/1 배낭 문제는 각 아이템을 최대 한 번만 쓸 수 있어 그리디로는 항상 최적해를 보장할 수 없고 DP가 필요합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>왜 표의 순서가 중요한가</strong> — dp[i][w]를 계산하려면 항상 바로 윗줄(dp[i-1][...])의 값이 먼저 계산되어 있어야 합니다. 그래서 행(아이템)을 위에서 아래로, 각 행 안에서는 용량을 왼쪽에서 오른쪽으로 채워나갑니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "표 채우기" 탭에서 각 칸이 바로 위 칸(제외) 또는 대각선 위 칸(포함)을 참조해 채워지는 과정을, "선택 아이템 역추적" 탭에서 완성된 표에서 실제로 어떤 아이템이 배낭에 들어갔는지 확인하세요.</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/algo/dp-basic-code :: code}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+</body>
+</html>
