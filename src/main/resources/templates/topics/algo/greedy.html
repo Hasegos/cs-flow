@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">그리디 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/algo/greedy.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/algo}" class="topic-breadcrumb__link">알고리즘</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">그리디</span>
+                </nav>
+
+                <span class="topic-hero__slug">algo · 07</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">그리디</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        그리디(Greedy) 알고리즘은 <strong>매 순간 지금 당장 가장 좋아 보이는 선택을 하고, 그 선택을 절대 번복하지 않는</strong> 전략입니다.
+                        algo-06(DP 기초)의 배낭 문제처럼 "모든 경우를 비교"하지 않고 바로 결정하기 때문에 훨씬 빠르지만, 항상 최적해를 보장하지는 않습니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">거스름돈 문제</h3>
+                            <p class="overview-card__desc">거슬러줄 금액이 남아있는 한, 그 금액을 넘지 않는 가장 큰 동전을 계속 사용합니다. 한 번 사용한 동전은 되돌리지 않습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">활동 선택 문제</h3>
+                            <p class="overview-card__desc">겹치지 않는 활동을 최대한 많이 고르는 문제입니다. "종료 시간이 가장 빠른 활동"부터 순서대로 검토하며, 이미 선택한 활동과 겹치지 않으면 무조건 선택합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">왜 종료 시간 기준인가</h3>
+                            <p class="overview-card__desc">활동을 일찍 끝낼수록 남은 시간에 다른 활동을 더 많이 넣을 자리가 생깁니다. 그래서 "언제 시작하는가"가 아니라 "언제 끝나는가"가 유리한 정렬 기준입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">되돌리지 않는다(번복 없음)</h3>
+                            <p class="overview-card__desc">DP는 "포함 vs 제외" 두 경우를 모두 계산해 비교하지만, 그리디는 한 번 결정하면 끝입니다. 이 "번복 없음"이 그리디를 빠르게 만들지만, 동시에 최적해를 놓칠 위험이기도 합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">그리디가 항상 통하지는 않는다</h3>
+                            <p class="overview-card__desc">algo-06의 0/1 배낭 문제에서 "가치가 가장 높은 아이템부터 담기"는 그리디지만 최적해를 보장하지 못합니다. 반면 이 토픽의 두 문제는 그리디로도 항상 최적해가 나옵니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">시간복잡도</h3>
+                            <p class="overview-card__desc">거스름돈은 동전 종류만큼, 활동 선택은 정렬 O(n log n) 이후 한 번 훑기만 하면 됩니다(O(n)). 모든 조합을 비교하는 DP보다 훨씬 빠릅니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>그리디가 통하는 조건</strong> — "지금 당장 최선의 선택"들을 모으면 "전체적으로도 최선"이 되는 성질(탐욕적 선택 속성)이 있어야 합니다. 이 두 문제는 이 성질을 만족한다고 수학적으로 증명되어 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>거스름돈의 함정</strong> — 이 시각화의 동전(500, 100, 50, 10원)은 큰 단위가 작은 단위의 배수라 그리디가 항상 최적입니다. 하지만 동전이 500원, 400원, 100원처럼 애매한 단위라면, 그리디가 최소 개수를 못 찾을 수도 있습니다 — 이런 경우엔 DP(algo-06 방식)가 필요합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>왜 시작 시간 기준으로 정렬하면 안 되는가</strong> — "가장 일찍 시작하는 활동"부터 고르면, 그 활동이 아주 길게 끝나서 뒤에 올 수 있었던 여러 짧은 활동들을 다 막아버릴 수 있습니다. "일찍 끝내는 것"이 자리를 더 많이 남겨줍니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "거스름돈" 탭에서 큰 동전부터 순서대로 소진되는 과정을, "활동 선택" 탭에서 초록 기준선(마지막 선택 활동의 종료 시간)을 넘는 활동만 선택되는 과정을 확인하세요.</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/algo/greedy-code :: code}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+</body>
+</html>

@@ -1,0 +1,74 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 거스름돈 (그리디)</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── 큰 동전부터 확인하며, 쓸 수 있으면 계속 사용 ──────────── */</span>
+<span class="kw">public List</span>&lt;Integer&gt; <span class="fn">makeChange</span>(<span class="kw">int</span> amount, <span class="kw">int</span>[] coins) {
+    <span class="cm">// coins는 반드시 큰 단위 → 작은 단위 순으로 정렬되어 있어야 함</span>
+    <span class="kw">List</span>&lt;Integer&gt; used = <span class="kw">new</span> ArrayList&lt;&gt;();
+    <span class="kw">for</span> (<span class="kw">int</span> coin : coins) {
+        <span class="kw">while</span> (amount &gt;= coin) {
+            used.<span class="fn">add</span>(coin);
+            amount -= coin;              <span class="cm">// 결정을 절대 되돌리지 않음</span>
+        }
+    }
+    <span class="kw">return</span> used;                     <span class="cm">// amount가 0이 되면 끝</span>
+}</pre>
+            </div>
+            <p class="code-desc">
+                반복문이 두 겹이지만, 안쪽 <span class="st">while</span>은 동전 하나당 최대 몇 번만 반복되므로 전체 시간은 동전 종류 수에 비례합니다 — DP처럼 표를 채우지 않아 훨씬 빠릅니다.<br>
+                이 코드가 항상 최소 개수를 보장하는 것은 <span class="st">coins</span> 배열의 단위 관계(예: 500=100×5) 덕분입니다. 단위가 애매하면 이 가정이 깨집니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 활동 선택 (그리디)</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── 종료 시간 기준 정렬 후, 겹치지 않으면 무조건 선택 ────── */</span>
+<span class="kw">public List</span>&lt;Activity&gt; <span class="fn">selectActivities</span>(<span class="kw">List</span>&lt;Activity&gt; activities) {
+    activities.<span class="fn">sort</span>((a, b) -&gt; a.end - b.end);   <span class="cm">// 핵심: 종료 시간 오름차순 정렬</span>
+
+    <span class="kw">List</span>&lt;Activity&gt; selected = <span class="kw">new</span> ArrayList&lt;&gt;();
+    <span class="kw">int</span> lastEnd = -<span class="num">1</span>;
+    <span class="kw">for</span> (Activity a : activities) {
+        <span class="kw">if</span> (a.start &gt;= lastEnd) {     <span class="cm">// 마지막 선택과 안 겹치면</span>
+            selected.<span class="fn">add</span>(a);          <span class="cm">// 무조건 선택 (되돌리지 않음)</span>
+            lastEnd = a.end;
+        }
+    }
+    <span class="kw">return</span> selected;
+}</pre>
+            </div>
+            <p class="code-desc">
+                <span class="st">a.start &gt;= lastEnd</span> 한 줄이 "겹치는지" 판단의 전부입니다 — 겹치지 않으면 무조건 선택하고, 그 선택을 절대 재검토하지 않습니다.<br>
+                정렬에 O(n log n), 이후 한 번 훑는 데 O(n)이 걸려 전체 O(n log n)입니다. 모든 부분집합을 확인해야 하는 방식보다 압도적으로 빠릅니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 그리디가 실패하는 예 (0/1 배낭 문제)</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── "가치 높은 순"으로 그리디하게 담으면? 최적해가 아닐 수 있음 ── */</span>
+<span class="kw">public int</span> <span class="fn">greedyKnapsack</span>(<span class="kw">int</span>[] weights, <span class="kw">int</span>[] values, <span class="kw">int</span> capacity) {
+    <span class="cm">// 가치 기준 내림차순 정렬 후, 담을 수 있으면 무조건 담기 (그리디)</span>
+    Integer[] idx = <span class="cm">/* 가치 내림차순으로 정렬된 인덱스라고 가정 */</span> <span class="kw">null</span>;
+    <span class="kw">int</span> totalValue = <span class="num">0</span>;
+    <span class="kw">for</span> (<span class="kw">int</span> i : idx) {
+        <span class="kw">if</span> (weights[i] &lt;= capacity) {
+            capacity -= weights[i];
+            totalValue += values[i];     <span class="cm">// 한 번 담으면 되돌리지 않음</span>
+        }
+    }
+    <span class="kw">return</span> totalValue;                  <span class="cm">// algo-06의 DP 결과보다 작을 수 있음!</span>
+}</pre>
+            </div>
+            <p class="code-desc">
+                이 코드는 문법적으로는 멀쩡하지만, "가치가 높다고 먼저 담은 아이템"이 무게를 많이 차지해 뒤에 더 효율적인 조합을 막아버릴 수 있습니다.<br>
+                algo-06(DP 기초)에서 같은 문제를 dp[i][w] 표로 풀었을 때와 결과를 비교해보면, 그리디가 항상 통하지 않는다는 것을 직접 확인할 수 있습니다 — "포함/제외를 전부 비교하지 않고 하나로 확정해버린" 대가입니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
