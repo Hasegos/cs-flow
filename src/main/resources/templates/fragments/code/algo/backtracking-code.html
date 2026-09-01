@@ -1,0 +1,71 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — N-Queens 백트래킹</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── 한 행씩 채우다가, 막히면 되돌아감(재귀 + 원상복구) ────── */</span>
+<span class="kw">public boolean</span> <span class="fn">solve</span>(<span class="kw">int</span>[] cols, <span class="kw">int</span> row, <span class="kw">int</span> n) {
+    <span class="kw">if</span> (row == n) <span class="kw">return true</span>;              <span class="cm">// 모든 행에 퀸을 놓았다 — 해 발견</span>
+
+    <span class="kw">for</span> (<span class="kw">int</span> col = <span class="num">0</span>; col &lt; n; col++) {
+        <span class="kw">if</span> (<span class="fn">isSafe</span>(cols, row, col)) {
+            cols[row] = col;                    <span class="cm">// 일단 놓아본다</span>
+            <span class="kw">if</span> (<span class="fn">solve</span>(cols, row + <span class="num">1</span>, n)) <span class="kw">return true</span>;  <span class="cm">// 다음 행 진행</span>
+            cols[row] = -<span class="num">1</span>;                   <span class="cm">// 실패했다면 원상복구(백트랙)</span>
+        }
+    }
+    <span class="kw">return false</span>;                          <span class="cm">// 이 행에서 안전한 열이 하나도 없음 — 가지치기</span>
+}</pre>
+            </div>
+            <p class="code-desc">
+                <span class="st">cols[row] = -1</span> 한 줄이 백트래킹의 핵심입니다 — 재귀 호출이 실패로 끝나면, 방금 놓은 퀸을 반드시 치워야 다음 열을 공정하게 시도할 수 있습니다.<br>
+                <span class="st">for</span>문이 끝까지 돌았는데도 안전한 열을 못 찾았다면 <span class="st">false</span>를 반환합니다 — 이 값이 호출한 쪽(이전 행)에 "이 갈래는 안 된다"는 신호가 되어 자연스럽게 되돌아갑니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 충돌 검사 (isSafe)</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── 이미 놓은 퀸들과 같은 열/대각선인지 확인 ──────────────── */</span>
+<span class="kw">public boolean</span> <span class="fn">isSafe</span>(<span class="kw">int</span>[] cols, <span class="kw">int</span> row, <span class="kw">int</span> col) {
+    <span class="kw">for</span> (<span class="kw">int</span> r = <span class="num">0</span>; r &lt; row; r++) {          <span class="cm">// 이전 행들과만 비교하면 충분 (아래 행은 아직 비어 있음)</span>
+        <span class="kw">int</span> c = cols[r];
+        <span class="kw">if</span> (c == col) <span class="kw">return false</span>;              <span class="cm">// 같은 열</span>
+        <span class="kw">if</span> (Math.<span class="fn">abs</span>(c - col) == Math.<span class="fn">abs</span>(r - row)) <span class="kw">return false</span>;  <span class="cm">// 같은 대각선</span>
+    }
+    <span class="kw">return true</span>;
+}</pre>
+            </div>
+            <p class="code-desc">
+                행은 이미 한 행에 퀸을 하나만 놓기로 정했으니 따로 검사할 필요가 없고, 열이 같은지와 대각선인지만 확인하면 됩니다.<br>
+                두 칸이 대각선 위에 있다는 것은 <span class="st">|행 차이| == |열 차이|</span>라는 뜻입니다 — 이 한 줄로 왼쪽 대각선과 오른쪽 대각선을 동시에 검사합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 모든 해 찾기 (되돌아가서 계속 탐색)</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── 해를 찾아도 멈추지 않고 기록한 뒤 계속 탐색 ──────────── */</span>
+<span class="kw">public void</span> <span class="fn">solveAll</span>(<span class="kw">int</span>[] cols, <span class="kw">int</span> row, <span class="kw">int</span> n, <span class="kw">List</span>&lt;<span class="kw">int</span>[]&gt; solutions) {
+    <span class="kw">if</span> (row == n) {
+        solutions.<span class="fn">add</span>(cols.<span class="fn">clone</span>());       <span class="cm">// 해를 기록만 하고 return으로 끝내지 않음</span>
+        <span class="kw">return</span>;
+    }
+    <span class="kw">for</span> (<span class="kw">int</span> col = <span class="num">0</span>; col &lt; n; col++) {
+        <span class="kw">if</span> (<span class="fn">isSafe</span>(cols, row, col)) {
+            cols[row] = col;
+            <span class="fn">solveAll</span>(cols, row + <span class="num">1</span>, n, solutions);  <span class="cm">// 성공/실패 여부와 상관없이 항상 진행</span>
+            cols[row] = -<span class="num">1</span>;                   <span class="cm">// 해를 찾았어도 원상복구하고 다음 열 계속 시도</span>
+        }
+    }
+}</pre>
+            </div>
+            <p class="code-desc">
+                첫 번째 코드는 해를 하나만 찾으면 <span class="st">true</span>를 반환하며 즉시 멈추지만, 이 버전은 해를 찾아도 계속 진행해 4-Queens의 두 해(<span class="st">[1,3,0,2]</span>와 <span class="st">[2,0,3,1]</span>)를 모두 찾습니다.<br>
+                이 시각화의 "탐색 트리" 탭이 정확히 이 버전으로 동작합니다 — 첫 해를 찾은 뒤에도 트리 탐색이 끝까지 계속되는 것을 확인할 수 있습니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
