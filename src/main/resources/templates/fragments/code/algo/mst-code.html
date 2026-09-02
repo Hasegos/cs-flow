@@ -1,0 +1,89 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 크루스칼 (유니온-파인드로 사이클 검사)</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── 가중치 오름차순 정렬 후, 사이클을 안 만들면 추가 ──────── */</span>
+<span class="kw">public int</span> <span class="fn">kruskal</span>(<span class="kw">int</span> n, <span class="kw">int</span>[][] edges) {  <span class="cm">// edges[i] = {u, v, weight}</span>
+    Arrays.<span class="fn">sort</span>(edges, (a, b) -&gt; a[<span class="num">2</span>] - b[<span class="num">2</span>]);   <span class="cm">// 가중치 기준 정렬</span>
+    <span class="kw">int</span>[] parent = <span class="kw">new int</span>[n];
+    <span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">0</span>; i &lt; n; i++) parent[i] = i;
+
+    <span class="kw">int</span> totalWeight = <span class="num">0</span>, edgeCount = <span class="num">0</span>;
+    <span class="kw">for</span> (<span class="kw">int</span>[] e : edges) {
+        <span class="kw">int</span> ru = <span class="fn">find</span>(parent, e[<span class="num">0</span>]), rv = <span class="fn">find</span>(parent, e[<span class="num">1</span>]);
+        <span class="kw">if</span> (ru != rv) {                     <span class="cm">// 서로 다른 그룹 → 연결해도 사이클 없음</span>
+            parent[ru] = rv;
+            totalWeight += e[<span class="num">2</span>];
+            edgeCount++;
+            <span class="kw">if</span> (edgeCount == n - <span class="num">1</span>) <span class="kw">break</span>;  <span class="cm">// 간선을 n-1개 모으면 완성</span>
+        }
+    }
+    <span class="kw">return</span> totalWeight;
+}
+
+<span class="kw">private int</span> <span class="fn">find</span>(<span class="kw">int</span>[] parent, <span class="kw">int</span> x) {
+    <span class="kw">while</span> (parent[x] != x) x = parent[x];   <span class="cm">// x가 속한 그룹의 대표 노드 찾기</span>
+    <span class="kw">return</span> x;
+}</pre>
+            </div>
+            <p class="code-desc">
+                <span class="st">find(parent, u) != find(parent, v)</span> 한 줄이 "사이클이 생기는지" 판단의 전부입니다 — 두 노드가 이미 같은 그룹(같은 대표 노드)이면 연결 시 반드시 사이클이 생깁니다.<br>
+                정렬에 O(E log E), 유니온-파인드 연산은 사실상 O(1)에 가까워 전체는 O(E log E)입니다.<br> algo-07(그리디)의 활동 선택처럼 "정렬 후 한 번 훑기"와 같은 패턴입니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 프림 (algo-05 다익스트라와 거의 동일한 골격)</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── "누적 거리" 대신 "트리에 연결하는 간선 하나의 가중치"만 비교 ── */</span>
+<span class="kw">public int</span> <span class="fn">prim</span>(<span class="kw">int</span> n, <span class="kw">List</span>&lt;<span class="kw">List</span>&lt;<span class="kw">int</span>[]&gt;&gt; adj, <span class="kw">int</span> start) {
+    <span class="kw">boolean</span>[] inTree = <span class="kw">new boolean</span>[n];
+    <span class="kw">int</span>[] minEdge = <span class="kw">new int</span>[n];
+    Arrays.<span class="fn">fill</span>(minEdge, Integer.MAX_VALUE);
+    minEdge[start] = <span class="num">0</span>;
+
+    <span class="kw">int</span> totalWeight = <span class="num">0</span>;
+    <span class="kw">for</span> (<span class="kw">int</span> count = <span class="num">0</span>; count &lt; n; count++) {
+        <span class="kw">int</span> u = -<span class="num">1</span>;
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">0</span>; i &lt; n; i++) {          <span class="cm">// 트리 밖에서 연결 비용이 가장 싼 노드 탐색</span>
+            <span class="kw">if</span> (!inTree[i] &amp;&amp; (u == -<span class="num">1</span> || minEdge[i] &lt; minEdge[u])) u = i;
+        }
+        inTree[u] = <span class="kw">true</span>;
+        totalWeight += minEdge[u];
+
+        <span class="kw">for</span> (<span class="kw">int</span>[] edge : adj.<span class="fn">get</span>(u)) {          <span class="cm">// u의 인접 간선으로 연결 비용 갱신</span>
+            <span class="kw">int</span> v = edge[<span class="num">0</span>], w = edge[<span class="num">1</span>];
+            <span class="kw">if</span> (!inTree[v] &amp;&amp; w &lt; minEdge[v]) minEdge[v] = w;
+        }
+    }
+    <span class="kw">return</span> totalWeight;
+}</pre>
+            </div>
+            <p class="code-desc">
+                다익스트라 코드와 나란히 놓고 비교해보면 구조가 거의 동일합니다 — 차이는 <span class="st">minEdge[v] = w</span> 딱 한 줄입니다. 다익스트라는 <span class="st">dist[u] + w</span>(누적 거리)와 비교하지만, 프림은 <span class="st">w</span>(간선 하나의 가중치)만 비교합니다.<br>
+                "지금까지 온 총 거리"가 중요한가, "트리에 새로 연결하는 이 간선 하나"가 중요한가 — 이 관점 차이가 최단 경로 문제와 MST 문제를 가릅니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 유니온-파인드 경로 압축 (최적화)</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── find할 때마다 트리를 납작하게 눌러 다음 find를 더 빠르게 ── */</span>
+<span class="kw">private int</span> <span class="fn">findCompressed</span>(<span class="kw">int</span>[] parent, <span class="kw">int</span> x) {
+    <span class="kw">if</span> (parent[x] != x) {
+        parent[x] = <span class="fn">findCompressed</span>(parent, parent[x]);  <span class="cm">// 재귀로 대표 노드를 찾은 뒤</span>
+    }
+    <span class="kw">return</span> parent[x];                    <span class="cm">// x를 대표 노드에 직접 연결(경로 압축)</span>
+}</pre>
+            </div>
+            <p class="code-desc">
+                기본 <span class="st">find</span>는 그룹이 길게 이어져 있으면 대표 노드까지 거슬러 올라가는 데 시간이 걸립니다.<br>
+                경로 압축은 한 번 찾은 뒤 중간 노드들을 전부 대표 노드에 직접 연결해, 다음번 <span class="st">find</span>는 거의 O(1)에 끝나게 만듭니다.<br>
+                이 시각화의 크루스칼은 간단한 버전(경로 압축 없음)으로 동작하지만, 그래프가 커지면 이 최적화가 성능에 큰 차이를 만듭니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
