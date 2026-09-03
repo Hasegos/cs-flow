@@ -1,0 +1,78 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 투 포인터 (정렬 배열에서 두 수의 합)</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── 양 끝에서 시작해 서로를 향해 좁혀 들어감 ──────────────── */</span>
+<span class="kw">public int</span>[] <span class="fn">twoSumSorted</span>(<span class="kw">int</span>[] arr, <span class="kw">int</span> target) {
+    <span class="kw">int</span> left = <span class="num">0</span>, right = arr.length - <span class="num">1</span>;
+
+    <span class="kw">while</span> (left &lt; right) {
+        <span class="kw">int</span> sum = arr[left] + arr[right];
+        <span class="kw">if</span> (sum == target) {
+            <span class="kw">return new int</span>[]{left, right};      <span class="cm">// 발견</span>
+        } <span class="kw">else if</span> (sum &lt; target) {
+            left++;                          <span class="cm">// 더 큰 값이 필요 → 왼쪽을 오른쪽으로</span>
+        } <span class="kw">else</span> {
+            right--;                         <span class="cm">// 더 작은 값이 필요 → 오른쪽을 왼쪽으로</span>
+        }
+    }
+    <span class="kw">return new int</span>[]{-<span class="num">1</span>, -<span class="num">1</span>};                <span class="cm">// 못 찾음</span>
+}</pre>
+            </div>
+            <p class="code-desc">
+                <span class="st">left</span>와 <span class="st">right</span>는 각자 최대 배열 길이만큼만 움직이고 절대 서로를 지나치거나 되돌아가지 않으므로, <span class="st">while</span>문 전체 반복 횟수는 O(n)입니다.<br>
+                모든 (i, j) 쌍을 확인하는 이중 반복문(O(n²))과 달리, "정렬되어 있다"는 사실 하나로 절반 이상의 쌍을 아예 확인하지 않고 건너뜁니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 슬라이딩 윈도우 (합이 target 이상인 최소 길이 구간)</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── 오른쪽으로 늘리고, 조건을 만족하면 왼쪽부터 줄여봄 ────── */</span>
+<span class="kw">public int</span> <span class="fn">minSubArrayLen</span>(<span class="kw">int</span>[] arr, <span class="kw">int</span> target) {
+    <span class="kw">int</span> left = <span class="num">0</span>, sum = <span class="num">0</span>, minLen = Integer.MAX_VALUE;
+
+    <span class="kw">for</span> (<span class="kw">int</span> right = <span class="num">0</span>; right &lt; arr.length; right++) {
+        sum += arr[right];                   <span class="cm">// 오른쪽으로 창을 늘림</span>
+
+        <span class="kw">while</span> (sum &gt;= target) {              <span class="cm">// 조건을 만족하는 동안 계속 줄여봄</span>
+            minLen = Math.<span class="fn">min</span>(minLen, right - left + <span class="num">1</span>);
+            sum -= arr[left];
+            left++;                          <span class="cm">// 왼쪽을 줄임</span>
+        }
+    }
+    <span class="kw">return</span> minLen == Integer.MAX_VALUE ? <span class="num">0</span> : minLen;
+}</pre>
+            </div>
+            <p class="code-desc">
+                <span class="st">right</span>는 바깥 <span class="st">for</span>문에서 n번, <span class="st">left</span>는 안쪽 <span class="st">while</span>문에서 전체 실행에 걸쳐 최대 n번만 움직입니다 — 겹쳐 있는 반복문처럼 보여도 합치면 O(n) + O(n) = O(n)입니다.<br>
+                <span class="st">while</span>문 안에서 조건을 만족하는 "동안 계속" 줄이는 것이 핵심입니다 — 한 번만 줄이고 멈추면 더 짧은 구간을 놓칠 수 있습니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 슬라이딩 윈도우 (크기 고정, 최대 합)</p>
+            <div class="code-block">
+<pre><span class="cm">/* ── 창 크기가 항상 k로 고정된 경우 ────────────────────────── */</span>
+<span class="kw">public int</span> <span class="fn">maxSumFixedWindow</span>(<span class="kw">int</span>[] arr, <span class="kw">int</span> k) {
+    <span class="kw">int</span> windowSum = <span class="num">0</span>;
+    <span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">0</span>; i &lt; k; i++) windowSum += arr[i];   <span class="cm">// 첫 창의 합을 미리 계산</span>
+
+    <span class="kw">int</span> maxSum = windowSum;
+    <span class="kw">for</span> (<span class="kw">int</span> right = k; right &lt; arr.length; right++) {
+        windowSum += arr[right] - arr[right - k];   <span class="cm">// 새로 들어온 값 더하고, 빠진 값 빼기</span>
+        maxSum = Math.<span class="fn">max</span>(maxSum, windowSum);
+    }
+    <span class="kw">return</span> maxSum;
+}</pre>
+            </div>
+            <p class="code-desc">
+                크기가 고정된 창은 매번 k개를 다시 더하지 않고, <span class="st">arr[right] - arr[right - k]</span>처럼 "새로 들어온 값만 더하고 빠진 값만 빼는" 방식으로 O(1)에 갱신합니다.<br>
+                이렇게 하면 전체 시간복잡도가 O(n·k)가 아니라 O(n)이 됩니다 — 이 시각화의 가변 크기 윈도우와 함께, 슬라이딩 윈도우의 두 가지 대표 유형(고정 크기 / 가변 크기)을 이룹니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
