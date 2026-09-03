@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">투 포인터 / 슬라이딩 윈도우 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/algo/two-pointer.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/algo}" class="topic-breadcrumb__link">알고리즘</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">투 포인터 / 슬라이딩 윈도우</span>
+                </nav>
+
+                <span class="topic-hero__slug">algo · 10</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">투 포인터 / 슬라이딩 윈도우</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        투 포인터와 슬라이딩 윈도우는 둘 다 <strong>배열을 이중 반복문 없이 한 번만 훑어서(O(n))</strong> 답을 찾는 기법입니다.
+                        무작정 모든 경우를 확인하면(O(n²)) 느려지는 문제를, 포인터 두 개의 위치 관계만으로 훨씬 빠르게 풀 수 있습니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">투 포인터</h3>
+                            <p class="overview-card__desc">정렬된 배열의 양 끝에서 포인터 두 개가 서로를 향해 이동합니다. 합이 목표보다 작으면 왼쪽을, 크면 오른쪽을 움직여 원하는 조건에 맞춰갑니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">슬라이딩 윈도우</h3>
+                            <p class="overview-card__desc">배열 위를 이동하는 "창(window)"을 유지합니다. 오른쪽 끝을 늘려 조건을 만족시키고, 만족하는 동안 왼쪽 끝을 줄여 더 나은 답(더 짧은 구간 등)을 찾습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">왜 정렬이 필요한가 (투 포인터)</h3>
+                            <p class="overview-card__desc">배열이 정렬되어 있어야 "합이 작으면 왼쪽을 옮긴다"는 판단이 성립합니다. 정렬되어 있지 않다면 이 판단 자체가 의미를 잃습니다 — "정렬이 필요한 이유" 탭에서 실제로 답을 놓치는 모습을 확인할 수 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">왜 O(n)인가</h3>
+                            <p class="overview-card__desc">두 기법 모두 각 포인터가 배열을 한 번씩만 훑고, 같은 방향으로만 움직이며 뒤로 가지 않습니다. 그래서 전체 이동 횟수가 최대 2n(또는 n)번으로 제한됩니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">언제 투 포인터, 언제 슬라이딩 윈도우</h3>
+                            <p class="overview-card__desc">"정렬된 배열에서 두 값의 관계"를 다루면 투 포인터, "연속된 구간(부분 배열/부분 문자열)의 합이나 길이"를 다루면 슬라이딩 윈도우인 경우가 많습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">완전탐색과의 차이</h3>
+                            <p class="overview-card__desc">모든 쌍이나 모든 구간을 다 확인하면 O(n²)이 걸립니다. 두 포인터가 "필요 없는 경우의 수"를 아예 건너뛰어 버려서, 확인하는 횟수 자체를 줄이는 것이 핵심입니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>포인터가 뒤로 가지 않는 이유</strong> — 투 포인터에서 왼쪽 포인터를 한 번 오른쪽으로 옮겼다면, 그 이전 위치로 되돌아갈 필요가 없다는 것이 이미 증명됩니다(그 조합은 이미 확인했고 답이 아니었으므로). 이 "뒤로 가지 않음"이 O(n)을 보장합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>슬라이딩 윈도우의 두 단계</strong> — "늘리기"(오른쪽 확장, 조건을 만족시키기 위해)와 "줄이기"(왼쪽 축소, 더 나은 답을 찾기 위해)를 구분해서 보면 헷갈리지 않습니다. 이 시각화의 "확장"과 "축소" 스텝이 각각에 해당합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>같은 인덱스가 여러 번 등장해도 O(n)인 이유</strong> — 슬라이딩 윈도우에서 왼쪽·오른쪽 포인터 각각은 배열 전체에서 최대 n번만 움직입니다. 안쪽에 while문이 있어도 전체 이동 횟수를 더하면 O(n) + O(n) = O(n)입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "투 포인터" 탭에서 양 끝 포인터가 좁혀지며 합을 맞춰가는 과정을, "슬라이딩 윈도우" 탭에서 주황색 창이 늘었다 줄었다 하며 최소 길이 기록을 갱신하는 과정을, "정렬이 필요한 이유" 탭에서 같은 로직을 정렬 안 된 배열에 적용했을 때 실제로 있는 답을 놓치는 모습을 직접 확인하세요.</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/algo/two-pointer-code :: code}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+</body>
+</html>
