@@ -1,0 +1,100 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">SQL — 기본키(PK) / 외래키(FK) 정의</p>
+            <div class="code-block">
+<pre><span class="cm">-- USERS: id를 기본키로 지정 (자동 증가)</span>
+<span class="kw">CREATE TABLE</span> users (
+    id     BIGINT       <span class="kw">PRIMARY KEY</span> <span class="kw">AUTO_INCREMENT</span>,
+    name   VARCHAR(50)  <span class="kw">NOT NULL</span>,
+    email  VARCHAR(100) <span class="kw">NOT NULL</span>
+);
+
+<span class="cm">-- ORDERS: user_id를 외래키로 지정 (USERS.id를 참조)</span>
+<span class="kw">CREATE TABLE</span> orders (
+    id        BIGINT      <span class="kw">PRIMARY KEY</span> <span class="kw">AUTO_INCREMENT</span>,
+    user_id   BIGINT      <span class="kw">NOT NULL</span>,
+    product   VARCHAR(50) <span class="kw">NOT NULL</span>,
+    <span class="kw">FOREIGN KEY</span> (user_id) <span class="kw">REFERENCES</span> users(id)
+);</pre>
+            </div>
+            <p class="code-desc">
+                <span class="st">PRIMARY KEY</span>는 <span class="st">id</span>가 유일하고(<span class="st">UNIQUE</span>) 비어있지 않음(<span class="st">NOT NULL</span>)을 DB 차원에서 보장합니다.<br>
+                <span class="st">FOREIGN KEY ... REFERENCES</span>는 orders.user_id에 users.id에 없는 값을 넣으려는 시도를 DB가 직접 거부하게 만듭니다 — 시각화의 "외래키 관계" 탭에서 본 거부 동작이 바로 이 제약 조건입니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — JPA Entity로 기본키 / 외래키 표현</p>
+            <div class="code-block">
+<pre><span class="kw">@Entity</span>
+<span class="kw">@Table</span>(name = <span class="st">"users"</span>)
+<span class="kw">@Getter</span>
+<span class="kw">public class</span> <span class="fn">User</span> {
+
+    <span class="kw">@Id</span>
+    <span class="kw">@GeneratedValue</span>(strategy = GenerationType.IDENTITY)   <span class="cm">// 기본키 — DB가 자동 채번</span>
+    <span class="kw">private</span> Long id;
+
+    <span class="kw">@Column</span>(nullable = <span class="kw">false</span>)
+    <span class="kw">private</span> String name;
+
+    <span class="kw">@Column</span>(nullable = <span class="kw">false</span>)
+    <span class="kw">private</span> String email;
+}
+
+<span class="kw">@Entity</span>
+<span class="kw">@Table</span>(name = <span class="st">"orders"</span>)
+<span class="kw">@Getter</span>
+<span class="kw">public class</span> <span class="fn">Order</span> {
+
+    <span class="kw">@Id</span>
+    <span class="kw">@GeneratedValue</span>(strategy = GenerationType.IDENTITY)
+    <span class="kw">private</span> Long id;
+
+    <span class="kw">@ManyToOne</span>(fetch = FetchType.LAZY)
+    <span class="kw">@JoinColumn</span>(name = <span class="st">"user_id"</span>, nullable = <span class="kw">false</span>)   <span class="cm">// 외래키 — USERS.id 참조</span>
+    <span class="kw">private</span> User user;
+
+    <span class="kw">@Column</span>(nullable = <span class="kw">false</span>)
+    <span class="kw">private</span> String product;
+}</pre>
+            </div>
+            <p class="code-desc">
+                <span class="st">User.id</span>는 <span class="st">@Id</span> + <span class="st">@GeneratedValue</span>로 기본키를, <span class="st">Order.user</span>는 <span class="st">@JoinColumn(name = "user_id")</span>로 외래키를 표현합니다.<br>
+                객체지향 코드에서는 숫자 id 대신 <span class="st">User user</span> 필드를 직접 들고 있는 것처럼 보이지만, 실제 테이블에는 SQL 예시와 동일하게 <span class="st">user_id</span> 컬럼(외래키 값)만 저장됩니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 기본키로 조회하기 (Repository / Service)</p>
+            <div class="code-block">
+<pre><span class="kw">public interface</span> <span class="fn">OrderRepository</span> <span class="kw">extends</span> JpaRepository&lt;Order, Long&gt; {
+
+    <span class="cm">// LEFT JOIN FETCH: 연관된 User를 한 번에 가져와 LazyInitializationException 방지</span>
+    <span class="kw">@Query</span>(<span class="st">"SELECT o FROM Order o LEFT JOIN FETCH o.user WHERE o.id = :id"</span>)
+    Optional&lt;Order&gt; <span class="fn">findByIdWithUser</span>(<span class="kw">@Param</span>(<span class="st">"id"</span>) Long id);
+}
+
+<span class="kw">@Service</span>
+<span class="kw">@RequiredArgsConstructor</span>
+<span class="kw">@Transactional</span>
+<span class="kw">public class</span> <span class="fn">OrderService</span> {
+
+    <span class="kw">private final</span> OrderRepository orderRepository;
+
+    <span class="kw">public</span> Order <span class="fn">getOrder</span>(Long id) {
+        <span class="kw">return</span> orderRepository.<span class="fn">findByIdWithUser</span>(id)
+                .<span class="fn">orElseThrow</span>(() -&gt; <span class="kw">new</span> NotFoundException(<span class="st">"주문을 찾을 수 없습니다: id="</span> + id));
+    }
+}</pre>
+            </div>
+            <p class="code-desc">
+                기본키(<span class="st">id</span>)로 조회할 땐 결과가 없을 수도 있으므로 <span class="st">Optional</span>로 감싸고, <span class="st">Optional.get()</span> 대신 <span class="st">orElseThrow()</span>로 없을 경우를 명시적으로 처리합니다.<br>
+                <span class="st">LEFT JOIN FETCH</span>로 외래키가 가리키는 <span class="st">User</span>까지 한 번의 쿼리로 함께 가져오는 것이 이 프로젝트의 표준 패턴입니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
