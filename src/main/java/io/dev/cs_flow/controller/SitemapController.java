@@ -22,8 +22,9 @@ import java.util.List;
 public class SitemapController {
 
     private static final String BASE_URL       = "https://csflow.kr";
-    private static final String CHANGE_FREQ_WEEKLY = "weekly";
+    private static final String CHANGE_FREQ_WEEKLY  = "weekly";
     private static final String CHANGE_FREQ_MONTHLY = "monthly";
+    private static final String CHANGE_FREQ_YEARLY  = "yearly";
 
     private static final String SLUG_PATTERN = "^[a-z0-9\\-]+$";
     private final SitemapService sitemapService;
@@ -31,7 +32,7 @@ public class SitemapController {
     /**
      * sitemap.xml을 생성하여 반환한다.
      * <p>
-     * 홈, 공개된 과목 홈 페이지, 공개된 토픽 개별 페이지 URL을 포함한다.
+     * 홈, 정적 정책 페이지(개인정보처리방침·이용약관), 공개된 과목 홈 페이지, 공개된 토픽 개별 페이지 URL을 포함한다.
      * 토픽 목록은 {@link SitemapService}를 통해 캐시된 데이터를 사용한다.
      * </p>
      *
@@ -47,6 +48,9 @@ public class SitemapController {
         sb.append("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">");
 
         sb.append(url(BASE_URL  + "/", CHANGE_FREQ_WEEKLY, "1.0"));
+
+        sb.append(url(BASE_URL + "/privacy", CHANGE_FREQ_YEARLY, "0.3"));
+        sb.append(url(BASE_URL + "/terms",   CHANGE_FREQ_YEARLY, "0.3"));
 
         topics.stream()
                 .map(t -> t.getSubject().getSlug())
@@ -69,7 +73,7 @@ public class SitemapController {
      * 단일 {@code <url>} XML 블록을 생성한다.
      *
      * @param loc        페이지 URL
-     * @param changefreq 변경 빈도 (daily / weekly / monthly 등)
+     * @param changefreq 변경 빈도 (daily / weekly / monthly / yearly 등)
      * @param priority   우선순위 (0.0 ~ 1.0)
      * @return XML 형식의 url 블록 문자열
      */
