@@ -1,0 +1,127 @@
+/* === .policy-page — 정책/약관류 정적 콘텐츠 페이지 공통 스타일 === */
+
+.policy-page {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 48px 24px 96px;
+}
+
+.policy-page__breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 24px;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+}
+
+.policy-page__breadcrumb-link {
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+
+.policy-page__breadcrumb-link:hover {
+  color: var(--color-purple);
+}
+
+.policy-page__breadcrumb-sep {
+  color: var(--color-text-muted);
+}
+
+.policy-page__breadcrumb-current {
+  color: var(--color-text, #e5e5e5);
+}
+
+.policy-page__title {
+  font-size: 1.9rem;
+  font-weight: 700;
+  margin-bottom: 32px;
+  color: var(--color-text, #e5e5e5);
+}
+
+.policy-page__section {
+  margin-bottom: 40px;
+}
+
+.policy-page__section h2 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--color-purple);
+  margin-bottom: 14px;
+}
+
+.policy-page__section p {
+  font-size: 0.95rem;
+  line-height: 1.75;
+  color: var(--color-text, #e5e5e5);
+  margin-bottom: 12px;
+}
+
+.policy-page__list {
+  padding-left: 20px;
+  margin-bottom: 12px;
+}
+
+.policy-page__list li {
+  font-size: 0.95rem;
+  line-height: 1.75;
+  color: var(--color-text, #e5e5e5);
+  margin-bottom: 6px;
+}
+
+.policy-page__section a {
+  color: var(--color-purple);
+  text-decoration: underline;
+}
+
+.policy-page__table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 12px;
+  font-size: 0.88rem;
+}
+
+.policy-page__table th,
+.policy-page__table td {
+  border: 1px solid var(--color-border);
+  padding: 10px 12px;
+  text-align: left;
+  color: var(--color-text, #e5e5e5);
+  vertical-align: top;
+}
+
+.policy-page__table th {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  background: rgba(108, 99, 255, 0.06);
+}
+
+.policy-page__note {
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+}
+
+.policy-page__contact {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 600px) {
+  .policy-page {
+    padding: 32px 16px 64px;
+  }
+
+  .policy-page__title {
+    font-size: 1.5rem;
+  }
+
+  .policy-page__table {
+    font-size: 0.8rem;
+  }
+
+  .policy-page__table th,
+  .policy-page__table td {
+    padding: 8px;
+  }
+}
