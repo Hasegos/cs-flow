@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title>개인정보처리방침 | CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/policy.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main class="policy-page">
+        <div class="policy-page__inner">
+
+            <nav class="policy-page__breadcrumb">
+                <a th:href="@{/}" class="policy-page__breadcrumb-link">홈</a>
+                <span class="policy-page__breadcrumb-sep">/</span>
+                <span class="policy-page__breadcrumb-current">개인정보처리방침</span>
+            </nav>
+
+            <h1 class="policy-page__title">개인정보처리방침</h1>
+
+            <section class="policy-page__section">
+                <h2>제1조 (총칙)</h2>
+                <p>
+                    CS Flow(이하 "사이트")는 이용자가 사이트를 이용하는 과정에서 제공되거나 자동으로 생성되는 정보가 안전하게 보호받을 수 있도록 최선을 다하고 있습니다.
+                    이에 사이트는 「개인정보 보호법」 등 관련 법령상의 개인정보보호 규정 및 지침을 준수하고 있습니다.
+                    사이트는 본 개인정보처리방침을 통하여 이용자의 정보가 어떠한 용도와 방식으로 처리되고 있으며, 개인정보 보호를 위해 어떠한 조치가 취해지고 있는지 알려드립니다.
+                    본 방침은 관련 법령이나 사이트 내부 방침의 변경에 따라 수시로 개정될 수 있으며, 개정하는 경우 사이트를 통해 공지합니다.
+                </p>
+            </section>
+
+            <section class="policy-page__section">
+                <h2>제2조 (회원가입 없이 운영되는 사이트입니다)</h2>
+                <p>
+                    사이트는 회원가입, 로그인, 댓글 작성 등의 기능이 없는 정보 제공형 사이트입니다.
+                    따라서 이름, 이메일, 비밀번호 등 이용자가 직접 입력하여 제공하는 개인정보는 <strong>수집하지 않습니다.</strong>
+                </p>
+            </section>
+
+            <section class="policy-page__section">
+                <h2>제3조 (자동으로 수집되는 정보)</h2>
+                <p>
+                    이용자가 직접 입력하지 않아도, 사이트를 이용하는 과정에서 아래 정보가 자동으로 생성되어 수집될 수 있습니다.
+                </p>
+                <table class="policy-page__table">
+                    <thead>
+                    <tr><th>수집 항목</th><th>수집 목적</th><th>보유 기간</th></tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>접속 IP 주소, 접속 시각, 요청 URL, 브라우저 정보(User-Agent)</td>
+                        <td>서비스 안정성 확보, 부정 이용 방지, 오류 분석</td>
+                        <td>수집일로부터 365일</td>
+                    </tr>
+                    <tr>
+                        <td>쿠키를 통한 테마 설정값(다크/라이트 모드)</td>
+                        <td>재방문 시 이용자가 설정한 화면 테마 유지</td>
+                        <td>이용자가 브라우저에서 직접 삭제할 때까지</td>
+                    </tr>
+                    </tbody>
+                </table>
+                <p class="policy-page__note">
+                    접속 IP는 보안을 위해 Cloudflare(CDN 및 보안 서비스 제공업체)를 경유하며, Cloudflare의 개인정보 처리에 관한 사항은
+                    <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener">Cloudflare 개인정보처리방침</a>을 따릅니다.
+                </p>
+            </section>
+
+            <section class="policy-page__section">
+                <h2>제4조 (광고 서비스 및 쿠키)</h2>
+                <p>
+                    사이트는 운영 비용 충당을 위해 Google AdSense를 통한 광고를 게재할 수 있습니다.
+                    Google을 포함한 제3자 광고 제공업체는 쿠키를 사용하여 이용자가 사이트 및 다른 사이트를 방문한 기록을 바탕으로 관심사 맞춤 광고를 게재할 수 있습니다.
+                </p>
+                <ul class="policy-page__list">
+                    <li>Google은 광고 쿠키를 사용하여 사용자가 사이트 또는 다른 사이트를 방문한 이력을 토대로 광고를 게재합니다.</li>
+                    <li>이용자는 <a href="https://adssettings.google.com/" target="_blank" rel="noopener">Google 광고 설정</a>에서 맞춤 광고를 비활성화할 수 있습니다.</li>
+                    <li>맞춤 광고에 사용되는 제3자 쿠키 비활성화는 <a href="https://www.aboutads.info/choices/" target="_blank" rel="noopener">aboutads.info</a>에서도 가능합니다.</li>
+                </ul>
+            </section>
+
+            <section class="policy-page__section">
+                <h2>제5조 (개인정보의 제3자 제공)</h2>
+                <p>
+                    사이트는 이용자의 정보를 원칙적으로 외부에 제공하지 않습니다. 다만 제3조·제4조에서 밝힌 바와 같이
+                    Cloudflare(보안·CDN), Google AdSense(광고)와 같은 서비스 제공업체가 서비스 운영 과정에서 접속 정보 또는 쿠키에 접근할 수 있습니다.
+                </p>
+            </section>
+
+            <section class="policy-page__section">
+                <h2>제6조 (이용자의 권리)</h2>
+                <p>
+                    이용자는 브라우저 설정을 통해 쿠키 저장을 거부하거나 삭제할 수 있습니다. 다만 쿠키 저장을 거부할 경우 일부 기능(테마 유지 등)이 정상적으로 동작하지 않을 수 있습니다.
+                </p>
+            </section>
+
+            <section class="policy-page__section">
+                <h2>제7조 (개인정보의 안전성 확보조치)</h2>
+                <p>
+                    사이트는 개인정보(접속 로그 등)의 안전성 확보를 위해 다음과 같은 조치를 취하고 있습니다.
+                </p>
+                <ul class="policy-page__list">
+                    <li>사이트의 모든 통신 구간에 HTTPS(SSL/TLS) 암호화를 적용합니다.</li>
+                    <li>Cloudflare를 통해 DDoS 공격, 악성 봇 등 외부 위협으로부터 서버를 보호합니다.</li>
+                    <li>접속 로그는 서비스 운영에 필요한 최소한의 항목만 수집하며, 서버 접근 권한이 없는 제3자는 열람할 수 없습니다.</li>
+                </ul>
+            </section>
+
+            <section class="policy-page__section">
+                <h2>제8조 (문의처)</h2>
+                <p>
+                    개인정보 처리 및 사이트 이용과 관련한 문의사항은 아래 연락처로 문의해 주시기 바랍니다.
+                </p>
+                <p class="policy-page__contact">
+                    이메일: <a href="mailto:csw020106@naver.com">csw020106@naver.com</a>
+                </p>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+</body>
+</html>
