@@ -1,0 +1,66 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">SQL — INNER / LEFT / RIGHT JOIN</p>
+            <div class="code-block">
+<pre><span class="cm">-- INNER JOIN: 양쪽 모두 값이 있는 행만</span>
+<span class="kw">SELECT</span> u.id, u.name, o.id <span class="kw">AS</span> order_id, o.product
+<span class="kw">FROM</span> users u
+<span class="kw">INNER JOIN</span> orders o <span class="kw">ON</span> o.user_id = u.id;
+
+<span class="cm">-- LEFT JOIN: USERS 전부 + 짝 없는 ORDERS는 NULL</span>
+<span class="kw">SELECT</span> u.id, u.name, o.id <span class="kw">AS</span> order_id, o.product
+<span class="kw">FROM</span> users u
+<span class="kw">LEFT JOIN</span> orders o <span class="kw">ON</span> o.user_id = u.id;
+
+<span class="cm">-- RIGHT JOIN: ORDERS 전부 + 짝 없는 USERS는 NULL</span>
+<span class="kw">SELECT</span> u.id, u.name, o.id <span class="kw">AS</span> order_id, o.product
+<span class="kw">FROM</span> users u
+<span class="kw">RIGHT JOIN</span> orders o <span class="kw">ON</span> o.user_id = u.id;</pre>
+            </div>
+            <p class="code-desc">
+                세 쿼리의 <span class="st">FROM</span>/<span class="st">ON</span> 절은 완전히 동일하고, <span class="st">JOIN</span> 키워드만 다릅니다 — 시각화의 벤 다이어그램에서 강조 영역이 바뀌는 것과 같은 지점입니다.<br>
+                <span class="st">LEFT JOIN</span> 결과에서 박도윤처럼 주문이 없는 사용자는 <span class="st">order_id</span>, <span class="st">product</span>가 <span class="st">NULL</span>로 나옵니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — JPQL에서 LEFT JOIN FETCH로 N+1 방지</p>
+            <div class="code-block">
+<pre><span class="kw">public interface</span> <span class="fn">UserRepository</span> <span class="kw">extends</span> JpaRepository&lt;User, Long&gt; {
+
+    <span class="cm">// LEFT JOIN FETCH: 주문이 없는 사용자도 결과에 포함(= LEFT JOIN),</span>
+    <span class="cm">// 연관된 Order를 한 번에 가져와 LazyInitializationException도 방지</span>
+    <span class="kw">@Query</span>(<span class="st">"SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.orders"</span>)
+    List&lt;User&gt; <span class="fn">findAllWithOrders</span>();
+}</pre>
+            </div>
+            <p class="code-desc">
+                이 프로젝트 규칙상 연관 엔티티를 조회할 땐 항상 <span class="st">LEFT JOIN FETCH</span>를 씁니다 — <span class="st">INNER JOIN FETCH</span>를 쓰면 주문이 없는 <span class="st">User</span>(박도윤)가 결과에서 통째로 빠져버리기 때문입니다.<br>
+                즉 "연관 데이터를 함께 가져오고 싶다"는 이유만으로도, 의도치 않게 <span class="st">INNER JOIN</span>의 필터링 효과가 발생할 수 있다는 점을 이 시각화의 INNER 탭과 비교해서 기억해두면 좋습니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">SQL — MySQL에서 FULL OUTER JOIN 흉내내기</p>
+            <div class="code-block">
+<pre><span class="cm">-- MySQL은 FULL OUTER JOIN 문법이 없어서 UNION으로 대체</span>
+<span class="kw">SELECT</span> u.id, u.name, o.id <span class="kw">AS</span> order_id, o.product
+<span class="kw">FROM</span> users u
+<span class="kw">LEFT JOIN</span> orders o <span class="kw">ON</span> o.user_id = u.id
+
+<span class="kw">UNION</span>
+
+<span class="kw">SELECT</span> u.id, u.name, o.id <span class="kw">AS</span> order_id, o.product
+<span class="kw">FROM</span> users u
+<span class="kw">RIGHT JOIN</span> orders o <span class="kw">ON</span> o.user_id = u.id;</pre>
+            </div>
+            <p class="code-desc">
+                <span class="st">LEFT JOIN</span> 결과(USERS 전부)와 <span class="st">RIGHT JOIN</span> 결과(ORDERS 전부)를 <span class="st">UNION</span>으로 합치면, 겹치는 행은 자동으로 한 번만 남고 양쪽의 unmatched 행은 모두 살아남습니다.<br>
+                이 시각화의 FULL 탭에서 4행(박도윤의 NULL 행 + user_id=5 주문의 NULL 행 포함)이 나오는 것과 정확히 같은 결과입니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>

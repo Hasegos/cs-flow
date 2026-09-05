@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">SQL JOIN | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/db/sql-join.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/db}" class="topic-breadcrumb__link">데이터베이스</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">SQL JOIN</span>
+                </nav>
+
+                <span class="topic-hero__slug">db · 02</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">SQL JOIN</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        SQL JOIN은 <strong>두 개 이상의 테이블을 하나의 결과로 합치는</strong> 방법입니다.
+                        USERS와 ORDERS처럼 외래키로 연결된 테이블이 있을 때, 어느 쪽 데이터를 기준으로 얼마나 남길지에 따라
+                        <strong>INNER / LEFT / RIGHT / FULL</strong> 네 가지 방식으로 나뉩니다. 벤 다이어그램으로 생각하면
+                        가장 직관적입니다 — 두 원 중 어느 부분을 결과로 남기느냐의 차이일 뿐입니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">INNER JOIN</h3>
+                            <p class="overview-card__desc">양쪽 테이블 모두에 값이 있는 행만 남깁니다. 벤 다이어그램에서 두 원이 겹치는 부분(교집합)입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">LEFT JOIN</h3>
+                            <p class="overview-card__desc">왼쪽(A) 테이블의 모든 행을 남기고, 짝이 없는 오른쪽(B) 값은 NULL로 채웁니다. 벤 다이어그램에서 왼쪽 원 전체입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">RIGHT JOIN</h3>
+                            <p class="overview-card__desc">오른쪽(B) 테이블의 모든 행을 남기고, 짝이 없는 왼쪽(A) 값은 NULL로 채웁니다. 벤 다이어그램에서 오른쪽 원 전체입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">FULL OUTER JOIN</h3>
+                            <p class="overview-card__desc">양쪽 테이블의 모든 행을 남기고, 짝이 없는 쪽은 NULL로 채웁니다. 벤 다이어그램에서 두 원의 합집합입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">JOIN 조건</h3>
+                            <p class="overview-card__desc">보통 외래키 = 기본키 형태로 조건을 겁니다. 예: <code>ORDERS.user_id = USERS.id</code>. 이 조건에 맞는 행끼리만 짝지어집니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">왜 NULL이 나올까</h3>
+                            <p class="overview-card__desc">OUTER JOIN(LEFT/RIGHT/FULL)에서 짝이 없는 행도 결과에 포함시키다 보니, 상대 테이블 쪽 컬럼을 채울 값이 없어 NULL이 들어갑니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>주문이 없는 사용자, 사용자가 없는 주문</strong> — 이 시각화의 USERS에는 주문이 하나도 없는 사람이(박도윤) 있고, ORDERS에는 존재하지 않는 사용자를 가리키는 주문이(user_id=5) 하나 있습니다. 이 두 케이스가 각 JOIN에서 어떻게 다르게 처리되는지가 핵심입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>결과 행 개수부터 보세요</strong> — 같은 데이터인데도 INNER는 2행, LEFT/RIGHT는 3행, FULL은 4행이 나옵니다. 어떤 행이 "더 나온" 것인지, 어떤 행이 "빠진" 것인지를 확인하면 차이가 분명해집니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>MySQL에는 FULL OUTER JOIN이 없다</strong> — MySQL은 FULL JOIN 문법을 직접 지원하지 않아서, 보통 LEFT JOIN 결과와 RIGHT JOIN의 unmatched 부분을 <code>UNION</code>으로 합쳐서 흉내 냅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — 모드탭에서 JOIN 종류를 고르면 벤 다이어그램의 강조 영역이 바뀝니다. STEP을 눌러 결과 테이블이 한 행씩 채워지는 과정과, 그 행이 어떤 조건(일치 또는 NULL)으로 만들어졌는지 로그에서 확인하세요.</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/db/sql-join-code :: code}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+</body>
+</html>
