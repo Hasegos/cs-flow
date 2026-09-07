@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">인덱스 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/db/index.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/db}" class="topic-breadcrumb__link">데이터베이스</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">인덱스</span>
+                </nav>
+
+                <span class="topic-hero__slug">db · 03</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">인덱스</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        인덱스는 <strong>데이터를 정렬된 트리(B-Tree) 구조로 따로 관리</strong>해서, 특정 값을 찾을 때
+                        테이블 전체를 뒤지지 않고 트리를 몇 단계만 타고 내려가도록 해주는 자료구조입니다.
+                        인덱스가 없으면 원하는 값을 찾기 위해 처음부터 끝까지 한 행씩 확인해야 합니다(Full Table Scan) —
+                        인덱스는 바로 이 비교 횟수를 극적으로 줄여줍니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">B-Tree 구조</h3>
+                            <p class="overview-card__desc">루트 노드가 기준값을 갖고 자식 방향을 정하고, 리프 노드에 실제 값이 정렬된 채로 나뉘어 저장됩니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">Full Table Scan</h3>
+                            <p class="overview-card__desc">인덱스가 없을 때 사용하는 방식으로, 조건에 맞는 행을 찾기 위해 테이블의 모든 행을 처음부터 순서대로 확인합니다. O(n).</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">인덱스 탐색</h3>
+                            <p class="overview-card__desc">루트에서 기준값과 비교해 방향을 정하고, 해당 리프 하나만 확인합니다. 나머지 리프는 아예 들여다보지 않습니다. O(log n).</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">정렬 순서 유지</h3>
+                            <p class="overview-card__desc">B-Tree는 항상 왼쪽 자식 &lt; 자신의 키 ≤ 오른쪽 자식 순서를 유지합니다. 그래서 "더 크다/작다"만으로 방향을 정할 수 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">인덱스의 비용</h3>
+                            <p class="overview-card__desc">인덱스는 공짜가 아닙니다 — 데이터를 추가·수정·삭제할 때마다 트리도 함께 갱신해야 해서, 쓰기 성능은 오히려 느려질 수 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">어떤 컬럼에 걸어야 할까</h3>
+                            <p class="overview-card__desc">WHERE·JOIN·ORDER BY에 자주 쓰이는 컬럼이 좋은 후보입니다. 반대로 거의 조회하지 않는 컬럼에 거는 인덱스는 쓰기 비용만 늘립니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>같은 값을 두 방식으로 찾아보세요</strong> — 이 시각화는 정확히 같은 target 값을 "풀 스캔" 탭과 "인덱스 탐색" 탭에서 각각 찾습니다. 비교 횟수와, 무엇보다 "몇 개의 노드/값을 들여다봤는지"를 비교해보세요.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>작은 예제라 차이가 작아 보일 수 있습니다</strong> — 여기서는 값이 12개뿐이라 7번 vs 6번으로 큰 차이가 안 나 보이지만, 실제 테이블처럼 수만~수백만 건이 되면 풀 스캔은 그 수만큼 늘어나고 인덱스는 트리 단계 수(보통 3~4단계)만큼만 늘어납니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>인덱스 탐색에서 건너뛴 리프에 주목하세요</strong> — 루트에서 방향을 정하고 나면 나머지 리프들은 확인할 필요가 전혀 없습니다. 이렇게 "안 봐도 되는 데이터"를 통째로 건너뛰는 것이 인덱스의 핵심 아이디어입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "인덱스 구조" 탭에서 루트/리프 용어와 정렬 순서를 먼저 익히고, "풀 스캔"과 "인덱스 탐색" 탭에서 같은 값을 찾는 과정을 STEP으로 하나씩 비교해보세요.</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/db/index-code :: code}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+</body>
+</html>
