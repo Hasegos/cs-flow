@@ -1,0 +1,68 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">SQL — 인덱스 생성과 EXPLAIN으로 확인하기</p>
+            <div class="code-block">
+<pre><span class="cm">-- email 컬럼에 인덱스 생성</span>
+<span class="kw">CREATE INDEX</span> idx_users_email <span class="kw">ON</span> users(email);
+
+<span class="cm">-- 인덱스 적용 전: type = ALL → 풀 스캔(이 시각화의 "풀 스캔" 탭과 동일)</span>
+<span class="kw">EXPLAIN SELECT</span> * <span class="kw">FROM</span> users <span class="kw">WHERE</span> email = <span class="st">'minjun@mail.com'</span>;
+
+<span class="cm">-- 인덱스 적용 후: type = ref → 인덱스 탐색(이 시각화의 "인덱스 탐색" 탭과 동일)</span>
+<span class="kw">EXPLAIN SELECT</span> * <span class="kw">FROM</span> users <span class="kw">WHERE</span> email = <span class="st">'minjun@mail.com'</span>;</pre>
+            </div>
+            <p class="code-desc">
+                <span class="st">EXPLAIN</span>의 <span class="st">type</span> 컬럼이 <span class="st">ALL</span>이면 테이블 전체를 훑었다는 뜻이고, <span class="st">ref</span>·<span class="st">range</span>·<span class="st">const</span> 등이면 인덱스를 탄 것입니다.<br>
+                <span class="st">rows</span> 컬럼(예상 스캔 행 수)도 함께 보면, 인덱스 적용 전후로 이 시각화의 "비교 횟수"에 해당하는 수치가 실제로 얼마나 줄어드는지 확인할 수 있습니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — JPA Entity에 인덱스 선언하기</p>
+            <div class="code-block">
+<pre><span class="kw">@Entity</span>
+<span class="kw">@Table</span>(
+    name = <span class="st">"users"</span>,
+    indexes = {
+        <span class="kw">@Index</span>(name = <span class="st">"idx_users_email"</span>, columnList = <span class="st">"email"</span>)
+    }
+)
+<span class="kw">public class</span> <span class="fn">User</span> {
+
+    <span class="kw">@Id</span>
+    <span class="kw">@GeneratedValue</span>(strategy = GenerationType.IDENTITY)
+    <span class="kw">private</span> Long id;              <span class="cm">// PK는 기본적으로 이미 인덱스가 걸려 있음</span>
+
+    <span class="kw">@Column</span>(nullable = <span class="kw">false</span>, unique = <span class="kw">true</span>)
+    <span class="kw">private</span> String email;         <span class="cm">// 자주 WHERE에 쓰이므로 인덱스 후보</span>
+}</pre>
+            </div>
+            <p class="code-desc">
+                <span class="st">@Table(indexes = ...)</span>는 엔티티 기준 DDL 자동 생성 시 인덱스를 함께 만들어 줍니다 — 이 프로젝트처럼 스키마를 직접 SQL로 관리한다면 위의 <span class="st">CREATE INDEX</span> 문이 실제로 적용되는 부분입니다.<br>
+                기본키(<span class="st">@Id</span>)는 대부분의 DBMS에서 자동으로 인덱스가 생성되므로, 이 시각화의 B-Tree는 사실 <span class="st">id</span> 같은 기본키 조회에도 이미 똑같이 적용되고 있는 구조입니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">SQL — 복합 인덱스와 컬럼 순서(최左 접두 규칙)</p>
+            <div class="code-block">
+<pre><span class="cm">-- (user_id, product) 순서로 복합 인덱스 생성</span>
+<span class="kw">CREATE INDEX</span> idx_orders_user_product <span class="kw">ON</span> orders(user_id, product);
+
+<span class="cm">-- OK: 인덱스를 탄다 (맨 앞 컬럼 user_id로 시작)</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> orders <span class="kw">WHERE</span> user_id = <span class="num">1</span> <span class="kw">AND</span> product = <span class="st">'노트북'</span>;
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> orders <span class="kw">WHERE</span> user_id = <span class="num">1</span>;
+
+<span class="cm">-- 인덱스를 타지 못함: product만으로는 루트에서 방향을 정할 수 없음</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> orders <span class="kw">WHERE</span> product = <span class="st">'노트북'</span>;</pre>
+            </div>
+            <p class="code-desc">
+                이 시각화의 B-Tree 루트가 <span class="st">user_id</span> 하나만 기준값으로 갖고 있듯, 복합 인덱스도 맨 앞 컬럼(<span class="st">user_id</span>) 없이는 트리를 어느 쪽으로 내려가야 할지 정할 수 없습니다.<br>
+                그래서 마지막 쿼리처럼 뒤쪽 컬럼(<span class="st">product</span>)만으로 조회하면 이 인덱스를 전혀 활용하지 못하고 풀 스캔으로 돌아갑니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
