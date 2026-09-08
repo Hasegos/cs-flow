@@ -1,0 +1,79 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — @Transactional로 이체 서비스 구현</p>
+            <div class="code-block">
+<pre><span class="kw">@Service</span>
+<span class="kw">@RequiredArgsConstructor</span>
+<span class="kw">public class</span> <span class="fn">TransferService</span> {
+
+    <span class="kw">private final</span> AccountRepository accountRepository;
+
+    <span class="kw">@Transactional</span>
+    <span class="kw">public void</span> <span class="fn">transfer</span>(Long fromId, Long toId, <span class="kw">long</span> amount) {
+        Account from = accountRepository.<span class="fn">findById</span>(fromId)
+                .<span class="fn">orElseThrow</span>(() -&gt; <span class="kw">new</span> NotFoundException(<span class="st">"계좌 없음: "</span> + fromId));
+        Account to = accountRepository.<span class="fn">findById</span>(toId)
+                .<span class="fn">orElseThrow</span>(() -&gt; <span class="kw">new</span> NotFoundException(<span class="st">"계좌 없음: "</span> + toId));
+
+        from.<span class="fn">withdraw</span>(amount);   <span class="cm">// 첫 번째 UPDATE에 해당</span>
+
+        <span class="kw">if</span> (to.<span class="fn">isFrozen</span>()) {
+            <span class="kw">throw new</span> IllegalStateException(<span class="st">"계좌가 정지 상태라 입금할 수 없습니다."</span>);
+        }
+        to.<span class="fn">deposit</span>(amount);      <span class="cm">// 두 번째 UPDATE에 해당</span>
+    }
+}</pre>
+            </div>
+            <p class="code-desc">
+                <span class="st">withdraw()</span> 이후 예외가 던져지면, <span class="st">@Transactional</span>이 감싸고 있는 이 메서드 전체가 <span class="st">RuntimeException</span> 기준으로 자동 <span class="st">ROLLBACK</span>됩니다 — 이미 반영된 <span class="st">from.withdraw()</span>도 함께 취소됩니다.<br>
+                이 시각화의 "롤백(실패)" 탭에서 두 번째 UPDATE가 "계좌가 정지 상태"로 실패하는 것과 정확히 같은 상황입니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">SQL — @Transactional이 내부적으로 실행하는 것</p>
+            <div class="code-block">
+<pre><span class="kw">START TRANSACTION</span>;
+
+<span class="kw">UPDATE</span> accounts <span class="kw">SET</span> balance = balance - <span class="num">20000</span> <span class="kw">WHERE</span> id = <span class="num">1</span>;
+<span class="kw">UPDATE</span> accounts <span class="kw">SET</span> balance = balance + <span class="num">20000</span> <span class="kw">WHERE</span> id = <span class="num">2</span>;
+
+<span class="cm">-- 둘 다 성공하면:</span>
+<span class="kw">COMMIT</span>;
+
+<span class="cm">-- 하나라도 실패하면(애플리케이션 예외 포함):</span>
+<span class="kw">ROLLBACK</span>;</pre>
+            </div>
+            <p class="code-desc">
+                <span class="st">@Transactional</span>이 붙은 메서드에 진입하는 순간 <span class="st">START TRANSACTION</span>이, 정상 종료되면 <span class="st">COMMIT</span>이, 예외가 던져지면 <span class="st">ROLLBACK</span>이 자동으로 실행됩니다.<br>
+                즉 개발자가 직접 <span class="st">COMMIT</span>/<span class="st">ROLLBACK</span>을 호출하지 않아도, 메서드의 정상/예외 종료 여부만으로 트랜잭션 경계가 결정됩니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 흔한 함정: 같은 클래스 안에서 호출하면 롤백이 안 걸림</p>
+            <div class="code-block">
+<pre><span class="kw">@Service</span>
+<span class="kw">public class</span> <span class="fn">OrderService</span> {
+
+    <span class="kw">public void</span> <span class="fn">placeOrder</span>(Long userId) {
+        <span class="cm">// this.saveOrder(userId) — 프록시를 거치지 않는 내부 호출!</span>
+        <span class="fn">saveOrder</span>(userId);          <span class="cm">// @Transactional이 적용되지 않는다</span>
+    }
+
+    <span class="kw">@Transactional</span>
+    <span class="kw">public void</span> <span class="fn">saveOrder</span>(Long userId) {
+        <span class="cm">// ...</span>
+    }
+}</pre>
+            </div>
+            <p class="code-desc">
+                <span class="st">@Transactional</span>은 스프링이 만든 프록시 객체를 거쳐야 동작하는데, 같은 클래스 안에서 <span class="st">this.saveOrder()</span>처럼 직접 호출하면 프록시를 우회해서 트랜잭션이 아예 시작되지 않습니다.<br>
+                해결책은 <span class="st">saveOrder()</span>를 별도의 <span class="st">@Service</span>로 분리해서 주입받아 호출하는 것입니다 — 이 프로젝트의 생성자 주입(<span class="st">@RequiredArgsConstructor</span>) 규칙과도 자연스럽게 맞물립니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
