@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">트랜잭션 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/db/transaction.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/db}" class="topic-breadcrumb__link">데이터베이스</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">트랜잭션</span>
+                </nav>
+
+                <span class="topic-hero__slug">db · 04</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">트랜잭션</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        트랜잭션은 <strong>여러 개의 SQL 문을 하나의 작업 단위</strong>로 묶는 것입니다.
+                        계좌 이체처럼 "출금"과 "입금"이 각각 하나의 SQL문이어도, 두 문장이 <strong>모두 성공하거나 모두 실패</strong>해야만
+                        데이터가 올바른 상태를 유지합니다. 이걸 보장하기 위한 4가지 성질이 <strong>ACID</strong>이고,
+                        트랜잭션의 끝은 항상 <strong>COMMIT(확정)</strong> 또는 <strong>ROLLBACK(취소)</strong>입니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">원자성 (Atomicity)</h3>
+                            <p class="overview-card__desc">트랜잭션 안의 문장은 전부 성공하거나 전부 실패합니다. "반만 적용"되는 상태는 존재하지 않습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">일관성 (Consistency)</h3>
+                            <p class="overview-card__desc">트랜잭션 전후로 데이터는 항상 정의된 규칙(제약조건)을 만족해야 합니다. 예: 두 계좌 잔액의 합은 이체 전후로 같아야 합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">고립성 (Isolation)</h3>
+                            <p class="overview-card__desc">동시에 여러 트랜잭션이 실행돼도, 서로 커밋되지 않은 중간 상태는 보이지 않습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">지속성 (Durability)</h3>
+                            <p class="overview-card__desc">COMMIT이 끝나면 그 결과는 디스크에 남습니다. 이후 시스템이 다운되어도 사라지지 않습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">COMMIT</h3>
+                            <p class="overview-card__desc">트랜잭션 안의 모든 문장이 성공했을 때, 임시 반영된 변경을 영구적으로 확정합니다. COMMIT 이후에는 되돌릴 수 없습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">ROLLBACK</h3>
+                            <p class="overview-card__desc">문장 중 하나라도 실패하면, 이미 실행됐던 것까지 포함해 트랜잭션 시작 시점 상태로 전부 되돌립니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Spring의 @Transactional이 바로 이것</strong> — 이 프로젝트 규칙상 모든 Service 메서드에 <code>@Transactional</code>을 붙이는 이유가 여기 있습니다. 메서드 안에서 예외가 발생하면 Spring이 자동으로 ROLLBACK을 호출해줍니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>"임시 반영"이라는 표현에 주목하세요</strong> — BEGIN 이후 UPDATE는 실제로 실행되지만, 다른 트랜잭션(고립성) 눈에는 아직 보이지 않고, COMMIT 전이라면 언제든 취소될 수 있는 상태입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>합계로 일관성을 확인하세요</strong> — 커밋 탭과 롤백 탭 모두, 두 계좌 잔액의 합이 트랜잭션 전후로 정확히 같습니다(80,000원). 이것이 "일관성"이 실제로 지켜지는 모습입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "ACID" 탭에서 네 성질을 먼저 훑고, "커밋(성공)"과 "롤백(실패)" 탭에서 같은 송금 시나리오가 어떻게 다르게 끝나는지, 특히 롤백 후 잔액이 시작 전과 완전히 같아지는 과정을 확인하세요.</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/db/transaction-code :: code}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+</body>
+</html>
