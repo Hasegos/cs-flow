@@ -1,0 +1,83 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">SQL — SELECT ... FOR UPDATE로 명시적 배타락 걸기</p>
+            <div class="code-block">
+<pre><span class="kw">START TRANSACTION</span>;
+
+<span class="cm">-- 이 행에 배타락(X)을 걸고 조회 — 다른 트랜잭션은 이 행을 잠금이 풀릴 때까지 못 건드림</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> accounts <span class="kw">WHERE</span> id = <span class="num">1</span> <span class="kw">FOR UPDATE</span>;
+
+<span class="kw">UPDATE</span> accounts <span class="kw">SET</span> balance = balance - <span class="num">20000</span> <span class="kw">WHERE</span> id = <span class="num">1</span>;
+
+<span class="kw">COMMIT</span>;</pre>
+            </div>
+            <p class="code-desc">
+                <span class="st">FOR UPDATE</span>는 단순 조회가 아니라 "이 값을 곧 수정할 거니 아무도 건드리지 마라"는 의미입니다 — 이 시각화의 "락 대기" 탭에서 A가 김민준 행에 배타락을 거는 것과 같은 동작입니다.<br>
+                이 구문이 없으면 SELECT는 보통 락을 걸지 않아서, 조회한 값을 기준으로 계산한 뒤 UPDATE하는 사이에 다른 트랜잭션이 값을 바꿔버릴 수 있습니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — JPA에서 비관적 락(Pessimistic Lock) 사용</p>
+            <div class="code-block">
+<pre><span class="kw">public interface</span> <span class="fn">AccountRepository</span> <span class="kw">extends</span> JpaRepository&lt;Account, Long&gt; {
+
+    <span class="cm">// FOR UPDATE와 동일한 배타락을 걸고 조회</span>
+    <span class="kw">@Lock</span>(LockModeType.PESSIMISTIC_WRITE)
+    <span class="kw">@Query</span>(<span class="st">"SELECT a FROM Account a WHERE a.id = :id"</span>)
+    Optional&lt;Account&gt; <span class="fn">findByIdForUpdate</span>(<span class="kw">@Param</span>(<span class="st">"id"</span>) Long id);
+}
+
+<span class="kw">@Service</span>
+<span class="kw">@RequiredArgsConstructor</span>
+<span class="kw">public class</span> <span class="fn">TransferService</span> {
+
+    <span class="kw">private final</span> AccountRepository accountRepository;
+
+    <span class="kw">@Transactional</span>
+    <span class="kw">public void</span> <span class="fn">withdraw</span>(Long accountId, <span class="kw">long</span> amount) {
+        Account account = accountRepository.<span class="fn">findByIdForUpdate</span>(accountId)
+                .<span class="fn">orElseThrow</span>(() -&gt; <span class="kw">new</span> NotFoundException(<span class="st">"계좌 없음"</span>));
+        account.<span class="fn">withdraw</span>(amount);
+    }
+}</pre>
+            </div>
+            <p class="code-desc">
+                <span class="st">PESSIMISTIC_WRITE</span>가 SQL의 <span class="st">FOR UPDATE</span>로 변환됩니다. 메서드가 끝나(COMMIT) 락이 풀릴 때까지, 같은 행을 조회하는 다른 트랜잭션은 이 메서드가 끝날 때까지 대기합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 데드락 예외를 잡아 재시도하기</p>
+            <div class="code-block">
+<pre><span class="kw">@Service</span>
+<span class="kw">@RequiredArgsConstructor</span>
+<span class="kw">public class</span> <span class="fn">TransferRetryService</span> {
+
+    <span class="kw">private final</span> TransferService transferService;
+
+    <span class="kw">public void</span> <span class="fn">transferWithRetry</span>(Long fromId, Long toId, <span class="kw">long</span> amount) {
+        <span class="kw">int</span> attempts = <span class="num">0</span>;
+        <span class="kw">while</span> (<span class="kw">true</span>) {
+            <span class="kw">try</span> {
+                transferService.<span class="fn">transfer</span>(fromId, toId, amount);
+                <span class="kw">return</span>;
+            } <span class="kw">catch</span> (CannotAcquireLockException e) {
+                attempts++;                                <span class="cm">// DB가 데드락 희생자로 골라 롤백시킨 경우</span>
+                <span class="kw">if</span> (attempts &gt;= <span class="num">3</span>) <span class="kw">throw</span> e;
+                log.<span class="fn">warn</span>(<span class="st">"데드락으로 롤백됨, 재시도 {}회"</span>, attempts);
+            }
+        }
+    }
+}</pre>
+            </div>
+            <p class="code-desc">
+                DB가 데드락의 희생자로 트랜잭션을 골라 강제 <span class="st">ROLLBACK</span>시키면, Spring은 이를 <span class="st">CannotAcquireLockException</span>으로 변환해 던집니다.<br>
+                이 시각화의 "데드락" 탭에서 B가 희생자로 롤백되는 것처럼, 실제 애플리케이션에서도 한쪽 트랜잭션은 예외를 받게 되므로, 짧은 대기 후 재시도하는 로직을 흔히 함께 둡니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>

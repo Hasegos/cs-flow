@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">락 / 동시성 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/db/lock.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/db}" class="topic-breadcrumb__link">데이터베이스</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">락 / 동시성</span>
+                </nav>
+
+                <span class="topic-hero__slug">db · 05</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">락 / 동시성</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        여러 트랜잭션이 <strong>동시에</strong> 같은 데이터를 건드리면 값이 꼬일 수 있습니다.
+                        락(Lock)은 트랜잭션이 데이터를 다루는 동안 다른 트랜잭션이 끼어들지 못하게 막는 장치입니다.
+                        그런데 락을 서로 다른 순서로 요청하면, 두 트랜잭션이 <strong>서로가 가진 락을 기다리며 영원히 멈추는</strong>
+                        데드락(Deadlock)이 생길 수 있습니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">공유락 (Shared Lock, S)</h3>
+                            <p class="overview-card__desc">읽기(SELECT)용 락입니다. 여러 트랜잭션이 같은 데이터에 동시에 걸 수 있습니다 — 읽기끼리는 서로 방해가 안 됩니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">배타락 (Exclusive Lock, X)</h3>
+                            <p class="overview-card__desc">쓰기(UPDATE/DELETE)용 락입니다. 한 번에 하나의 트랜잭션만 가질 수 있고, 다른 락과 전혀 호환되지 않습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">락 대기 (Lock Wait)</h3>
+                            <p class="overview-card__desc">이미 다른 트랜잭션이 배타락을 쥐고 있으면, 후발 트랜잭션은 그 락이 풀릴 때까지 멈춰서 기다립니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">데드락 (Deadlock)</h3>
+                            <p class="overview-card__desc">트랜잭션 A가 B의 락을, B가 A의 락을 동시에 기다리는 순환 대기 상태입니다. 아무도 스스로 풀려날 수 없습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">데드락 감지와 희생자(Victim)</h3>
+                            <p class="overview-card__desc">DB는 대기-그래프(wait-for graph)에서 순환을 찾아내면, 그중 한 트랜잭션을 강제로 롤백시켜 순환을 끊습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">데드락을 줄이는 방법</h3>
+                            <p class="overview-card__desc">여러 테이블/행을 잠글 때 항상 같은 순서로 접근하면, 서로 반대 순서로 기다리는 상황 자체가 생기지 않습니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>락 대기는 정상, 데드락은 비정상</strong> — "락 대기" 탭처럼 한쪽이 끝날 때까지 기다리는 건 정상적인 동시성 제어입니다. 문제는 서로가 서로를 기다려 아무도 끝날 수 없을 때입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>순서만 바꿔도 데드락을 피할 수 있습니다</strong> — 이 시각화의 데드락 예시에서, B가 A와 똑같이 "김민준 → 이서연" 순서로 락을 요청했다면 데드락은 아예 발생하지 않았을 것입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>희생자는 누가 될까</strong> — 보통 작업량이 적은 트랜잭션(롤백 비용이 적은 쪽)이 희생자로 선택됩니다. 이 시각화에서는 B가 선택되어 롤백되고, A는 계속 진행합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "락의 종류" 탭에서 S/X 호환표를 먼저 익히고, "락 대기" 탭에서 정상적인 대기를, "데드락" 탭에서 두 화살표가 서로를 가리키는 순환이 만들어지는 순간과 그 이후 희생자 롤백을 확인하세요.</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/db/lock-code :: code}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+</body>
+</html>
