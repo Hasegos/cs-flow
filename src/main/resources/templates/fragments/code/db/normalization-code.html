@@ -1,0 +1,99 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">SQL — 정규화 전(비정규형) vs 정규화 후(3NF)</p>
+            <div class="code-block">
+<pre><span class="cm">-- 정규화 전: 한 테이블에 모든 게 뒤섞여 있고, products는 콤마로 여러 값</span>
+<span class="kw">CREATE TABLE</span> orders_raw (
+    order_id    BIGINT PRIMARY KEY,
+    user_name   VARCHAR(50),
+    user_grade  VARCHAR(10),
+    products    VARCHAR(200)   <span class="cm">-- '노트북, 마우스' — 1NF 위반</span>
+);
+
+<span class="cm">-- 정규화 후(3NF): 세 테이블로 분리, 각 non-key 컬럼은 자기 테이블의 PK에만 의존</span>
+<span class="kw">CREATE TABLE</span> users (
+    user_name   VARCHAR(50) PRIMARY KEY,
+    user_grade  VARCHAR(10)  <span class="kw">NOT NULL</span>
+);
+
+<span class="kw">CREATE TABLE</span> orders (
+    order_id    BIGINT PRIMARY KEY <span class="kw">AUTO_INCREMENT</span>,
+    user_name   VARCHAR(50) <span class="kw">NOT NULL</span>,
+    <span class="kw">FOREIGN KEY</span> (user_name) <span class="kw">REFERENCES</span> users(user_name)
+);
+
+<span class="kw">CREATE TABLE</span> order_items (
+    order_id    BIGINT      <span class="kw">NOT NULL</span>,
+    product     VARCHAR(50) <span class="kw">NOT NULL</span>,
+    <span class="kw">PRIMARY KEY</span> (order_id, product),
+    <span class="kw">FOREIGN KEY</span> (order_id) <span class="kw">REFERENCES</span> orders(order_id)
+);</pre>
+            </div>
+            <p class="code-desc">
+                이 시각화의 3NF 탭 결과와 정확히 같은 구조입니다 — <span class="st">users.user_grade</span>는 더 이상 주문 정보에 끌려다니지 않고, 사용자 한 명당 딱 한 번만 저장됩니다.<br>
+                김민준의 등급이 바뀌면 <span class="st">users</span> 테이블 딱 한 행만 <span class="st">UPDATE</span>하면 됩니다 — 정규화 전이었다면 김민준의 주문이 100건이면 100행을 다 고쳐야 했을 것입니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 정규화된 구조를 그대로 반영한 JPA 엔티티</p>
+            <div class="code-block">
+<pre><span class="kw">@Entity</span>
+<span class="kw">public class</span> <span class="fn">User</span> {
+    <span class="kw">@Id</span>
+    <span class="kw">private</span> String userName;
+    <span class="kw">private</span> String userGrade;
+}
+
+<span class="kw">@Entity</span>
+<span class="kw">public class</span> <span class="fn">Order</span> {
+    <span class="kw">@Id</span> <span class="kw">@GeneratedValue</span>(strategy = GenerationType.IDENTITY)
+    <span class="kw">private</span> Long id;
+
+    <span class="kw">@ManyToOne</span>(fetch = FetchType.LAZY)
+    <span class="kw">@JoinColumn</span>(name = <span class="st">"user_name"</span>)
+    <span class="kw">private</span> User user;              <span class="cm">// user_grade는 여기 없다 — User를 통해서만 접근</span>
+
+    <span class="kw">@OneToMany</span>(mappedBy = <span class="st">"order"</span>, cascade = CascadeType.ALL)
+    <span class="kw">private</span> List&lt;OrderItem&gt; items = <span class="kw">new</span> ArrayList&lt;&gt;();
+}
+
+<span class="kw">@Entity</span>
+<span class="kw">public class</span> <span class="fn">OrderItem</span> {
+    <span class="kw">@Id</span> <span class="kw">@GeneratedValue</span>(strategy = GenerationType.IDENTITY)
+    <span class="kw">private</span> Long id;
+
+    <span class="kw">@ManyToOne</span>(fetch = FetchType.LAZY)
+    <span class="kw">private</span> Order order;
+    <span class="kw">private</span> String product;
+}</pre>
+            </div>
+            <p class="code-desc">
+                <span class="st">Order</span>에는 <span class="st">userGrade</span> 필드가 없습니다 — 등급이 필요하면 반드시 <span class="st">order.getUser().getUserGrade()</span>처럼 <span class="st">User</span>를 거쳐야 합니다.<br>
+                이렇게 필드를 직접 두지 않는 것 자체가 "이행 종속을 만들지 않는다"는 3NF 규칙을 코드로 강제하는 방법입니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — (참고) 조회 성능을 위한 반정규화</p>
+            <div class="code-block">
+<pre><span class="kw">@Entity</span>
+<span class="kw">public class</span> <span class="fn">Order</span> {
+    <span class="cm">// ...</span>
+
+    <span class="cm">// 원칙적으로는 3NF 위반(이행 종속)이지만,</span>
+    <span class="cm">// "주문 목록에 등급 뱃지 표시"가 매번 JOIN을 유발해 느리다면</span>
+    <span class="cm">// 의도적으로 복제해 두는 경우가 있다 (반정규화)</span>
+    <span class="kw">private</span> String userGradeSnapshot;
+}</pre>
+            </div>
+            <p class="code-desc">
+                이 시각화의 "정규화의 대가" 카드에서 언급한 트레이드오프가 바로 이것입니다 — <span class="st">userGradeSnapshot</span>은 등급이 바뀌면 여러 곳을 고쳐야 하는 대신, 조회할 때 <span class="st">User</span>와의 <span class="st">JOIN</span>을 피할 수 있습니다.<br>
+                이런 선택은 "정규화 규칙을 모르고 어긴 것"과 "알고서 성능을 위해 의도적으로 어긴 것"의 차이이므로, 반정규화는 항상 팀 안에서 합의하고 문서로 남겨야 합니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
