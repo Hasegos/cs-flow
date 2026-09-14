@@ -1,0 +1,17 @@
+<th:block th:fragment="quiz">
+    <div class="quiz-section" th:attr="data-topic-slug=${topic.slug}">
+        <div th:each="q, iter : ${quizQuestions}" class="quiz-question" th:attr="data-question-id=${q.id}">
+            <p class="quiz-question__label" th:text="'Q' + (${iter.index} + 1)">Q1</p>
+            <p class="quiz-question__prompt" th:text="${q.prompt}">문제</p>
+            <div class="quiz-question__options">
+                <button type="button" class="quiz-option" data-option="A" th:text="${q.optionA}">보기 A</button>
+                <button type="button" class="quiz-option" data-option="B" th:text="${q.optionB}">보기 B</button>
+                <button type="button" class="quiz-option" data-option="C" th:text="${q.optionC}">보기 C</button>
+                <button type="button" class="quiz-option" data-option="D" th:text="${q.optionD}">보기 D</button>
+            </div>
+            <div class="quiz-question__hint" th:if="${q.hint}" th:text="${q.hint}">힌트</div>
+            <div class="quiz-question__explanation" th:text="${q.explanation}">해설</div>
+            <button type="button" class="quiz-question__retry">↺ 다시 풀기</button>
+        </div>
+    </div>
+</th:block>
