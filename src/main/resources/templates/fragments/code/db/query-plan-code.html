@@ -1,0 +1,63 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">SQL — 같은 인덱스, 다른 EXPLAIN 결과</p>
+            <div class="code-block">
+<pre><span class="cm">-- 선택도 낮은 값(희귀값) 조회: 인덱스가 유리 → type=ref</span>
+<span class="kw">EXPLAIN SELECT</span> * <span class="kw">FROM</span> users <span class="kw">WHERE</span> user_grade = <span class="st">'VIP'</span>;
+<span class="cm">-- id | select_type | table | type | key             | rows | Extra
+-- 1  | SIMPLE      | users | ref  | idx_user_grade  | 2    |</span>
+
+<span class="cm">-- 선택도 높은 값(흔한값) 조회: 풀 스캔이 더 쌈 → type=ALL, key=NULL</span>
+<span class="kw">EXPLAIN SELECT</span> * <span class="kw">FROM</span> users <span class="kw">WHERE</span> user_grade = <span class="st">'일반'</span>;
+<span class="cm">-- id | select_type | table | type | key  | rows | Extra
+-- 1  | SIMPLE      | users | ALL  | NULL | 20   |</span></pre>
+            </div>
+            <p class="code-desc">
+                <span class="st">idx_user_grade</span> 인덱스는 두 쿼리 모두에 똑같이 존재하지만, 두 번째 쿼리에서는 <span class="st">key</span>가 <span class="st">NULL</span>입니다 — 인덱스가 있어도 옵티마이저가 "안 쓰는 게 더 빠르다"고 판단한 것입니다.<br>
+                이 시각화의 "선택도 높음" 탭에서 인덱스 스캔 비용(74)이 풀 스캔 비용(20)보다 큰 것과 정확히 같은 이유입니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">SQL — 옵티마이저의 판단을 확인하고 필요하면 개입하기</p>
+            <div class="code-block">
+<pre><span class="cm">-- 예상이 아니라 실제 실행 결과(시간 포함)로 확인</span>
+<span class="kw">EXPLAIN ANALYZE</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> users <span class="kw">WHERE</span> user_grade = <span class="st">'일반'</span>;
+
+<span class="cm">-- (드물게) 옵티마이저의 선택이 틀렸다고 확신할 때만 강제</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> users <span class="kw">FORCE INDEX</span> (idx_user_grade)
+<span class="kw">WHERE</span> user_grade = <span class="st">'VIP'</span>;
+
+<span class="cm">-- 옵티마이저의 비용 계산은 테이블 통계에 기반한다 — 통계가 오래되면 판단도 부정확해짐</span>
+<span class="kw">ANALYZE TABLE</span> users;</pre>
+            </div>
+            <p class="code-desc">
+                <span class="st">EXPLAIN</span>은 "예상" 비용이고, <span class="st">EXPLAIN ANALYZE</span>는 실제로 실행해서 "진짜" 걸린 시간과 실제 스캔 행 수를 보여줍니다 — 예상과 실제가 크게 다르면 통계가 낡았다는 신호입니다.<br>
+                <span class="st">FORCE INDEX</span>는 최후의 수단입니다. 대부분의 경우 옵티마이저의 판단이 이 시각화에서 본 것처럼 합리적인 비용 계산에 근거하므로, 함부로 강제하면 오히려 느려질 수 있습니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 실제로 어떤 쿼리가 실행됐는지 확인하기</p>
+            <div class="code-block">
+<pre><span class="cm">## application.yml — Hibernate가 생성한 실제 SQL을 로그로 확인</span>
+spring:
+  jpa:
+    show-sql: <span class="kw">true</span>
+    properties:
+      hibernate:
+        format_sql: <span class="kw">true</span>
+        <span class="cm"># 통계까지 보고 싶다면</span>
+        generate_statistics: <span class="kw">true</span></pre>
+            </div>
+            <p class="code-desc">
+                JPQL이나 <span class="st">@Query</span>로 작성한 쿼리가 실제로 어떤 SQL로 나가는지 먼저 확인한 뒤, 그 SQL을 그대로 <span class="st">EXPLAIN</span> 앞에 붙여 실행하면 이 시각화에서 본 것과 같은 방식으로 실행 계획을 읽을 수 있습니다.<br>
+                운영 환경에서는 슬로우 쿼리 로그(<span class="st">slow_query_log</span>)를 켜서, 어떤 쿼리가 예상과 다르게 풀 스캔으로 빠지고 있는지 주기적으로 확인하는 것이 좋습니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
