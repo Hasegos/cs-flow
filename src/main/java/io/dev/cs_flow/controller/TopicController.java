@@ -2,6 +2,7 @@ package io.dev.cs_flow.controller;
 
 import io.dev.cs_flow.common.exception.NotFoundException;
 import io.dev.cs_flow.model.Topic;
+import io.dev.cs_flow.service.QuizService;
 import io.dev.cs_flow.service.TopicService;
 import io.dev.cs_flow.service.VisualizerService;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,7 @@ public class TopicController {
 
     private final TopicService topicService;
     private final VisualizerService visualizerService;
+    private final QuizService quizService;
     private final ObjectMapper objectMapper;
 
     /**
@@ -82,6 +84,7 @@ public class TopicController {
         model.addAttribute("topic", topic);
         model.addAttribute("jsFileKey", jsFileKey);
         model.addAttribute("relatedTopics", topicService.getRelatedTopics(topic.getTopicId()));
+        model.addAttribute("quizQuestions", quizService.getQuestions(topic.getTopicId()));
         model.addAttribute("canonicalUrl", canonicalUrl);
 
         return "topics/" + subjectSlug + "/" + templateName;

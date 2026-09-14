@@ -342,6 +342,125 @@
   margin-top: 0.75rem;
 }
 
+/* === 퀴즈 탭 === */
+.quiz-section {
+  max-width: 780px;
+}
+
+.quiz-question {
+  padding: 2rem 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.quiz-question:first-child {
+  padding-top: 0;
+}
+
+.quiz-question:last-child {
+  border-bottom: none;
+}
+
+.quiz-question__label {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--subject-accent, var(--color-purple));
+  margin-bottom: 0.6rem;
+}
+
+.quiz-question__prompt {
+  font-size: 1.05rem;
+  color: var(--color-text);
+  font-weight: 500;
+  line-height: 1.7;
+  margin-bottom: 1.25rem;
+}
+
+.quiz-question__options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.quiz-option {
+  text-align: left;
+  font-family: inherit;
+  font-size: 0.92rem;
+  color: var(--color-text-sub);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.85rem 1.1rem;
+  cursor: pointer;
+  transition: border-color var(--transition), background var(--transition);
+}
+
+.quiz-option:hover:not(:disabled) {
+  border-color: var(--color-border-hover);
+}
+
+.quiz-option:disabled {
+  cursor: default;
+}
+
+.quiz-option--correct {
+  border-color: var(--color-teal);
+  background: var(--color-teal-dim);
+  color: var(--color-text);
+}
+
+.quiz-option--wrong {
+  border-color: #e0555a;
+  background: rgba(224, 85, 90, 0.12);
+  color: var(--color-text);
+}
+
+.quiz-question__hint,
+.quiz-question__explanation {
+  display: none;
+  font-size: 0.9rem;
+  color: var(--color-text-sub);
+  font-weight: 300;
+  line-height: 1.7;
+  padding: 0.9rem 1.1rem;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-2);
+}
+
+.quiz-question__hint.is-visible,
+.quiz-question__explanation.is-visible {
+  display: block;
+}
+
+.quiz-question__explanation {
+  margin-top: 0.6rem;
+}
+
+.quiz-question__retry {
+  display: none;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--color-text-sub);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 1rem;
+  margin-top: 0.75rem;
+  cursor: pointer;
+  transition: border-color var(--transition), color var(--transition);
+}
+
+.quiz-question__retry:hover {
+  border-color: var(--color-border-hover);
+  color: var(--color-text);
+}
+
+.quiz-question__retry.is-visible {
+  display: inline-block;
+}
+
 /* === 연관 개념 (하단 공통) === */
 .related-section {
   max-width: 1200px;

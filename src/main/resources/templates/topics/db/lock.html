@@ -47,6 +47,7 @@
                 <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
                 <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
                 <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+                <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
             </div>
         </nav>
 
@@ -131,6 +132,11 @@
                 <th:block th:replace="~{fragments/code/db/lock-code :: code}"></th:block>
             </div>
 
+            <!-- 탭 4: 퀴즈 -->
+            <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
+                <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
+            </div>
+
         </div>
 
         <!-- 연관 개념 -->
@@ -161,5 +167,6 @@
     <script th:src="@{/js/common.js}"></script>
     <script th:src="@{/js/visualizer/viz-common.js}"></script>
     <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+    <script th:src="@{/js/quiz.js}"></script>
 </body>
 </html>
