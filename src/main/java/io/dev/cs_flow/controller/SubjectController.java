@@ -39,10 +39,11 @@ public class SubjectController {
     public String subjectHome(
             @PathVariable String subjectSlug,
             @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "default") String sort,
             Model model){
-        log.info("과목 홈 페이지 요청 - subjectSlug: {}", subjectSlug);
+        log.info("과목 홈 페이지 요청 - subjectSlug: {}, sort: {}", subjectSlug, sort);
 
-        Page<Topic> topicPage = topicService.getPublishedTopicsPageable(subjectSlug, page, PAGE_SIZE);
+        Page<Topic> topicPage = topicService.getPublishedTopicsPageable(subjectSlug, page, PAGE_SIZE, sort);
 
         model.addAttribute("subject", subjectService.getPublishedSubject(subjectSlug));
         model.addAttribute("topics", topicPage.getContent());
@@ -51,6 +52,7 @@ public class SubjectController {
         model.addAttribute("totalElements", topicPage.getTotalElements());
         model.addAttribute("pageRange", buildPageRange(topicPage.getNumber(), topicPage.getTotalPages()));
         model.addAttribute("currentSubjet", subjectSlug);
+        model.addAttribute("currentSort", sort);
         model.addAttribute("canonicalUrl", "https://csflow.kr/" + subjectSlug);
         return "subject/subject";
     }
