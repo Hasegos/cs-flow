@@ -2,6 +2,7 @@ package io.dev.cs_flow.common.config;
 
 import io.dev.cs_flow.common.interceptor.AccessLogInterceptor;
 import io.dev.cs_flow.common.interceptor.HostValidationInterceptor;
+import io.dev.cs_flow.common.interceptor.VisitorCookieInterceptor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
@@ -19,6 +20,7 @@ public class WebConfig implements WebMvcConfigurer {
 
     private final AccessLogInterceptor accessLogInterceptor;
     private final HostValidationInterceptor hostValidationInterceptor;
+    private final VisitorCookieInterceptor visitorCookieInterceptor;
 
     /**
      * 인터셉터를 등록한다.
@@ -46,5 +48,16 @@ public class WebConfig implements WebMvcConfigurer {
                         "/favicon.ico"
                 )
                 .order(2);
+
+        registry.addInterceptor(visitorCookieInterceptor)
+                .addPathPatterns("/**")
+                .excludePathPatterns(
+                        "/actuator/**",
+                        "/css/**",
+                        "/js/**",
+                        "/img/**",
+                        "/favicon.ico"
+                )
+                .order(3);
     }
 }
