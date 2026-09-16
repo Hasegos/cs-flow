@@ -120,6 +120,109 @@
   padding: 0.2rem 0.65rem;
 }
 
+/* === 추천(좋아요) 버튼 === */
+.topic-like {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 0.4rem 0.9rem;
+  margin-top: 1.25rem;
+  cursor: pointer;
+  transition: border-color var(--transition), color var(--transition);
+}
+
+.topic-like:hover {
+  border-color: var(--color-border-hover);
+  color: var(--color-text);
+}
+
+.topic-like:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.topic-like__icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.topic-like--active {
+  border-color: var(--subject-accent, var(--color-purple));
+  color: var(--subject-accent, var(--color-purple));
+}
+
+.topic-like--active .topic-like__icon {
+  fill: var(--subject-accent, var(--color-purple));
+}
+
+/* === 공유 버튼 === */
+.topic-share {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 1.25rem;
+  margin-left: 0.6rem;
+}
+
+.topic-share__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: border-color var(--transition), color var(--transition);
+}
+
+.topic-share__btn:hover {
+  border-color: var(--color-border-hover);
+  color: var(--color-text);
+}
+
+.topic-share__btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.topic-share__btn--copied {
+  border-color: var(--subject-accent, var(--color-purple));
+  color: var(--subject-accent, var(--color-purple));
+}
+
+/* === 복사 완료 토스트 === */
+.share-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 2rem;
+  transform: translate(-50%, 12px);
+  background: var(--color-text);
+  color: var(--color-bg);
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  padding: 0.6rem 1.1rem;
+  border-radius: 999px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition), transform var(--transition);
+  z-index: 999;
+}
+
+.share-toast--visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
 /* === 탭 네비게이션 === */
 .topic-tabs {
   position: sticky;
