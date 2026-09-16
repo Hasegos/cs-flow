@@ -1,12 +1,16 @@
 package io.dev.cs_flow.controller;
 
 import io.dev.cs_flow.common.exception.NotFoundException;
+import io.dev.cs_flow.common.interceptor.VisitorCookieInterceptor;
 import io.dev.cs_flow.model.Topic;
 import io.dev.cs_flow.service.QuizService;
+import io.dev.cs_flow.service.TopicLikeService;
 import io.dev.cs_flow.service.TopicService;
 import io.dev.cs_flow.service.VisualizerService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -29,7 +33,11 @@ public class TopicController {
     private final TopicService topicService;
     private final VisualizerService visualizerService;
     private final QuizService quizService;
+    private final TopicLikeService topicLikeService;
     private final ObjectMapper objectMapper;
+
+    @Value("${kakao.js-key}")
+    private String kakaoJsKey;
 
     /**
      * 토픽 학습 페이지를 렌더링한다.
@@ -44,6 +52,7 @@ public class TopicController {
     @GetMapping("/{subjectSlug:arch|os|network|ds|algo|db}/{topicSlug:[a-z0-9\\-]+}")
     public String topicDetail(@PathVariable String subjectSlug,
                               @PathVariable String topicSlug,
+                              HttpServletRequest request,
                               Model model){
         log.info("토픽 상세 페이지 요청 - subjectSlug: {}, topicSlug: {}", subjectSlug, topicSlug);
 
@@ -81,11 +90,19 @@ public class TopicController {
             log.warn("JSON-LD 직렬화 실패 - topicSlug: {}", topicSlug, e);
         }
 
+        String visitorId = (String) request.getAttribute(VisitorCookieInterceptor.REQUEST_ATTR);
+        if (visitorId != null) {
+            topicService.recordView(topic.getTopicId(), visitorId);
+        }
+
         model.addAttribute("topic", topic);
         model.addAttribute("jsFileKey", jsFileKey);
         model.addAttribute("relatedTopics", topicService.getRelatedTopics(topic.getTopicId()));
         model.addAttribute("quizQuestions", quizService.getQuestions(topic.getTopicId()));
+        model.addAttribute("liked", visitorId != null && topicLikeService.isLiked(topic.getTopicId(), visitorId));
+        model.addAttribute("likeCount", topicLikeService.countLikes(topic.getTopicId()));
         model.addAttribute("canonicalUrl", canonicalUrl);
+        model.addAttribute("kakaoJsKey", kakaoJsKey);
 
         return "topics/" + subjectSlug + "/" + templateName;
     }

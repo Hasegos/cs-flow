@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -36,6 +37,18 @@ public class Topic {
 
     @Column(name = "is_published", nullable = false)
     private boolean isPublished = false;
+
+    @Column(name = "view_count", nullable = false)
+    private long viewCount = 0;
+
+    @Column(name = "view_count_updated_at")
+    private LocalDateTime viewCountUpdatedAt;
+
+    @Column(name = "like_count", nullable = false)
+    private long likeCount = 0;
+
+    @Column(name = "like_count_updated_at")
+    private LocalDateTime likeCountUpdatedAt;
 
     @OneToMany(mappedBy = "topic", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<TopicTag> tags = new ArrayList<>();
