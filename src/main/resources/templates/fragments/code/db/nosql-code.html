@@ -1,0 +1,63 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Key-Value — 저장/조회는 항상 "키 하나 → 값 하나"</p>
+            <div class="code-block">
+<pre><span class="cm">-- 사용자 정보와 주문 내역을 서로 다른 키로 따로 저장</span>
+SET user:1001 <span class="st">'{"name":"Alice","grade":"VIP"}'</span>
+SET orders:1001 <span class="st">'["Order#1","Order#2"]'</span>
+
+<span class="cm">-- 조회도 키 하나씩: 두 값을 합치는 건 애플리케이션 몫</span>
+GET user:1001
+GET orders:1001</pre>
+            </div>
+            <p class="code-desc">
+                Key-Value 저장소는 인덱스나 JOIN 개념이 없습니다. 대신 <span class="st">O(1)</span>에 가까운 조회 속도를 얻는 대신,
+                "사용자와 주문을 함께 보여줘" 같은 요청은 두 번 조회해서 애플리케이션이 직접 합쳐야 합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Document — 관련 데이터를 문서 하나에 중첩</p>
+            <div class="code-block">
+<pre><span class="cm">// 사용자와 주문을 한 문서 안에 함께 저장</span>
+{
+  <span class="st">"_id"</span>: <span class="st">"user:1001"</span>,
+  <span class="st">"name"</span>: <span class="st">"Alice"</span>,
+  <span class="st">"orders"</span>: [
+    { <span class="st">"id"</span>: <span class="st">"Order#1"</span>, <span class="st">"amount"</span>: <span class="num">32000</span> },
+    { <span class="st">"id"</span>: <span class="st">"Order#2"</span>, <span class="st">"shipTo"</span>: { <span class="st">"city"</span>: <span class="st">"Seoul"</span> } }
+  ]
+}
+
+<span class="cm">// 문서 하나만 조회하면 사용자+주문을 한 번에 얻음</span>
+db.users.findOne({ _id: <span class="st">"user:1001"</span> })</pre>
+            </div>
+            <p class="code-desc">
+                Key-Value와 달리 관련 데이터를 미리 한 문서에 묶어두면, Key-Value에서 두 번 조회하던 걸 한 번으로 줄일 수 있습니다.
+                대신 문서 크기가 커지거나 같은 정보가 여러 문서에 중복 저장될 수 있다는 트레이드오프가 있습니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Graph — 관계 자체를 질의하기</p>
+            <div class="code-block">
+<pre><span class="cm">// 노드 생성</span>
+CREATE (a:User {name: <span class="st">'Alice'</span>})
+CREATE (o:Order {id: <span class="st">'Order#1'</span>})
+CREATE (a)-[:ORDERED]->(o)
+
+<span class="cm">// "Alice가 주문한 것들"을 관계를 따라가며 조회</span>
+MATCH (a:User {name: <span class="st">'Alice'</span>})-[:ORDERED]->(o:Order)
+RETURN o</pre>
+            </div>
+            <p class="code-desc">
+                RDBMS라면 <span class="st">users</span> 테이블과 <span class="st">orders</span> 테이블을 JOIN해야 할 조회가,
+                Graph DB에서는 이미 존재하는 관계(엣지)를 따라가는 탐색이 됩니다.
+                관계 단계가 여러 겹(친구의 친구의 친구)일수록 이 차이는 더 커집니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
