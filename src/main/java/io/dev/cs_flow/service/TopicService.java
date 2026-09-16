@@ -3,6 +3,7 @@ package io.dev.cs_flow.service;
 import io.dev.cs_flow.common.exception.NotFoundException;
 import io.dev.cs_flow.model.Topic;
 import io.dev.cs_flow.repository.TopicRepository;
+import io.dev.cs_flow.repository.TopicViewRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -10,7 +11,9 @@ import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 토픽(Topic) 관련 비즈니스 로직을 처리하는 서비스.
@@ -25,6 +28,7 @@ import java.util.List;
 public class TopicService {
 
     private final TopicRepository topicRepository;
+    private final TopicViewRepository topicViewRepository;
 
     /**
      * 과목 slug와 토픽 slug로 공개된 토픽 단건을 조회한다.
@@ -62,22 +66,58 @@ public class TopicService {
      * <p>
      * collection fetch join과 Pageable 충돌을 피하기 위해 2단계로 조회한다.
      * 1단계: topicId만 페이징 조회 (DB에서 정확한 LIMIT/OFFSET 적용)
-     * 2단계: 해당 ID로 tags 포함 조회
+     * 2단계: 해당 ID로 tags 포함 조회 후, 1단계 정렬 순서에 맞춰 재정렬
      * </p>
      *
      * @param subjectSlug 과목 영문 식별자
      * @param page        페이지 번호 (0-based)
      * @param size        페이지 크기
+     * @param sort        정렬 기준 ("view"면 조회수 내림차순, "like"면 추천수 내림차순, 그 외는 발행 오름차순)
      * @return 공개된 토픽 Page 객체
      */
     @Transactional(readOnly = true)
-    public Page<Topic> getPublishedTopicsPageable(String subjectSlug, int page, int size){
-        log.info("토픽 목록 조회 - subjectSlug: {}, page: {}, size: {}", subjectSlug, page, size);
-        Pageable pageable = PageRequest.of(page, size, Sort.by("topicId").ascending());
+    public Page<Topic> getPublishedTopicsPageable(String subjectSlug, int page, int size, String sort){
+        log.info("토픽 목록 조회 - subjectSlug: {}, page: {}, size: {}, sort: {}", subjectSlug, page, size, sort);
+        Sort order;
+        if ("view".equals(sort)) {
+            order = Sort.by(
+                    Sort.Order.desc("viewCount"),
+                    Sort.Order.asc("viewCountUpdatedAt").nullsLast(),
+                    Sort.Order.asc("topicId")
+            );
+        } else if ("like".equals(sort)) {
+            order = Sort.by(
+                    Sort.Order.desc("likeCount"),
+                    Sort.Order.asc("likeCountUpdatedAt").nullsLast(),
+                    Sort.Order.asc("topicId")
+            );
+        } else {
+            order = Sort.by("topicId").ascending();
+        }
+        Pageable pageable = PageRequest.of(page, size, order);
 
         Page<Long> idPage = topicRepository.findPublishedTopicIdsBySubjectSlug(subjectSlug, pageable);
         List<Topic> topics = topicRepository.findTopicsWithTagsByIds(idPage.getContent());
 
-        return new PageImpl<>(topics, pageable, idPage.getTotalElements());
+        Map<Long, Topic> byId = new LinkedHashMap<>();
+        topics.forEach(t -> byId.put(t.getTopicId(), t));
+        List<Topic> ordered = idPage.getContent().stream().map(byId::get).toList();
+
+        return new PageImpl<>(ordered, pageable, idPage.getTotalElements());
+    }
+
+    /**
+     * 토픽 조회를 기록한다. 같은 방문자가 오늘 이미 조회했으면 무시한다.
+     *
+     * @param topicId   기준 토픽 ID
+     * @param visitorId 익명 방문자 식별자
+     */
+    @Transactional
+    public void recordView(Long topicId, String visitorId){
+        int inserted = topicViewRepository.recordViewIfNew(topicId, visitorId);
+        if (inserted > 0) {
+            topicRepository.incrementViewCount(topicId);
+            log.info("조회수 증가 - topicId: {}", topicId);
+        }
     }
 }
