@@ -131,6 +131,36 @@
   margin: 0 auto;
 }
 
+/* === 정렬 === */
+.topic-list__sort {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.topic-list__sort-btn {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 0.45rem 1rem;
+  text-decoration: none;
+  transition: border-color var(--transition), color var(--transition);
+}
+
+.topic-list__sort-btn:hover {
+  border-color: var(--color-border-hover);
+  color: var(--color-text);
+}
+
+.topic-list__sort-btn.is-active {
+  border-color: var(--subject-accent, var(--color-purple));
+  color: var(--subject-accent, var(--color-purple));
+}
+
 /* === 토픽 카드 2열 그리드 === */
 .topic-grid {
   display: grid;
@@ -215,6 +245,20 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   padding: 0.15rem 0.5rem;
+}
+
+/* === 조회수/추천수 === */
+.topic-card__stats {
+  margin-top: 0.55rem;
+  display: flex;
+  gap: 1rem;
+}
+
+.topic-card__stat {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+  color: var(--color-text-sub);
 }
 
 /* === 화살표 === */

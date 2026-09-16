@@ -5,6 +5,7 @@ import io.dev.cs_flow.model.QuizQuestion;
 import io.dev.cs_flow.repository.QuizQuestionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +31,7 @@ public class QuizService {
      * @param topicId 기준 토픽 ID
      * @return 출제 순서로 정렬된 문항 목록, 없으면 빈 리스트 반환
      */
+    @Cacheable(value = "quizQuestions", key = "#topicId")
     @Transactional(readOnly = true)
     public List<QuizQuestion> getQuestions(Long topicId){
         log.info("퀴즈 문항 목록 조회 - topicId: {}", topicId);

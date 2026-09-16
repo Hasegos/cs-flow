@@ -44,6 +44,19 @@
         <section class="topic-list">
             <div class="topic-list__inner">
 
+                <!-- 정렬 -->
+                <div class="topic-list__sort" th:if="${not #lists.isEmpty(topics)}">
+                    <a th:href="@{/{slug}(slug=${subject.slug}, sort='default')}"
+                       th:classappend="${currentSort == 'default'} ? ' is-active' : ''"
+                       class="topic-list__sort-btn">기본순</a>
+                    <a th:href="@{/{slug}(slug=${subject.slug}, sort='view')}"
+                       th:classappend="${currentSort == 'view'} ? ' is-active' : ''"
+                       class="topic-list__sort-btn">조회순</a>
+                    <a th:href="@{/{slug}(slug=${subject.slug}, sort='like')}"
+                       th:classappend="${currentSort == 'like'} ? ' is-active' : ''"
+                       class="topic-list__sort-btn">인기순</a>
+                </div>
+
                 <!-- 토픽 있을 때 -->
                 <div class="topic-grid" th:if="${not #lists.isEmpty(topics)}"
                      th:style="'--subject-accent: ' + ${subject.colorAccent}">
@@ -63,6 +76,10 @@
                                           class="topic-card__tag"
                                           th:text="${tag.tag}">태그</span>
                             </div>
+                            <div class="topic-card__stats">
+                                <span class="topic-card__stat" th:text="'조회 ' + ${topic.viewCount}">조회 0</span>
+                                <span class="topic-card__stat" th:text="'추천 ' + ${topic.likeCount}">추천 0</span>
+                            </div>
                         </div>
 
                         <div class="topic-card__arrow">
@@ -79,7 +96,7 @@
                 <nav class="pagination" th:if="${totalPages > 1}" aria-label="토픽 페이지 네비게이션">
                     <!-- 이전 버튼 -->
                     <a th:if="${currentPage > 0}"
-                       th:href="@{/{slug}(slug=${subject.slug}, page=${currentPage - 1})}"
+                       th:href="@{/{slug}(slug=${subject.slug}, page=${currentPage - 1}, sort=${currentSort})}"
                        class="pagination__btn pagination__btn--prev"
                        aria-label="이전 페이지">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -100,7 +117,7 @@
                     <th:block th:each="p : ${pageRange}">
                         <span th:if="${p == -1}" class="pagination__ellipsis">…</span>
                         <a th:if="${p != -1 && p != currentPage}"
-                           th:href="@{/{slug}(slug=${subject.slug}, page=${p})}"
+                           th:href="@{/{slug}(slug=${subject.slug}, page=${p}, sort=${currentSort})}"
                            class="pagination__btn pagination__num"
                            th:text="${p + 1}">1</a>
                         <span th:if="${p != -1 && p == currentPage}"
@@ -110,7 +127,7 @@
 
                     <!-- 다음 버튼 -->
                     <a th:if="${currentPage < totalPages - 1}"
-                       th:href="@{/{slug}(slug=${subject.slug}, page=${currentPage + 1})}"
+                       th:href="@{/{slug}(slug=${subject.slug}, page=${currentPage + 1}, sort=${currentSort})}"
                        class="pagination__btn pagination__btn--next"
                        aria-label="다음 페이지">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"

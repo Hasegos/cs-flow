@@ -43,6 +43,9 @@ spring:
         format_sql: true
         jdbc.time_zone: UTC
 
+kakao:
+  js-key: ${KAKAO_JS_KEY:}
+
 management:
   endpoints:
     web:

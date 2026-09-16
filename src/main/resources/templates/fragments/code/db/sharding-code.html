@@ -1,0 +1,77 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">PostgreSQL — 선언적 파티셔닝(Hash / Range)</p>
+            <div class="code-block">
+<pre><span class="cm">-- 해시 샤딩과 같은 원리: 키를 나머지 연산으로 파티션에 배정</span>
+<span class="kw">CREATE TABLE</span> users (
+    user_id <span class="kw">BIGINT</span>,
+    name <span class="kw">TEXT</span>
+) <span class="kw">PARTITION BY HASH</span> (user_id);
+
+<span class="kw">CREATE TABLE</span> users_p0 <span class="kw">PARTITION OF</span> users
+    <span class="kw">FOR VALUES WITH</span> (MODULUS <span class="num">3</span>, REMAINDER <span class="num">0</span>);
+<span class="kw">CREATE TABLE</span> users_p1 <span class="kw">PARTITION OF</span> users
+    <span class="kw">FOR VALUES WITH</span> (MODULUS <span class="num">3</span>, REMAINDER <span class="num">1</span>);
+
+<span class="cm">-- 레인지 샤딩과 같은 원리: 값 구간으로 파티션에 배정</span>
+<span class="kw">CREATE TABLE</span> users_by_range (
+    user_id <span class="kw">BIGINT</span>,
+    name <span class="kw">TEXT</span>
+) <span class="kw">PARTITION BY RANGE</span> (user_id);
+
+<span class="kw">CREATE TABLE</span> users_range_a <span class="kw">PARTITION OF</span> users_by_range
+    <span class="kw">FOR VALUES FROM</span> (<span class="num">0</span>) <span class="kw">TO</span> (<span class="num">150</span>);</pre>
+            </div>
+            <p class="code-desc">
+                PostgreSQL 선언적 파티셔닝은 이 시각화의 해시/레인지 샤딩과 정확히 같은 개념을
+                단일 서버 안의 여러 테이블(파티션)로 구현한 것입니다. 실제 다중 서버 샤딩은
+                여기에 "어느 서버에 어느 파티션이 있는가"를 라우팅하는 계층이 하나 더 필요합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 애플리케이션 레벨 샤드 라우팅(개념)</p>
+            <div class="code-block">
+<pre><span class="kw">public class</span> ShardRouter {
+
+    <span class="kw">private static final int</span> SHARD_COUNT = <span class="num">3</span>;
+
+    <span class="cm">// 해시 샤딩: 키 % 샤드 개수</span>
+    <span class="kw">public int</span> resolveShard(<span class="kw">long</span> userId) {
+        <span class="kw">return</span> (<span class="kw">int</span>) (userId % SHARD_COUNT);
+    }
+
+    <span class="cm">// 이 시각화의 ROUTER가 하는 일이 바로 이 메서드입니다</span>
+    <span class="kw">public</span> DataSource dataSourceFor(<span class="kw">long</span> userId) {
+        <span class="kw">return</span> shardDataSources[resolveShard(userId)];
+    }
+}</pre>
+            </div>
+            <p class="code-desc">
+                실제로는 <span class="st">DataSource</span> 여러 개를 미리 만들어두고, 요청마다 샤드 키로 라우팅 대상을 계산해
+                해당 샤드의 커넥션을 사용합니다. 샤드 키가 없는 쿼리(예: 이메일로 사용자 찾기)는
+                모든 샤드를 다 조회해야 해서(scatter-gather) 느립니다 — 그래서 샤드 키 선택이 중요합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">SQL — 크로스 샤드 집계는 애플리케이션에서 합친다</p>
+            <div class="code-block">
+<pre><span class="cm">-- 각 샤드에서 개별 실행 (DB가 자동으로 합쳐주지 않음)</span>
+<span class="kw">SELECT COUNT</span>(*) <span class="kw">FROM</span> users; <span class="cm">-- Shard 1에서 실행 → 1200</span>
+<span class="kw">SELECT COUNT</span>(*) <span class="kw">FROM</span> users; <span class="cm">-- Shard 2에서 실행 → 980</span>
+<span class="kw">SELECT COUNT</span>(*) <span class="kw">FROM</span> users; <span class="cm">-- Shard 3에서 실행 → 1450</span>
+
+<span class="cm">-- 애플리케이션에서 세 결과를 더해 총합을 계산: 1200 + 980 + 1450 = 3630</span></pre>
+            </div>
+            <p class="code-desc">
+                단일 서버였다면 <span class="st">COUNT(*)</span> 한 번이면 끝나지만, 샤딩된 환경에서는
+                각 샤드에 같은 쿼리를 따로 보내고 결과를 애플리케이션에서 합쳐야 합니다.
+                이런 집계·조인이 잦다면 샤딩의 비용이 이점보다 커질 수 있습니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>

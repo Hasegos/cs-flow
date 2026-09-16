@@ -1,0 +1,62 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">PostgreSQL — 스트리밍 복제 기본 설정</p>
+            <div class="code-block">
+<pre><span class="cm">-- Primary: postgresql.conf</span>
+wal_level = <span class="st">replica</span>
+max_wal_senders = <span class="num">10</span>
+synchronous_commit = <span class="st">on</span>       <span class="cm">-- 동기 복제 시 'remote_write' 이상으로 설정</span>
+synchronous_standby_names = <span class="st">''</span>   <span class="cm">-- 동기 복제 사용 시 Replica 이름 지정</span>
+
+<span class="cm">-- Replica: standby.signal 파일 생성 + primary_conninfo 설정
+-- pg_basebackup으로 Primary 데이터를 복제한 뒤 Replica로 기동</span></pre>
+            </div>
+            <p class="code-desc">
+                <span class="st">synchronous_standby_names</span>가 비어 있으면 <span class="st">비동기 복제</span>입니다.
+                여기에 Replica 이름을 지정하면 Primary가 그 Replica의 ack을 기다리는 <span class="st">동기 복제</span>로 바뀝니다 —
+                이 시각화의 두 모드 차이가 실제로는 설정 한 줄 차이입니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">SQL — 복제 지연(Replication Lag) 확인하기</p>
+            <div class="code-block">
+<pre><span class="cm">-- Primary에서 실행: 각 Replica가 얼마나 뒤처져 있는지 확인</span>
+<span class="kw">SELECT</span> client_addr, state,
+       pg_wal_lsn_diff(pg_current_wal_lsn(), replay_lsn) <span class="kw">AS</span> lag_bytes
+<span class="kw">FROM</span> pg_stat_replication;
+
+<span class="cm">-- lag_bytes가 계속 커진다면 Replica가 Primary를 못 따라가고 있다는 신호</span></pre>
+            </div>
+            <p class="code-desc">
+                <span class="st">pg_stat_replication</span>은 PostgreSQL이 각 Replica의 복제 상태를 보여주는 시스템 뷰입니다.
+                이 시각화의 "뒤늦게 기록" 스텝이 실제 운영 환경에서는 이 <span class="st">lag_bytes</span> 값으로 관측됩니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 읽기 쿼리를 Replica로 분산하기(개념)</p>
+            <div class="code-block">
+<pre><span class="cm">// 쓰기는 Primary, 읽기는 Replica로 — 데이터소스 라우팅 개념 예시</span>
+<span class="kw">public class</span> ReplicaRoutingDataSource <span class="kw">extends</span> AbstractRoutingDataSource {
+    <span class="kw">protected</span> Object determineCurrentLookupKey() {
+        <span class="kw">return</span> TransactionSynchronizationManager.isCurrentTransactionReadOnly()
+                ? <span class="st">"replica"</span> : <span class="st">"primary"</span>;
+    }
+}
+
+<span class="cm">// Service 쪽에서는 @Transactional(readOnly = true) 여부만 신경 쓰면 됨</span>
+<span class="cm">@Transactional</span>(readOnly = <span class="kw">true</span>)
+<span class="kw">public</span> List&lt;Topic&gt; getPublishedTopicsPageable(...) { ... }  <span class="cm">// → replica로 라우팅</span></pre>
+            </div>
+            <p class="code-desc">
+                <span class="st">readOnly = true</span>인 트랜잭션은 Replica로, 그 외에는 Primary로 보내는 방식입니다.
+                다만 방금 쓴 데이터를 바로 읽어야 하는 화면(예: 글쓰기 직후 상세 페이지)은 복제 지연 때문에
+                안 보일 수 있어 Primary로 강제 라우팅하는 예외 처리가 흔히 필요합니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>

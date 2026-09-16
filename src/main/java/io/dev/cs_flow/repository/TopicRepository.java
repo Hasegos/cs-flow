@@ -4,6 +4,7 @@ import io.dev.cs_flow.model.Topic;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -112,4 +113,47 @@ public interface TopicRepository extends JpaRepository<Topic,Long> {
             WHERE t.isPublished = true
             """)
     List<Topic> findAllPublished();
+
+    /**
+     * slug로 공개된 토픽 단건을 조회한다. (과목 무관, slug는 전역 유일)
+     *
+     * @param slug 토픽 영문 식별자
+     * @return 공개된 토픽 Optional, 없으면 {@code Optional.empty()} 반환
+     */
+    Optional<Topic> findBySlugAndIsPublishedTrue(String slug);
+
+    /**
+     * 토픽의 조회수를 1 증가시키고, 그 시각을 함께 기록한다.
+     * <p>
+     * {@code viewCountUpdatedAt}은 조회수 정렬에서 동점일 때 "먼저 그 조회수에 도달한" 토픽이
+     * 위로 오도록 하는 2차 정렬 기준으로 쓰인다.
+     * </p>
+     *
+     * @param topicId 대상 토픽 ID
+     */
+    @Modifying
+    @Query("UPDATE Topic t SET t.viewCount = t.viewCount + 1, t.viewCountUpdatedAt = CURRENT_TIMESTAMP WHERE t.topicId = :topicId")
+    void incrementViewCount(@Param("topicId") Long topicId);
+
+    /**
+     * 토픽의 추천 수를 1 증가시키고, 그 시각을 함께 기록한다.
+     * <p>
+     * {@code likeCountUpdatedAt}은 추천수 정렬에서 동점일 때 "먼저 그 추천수에 도달한" 토픽이
+     * 위로 오도록 하는 2차 정렬 기준으로 쓰인다.
+     * </p>
+     *
+     * @param topicId 대상 토픽 ID
+     */
+    @Modifying
+    @Query("UPDATE Topic t SET t.likeCount = t.likeCount + 1, t.likeCountUpdatedAt = CURRENT_TIMESTAMP WHERE t.topicId = :topicId")
+    void incrementLikeCount(@Param("topicId") Long topicId);
+
+    /**
+     * 토픽의 추천 수를 1 감소시킨다(0 미만으로는 내려가지 않음).
+     *
+     * @param topicId 대상 토픽 ID
+     */
+    @Modifying
+    @Query("UPDATE Topic t SET t.likeCount = t.likeCount - 1, t.likeCountUpdatedAt = CURRENT_TIMESTAMP WHERE t.topicId = :topicId AND t.likeCount > 0")
+    void decrementLikeCount(@Param("topicId") Long topicId);
 }
