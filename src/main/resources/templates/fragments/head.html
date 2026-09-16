@@ -54,6 +54,10 @@
     <link th:if="${topic}" rel="preload" th:href="@{/js/common.js}" as="script">
     <link th:if="${topic}" rel="preload" th:href="@{/js/visualizer/viz-common.js}" as="script">
 
+    <!-- 카카오톡 공유 SDK (토픽 페이지 전용) -->
+    <script th:if="${topic}" src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js"></script>
+    <meta th:if="${topic}" name="kakao-js-key" th:content="${kakaoJsKey}">
+
     <!-- JSON-LD -->
     <script type="application/ld+json">
         {
