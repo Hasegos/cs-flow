@@ -1,0 +1,195 @@
+/* === .amdahl-viz — 암달의 법칙(시간 분할/속도 향상 곡선/병렬 비율 비교) 시각화 전용 === */
+
+.amdahl-viz {
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  overflow: visible;
+  min-height: 480px;
+}
+
+.amdahl-viz__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.amdahl-viz__toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.amdahl-viz__title {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-purple);
+}
+
+.amdahl-viz__mode {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.amdahl-viz__mode-btn {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  padding: 5px 14px;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all 0.2s ease;
+  letter-spacing: 0.06em;
+}
+
+.amdahl-viz__mode-btn:hover {
+  border-color: var(--color-purple);
+  color: var(--color-purple);
+}
+
+.amdahl-viz__mode-btn--active {
+  border-color: var(--color-purple);
+  color: var(--color-purple);
+  background: rgba(108, 99, 255, 0.1);
+}
+
+.amdahl-viz__speed {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.amdahl-viz__speed-label {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--color-text-muted);
+  letter-spacing: 0.08em;
+}
+
+.amdahl-viz__speed-btn {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  padding: 4px 10px;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all 0.2s ease;
+}
+
+.amdahl-viz__speed-btn:hover,
+.amdahl-viz__speed-btn--active {
+  border-color: var(--color-purple);
+  color: var(--color-purple);
+}
+
+.amdahl-viz__speed-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.amdahl-viz__canvas-wrap {
+  flex: 1 1 auto;
+  position: relative;
+  min-height: 40px;
+}
+
+.amdahl-viz__canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.amdahl-viz__log {
+  padding: 12px 24px;
+  border-top: 1px solid var(--color-border);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--color-purple);
+  letter-spacing: 0.03em;
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  line-height: 1.65;
+}
+
+.amdahl-viz__controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 24px;
+  border-top: 1px solid rgba(108, 99, 255, 0.1);
+  flex-shrink: 0;
+}
+
+.amdahl-viz__btn {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  padding: 9px 22px;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+  letter-spacing: 0.06em;
+}
+
+.amdahl-viz__btn:hover {
+  border-color: var(--color-purple);
+  color: var(--color-purple);
+}
+
+.amdahl-viz__btn--primary {
+  border-color: var(--color-purple);
+  color: var(--color-purple);
+}
+
+.amdahl-viz__btn--primary:hover {
+  background: var(--color-purple);
+  color: #0f0f1a;
+}
+
+.amdahl-viz__btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+  .amdahl-viz__toolbar {
+    padding: 12px 16px;
+  }
+
+  .amdahl-viz__log {
+    padding: 10px 16px;
+    font-size: 0.72rem;
+  }
+
+  .amdahl-viz__controls {
+    padding: 10px 16px;
+    gap: 8px;
+  }
+
+  .amdahl-viz__btn {
+    font-size: 0.7rem;
+    padding: 8px 16px;
+  }
+}
