@@ -1,0 +1,56 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">암달의 법칙 공식을 그대로 코드로</p>
+            <div class="code-block">
+<pre><span class="cm">// Speedup(N) = 1 / ((1 - p) + p / N)</span>
+<span class="kw">static double</span> <span class="fn">speedup</span>(<span class="kw">double</span> p, <span class="kw">int</span> cores) {
+    <span class="kw">return</span> <span class="num">1.0</span> / ((<span class="num">1.0</span> - p) + p / cores);
+}
+
+<span class="fn">speedup</span>(<span class="num">0.8</span>, <span class="num">1</span>);    <span class="cm">// 1.00</span>
+<span class="fn">speedup</span>(<span class="num">0.8</span>, <span class="num">8</span>);    <span class="cm">// 3.33</span>
+<span class="fn">speedup</span>(<span class="num">0.8</span>, <span class="num">1024</span>); <span class="cm">// 약 4.98 — 상한 5.0에 수렴</span></pre>
+            </div>
+            <p class="code-desc">
+                병렬 비율 <span class="st">p</span>가 0.8이면 코어를 1024개로 늘려도 5배를 넘을 수 없습니다.
+                코어를 8개에서 1024개로 128배 늘렸는데 속도 향상은 3.33배에서 4.98배로 늘어나는 데 그칩니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">병렬 구간과 직렬 구간이 섞인 실제 코드</p>
+            <div class="code-block">
+<pre><span class="cm">// 병렬 구간: 각 요소를 서로 독립적으로 처리 — 코어를 늘리면 빨라짐</span>
+<span class="kw">long</span> sum = data.<span class="fn">parallelStream</span>()
+                .<span class="fn">mapToLong</span>(x -&gt; <span class="fn">heavy</span>(x))
+                .<span class="fn">sum</span>();
+
+<span class="cm">// 직렬 구간: 파일 쓰기처럼 순서대로 한 번에 하나씩 — 코어를 늘려도 그대로</span>
+<span class="fn">writeResultToFile</span>(sum);</pre>
+            </div>
+            <p class="code-desc">
+                <span class="st">heavy(x)</span> 계산은 코어 수만큼 나눠 처리되지만, 결과를 파일에 쓰는 구간은 코어를 늘려도 줄지 않습니다.
+                이 직렬 구간이 전체 시간에서 차지하는 비율이 곧 <span class="st">1-p</span>이고, 속도 향상의 상한을 결정합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">일부만 s배 빨라졌을 때 — 일반화된 형태</p>
+            <div class="code-block">
+<pre><span class="cm">// 전체 중 비율 f 만 s배 빨라졌을 때의 전체 속도 향상</span>
+<span class="kw">static double</span> <span class="fn">overall</span>(<span class="kw">double</span> f, <span class="kw">double</span> s) {
+    <span class="kw">return</span> <span class="num">1.0</span> / ((<span class="num">1.0</span> - f) + f / s);
+}
+
+<span class="fn">overall</span>(<span class="num">0.4</span>, <span class="num">10</span>); <span class="cm">// 약 1.56 — 전체의 40%를 10배 빠르게 해도 전체는 1.56배</span></pre>
+            </div>
+            <p class="code-desc">
+                병렬화가 아니라 "특정 연산을 하드웨어로 가속" 같은 경우에도 똑같이 적용됩니다.
+                전체의 40%만 10배 빨라져도 나머지 60%가 그대로여서 전체 향상은 1.56배에 그칩니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
