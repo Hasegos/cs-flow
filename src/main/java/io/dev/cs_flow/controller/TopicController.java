@@ -21,6 +21,8 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * 토픽 학습 페이지 요청을 처리하는 컨트롤러.
@@ -36,6 +38,9 @@ public class TopicController {
     private final TopicLikeService topicLikeService;
     private final ObjectMapper objectMapper;
 
+    /** 시각화 JS 키 형식: {과목}/{묶음}/{이름} (예: arch/11-20/branch-prediction) */
+    private static final Pattern JS_FILE_KEY = Pattern.compile("^([a-z]+)/(\\d+-\\d+)/[a-z0-9\\-]+$");
+
     @Value("${kakao.js-key}")
     private String kakaoJsKey;
 
@@ -47,7 +52,7 @@ public class TopicController {
      * @param subjectSlug 과목 영문 식별자
      * @param topicSlug   토픽 영문 식별자
      * @param model       뷰에 전달할 데이터 모델
-     * @return 토픽 학습 페이지 뷰 이름 (topics/{subjectSlug}/{templateName})
+     * @return 토픽 학습 페이지 뷰 이름 (topics/{subjectSlug}/{assetGroup}/{templateName})
      */
     @GetMapping("/{subjectSlug:arch|os|network|ds|algo|db}/{topicSlug:[a-z0-9\\-]+}")
     public String topicDetail(@PathVariable String subjectSlug,
@@ -59,10 +64,12 @@ public class TopicController {
         Topic topic = topicService.getPublishedTopic(subjectSlug, topicSlug);
 
         String jsFileKey = visualizerService.getVisualizer(topic.getTopicId()).getJsFileKey();
-        if(!jsFileKey.matches("^[a-z0-9\\-/]+$") || jsFileKey.contains("..")){
+        Matcher keyMatcher = JS_FILE_KEY.matcher(jsFileKey);
+        if(!keyMatcher.matches() || !keyMatcher.group(1).equals(subjectSlug)){
             log.warn("비정상 jsFileKey 감지 - topicId: {}", topic.getTopicId());
             throw new NotFoundException("시각화 정보가 올바르지 않습니다.");
         }
+        String assetGroup = keyMatcher.group(2);
 
         String templateName = topic.getTemplateName();
         if(!templateName.matches("^[a-z0-9\\-]+$")){
@@ -104,6 +111,6 @@ public class TopicController {
         model.addAttribute("canonicalUrl", canonicalUrl);
         model.addAttribute("kakaoJsKey", kakaoJsKey);
 
-        return "topics/" + subjectSlug + "/" + templateName;
+        return "topics/" + subjectSlug + "/" + assetGroup + "/" + templateName;
     }
 }
