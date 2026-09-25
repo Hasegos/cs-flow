@@ -105,7 +105,7 @@
                        th:style="'--card-index: ' + ${stat.index}">
 
                         <div class="topic-card__number">
-                            <span th:text="${#strings.toString(stat.count).length() == 1 ? '0' + stat.count : stat.count}">01</span>
+                            <span th:text="${#numbers.formatInteger((currentPage * 10) + stat.count, 2)}">01</span>
                         </div>
 
                         <div class="topic-card__body">
