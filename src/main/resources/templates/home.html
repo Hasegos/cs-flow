@@ -29,6 +29,13 @@
                         텍스트가 아닌 인터랙티브 시각화로<br>
                         컴퓨터 과학의 핵심 개념을 직관적으로 학습하세요.
                     </p>
+                    <!-- 전체 검색 -->
+                    <form class="hero__search" role="search" method="get" th:action="@{/search}">
+                        <input type="search" name="q" class="hero__search-input" maxlength="50"
+                               placeholder="궁금한 개념 검색 (예: TCP, 캐시)" aria-label="토픽 검색">
+                        <button type="submit" class="hero__search-btn">검색</button>
+                    </form>
+
                     <div class="hero__cta">
                         <a href="#subjects" class="btn btn--primary">학습 시작하기</a>
                         <a href="#subjects" class="btn btn--ghost">과목 둘러보기</a>
