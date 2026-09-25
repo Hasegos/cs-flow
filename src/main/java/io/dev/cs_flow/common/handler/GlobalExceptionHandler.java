@@ -3,10 +3,16 @@ package io.dev.cs_flow.common.handler;
 import io.dev.cs_flow.common.exception.NotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 /**
@@ -14,6 +20,7 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
  * <p>
  * 예외 종류에 따라 로그 레벨을 구분하여 기록하고,
  * 사용자에게는 단일 에러 페이지({@code error.html})를 렌더링한다.
+ * 에러 페이지도 실제 상태 코드(400/404/405/500)로 응답해 검색엔진이 정상 페이지로 색인하지 않게 한다.
  * </p>
  */
 @Slf4j
@@ -48,6 +55,7 @@ public class GlobalExceptionHandler {
      * @return 브라우저 요청 시 에러 페이지 뷰 이름, API 요청 시 404 ResponseEntity
      */
     @ExceptionHandler(NoResourceFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
     public Object handleNoResourceFound(NoResourceFoundException e,
                                                       HttpServletRequest request){
         if (isBrowserRequest(request)) {
@@ -68,10 +76,58 @@ public class GlobalExceptionHandler {
      * @return 에러 페이지 뷰 이름
      */
     @ExceptionHandler(NotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
     public String handleNotFoundException(NotFoundException e, Model model){
         log.warn("[404] NotFoundException 발생: {}", e.getMessage());
         model.addAttribute("message", "찾을 수 없는 페이지예요");
         return "error/error";
+    }
+
+    /**
+     * 클라이언트가 잘못 보낸 요청을 처리한다. (400)
+     * <p>
+     * 파라미터 타입 불일치(예: {@code page=abc}), 필수 파라미터 누락, 잘못된 JSON 본문.
+     * 서버 오류가 아니므로 {@code warn} 레벨로 기록한다.
+     * </p>
+     *
+     * @param e       발생한 예외
+     * @param request 현재 HTTP 요청
+     * @param model   에러 메시지를 뷰에 전달하기 위한 모델
+     * @return 브라우저 요청 시 에러 페이지 뷰 이름, API 요청 시 400 ResponseEntity
+     */
+    @ExceptionHandler({
+            MethodArgumentTypeMismatchException.class,
+            MissingServletRequestParameterException.class,
+            HttpMessageNotReadableException.class
+    })
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Object handleBadRequest(Exception e, HttpServletRequest request, Model model){
+        log.warn("[400] 잘못된 요청 - URI: {}, {}", request.getRequestURI(), e.getClass().getSimpleName());
+        if (isBrowserRequest(request)) {
+            model.addAttribute("message", "잘못된 요청이에요");
+            return "error/error";
+        }
+        return ResponseEntity.badRequest().build();
+    }
+
+    /**
+     * 지원하지 않는 HTTP 메서드 요청을 처리한다. (405)
+     *
+     * @param e       발생한 HttpRequestMethodNotSupportedException
+     * @param request 현재 HTTP 요청
+     * @param model   에러 메시지를 뷰에 전달하기 위한 모델
+     * @return 브라우저 요청 시 에러 페이지 뷰 이름, API 요청 시 405 ResponseEntity
+     */
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    @ResponseStatus(HttpStatus.METHOD_NOT_ALLOWED)
+    public Object handleMethodNotSupported(HttpRequestMethodNotSupportedException e,
+                                           HttpServletRequest request, Model model){
+        log.warn("[405] 지원하지 않는 메서드 - {} {}", request.getMethod(), request.getRequestURI());
+        if (isBrowserRequest(request)) {
+            model.addAttribute("message", "잘못된 요청이에요");
+            return "error/error";
+        }
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).build();
     }
 
     /**
@@ -85,6 +141,7 @@ public class GlobalExceptionHandler {
      * @return 에러 페이지 뷰 이름
      */
     @ExceptionHandler(Exception.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public String handleException(Exception e, Model model){
         log.error("[500] 예상치 못한 예외 발생: {}", e.getMessage(), e);
         model.addAttribute("message", "서버 오류가 발생했어요. 잠시후 다시 시도해주세요.");

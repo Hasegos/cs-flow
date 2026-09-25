@@ -1,6 +1,7 @@
 package io.dev.cs_flow.controller;
 
 import io.dev.cs_flow.common.exception.NotFoundException;
+import io.dev.cs_flow.dto.QuizAnswerRequest;
 import io.dev.cs_flow.service.QuizService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -47,6 +48,4 @@ public class QuizController {
             return ResponseEntity.notFound().build();
         }
     }
-
-    public record QuizAnswerRequest(Long questionId, String selected) {}
 }
