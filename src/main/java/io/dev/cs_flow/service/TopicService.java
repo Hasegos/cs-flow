@@ -1,8 +1,11 @@
 package io.dev.cs_flow.service;
 
 import io.dev.cs_flow.common.exception.NotFoundException;
+import io.dev.cs_flow.dto.TagCount;
+import io.dev.cs_flow.dto.TopicSearchCondition;
 import io.dev.cs_flow.model.Topic;
 import io.dev.cs_flow.repository.TopicRepository;
+import io.dev.cs_flow.repository.TopicTagRepository;
 import io.dev.cs_flow.repository.TopicViewRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -10,16 +13,18 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
  * 토픽(Topic) 관련 비즈니스 로직을 처리하는 서비스.
  * <p>
- * 과목 slug 기반 토픽 목록 조회, 토픽 단건 조회,
- * 태그 기반 연관 토픽 조회 기능을 제공한다.
+ * 과목 slug 기반 토픽 목록 조회(검색어·태그 필터 포함), 토픽 단건 조회,
+ * 태그 기반 연관 토픽 조회, 과목별 태그 집계, 토픽 JSON-LD 생성 기능을 제공한다.
  * </p>
  */
 @Slf4j
@@ -29,6 +34,8 @@ public class TopicService {
 
     private final TopicRepository topicRepository;
     private final TopicViewRepository topicViewRepository;
+    private final TopicTagRepository topicTagRepository;
+    private final ObjectMapper objectMapper;
 
     /**
      * 과목 slug와 토픽 slug로 공개된 토픽 단건을 조회한다.
@@ -62,22 +69,25 @@ public class TopicService {
     }
 
     /**
-     * 과목 slug에 해당하는 공개된 토픽 목록을 페이지 단위로 조회한다.
+     * 조건에 맞는 공개된 토픽 목록을 페이지 단위로 조회한다.
      * <p>
      * collection fetch join과 Pageable 충돌을 피하기 위해 2단계로 조회한다.
      * 1단계: topicId만 페이징 조회 (DB에서 정확한 LIMIT/OFFSET 적용)
-     * 2단계: 해당 ID로 tags 포함 조회 후, 1단계 정렬 순서에 맞춰 재정렬
+     * 2단계: 해당 ID로 tags·subject 포함 조회 후, 1단계 정렬 순서에 맞춰 재정렬
      * </p>
      *
-     * @param subjectSlug 과목 영문 식별자
+     * @param subjectSlug 과목 영문 식별자, null이면 전체 과목
+     * @param condition   검색 조건 (검색어는 대소문자·띄어쓰기 무시 부분 일치, 태그는 정확히 일치)
      * @param page        페이지 번호 (0-based)
      * @param size        페이지 크기
      * @param sort        정렬 기준 ("view"면 조회수 내림차순, "like"면 추천수 내림차순, 그 외는 발행 오름차순)
      * @return 공개된 토픽 Page 객체
      */
     @Transactional(readOnly = true)
-    public Page<Topic> getPublishedTopicsPageable(String subjectSlug, int page, int size, String sort){
-        log.info("토픽 목록 조회 - subjectSlug: {}, page: {}, size: {}, sort: {}", subjectSlug, page, size, sort);
+    public Page<Topic> getPublishedTopicsPageable(String subjectSlug, TopicSearchCondition condition,
+                                                  int page, int size, String sort){
+        log.info("토픽 목록 조회 - subjectSlug: {}, condition: {}, page: {}, size: {}, sort: {}",
+                subjectSlug, condition, page, size, sort);
         Sort order;
         if ("view".equals(sort)) {
             order = Sort.by(
@@ -96,7 +106,15 @@ public class TopicService {
         }
         Pageable pageable = PageRequest.of(page, size, order);
 
-        Page<Long> idPage = topicRepository.findPublishedTopicIdsBySubjectSlug(subjectSlug, pageable);
+        Page<Long> idPage = topicRepository.searchPublishedTopicIds(
+                subjectSlug == null ? "" : subjectSlug,
+                condition.tag() == null ? "" : condition.tag(),
+                toLikePattern(condition.query()),
+                pageable
+        );
+        if (idPage.isEmpty()) {
+            return new PageImpl<>(List.of(), pageable, idPage.getTotalElements());
+        }
         List<Topic> topics = topicRepository.findTopicsWithTagsByIds(idPage.getContent());
 
         Map<Long, Topic> byId = new LinkedHashMap<>();
@@ -104,6 +122,63 @@ public class TopicService {
         List<Topic> ordered = idPage.getContent().stream().map(byId::get).toList();
 
         return new PageImpl<>(ordered, pageable, idPage.getTotalElements());
+    }
+
+    /**
+     * 과목에 속한 공개 토픽의 태그 목록을 토픽 수와 함께 조회한다.
+     *
+     * @param subjectSlug 과목 영문 식별자
+     * @return 태그와 토픽 수 목록, 없으면 빈 리스트 반환
+     */
+    @Cacheable(value = "subjectTags", key = "#subjectSlug")
+    @Transactional(readOnly = true)
+    public List<TagCount> getPublishedTags(String subjectSlug){
+        log.info("과목 태그 목록 조회 - subjectSlug: {}", subjectSlug);
+        return topicTagRepository.countPublishedTagsBySubjectSlug(subjectSlug);
+    }
+
+    /**
+     * 토픽 학습 페이지용 JSON-LD(LearningResource)를 생성한다.
+     *
+     * @param topic        대상 토픽
+     * @param canonicalUrl 토픽 페이지 canonical URL
+     * @return JSON-LD 문자열, 직렬화 실패 시 null
+     */
+    @Transactional(readOnly = true)
+    public String buildLdJson(Topic topic, String canonicalUrl){
+        Map<String, Object> ld = new LinkedHashMap<>();
+        ld.put("@context", "https://schema.org");
+        ld.put("@type", "LearningResource");
+        ld.put("name", topic.getTitle());
+        ld.put("description", topic.getMetaDescription());
+        ld.put("url", canonicalUrl);
+        ld.put("provider", Map.of(
+                "@type", "Organization",
+                "name", "CS Flow",
+                "url", "https://csflow.kr"
+        ));
+        try {
+            return objectMapper.writeValueAsString(ld);
+        } catch (Exception e) {
+            log.warn("JSON-LD 직렬화 실패 - topicSlug: {}", topic.getSlug(), e);
+            return null;
+        }
+    }
+
+    /**
+     * 검색어를 소문자·공백 제거 부분 일치 LIKE 패턴으로 바꾼다. LIKE 특수문자는 '!'로 이스케이프한다.
+     * 예: "로드밸런서"와 "로드 밸런서"가 같은 패턴이 되어 제목 "로드 밸런서"에 걸린다.
+     */
+    private static String toLikePattern(String query){
+        if (query == null) {
+            return "%";
+        }
+        String escaped = query.toLowerCase(Locale.ROOT)
+                .replaceAll("\\s+", "")
+                .replace("!", "!!")
+                .replace("%", "!%")
+                .replace("_", "!_");
+        return "%" + escaped + "%";
     }
 
     /**

@@ -2,6 +2,7 @@ package io.dev.cs_flow.controller;
 
 import io.dev.cs_flow.common.exception.NotFoundException;
 import io.dev.cs_flow.common.interceptor.VisitorCookieInterceptor;
+import io.dev.cs_flow.dto.LikeResult;
 import io.dev.cs_flow.service.TopicLikeService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -45,7 +46,7 @@ public class TopicLikeController {
         }
 
         try {
-            TopicLikeService.LikeResult result = topicLikeService.toggleLike(topicSlug, visitorId);
+            LikeResult result = topicLikeService.toggleLike(topicSlug, visitorId);
             return ResponseEntity.ok(Map.of("liked", result.liked(), "count", result.count()));
         } catch (NotFoundException e) {
             log.warn("[404] 추천 토글 실패: {}", e.getMessage());

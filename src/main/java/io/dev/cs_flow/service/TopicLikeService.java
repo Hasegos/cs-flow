@@ -1,6 +1,7 @@
 package io.dev.cs_flow.service;
 
 import io.dev.cs_flow.common.exception.NotFoundException;
+import io.dev.cs_flow.dto.LikeResult;
 import io.dev.cs_flow.model.Topic;
 import io.dev.cs_flow.model.TopicLike;
 import io.dev.cs_flow.repository.TopicLikeRepository;
@@ -83,6 +84,4 @@ public class TopicLikeService {
         long count = topicLikeRepository.countByTopic_TopicId(topic.getTopicId());
         return new LikeResult(liked, count);
     }
-
-    public record LikeResult(boolean liked, long count) {}
 }

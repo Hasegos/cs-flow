@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <meta name="author" content="CS Flow">
+    <title th:text="${q} != null ? (${q} + ' 검색 결과 | CS Flow') : 'CS 지식 검색 | CS Flow'">CS 지식 검색 | CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/subject.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="subject-hero">
+            <div class="subject-hero__bg-grid"></div>
+            <div class="subject-hero__glow"></div>
+
+            <div class="subject-hero__inner">
+                <div class="subject-hero__breadcrumb">
+                    <a th:href="@{/}" class="subject-hero__breadcrumb-home">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="subject-hero__breadcrumb-sep">/</span>
+                    <span class="subject-hero__breadcrumb-current">검색</span>
+                </div>
+
+                <div class="subject-hero__meta">
+                    <span class="subject-hero__slug">search</span>
+                </div>
+                <h1 class="subject-hero__title">CS 지식 검색</h1>
+                <p class="subject-hero__count">
+                    <th:block th:if="${q}"><span th:text="${totalElements}">0</span>개 검색 결과</th:block>
+                </p>
+            </div>
+        </section>
+
+        <!-- 검색 결과 -->
+        <section class="topic-list">
+            <div class="topic-list__inner">
+
+                <!-- 검색창 -->
+                <div class="topic-filter">
+                    <form class="topic-filter__form" role="search" method="get" th:action="@{/search}">
+                        <input type="search" name="q" class="topic-filter__input"
+                               th:value="${q}" maxlength="50" autofocus
+                               placeholder="전체 과목에서 제목·태그 검색 (예: TCP, 캐시, 정렬)" aria-label="토픽 검색">
+                        <button type="submit" class="topic-filter__submit">검색</button>
+                    </form>
+                </div>
+
+                <!-- 결과 (입력 중 실시간 검색 시 이 영역만 교체) -->
+                <div class="topic-results" id="topic-results">
+
+                <!-- 결과 있을 때 -->
+                <div class="topic-grid" th:if="${q != null and not #lists.isEmpty(topics)}">
+                    <a th:each="topic, stat : ${topics}"
+                       th:href="@{/{subjectSlug}/{topicSlug}(subjectSlug=${topic.subject.slug}, topicSlug=${topic.slug})}"
+                       class="topic-card"
+                       th:style="'--subject-accent: ' + ${topic.subject.colorAccent} + '; --card-index: ' + ${stat.index}">
+
+                        <div class="topic-card__number topic-card__number--slug">
+                            <span th:text="${topic.subject.slug}">arch</span>
+                        </div>
+
+                        <div class="topic-card__body">
+                            <p class="topic-card__subject" th:text="${topic.subject.name}">과목</p>
+                            <h3 class="topic-card__title" th:text="${topic.title}">토픽 제목</h3>
+                            <div class="topic-card__tags" th:if="${not #lists.isEmpty(topic.tags)}">
+                                <span th:each="tag : ${topic.tags}"
+                                      class="topic-card__tag"
+                                      th:text="${tag.tag}">태그</span>
+                            </div>
+                            <div class="topic-card__stats">
+                                <span class="topic-card__stat" th:text="'조회 ' + ${topic.viewCount}">조회 0</span>
+                                <span class="topic-card__stat" th:text="'추천 ' + ${topic.likeCount}">추천 0</span>
+                            </div>
+                        </div>
+
+                        <div class="topic-card__arrow">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                 stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="5" y1="12" x2="19" y2="12"/>
+                                <polyline points="12 5 19 12 12 19"/>
+                            </svg>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- 페이지네이션 -->
+                <nav class="pagination" th:if="${q != null and totalPages > 1}" aria-label="검색 결과 페이지 네비게이션">
+                    <a th:if="${currentPage > 0}"
+                       th:href="@{/search(page=${currentPage - 1})} + ${qQs}"
+                       class="pagination__btn pagination__btn--prev"
+                       aria-label="이전 페이지">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="15 18 9 12 15 6"/>
+                        </svg>
+                    </a>
+                    <span th:if="${currentPage == 0}"
+                          class="pagination__btn pagination__btn--disabled"
+                          aria-disabled="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="15 18 9 12 15 6"/>
+                        </svg>
+                    </span>
+
+                    <th:block th:each="p : ${pageRange}">
+                        <span th:if="${p == -1}" class="pagination__ellipsis">…</span>
+                        <a th:if="${p != -1 && p != currentPage}"
+                           th:href="@{/search(page=${p})} + ${qQs}"
+                           class="pagination__btn pagination__num"
+                           th:text="${p + 1}">1</a>
+                        <span th:if="${p != -1 && p == currentPage}"
+                              class="pagination__btn pagination__num pagination__num--active"
+                              th:text="${p + 1}">1</span>
+                    </th:block>
+
+                    <a th:if="${currentPage < totalPages - 1}"
+                       th:href="@{/search(page=${currentPage + 1})} + ${qQs}"
+                       class="pagination__btn pagination__btn--next"
+                       aria-label="다음 페이지">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="9 18 15 12 9 6"/>
+                        </svg>
+                    </a>
+                    <span th:if="${currentPage == totalPages - 1}"
+                          class="pagination__btn pagination__btn--disabled"
+                          aria-disabled="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="9 18 15 12 9 6"/>
+                        </svg>
+                    </span>
+                </nav>
+
+                <!-- 결과 없을 때 -->
+                <div class="topic-empty" th:if="${q != null and #lists.isEmpty(topics)}">
+                    <div class="topic-empty__icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="7"/>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                        </svg>
+                    </div>
+                    <p class="topic-empty__text">검색 결과가 없어요.</p>
+                    <p class="topic-empty__sub">다른 검색어로 찾아보거나 과목별로 둘러보세요.</p>
+                    <a th:href="@{/}" class="btn btn--ghost">홈으로 돌아가기</a>
+                </div>
+
+                <!-- 검색 전 -->
+                <p class="topic-filter__summary" th:if="${q == null}">
+                    제목이나 태그로 전체 과목의 토픽을 찾을 수 있어요.
+                </p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/search.js}"></script>
+</body>
+</html>

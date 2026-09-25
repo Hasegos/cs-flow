@@ -4,7 +4,7 @@
 .subject-hero {
   position: relative;
   padding-top: calc(var(--header-h) + 5rem);
-  padding-bottom: 5rem;
+  padding-bottom: 2.5rem;
   overflow: hidden;
 }
 
@@ -123,7 +123,7 @@
 
 /* === 토픽 목록 섹션 === */
 .topic-list {
-  padding: 3rem 2rem 6rem;
+  padding: 1.5rem 2rem 6rem;
 }
 
 .topic-list__inner {
@@ -393,6 +393,134 @@
   }
 }
 
+/* === .topic-filter — 검색창 + 태그 필터 === */
+.topic-filter {
+  margin-bottom: 1rem;
+}
+
+.topic-filter__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.topic-filter__form {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.topic-filter__input {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.7rem 1rem;
+  transition: border-color var(--transition);
+}
+
+.topic-filter__input:focus {
+  outline: none;
+  border-color: var(--subject-accent, var(--color-purple));
+}
+
+.topic-filter__submit {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  color: var(--subject-accent, var(--color-purple));
+  background: transparent;
+  border: 1px solid var(--subject-accent, var(--color-purple));
+  border-radius: var(--radius-sm);
+  padding: 0 1.25rem;
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+}
+
+.topic-filter__submit:hover {
+  background: var(--subject-accent, var(--color-purple));
+  color: var(--color-bg);
+}
+
+.topic-filter__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.topic-filter__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 0.3rem 0.75rem;
+  text-decoration: none;
+  transition: border-color var(--transition), color var(--transition);
+}
+
+.topic-filter__tag:hover {
+  border-color: var(--color-border-hover);
+  color: var(--color-text);
+}
+
+.topic-filter__tag.is-active {
+  border-color: var(--subject-accent, var(--color-purple));
+  color: var(--subject-accent, var(--color-purple));
+}
+
+.topic-filter__tag-count {
+  font-size: 0.65rem;
+  opacity: 0.6;
+}
+
+.topic-filter__summary {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.topic-filter__summary span {
+  color: var(--color-text);
+}
+
+.topic-filter__global {
+  display: inline-block;
+  margin-bottom: 1.25rem;
+  font-size: 0.85rem;
+  color: var(--color-purple);
+  text-decoration: underline;
+}
+
+.topic-filter__reset {
+  margin-left: 0.5rem;
+  color: var(--subject-accent, var(--color-purple));
+  text-decoration: underline;
+}
+
+/* === .topic-card__subject — 검색 결과 카드의 과목명 === */
+.topic-card__subject {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  color: var(--subject-accent, var(--color-purple));
+  margin-bottom: 0.25rem;
+}
+
+.topic-card__number--slug {
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  min-width: 56px;
+}
+
 /* === 반응형 === */
 @media (max-width: 768px) {
   .topic-grid {
@@ -401,7 +529,7 @@
 
   .subject-hero {
     padding-top: calc(var(--header-h) + 3rem);
-    padding-bottom: 3rem;
+    padding-bottom: 1.5rem;
   }
 }
 

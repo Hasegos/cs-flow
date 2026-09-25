@@ -21,42 +21,54 @@ import java.util.Optional;
 public interface TopicRepository extends JpaRepository<Topic,Long> {
 
     /**
-     * 과목 slug에 해당하는 공개된 토픽 ID 목록을 페이지 단위로 조회한다.
+     * 조건에 맞는 공개된 토픽 ID 목록을 페이지 단위로 조회한다.
      * <p>
      * collection fetch join과 Pageable 충돌을 피하기 위해 ID만 먼저 페이징 조회한다.
      * 이후 {@link #findTopicsWithTagsByIds(List)}로 tags를 함께 로딩한다.
+     * 조건 파라미터는 null 대신 빈 문자열/전체 패턴을 받는다(PostgreSQL null 파라미터 타입 추론 문제 회피).
      * </p>
      *
-     * @param subjectSlug 과목 영문 식별자
+     * @param subjectSlug 과목 영문 식별자, 빈 문자열이면 전체 과목
+     * @param tag         정확히 일치해야 하는 태그, 빈 문자열이면 태그 조건 없음
+     * @param pattern     공백을 뺀 제목 또는 태그에 대한 소문자 LIKE 패턴('!'로 이스케이프), 조건 없으면 "%"
      * @param pageable    페이지 정보
      * @return 공개된 토픽 ID Page 객체
      */
     @Query(
             value = """
             SELECT t.topicId FROM Topic t
-            WHERE t.subject.slug = :subjectSlug
-            AND t.isPublished = true
+            WHERE t.isPublished = true
+            AND (:subjectSlug = '' OR t.subject.slug = :subjectSlug)
+            AND (:tag = '' OR EXISTS (SELECT 1 FROM TopicTag tg WHERE tg.topic = t AND tg.tag = :tag))
+            AND (REPLACE(LOWER(t.title), ' ', '') LIKE :pattern ESCAPE '!'
+                 OR EXISTS (SELECT 1 FROM TopicTag tq WHERE tq.topic = t AND REPLACE(LOWER(tq.tag), ' ', '') LIKE :pattern ESCAPE '!'))
             """,
             countQuery = """
             SELECT COUNT(t) FROM Topic t
-            WHERE t.subject.slug = :subjectSlug
-            AND t.isPublished = true
+            WHERE t.isPublished = true
+            AND (:subjectSlug = '' OR t.subject.slug = :subjectSlug)
+            AND (:tag = '' OR EXISTS (SELECT 1 FROM TopicTag tg WHERE tg.topic = t AND tg.tag = :tag))
+            AND (REPLACE(LOWER(t.title), ' ', '') LIKE :pattern ESCAPE '!'
+                 OR EXISTS (SELECT 1 FROM TopicTag tq WHERE tq.topic = t AND REPLACE(LOWER(tq.tag), ' ', '') LIKE :pattern ESCAPE '!'))
             """
     )
-    Page<Long> findPublishedTopicIdsBySubjectSlug(
+    Page<Long> searchPublishedTopicIds(
             @Param("subjectSlug") String subjectSlug,
+            @Param("tag") String tag,
+            @Param("pattern") String pattern,
             Pageable pageable
     );
 
     /**
-     * 토픽 ID 목록으로 tags를 포함한 토픽 목록을 조회한다.
+     * 토픽 ID 목록으로 tags와 subject를 포함한 토픽 목록을 조회한다.
      *
      * @param topicIds 조회할 토픽 ID 목록
-     * @return tags가 로딩된 토픽 목록
+     * @return tags와 subject가 로딩된 토픽 목록
      */
     @Query("""
             SELECT t FROM Topic t
             LEFT JOIN FETCH t.tags
+            LEFT JOIN FETCH t.subject
             WHERE t.topicId IN :topicIds
             ORDER BY t.topicId ASC
             """)
