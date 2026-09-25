@@ -1,0 +1,64 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">2비트 포화 카운터 예측기</p>
+            <div class="code-block">
+<pre><span class="cm">// 0,1 = not-taken 예측 / 2,3 = taken 예측</span>
+<span class="kw">class</span> <span class="fn">TwoBitPredictor</span> {
+    <span class="kw">private int</span> counter = <span class="num">3</span>; <span class="cm">// 3 = Strongly Taken</span>
+
+    <span class="kw">boolean</span> <span class="fn">predict</span>() {
+        <span class="kw">return</span> counter &gt;= <span class="num">2</span>;
+    }
+
+    <span class="kw">void</span> <span class="fn">update</span>(<span class="kw">boolean</span> taken) {
+        <span class="kw">if</span> (taken) counter = Math.<span class="fn">min</span>(<span class="num">3</span>, counter + <span class="num">1</span>);
+        <span class="kw">else</span>       counter = Math.<span class="fn">max</span>(<span class="num">0</span>, counter - <span class="num">1</span>);
+    }
+}</pre>
+            </div>
+            <p class="code-desc">
+                카운터가 <span class="st">3</span>에서 한 번 not-taken을 만나도 <span class="st">2</span>가 될 뿐이라 예측은 여전히 taken입니다.
+                반복문이 끝나는 순간 한 번만 틀리고, 다음 반복문 시작에서는 다시 맞춥니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">분기 예측이 잘 되는 코드와 안 되는 코드</p>
+            <div class="code-block">
+<pre><span class="cm">// 정렬된 데이터: 앞쪽은 전부 false, 뒤쪽은 전부 true → 패턴이 단순해 예측이 잘 맞음</span>
+<span class="kw">long</span> sum = <span class="num">0</span>;
+<span class="kw">for</span> (<span class="kw">int</span> x : sortedData) {
+    <span class="kw">if</span> (x &gt;= <span class="num">128</span>) sum += x;
+}
+
+<span class="cm">// 무작위 데이터: 조건이 매번 제멋대로라 예측이 자주 틀림 → 같은 코드인데 더 느림</span>
+<span class="kw">for</span> (<span class="kw">int</span> x : randomData) {
+    <span class="kw">if</span> (x &gt;= <span class="num">128</span>) sum += x;
+}</pre>
+            </div>
+            <p class="code-desc">
+                똑같은 반복문이어도 데이터를 정렬해 두면 분기 결과가 길게 한 방향으로 이어져 예측이 잘 맞습니다.
+                무작위 데이터에서는 예측 실패가 잦아 flush가 반복되어 느려질 수 있습니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">분기를 없애는 방법 — 조건부 이동</p>
+            <div class="code-block">
+<pre><span class="cm">// 분기가 있는 형태: 조건마다 예측이 필요</span>
+<span class="kw">if</span> (x &gt;= <span class="num">128</span>) sum += x;
+
+<span class="cm">// 분기 없는 형태: 조건을 0 또는 1 마스크로 바꿔 계산 (예측할 필요가 없음)</span>
+<span class="kw">int</span> mask = ~((x - <span class="num">128</span>) &gt;&gt; <span class="num">31</span>); <span class="cm">// x &gt;= 128 이면 전부 1, 아니면 0</span>
+sum += x &amp; mask;</pre>
+            </div>
+            <p class="code-desc">
+                분기가 예측하기 어렵다면 조건부 이동이나 비트 연산으로 분기 자체를 없애는 방법이 있습니다.
+                컴파일러도 간단한 조건은 <span class="st">cmov</span> 같은 명령으로 바꿔 분기를 제거하기도 합니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
