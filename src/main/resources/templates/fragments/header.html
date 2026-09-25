@@ -18,6 +18,14 @@
             <a th:href="@{/db}"      class="gnb__nav-item" th:classappend="${currentSubject == 'db'}      ? ' is-active'">데이터베이스</a>
         </nav>
 
+        <!-- 검색 -->
+        <a th:href="@{/search}" class="gnb__search-btn" aria-label="검색">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="7"/>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+        </a>
+
         <!-- 테마 토글 -->
         <button class="gnb__theme-btn" id="themeToggleBtn" aria-label="테마 전환">
             <svg class="gnb__theme-icon gnb__theme-icon--dark" viewBox="0 0 24 24" fill="none"
