@@ -62,7 +62,7 @@ public class SubjectController {
         model.addAttribute("totalPages",    topicPage.getTotalPages());
         model.addAttribute("totalElements", topicPage.getTotalElements());
         model.addAttribute("pageRange", PageRangeUtil.build(topicPage.getNumber(), topicPage.getTotalPages()));
-        model.addAttribute("currentSubjet", subjectSlug);
+        model.addAttribute("currentSubject", subjectSlug);
         model.addAttribute("currentSort", sort);
         model.addAttribute("tags", topicService.getPublishedTags(subjectSlug));
         model.addAttribute("q", condition.query());
