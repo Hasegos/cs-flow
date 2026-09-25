@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">분기 예측 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/arch/11-20/branch-prediction.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/arch}" class="topic-breadcrumb__link">컴퓨터 구조</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">분기 예측</span>
+                </nav>
+
+                <span class="topic-hero__slug">arch · 12</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">분기 예측</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+                <button type="button" class="topic-like" th:classappend="${liked} ? ' topic-like--active' : ''" th:attr="data-topic-slug=${topic.slug}">
+                    <svg class="topic-like__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <span class="topic-like__count" th:text="${likeCount}">0</span>
+                </button>
+                <div class="topic-share">
+                    <button type="button" class="topic-share__btn topic-share__btn--copy" aria-label="링크 복사">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="topic-share__btn topic-share__btn--kakao" aria-label="카카오톡 공유">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                        </svg>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+                <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        파이프라인 CPU는 명령어를 겹쳐 실행하기 위해 다음 명령어를 미리 가져옵니다.
+                        그런데 <strong>분기(branch) 명령</strong>은 어디로 갈지가 실행 단계에서야 확정되므로, 그 전에 다음 명령어를 가져오려면
+                        결과를 <strong>예측</strong>해야 합니다. 맞으면 파이프라인이 멈추지 않고, 틀리면 잘못 가져온 명령어를 버리고 다시 시작해야 합니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">분기 해저드</h3>
+                            <p class="overview-card__desc">분기 결과(taken 또는 not-taken)가 확정되기 전에는 다음에 가져올 명령어 주소를 알 수 없어 파이프라인이 멈출 수 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">정적 예측</h3>
+                            <p class="overview-card__desc">실행 기록과 무관하게 규칙 하나로 예측합니다. "항상 taken"이나 "뒤로 가는 분기는 taken" 같은 방식입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">동적 예측</h3>
+                            <p class="overview-card__desc">분기 주소별로 과거 결과를 하드웨어 테이블(BHT)에 기록하고, 그 기록을 보고 예측합니다. 반복되는 패턴에 강합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">1비트 예측기</h3>
+                            <p class="overview-card__desc">직전 결과 하나만 기억해 그대로 다음을 예측합니다. 반복문이 끝날 때와 다시 시작할 때 연속으로 두 번 틀립니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">2비트 포화 카운터</h3>
+                            <p class="overview-card__desc">0~3 사이 카운터로 한 번 어긋나도 예측을 바로 뒤집지 않습니다. 두 번 연속 어긋나야 예측이 바뀝니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">예측 실패 비용</h3>
+                            <p class="overview-card__desc">틀리면 잘못 가져온 명령어를 버리는 flush가 일어납니다. 낭비되는 사이클 수는 분기가 확정되는 단계의 깊이에 비례합니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>파이프라인이 깊을수록 실패가 비쌉니다</strong> — 이 시각화는 5단계에서 2사이클을 잃지만, 실제 고성능 CPU는 파이프라인이 훨씬 깊어 예측 실패 한 번에 십수 사이클을 잃습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>1비트가 항상 정적 예측보다 낫지는 않습니다</strong> — 반복문에서는 종료할 때와 재진입할 때 두 번 틀려서, "항상 taken"으로 고정한 정적 예측보다 적중률이 낮아질 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>예측은 보안과도 연결됩니다</strong> — 예측이 틀렸을 때 버려지는 명령어의 흔적이 캐시에 남는 점을 이용한 공격이 Spectre입니다. 성능을 위한 추측 실행이 부작용을 남길 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "파이프라인 페널티" 탭에서 예측 성공과 실패의 흐름 차이를, "1비트 vs 2비트" 탭에서 상태 변화를, "적중률 비교" 탭에서 패턴별 정확도를 STEP으로 확인하세요.</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/arch/11-20/branch-prediction-code :: code}"></th:block>
+            </div>
+
+            <!-- 탭 4: 퀴즈 -->
+            <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
+                <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+    <script th:src="@{/js/quiz.js}"></script>
+    <script th:src="@{/js/like.js}"></script>
+    <script th:src="@{/js/share.js}"></script>
+</body>
+</html>
