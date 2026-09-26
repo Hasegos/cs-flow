@@ -162,6 +162,74 @@
   fill: var(--subject-accent, var(--color-purple));
 }
 
+/* === .topic-learn — 북마크·학습 상태 버튼 묶음 === */
+.topic-learn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 1.25rem;
+  margin-left: 0.6rem;
+}
+
+/* === .topic-bookmark — 북마크 버튼 === */
+.topic-bookmark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: border-color var(--transition), color var(--transition);
+}
+
+.topic-bookmark:hover {
+  border-color: var(--color-border-hover);
+  color: var(--color-text);
+}
+
+.topic-bookmark__icon {
+  width: 16px;
+  height: 16px;
+}
+
+.topic-bookmark--active {
+  border-color: var(--subject-accent, var(--color-purple));
+  color: var(--subject-accent, var(--color-purple));
+}
+
+.topic-bookmark--active .topic-bookmark__icon {
+  fill: var(--subject-accent, var(--color-purple));
+}
+
+/* === .topic-progress — 학습 상태 버튼 === */
+.topic-progress {
+  height: 34px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 0 0.9rem;
+  cursor: pointer;
+  transition: border-color var(--transition), color var(--transition), background var(--transition);
+}
+
+.topic-progress:hover {
+  border-color: var(--color-border-hover);
+  color: var(--color-text);
+}
+
+.topic-progress--done {
+  border-color: var(--subject-accent, var(--color-purple));
+  color: var(--subject-accent, var(--color-purple));
+  background: var(--color-purple-dim);
+}
+
 /* === 공유 버튼 === */
 .topic-share {
   display: inline-flex;
