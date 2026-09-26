@@ -40,6 +40,17 @@
                         <a href="#subjects" class="btn btn--primary">학습 시작하기</a>
                         <a href="#subjects" class="btn btn--ghost">과목 둘러보기</a>
                     </div>
+
+                    <!-- 이어서 학습하기 -->
+                    <div class="hero__continue" id="continue-learning" hidden>
+                        <p class="hero__continue-label">이어서 학습하기</p>
+                        <a class="hero__continue-card" id="continue-link" th:href="@{/study}">
+                            <span class="hero__continue-subject" id="continue-subject"></span>
+                            <span class="hero__continue-title" id="continue-title"></span>
+                            <span class="hero__continue-status" id="continue-status"></span>
+                        </a>
+                        <a th:href="@{/study}" class="hero__continue-all">내 학습 전체 보기 →</a>
+                    </div>
                 </div>
 
                 <!-- 배경 회로 — 다크/라이트 이미지 분리 -->
@@ -135,6 +146,11 @@
     <!-- 푸터 -->
     <th:block th:replace="~{fragments/footer :: footer}"></th:block>
 
+    <!-- 공개 토픽 목록  -->
+    <div id="topic-index" th:attr="data-topics=${topicIndexJson}" hidden></div>
+
     <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/learning.js}"></script>
+    <script th:src="@{/js/home.js}"></script>
 </body>
 </html>

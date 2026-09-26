@@ -1,8 +1,80 @@
 /**
- * 공통 JS — 햄버거 메뉴 토글 / 탭 전환
+ * 공통 JS — 공용 헬퍼(저장소·POST·토스트) / 햄버거 메뉴 / 탭 전환 / 테마
  */
 (function () {
     'use strict';
+
+    /* ===================== 공용 헬퍼 ===================== */
+    window.CsFlow = window.CsFlow || {};
+
+    const storage = {
+        available: (function () {
+            try {
+                localStorage.setItem('__csflow_probe__', '1');
+                localStorage.removeItem('__csflow_probe__');
+                return true;
+            } catch (e) {
+                return false;
+            }
+        })(),
+        get: function (key) {
+            try { return localStorage.getItem(key); } catch (e) { return null; }
+        },
+        set: function (key, value) {
+            try { localStorage.setItem(key, value); return true; } catch (e) { return false; }
+        },
+        remove: function (key) {
+            try { localStorage.removeItem(key); } catch (e) { }
+        },
+        getJSON: function (key) {
+            const raw = storage.get(key);
+            if (raw === null) return null;
+            try { return JSON.parse(raw); } catch (e) { return null; }
+        },
+        setJSON: function (key, value) {
+            return storage.set(key, JSON.stringify(value));
+        }
+    };
+
+    function postJson(url, body) {
+        const options = { method: 'POST' };
+        if (body !== undefined) {
+            options.headers = { 'Content-Type': 'application/json' };
+            options.body = JSON.stringify(body);
+        }
+        return fetch(url, options).then(function (res) {
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            return res.json();
+        });
+    }
+
+    function showToast(message) {
+        const toast = document.createElement('div');
+        toast.className = 'share-toast';
+        toast.textContent = message;
+        document.body.appendChild(toast);
+
+        requestAnimationFrame(function () {
+            toast.classList.add('share-toast--visible');
+        });
+
+        setTimeout(function () {
+            toast.classList.remove('share-toast--visible');
+            setTimeout(function () {
+                toast.remove();
+            }, 300);
+        }, 1500);
+    }
+
+    window.CsFlow.storage   = storage;
+    window.CsFlow.postJson  = postJson;
+    window.CsFlow.showToast = showToast;
+
+    /* ===================== 폰트 CSS 적용 ===================== */
+    document.querySelectorAll('link[data-async-css]').forEach(function (link) {
+        link.media = 'all';
+    });
+
     /* ===================== 햄버거 메뉴 ===================== */
     const hamburger = document.getElementById('hamburgerBtn');
     const drawer    = document.getElementById('gnbDrawer');
@@ -61,31 +133,27 @@
     /* ===================== 테마 토글 ===================== */
     const themeBtn = document.getElementById('themeToggleBtn');
 
-    (function () {
-        const saved = localStorage.getItem('csflow-theme');
-        if (saved === 'light') {
-            document.documentElement.setAttribute('data-theme', 'light');
-        }
-    })();
+    if (storage.get('csflow-theme') === 'light') {
+        document.documentElement.setAttribute('data-theme', 'light');
+    }
 
     if (themeBtn) {
         themeBtn.addEventListener('click', function () {
             const isLight = document.documentElement.getAttribute('data-theme') === 'light';
             if (isLight) {
                 document.documentElement.removeAttribute('data-theme');
-                localStorage.setItem('csflow-theme', 'dark');
+                storage.set('csflow-theme', 'dark');
                 themeBtn.setAttribute('aria-label', '라이트 모드로 전환');
             } else {
                 document.documentElement.setAttribute('data-theme', 'light');
-                localStorage.setItem('csflow-theme', 'light');
+                storage.set('csflow-theme', 'light');
                 themeBtn.setAttribute('aria-label', '다크 모드로 전환');
             }
             window.dispatchEvent(new CustomEvent('csflow-theme-change'));
         });
 
-        const initTheme = localStorage.getItem('csflow-theme');
         themeBtn.setAttribute('aria-label',
-            initTheme === 'light' ? '다크 모드로 전환' : '라이트 모드로 전환'
+            document.documentElement.getAttribute('data-theme') === 'light' ? '다크 모드로 전환' : '라이트 모드로 전환'
         );
     }
 })();

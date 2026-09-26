@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <meta name="author" content="CS Flow">
+    <title>내 학습 | CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/subject.css}">
+    <link rel="stylesheet" th:href="@{/css/pages/study.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="subject-hero">
+            <div class="subject-hero__bg-grid"></div>
+            <div class="subject-hero__glow"></div>
+
+            <div class="subject-hero__inner">
+                <div class="subject-hero__breadcrumb">
+                    <a th:href="@{/}" class="subject-hero__breadcrumb-home">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="subject-hero__breadcrumb-sep">/</span>
+                    <span class="subject-hero__breadcrumb-current">내 학습</span>
+                </div>
+
+                <div class="subject-hero__meta">
+                    <span class="subject-hero__slug">study</span>
+                </div>
+                <h1 class="subject-hero__title">내 학습</h1>
+                <p class="subject-hero__count" id="study-summary"></p>
+                <p class="study-note">이 브라우저에만 저장돼요. 다른 기기나 브라우저와는 연동되지 않아요.</p>
+            </div>
+        </section>
+
+        <!-- 학습 기록 -->
+        <section class="topic-list">
+            <div class="topic-list__inner">
+
+                <!-- 저장 불가 안내 -->
+                <p class="study-message" id="study-unavailable" hidden>
+                    이 브라우저에서는 학습 기록을 저장할 수 없어요. 시크릿 모드나 저장소 차단 설정을 확인해 주세요.
+                </p>
+
+                <!-- 기록 없음 안내 -->
+                <p class="study-message" id="study-empty" hidden>
+                    토픽을 공부하면 여기에 진행 상황이 쌓여요. 아래 과목에서 시작해 보세요.
+                </p>
+
+                <!-- 과목별 진행률 -->
+                <section class="study-progress" aria-labelledby="study-progress-title">
+                    <h2 class="study-section-title" id="study-progress-title">
+                        과목별 진행률 <span class="study-section-title__sub">완료 기준</span>
+                    </h2>
+                    <div class="study-progress__list">
+                        <a th:each="subject : ${subjects}"
+                           th:href="@{/{slug}(slug=${subject.slug})}"
+                           class="study-progress__row"
+                           th:attr="data-subject-slug=${subject.slug},data-subject-name=${subject.name}">
+                            <span class="study-progress__name" th:text="${subject.name}">과목</span>
+                            <progress class="study-progress__bar" max="1" value="0"></progress>
+                            <span class="study-progress__count">0 / 0</span>
+                        </a>
+                    </div>
+                </section>
+
+                <!-- 탭 -->
+                <div class="study-tabs" role="tablist" aria-label="학습 기록 분류">
+                    <button type="button" class="topic-list__sort-btn study-tabs__btn is-active"
+                            data-filter="bookmark" role="tab" aria-selected="true">
+                        북마크 <span class="study-tabs__count">0</span>
+                    </button>
+                    <button type="button" class="topic-list__sort-btn study-tabs__btn"
+                            data-filter="progress" role="tab" aria-selected="false">
+                        학습 중 <span class="study-tabs__count">0</span>
+                    </button>
+                    <button type="button" class="topic-list__sort-btn study-tabs__btn"
+                            data-filter="done" role="tab" aria-selected="false">
+                        완료 <span class="study-tabs__count">0</span>
+                    </button>
+                </div>
+
+                <!-- 토픽 카드 -->
+                <div class="topic-grid" id="study-list"></div>
+                <p class="study-message" id="study-list-empty" hidden></p>
+
+                <!-- 초기화 -->
+                <div class="study-actions">
+                    <button type="button" class="study-reset" id="study-reset">기록 초기화</button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <!-- 공개 토픽 목록 (learning.js의 loadTopicIndex가 읽음, 실행 코드 없음) -->
+    <div id="topic-index" th:attr="data-topics=${topicIndexJson}" hidden></div>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/learning.js}"></script>
+    <script th:src="@{/js/study.js}"></script>
+</body>
+</html>

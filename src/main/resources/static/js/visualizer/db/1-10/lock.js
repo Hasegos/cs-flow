@@ -502,8 +502,8 @@
         resize();
     }
 
-        speed = ms;
     function setSpeed(ms, btn) {
+        speed = ms;
         speedBtns.forEach(function (b) { b.classList.remove('lock-viz__speed-btn--active'); });
         btn.classList.add('lock-viz__speed-btn--active');
     }
