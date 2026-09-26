@@ -5,7 +5,8 @@
     'use strict';
 
     var section = document.querySelector('.quiz-section');
-    if (!section) return;
+    var storage = window.CsFlow && window.CsFlow.storage;
+    if (!section || !storage) return;
 
     var topicSlug = section.getAttribute('data-topic-slug');
     var STORAGE_KEY = 'csflow-quiz-' + topicSlug;
@@ -14,20 +15,13 @@
     var state = {};
 
     function loadState() {
-        try {
-            var raw = localStorage.getItem(STORAGE_KEY);
-            var map = raw ? JSON.parse(raw) : {};
-            return (map && typeof map === 'object') ? map : {};
-        } catch (e) {
-            return {};
-        }
+        var map = storage.getJSON(STORAGE_KEY);
+        return (map && typeof map === 'object' && !Array.isArray(map)) ? map : {};
     }
 
     function saveAttempt(questionId, selected, correct, attempt) {
         state[questionId] = { selected: selected, correct: correct, attempt: attempt };
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-        } catch (e) {  }
+        storage.setJSON(STORAGE_KEY, state);
     }
 
     function restoreQuestion(question) {
@@ -66,6 +60,15 @@
         if (el) el.classList.remove('is-visible');
     }
 
+    function isAllCorrect() {
+        if (questions.length === 0) return false;
+        for (var i = 0; i < questions.length; i++) {
+            var record = state[questions[i].getAttribute('data-question-id')];
+            if (!record || record.correct !== true) return false;
+        }
+        return true;
+    }
+
     function resetQuestion(question) {
         var questionId = question.getAttribute('data-question-id');
         var opts = question.querySelectorAll('.quiz-option');
@@ -78,9 +81,7 @@
         hideBlock(question, 'quiz-question__retry');
 
         delete state[questionId];
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-        } catch (e) { }
+        storage.setJSON(STORAGE_KEY, state);
     }
 
     function handleAnswer(question, btn) {
@@ -91,19 +92,18 @@
 
         setOptionsDisabled(question, true);
 
-        fetch('/api/quiz/check', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ questionId: Number(questionId), selected: selected })
-        })
-            .then(function (res) { return res.json(); })
+        window.CsFlow.postJson('/api/quiz/check', { questionId: Number(questionId), selected: selected })
             .then(function (data) {
+                if (typeof data.correct !== 'boolean') throw new Error('invalid response');
                 saveAttempt(questionId, selected, data.correct, attempt);
 
                 if (data.correct) {
                     btn.classList.add('quiz-option--correct');
                     showBlock(question, 'quiz-question__explanation');
                     showBlock(question, 'quiz-question__retry');
+                    if (isAllCorrect()) {
+                        document.dispatchEvent(new CustomEvent('csflow:quiz-all-correct', { detail: { slug: topicSlug } }));
+                    }
                     return;
                 }
                 btn.classList.add('quiz-option--wrong');
@@ -115,9 +115,13 @@
                 showBlock(question, 'quiz-question__retry');
             })
             .catch(function () {
+                question.setAttribute('data-attempt', String(attempt - 1));
                 setOptionsDisabled(question, false);
+                window.CsFlow.showToast('잠시 후 다시 시도해 주세요');
             });
     }
+
+    window.CsFlow.quiz = { isAllCorrect: isAllCorrect };
 
     state = loadState();
 

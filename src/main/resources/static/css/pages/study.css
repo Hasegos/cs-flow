@@ -1,0 +1,155 @@
+/* 내 학습 페이지 (카드·탭 기본 모양은 subject.css 재사용) */
+
+[hidden] {
+  display: none !important;
+}
+
+/* === .study-note — 저장 위치 안내 === */
+.study-note {
+  margin-top: 0.75rem;
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+}
+
+/* === .study-message — 저장 불가·기록 없음·빈 탭 안내 === */
+.study-message {
+  padding: 1rem 0 1.5rem;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}
+
+/* === .study-section-title — 섹션 제목 === */
+.study-section-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 1rem;
+}
+
+.study-section-title__sub {
+  margin-left: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+/* === .study-progress — 과목별 진행률 === */
+.study-progress {
+  margin-bottom: 2rem;
+}
+
+.study-progress__list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.6rem 1.5rem;
+}
+
+.study-progress__row {
+  display: grid;
+  grid-template-columns: 7rem 1fr 4.5rem;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.9rem;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  transition: border-color var(--transition);
+}
+
+.study-progress__row:hover {
+  border-color: var(--color-border-hover);
+}
+
+.study-progress__name {
+  font-size: 0.88rem;
+}
+
+.study-progress__bar {
+  width: 100%;
+  height: 8px;
+  -webkit-appearance: none;
+  appearance: none;
+  border: none;
+  border-radius: 999px;
+  background: var(--color-purple-dim);
+  overflow: hidden;
+}
+
+.study-progress__bar::-webkit-progress-bar {
+  background: var(--color-purple-dim);
+  border-radius: 999px;
+}
+
+.study-progress__bar::-webkit-progress-value {
+  background: var(--color-purple);
+  border-radius: 999px;
+}
+
+.study-progress__bar::-moz-progress-bar {
+  background: var(--color-purple);
+  border-radius: 999px;
+}
+
+.study-progress__count {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  text-align: right;
+}
+
+/* === .study-tabs — 북마크 / 학습 중 / 완료 탭 === */
+.study-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.study-tabs__btn {
+  cursor: pointer;
+}
+
+.study-tabs__count {
+  margin-left: 0.3rem;
+  opacity: 0.7;
+}
+
+/* === .study-actions — 기록 초기화 === */
+.study-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 2rem;
+}
+
+.study-reset {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  transition: border-color var(--transition), color var(--transition);
+}
+
+.study-reset:hover {
+  border-color: var(--color-border-hover);
+  color: var(--color-text);
+}
+
+/* === 반응형 === */
+@media (max-width: 768px) {
+  .study-progress__list {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .study-progress__row {
+    grid-template-columns: 5.5rem 1fr 3.8rem;
+  }
+}

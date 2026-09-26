@@ -126,6 +126,88 @@
   color: var(--color-bg);
 }
 
+/* === .hero__continue — 이어서 학습하기 === */
+.hero__continue {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  max-width: 520px;
+  margin: 2rem auto 0;
+}
+
+.hero__continue[hidden] {
+  display: none;
+}
+
+.hero__continue-label {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+}
+
+.hero__continue-card {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.8rem 1.1rem;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  transition: border-color var(--transition);
+}
+
+.hero__continue-card:hover {
+  border-color: var(--color-purple);
+}
+
+.hero__continue-subject {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--color-purple);
+}
+
+.hero__continue-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 0.95rem;
+  font-weight: 500;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hero__continue-status {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 0.15rem 0.6rem;
+}
+
+.hero__continue-status--done {
+  color: var(--color-purple);
+  border-color: var(--color-purple);
+}
+
+.hero__continue-all {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+
+.hero__continue-all:hover {
+  color: var(--color-purple);
+}
+
 /* === 버튼 그룹 === */
 .hero__cta {
   display: flex;

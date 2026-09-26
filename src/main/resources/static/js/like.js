@@ -13,11 +13,13 @@
     btn.addEventListener('click', function () {
         btn.disabled = true;
 
-        fetch('/api/topic/' + topicSlug + '/like', { method: 'POST' })
-            .then(function (res) { return res.json(); })
+        window.CsFlow.postJson('/api/topic/' + topicSlug + '/like')
             .then(function (data) {
-                btn.classList.toggle('topic-like--active', data.liked);
-                if (countEl) countEl.textContent = String(data.count);
+                btn.classList.toggle('topic-like--active', data.liked === true);
+                if (countEl && typeof data.count === 'number') countEl.textContent = String(data.count);
+            })
+            .catch(function () {
+                window.CsFlow.showToast('잠시 후 다시 시도해 주세요');
             })
             .finally(function () {
                 btn.disabled = false;

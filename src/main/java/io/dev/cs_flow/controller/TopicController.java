@@ -64,6 +64,7 @@ public class TopicController {
         }
 
         model.addAttribute("topic", topic);
+        model.addAttribute("currentSubject", subjectSlug);
         model.addAttribute("jsFileKey", viewPath.jsFileKey());
         model.addAttribute("ldJson", topicService.buildLdJson(topic, canonicalUrl));
         model.addAttribute("relatedTopics", topicService.getRelatedTopics(topic.getTopicId()));
