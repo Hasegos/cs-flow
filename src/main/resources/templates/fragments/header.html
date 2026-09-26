@@ -26,6 +26,14 @@
             </svg>
         </a>
 
+        <!-- 내 학습 -->
+        <a th:href="@{/study}" class="gnb__study-btn" th:classappend="${currentPage == 'study'} ? ' is-active'"
+           aria-label="내 학습" title="내 학습">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+            </svg>
+        </a>
+
         <!-- 테마 토글 -->
         <button class="gnb__theme-btn" id="themeToggleBtn" aria-label="테마 전환">
             <svg class="gnb__theme-icon gnb__theme-icon--dark" viewBox="0 0 24 24" fill="none"
@@ -60,5 +68,6 @@
         <a th:href="@{/ds}"      class="gnb__drawer-item" th:classappend="${currentSubject == 'ds'}      ? ' is-active'">자료구조</a>
         <a th:href="@{/algo}"    class="gnb__drawer-item" th:classappend="${currentSubject == 'algo'}    ? ' is-active'">알고리즘</a>
         <a th:href="@{/db}"      class="gnb__drawer-item" th:classappend="${currentSubject == 'db'}      ? ' is-active'">데이터베이스</a>
+        <a th:href="@{/study}"   class="gnb__drawer-item" th:classappend="${currentPage == 'study'}      ? ' is-active'">내 학습</a>
     </div>
 </header>
