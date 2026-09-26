@@ -2,6 +2,7 @@ package io.dev.cs_flow.service;
 
 import io.dev.cs_flow.common.exception.NotFoundException;
 import io.dev.cs_flow.dto.TagCount;
+import io.dev.cs_flow.dto.TopicIndexItem;
 import io.dev.cs_flow.dto.TopicSearchCondition;
 import io.dev.cs_flow.model.Topic;
 import io.dev.cs_flow.repository.TopicRepository;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
 
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -24,7 +26,7 @@ import java.util.Map;
  * 토픽(Topic) 관련 비즈니스 로직을 처리하는 서비스.
  * <p>
  * 과목 slug 기반 토픽 목록 조회(검색어·태그 필터 포함), 토픽 단건 조회,
- * 태그 기반 연관 토픽 조회, 과목별 태그 집계, 토픽 JSON-LD 생성 기능을 제공한다.
+ * 태그 기반 연관 토픽 조회, 과목별 태그 집계, 토픽 JSON-LD 생성, 내 학습 페이지용 토픽 목록 기능을 제공한다.
  * </p>
  */
 @Slf4j
@@ -138,6 +140,25 @@ public class TopicService {
     }
 
     /**
+     * 내 학습 페이지에서 쓸 공개 토픽 목록을 JSON 문자열로 만든다.
+     * <p>
+     * 브라우저에 저장된 학습 기록(slug)을 제목·과목과 매칭하는 데 쓰인다.
+     * </p>
+     *
+     * @return [{slug, title, subjectSlug}] 형태의 JSON 문자열
+     */
+    @Cacheable("topicIndex")
+    @Transactional(readOnly = true)
+    public String getTopicIndexJson(){
+        log.info("공개 토픽 목록(JSON) 조회");
+        List<TopicIndexItem> items = topicRepository.findAllPublished().stream()
+                .sorted(Comparator.comparing(Topic::getTopicId))
+                .map(t -> new TopicIndexItem(t.getSlug(), t.getTitle(), t.getSubject().getSlug()))
+                .toList();
+        return objectMapper.writeValueAsString(items);
+    }
+
+    /**
      * 토픽 학습 페이지용 JSON-LD(LearningResource)를 생성한다.
      *
      * @param topic        대상 토픽
@@ -158,7 +179,7 @@ public class TopicService {
                 "url", "https://csflow.kr"
         ));
         try {
-            return objectMapper.writeValueAsString(ld);
+            return objectMapper.writeValueAsString(ld).replace("<", "\\u003c");
         } catch (Exception e) {
             log.warn("JSON-LD 직렬화 실패 - topicSlug: {}", topic.getSlug(), e);
             return null;
