@@ -9,23 +9,7 @@
         return el ? el.content : '';
     }
 
-    function showToast(message) {
-        var toast = document.createElement('div');
-        toast.className = 'share-toast';
-        toast.textContent = message;
-        document.body.appendChild(toast);
-
-        requestAnimationFrame(function () {
-            toast.classList.add('share-toast--visible');
-        });
-
-        setTimeout(function () {
-            toast.classList.remove('share-toast--visible');
-            setTimeout(function () {
-                toast.remove();
-            }, 300);
-        }, 1500);
-    }
+    var showToast = window.CsFlow.showToast;
 
     function initCopyButton() {
         var btn = document.querySelector('.topic-share__btn--copy');
@@ -42,20 +26,15 @@
                 showToast('링크가 복사되었습니다');
             };
 
-            if (navigator.clipboard && window.isSecureContext) {
-                navigator.clipboard.writeText(url).then(onCopied);
+            var onFailed = function () {
+                showToast('주소창의 링크를 복사해 주세요');
+            };
+
+            if (!navigator.clipboard) {
+                onFailed();
                 return;
             }
-
-            var textarea = document.createElement('textarea');
-            textarea.value = url;
-            textarea.style.position = 'fixed';
-            textarea.style.opacity = '0';
-            document.body.appendChild(textarea);
-            textarea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textarea);
-            onCopied();
+            navigator.clipboard.writeText(url).then(onCopied, onFailed);
         });
     }
 
