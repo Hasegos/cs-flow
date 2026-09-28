@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">비순차 실행 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/arch/11-20/out-of-order-execution.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/arch}" class="topic-breadcrumb__link">컴퓨터 구조</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">비순차 실행</span>
+                </nav>
+
+                <span class="topic-hero__slug">arch · 13</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">비순차 실행</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+                <button type="button" class="topic-like" th:classappend="${liked} ? ' topic-like--active' : ''" th:attr="data-topic-slug=${topic.slug}">
+                    <svg class="topic-like__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <span class="topic-like__count" th:text="${likeCount}">0</span>
+                </button>
+                <div class="topic-share">
+                    <button type="button" class="topic-share__btn topic-share__btn--copy" aria-label="링크 복사">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="topic-share__btn topic-share__btn--kakao" aria-label="카카오톡 공유">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                        </svg>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+                <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        CPU가 명령어를 적힌 순서대로만 실행하면, 앞 명령어 하나가 오래 걸릴 때 뒤의 명령어가 모두 함께 멈춥니다.
+                        대표적인 경우가 <strong>캐시 미스</strong>입니다. 메모리에서 데이터를 가져오는 동안 수십에서 수백 사이클이 흐르는데,
+                        그 사이 뒤쪽에 그 데이터와 상관없는 계산이 있어도 순차 실행 CPU는 기다릴 수밖에 없습니다.
+                        <strong>비순차 실행(Out-of-Order Execution)</strong>은 명령어 사이의 데이터 의존성을 하드웨어가 추적해,
+                        피연산자가 준비된 명령어부터 먼저 실행합니다. 실행 순서는 뒤섞이지만 결과는 <strong>리오더 버퍼(ROB)</strong>를 거쳐
+                        원래 프로그램 순서대로 확정되므로, 프로그램 입장에서는 순서대로 실행한 것과 똑같이 보입니다.
+                    </p>
+                    <p class="overview-lead">
+                        스마트폰부터 서버까지 오늘날 대부분의 고성능 CPU 코어가 이 방식을 씁니다. 1964년 CDC 6600의 스코어보드가 동적 스케줄링을 처음 선보였고,
+                        1967년 IBM System/360 Model 91의 부동소수점 장치에 쓰인 <strong>토마술로 알고리즘</strong>이 하드웨어 레지스터 리네이밍을 더해
+                        오늘날 비순차 실행의 뿌리가 됐습니다. 결과를 순서대로 확정하는 리오더 버퍼는 1985년 정밀 예외를 위해 제안됐고,
+                        1990년대 중반 이후 범용 프로세서로 널리 퍼졌습니다.
+                        컴파일러가 명령어 순서를 미리 바꿔 두는 정적 스케줄링과 달리, 비순차 실행은 프로그램이 돌아가는 중에
+                        실제로 어떤 데이터가 늦게 도착하는지 보고 순서를 정하는 <strong>동적 스케줄링</strong>입니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">명령어 수준 병렬성(ILP)</h3>
+                            <p class="overview-card__desc">서로 결과를 주고받지 않는 명령어는 동시에 실행하거나 순서를 바꿔 실행해도 결과가 같습니다. 프로그램 안에 이런 독립 명령어가 얼마나 있는지가 비순차 실행으로 얻을 수 있는 성능의 상한입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">진짜 의존성(RAW)</h3>
+                            <p class="overview-card__desc">앞 명령어가 쓴 레지스터를 뒤 명령어가 읽는 관계(Read After Write)입니다. 값이 만들어지기 전에는 계산할 수 없으므로 비순차 실행으로도 없앨 수 없고, 값이 나올 때까지 기다려야 합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">가짜 의존성과 레지스터 리네이밍</h3>
+                            <p class="overview-card__desc">WAR(Write After Read)과 WAW(Write After Write)는 값을 주고받아서가 아니라 같은 레지스터 이름을 다시 써서 생기는 충돌입니다. CPU는 프로그램의 레지스터 이름을 내부의 더 많은 물리 레지스터에 매번 새로 연결해(리네이밍) 이 충돌을 없앱니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">예약 스테이션(발행 대기열)</h3>
+                            <p class="overview-card__desc">해독된 명령어는 실행 유닛 앞의 대기열에서 피연산자를 기다립니다. 필요한 값이 모두 준비되면 원래 순서와 상관없이 비어 있는 실행 유닛으로 발행(issue)됩니다. 교재에 따라 이 단계를 dispatch라 부르고, 대기열에 넣는 단계를 issue라 부르기도 합니다(Hennessy &amp; Patterson의 토마술로 설명).</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">리오더 버퍼(ROB)</h3>
+                            <p class="overview-card__desc">명령어가 들어온 순서대로 한 칸씩 자리를 잡는 원형 버퍼입니다. 실행이 먼저 끝난 명령어도 결과를 여기에 보관한 채, 앞선 명령어가 모두 끝나기를 기다립니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">순서대로 확정과 정밀 예외</h3>
+                            <p class="overview-card__desc">ROB 맨 앞(head)의 명령어가 완료돼야 그 결과를 레지스터와 메모리에 반영(commit, retire)합니다. 그래서 예외가 나면 그 지점 이전 명령어의 결과만 반영된 깔끔한 상태로 멈출 수 있습니다(정밀 예외).</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>가장 큰 이득은 메모리 지연을 숨기는 것입니다</strong> — 캐시 미스 한 번이 수백 사이클에 이를 수 있는데, 그동안 뒤쪽의 독립 명령어와 다른 로드 명령어를 미리 처리합니다. 여러 캐시 미스를 동시에 기다리게 만드는 효과(메모리 수준 병렬성)도 큽니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>분기 예측과 함께 동작합니다</strong> — 분기 결과가 나오기 전에 예측한 방향의 명령어까지 미리 실행합니다(추측 실행). 예측이 틀리면 ROB에서 그 뒤의 명령어를 모두 버리면 되므로, 확정 전의 결과는 프로그램에 영향을 주지 않습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>의존성 사슬과 창 크기가 한계입니다</strong> — 모든 명령어가 바로 앞 결과를 기다리는 사슬(예: 연결 리스트 따라가기)에서는 앞당길 명령어가 없습니다. 또 ROB와 대기열 크기만큼만 앞을 내다볼 수 있어, 아주 긴 캐시 미스 동안에는 창이 가득 차 결국 멈춥니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공짜가 아닙니다</strong> — 의존성 추적, 리네이밍, ROB 하드웨어는 칩 면적과 전력을 많이 씁니다. 그래서 저전력 코어는 순차 실행을 유지하기도 합니다. 또 확정되지 못하고 버려진 일시적 실행(transient execution)이 캐시에 흔적을 남기는 점을 이용한 공격이 Spectre(분기 예측을 악용)와 Meltdown(권한 예외가 확정 시점까지 미뤄지는 점을 악용)입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "순차 vs 비순차" 탭에서 같은 명령어 5개의 총 사이클 차이를, "의존성과 발행" 탭에서 사이클마다 어떤 명령어가 준비돼 먼저 실행되는지를, "리오더 버퍼" 탭에서 실행은 뒤섞여도 확정은 순서대로 이뤄지는 과정을 STEP으로 확인하세요.</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/arch/11-20/out-of-order-execution-code :: code}"></th:block>
+            </div>
+
+            <!-- 탭 4: 퀴즈 -->
+            <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
+                <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+    <script th:src="@{/js/quiz.js}"></script>
+    <script th:src="@{/js/like.js}"></script>
+    <script th:src="@{/js/share.js}"></script>
+</body>
+</html>
