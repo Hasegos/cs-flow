@@ -446,6 +446,20 @@
   opacity: 0.8;
 }
 
+/* === .overview-heading — 큰 그림 탭의 추가 섹션 제목 === */
+.overview-heading {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 3rem 0 1.25rem;
+}
+
+/* === .overview-point 링크 — 함께 보면 좋은 토픽·참고 자료 === */
+.overview-point a {
+  color: var(--subject-accent, var(--color-purple));
+  text-decoration: underline;
+}
+
 /* === 작동 원리 탭 (시각화) === */
 .visualizer-wrap {
   display: flex;
