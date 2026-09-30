@@ -49,6 +49,7 @@ public class SitemapController {
 
         sb.append(url(BASE_URL  + "/", CHANGE_FREQ_WEEKLY, "1.0"));
 
+        sb.append(url(BASE_URL + "/about",   CHANGE_FREQ_YEARLY, "0.5"));
         sb.append(url(BASE_URL + "/privacy", CHANGE_FREQ_YEARLY, "0.3"));
         sb.append(url(BASE_URL + "/terms",   CHANGE_FREQ_YEARLY, "0.3"));
 

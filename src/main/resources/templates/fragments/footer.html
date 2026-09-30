@@ -8,9 +8,11 @@
             <p class="footer__desc">CS 핵심 개념을 흐름으로 이해하는 인터랙티브 학습 플랫폼</p>
         </div>
         <div class="footer__links">
-            <a href="https://github.com/Hasegos" target="_blank" rel="noopener" class="footer__link">GitHub</a>
+            <a th:href="@{/about}" class="footer__link">소개</a>
+            <a th:href="@{/about#contact}" class="footer__link">문의</a>
             <a th:href="@{/privacy}" class="footer__link">개인정보처리방침</a>
             <a th:href="@{/terms}" class="footer__link">이용약관</a>
+            <a href="https://github.com/Hasegos" target="_blank" rel="noopener" class="footer__link">GitHub</a>
         </div>
     </div>
     <div class="footer__bottom">
