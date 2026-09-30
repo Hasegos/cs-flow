@@ -27,7 +27,8 @@ public class PolicyController {
      * @return {@code privacy/privacy} 뷰 이름
      */
     @GetMapping("/privacy")
-    public String privacy() {
+    public String privacy(Model model) {
+        model.addAttribute("canonicalUrl", "https://csflow.kr/privacy");
         return "privacy/privacy";
     }
 
@@ -37,7 +38,8 @@ public class PolicyController {
      * @return {@code terms/terms} 뷰 이름
      */
     @GetMapping("/terms")
-    public String terms() {
+    public String terms(Model model) {
+        model.addAttribute("canonicalUrl", "https://csflow.kr/terms");
         return "terms/terms";
     }
 }
