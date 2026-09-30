@@ -112,7 +112,7 @@
                     <div class="overview-points">
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>PC 자동 증가</strong> — Fetch 단계에서 명령어를 읽는 즉시 PC가 1 증가합니다. 점프(JMP) 명령어는 이 값을 강제로 덮어씁니다.</span>
+                            <span><strong>PC 자동 증가</strong> — Fetch 단계에서 명령어를 읽는 즉시 PC가 다음 명령어를 가리키도록 증가합니다(이 시각화는 명령어 1개를 주소 1칸으로 보는 단순 모델이라 +1). 점프(JMP) 명령어는 이 값을 강제로 덮어씁니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
@@ -125,6 +125,109 @@
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
                             <span><strong>MAR/MDR의 역할</strong> — CPU 내부 버스와 외부 메모리 버스를 연결하는 인터페이스 레지스터입니다. 모든 메모리 접근은 이 레지스터를 경유합니다. 속도 차이를 완충하는 역할은 캐시(Cache)가 담당합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">명령어 하나에 걸리는 시간</h2>
+                    <p class="overview-lead">
+                        프로그램의 실행 시간은 <strong>실행한 명령어 수 × 명령어당 평균 클럭 수(CPI) × 클럭 한 주기의 길이</strong>로 나뉘어 설명됩니다.
+                        명령어 사이클은 이 중 CPI를 이해하는 출발점입니다. 레지스터끼리 더하는 명령어와 메모리에서 값을 읽어 오는 명령어는 같은 세 단계를 거쳐도 걸리는 클럭 수가 다르고,
+                        이 차이를 줄이려는 노력이 파이프라이닝, 캐시, 분기 예측, 비순차 실행으로 이어집니다.
+                    </p>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>PC는 항상 1씩 증가한다</strong> — 이 시각화는 명령어 하나가 주소 한 칸을 차지하는 단순 모델이라 +1로 그립니다. 실제로 PC는 방금 가져온 명령어의 길이만큼 증가하며, x86처럼 명령어 길이가 제각각인 구조에서는 명령어마다 증가량이 다릅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Fetch → Decode → Execute 세 단계가 정해진 표준이다</strong> — 설명을 위해 단순화한 구분입니다. 교재에 따라 피연산자 인출(Operand Fetch)과 결과 저장(Write-back)을 따로 떼어 4~5단계로 설명하고, 고전적인 5단계 파이프라인은 IF, ID, EX, MEM, WB로 나눕니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>모든 명령어가 같은 시간이 걸린다</strong> — 레지스터끼리의 연산은 짧고, 메모리를 읽는 LOAD는 메모리 접근이 더해져 더 오래 걸립니다. 원하는 데이터가 캐시에 없으면 훨씬 더 걸리기도 합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>인터럽트는 명령어 실행 도중 아무 때나 끼어든다</strong> — 일반적으로 명령어와 명령어 사이에서 확인해, 저장되는 상태가 '앞 명령어까지 끝나고 다음 명령어는 시작 전'이 되게 합니다. 이렇게 순차 실행했을 때와 같은 상태를 저장하는 인터럽트를 정밀 인터럽트(precise interrupt)라고 부릅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">명령어 사이클의 단계를 설명해 보세요.</h3>
+                            <p class="overview-card__desc">Fetch에서 PC가 가리키는 주소를 MAR에 넣어 메모리에서 명령어를 읽어 MDR을 거쳐 IR에 담고 PC를 다음 명령어로 옮깁니다. Decode에서 CU가 opcode와 피연산자를 해석하고, Execute에서 ALU 연산이나 메모리 접근을 수행합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">분기·점프 명령어는 사이클에 어떤 영향을 주나요?</h3>
+                            <p class="overview-card__desc">실행 단계에서 PC를 새 주소로 덮어씁니다. 그러면 다음 Fetch가 그 주소에서 시작합니다. 파이프라인 CPU에서는 이 때문에 이미 가져온 명령어를 버려야 할 수 있어 분기 예측이 필요합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">파이프라이닝은 명령어 사이클을 어떻게 바꾸나요?</h3>
+                            <p class="overview-card__desc">명령어 하나가 끝나는 데 걸리는 시간이 줄지는 않지만, 단계를 겹쳐 여러 명령어를 동시에 진행하므로 단위 시간당 끝나는 명령어 수(처리량)가 늘어납니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">CPI와 IPC는 무엇인가요?</h3>
+                            <p class="overview-card__desc">CPI는 명령어 하나에 평균 몇 클럭이 걸리는지, IPC는 클럭 한 번에 평균 몇 개의 명령어가 끝나는지입니다. 서로 역수 관계이며, 같은 프로그램을 같은 클럭 속도로 돌릴 때는 IPC가 높은 CPU가 더 빠릅니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>고전적인 5단계 파이프라인</strong> — RISC 교재의 표준 예는 IF, ID, EX, MEM, WB 다섯 단계로 명령어 사이클을 나눕니다. 이 사이트의 파이프라이닝 토픽이 같은 구성을 사용합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>x86의 내부 변환</strong> — 많은 x86 CPU는 길이와 동작이 제각각인 x86 명령어를 해독 단계에서 더 단순한 내부 명령(마이크로연산)으로 나누어 실행합니다. 겉으로는 CISC이지만 안쪽은 RISC처럼 다루는 셈입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>정밀 인터럽트</strong> — 파이프라인 CPU에서도 인터럽트가 났을 때 순차 실행과 같은 상태를 저장해야 합니다. Smith와 Pleszkun의 1988년 IEEE 논문은 이를 위한 다섯 가지 해법을 정리한 대표적인 자료입니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>CPU 구성 요소</strong> — <a th:href="@{/arch/cpu-components}">CPU 구성 요소</a> — 명령어 사이클에 등장하는 레지스터와 ALU, CU의 역할을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>파이프라이닝</strong> — <a th:href="@{/arch/pipelining}">파이프라이닝</a> — 사이클의 단계를 겹쳐 처리량을 높이는 방법과 해저드를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>인터럽트</strong> — <a th:href="@{/arch/interrupt}">인터럽트</a> — Execute 뒤에 인터럽트를 확인하고 ISR로 넘어가는 과정을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>분기 예측</strong> — <a th:href="@{/arch/branch-prediction}">분기 예측</a> — 분기 명령어의 결과를 기다리지 않고 다음 Fetch를 이어 가는 방법입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>비순차 실행</strong> — <a th:href="@{/arch/out-of-order-execution}">비순차 실행</a> — Execute 단계를 기다림 없이 채우는 방법입니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>정밀 인터럽트</strong> — <a href="https://dl.acm.org/doi/10.1109/12.4607" target="_blank" rel="noopener">Implementing Precise Interrupts in Pipelined Processors — IEEE Transactions on Computers, 1988</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>x86 명령어 구조</strong> — <a href="https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html" target="_blank" rel="noopener">Intel 64 and IA-32 Architectures Software Developer's Manual — Intel</a></span>
                         </div>
                     </div>
 
