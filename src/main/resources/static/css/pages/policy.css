@@ -107,6 +107,11 @@
   font-size: 0.9rem;
 }
 
+/* === 앵커 이동(#contact) — 고정 헤더에 제목이 가려지지 않도록 === */
+.policy-page__section[id] {
+  scroll-margin-top: 80px;
+}
+
 @media (max-width: 600px) {
   .policy-page {
     padding: 32px 16px 64px;
