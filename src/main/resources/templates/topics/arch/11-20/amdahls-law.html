@@ -80,7 +80,7 @@
                 <div class="overview-section">
 
                     <p class="overview-lead">
-                        프로그램에는 코어를 아무리 늘려도 나눠 처리할 수 없는 부분이 반드시 남습니다.
+                        대부분의 프로그램에는 코어를 아무리 늘려도 나눠 처리할 수 없는 부분이 남습니다.
                         <strong>암달의 법칙(Amdahl's Law)</strong>은 프로그램의 일부만 빠르게 만들었을 때 전체 성능이
                         얼마나 좋아지는지를 계산하는 법칙이며, 병렬 처리로 얻을 수 있는 속도 향상에는 한계가 있음을 보여줍니다.
                     </p>
@@ -109,7 +109,7 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">수확 체감</h3>
-                            <p class="overview-card__desc">코어를 2배로 늘릴 때마다 얻는 이득이 점점 줄어듭니다. p=0.8에서 8코어는 3.33배, 16코어는 4배로 늘어나는 폭이 작아집니다.</p>
+                            <p class="overview-card__desc">코어를 늘릴수록 코어당 효율이 떨어지고, 어느 지점부터는 코어를 2배로 늘려도 추가로 얻는 폭이 줄어듭니다. p=0.8에서 4코어는 2.5배, 8코어는 약 3.33배, 16코어는 4배입니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
@@ -137,6 +137,123 @@
                         </div>
                     </div>
 
+
+                    <h2 class="overview-heading">암달의 법칙이 나온 배경</h2>
+                    <p class="overview-lead">
+                        진 암달(Gene Amdahl)은 1967년 학회 발표에서 단일 프로세서로 큰 계산을 빠르게 하려는 접근이 어디까지 유효한지 논했고, 이 논의가 오늘날 '암달의 법칙'으로 정리되었습니다. 컴퓨터 구조 교재에서는 이 법칙을 병렬 처리에만 쓰지 않고, <strong>일부를 빠르게 만들었을 때 전체가 얼마나 빨라지는가</strong>를 계산하는 일반식으로 소개합니다. <code>전체 속도 향상 = 1 / ((1 − f) + f / s)</code>에서 f는 개선된 부분이 전체 실행 시간에서 차지하는 비율, s는 그 부분이 빨라진 배수입니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>일반식 예</strong> — 실행 시간의 40%를 차지하는 부분을 10배 빠르게 만들면 1 / (0.6 + 0.04) ≈ 1.56배입니다. 60%인 나머지가 그대로이므로 10배가 되지 않습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>코어 수에 따른 변화</strong> — 병렬 비율 p = 0.9이면 8코어에서 1 / (0.1 + 0.1125) ≈ 4.71배, 64코어에서 1 / (0.1 + 0.0140625) ≈ 8.77배입니다. 코어를 8배로 늘렸는데 속도는 1.9배도 안 늘었습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>병렬 비율별 상한</strong> — 코어를 무한히 늘려도 p = 0.5는 2배, p = 0.9는 10배, p = 0.95는 20배, p = 0.99는 100배가 한계입니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>코어를 2배로 늘리면 속도도 2배가 된다</strong> — 직렬 부분이 남아 있는 한 그렇게 되지 않습니다. p = 0.9에서 코어 2개는 1 / (0.1 + 0.45) ≈ 1.82배이고, 코어 8개는 약 4.71배입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>p는 코드 줄 수의 비율이다</strong> — p는 개선 전 <strong>실행 시간</strong>에서 병렬로 처리할 수 있는 부분이 차지하는 비율입니다. 코드가 짧아도 오래 도는 반복문이면 p에 크게 기여합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>암달의 법칙 식에는 병렬화 비용이 들어 있다</strong> — 기본식에는 스레드 동기화, 통신, 부하 불균형 같은 비용이 들어 있지 않습니다. 그래서 실제 속도 향상은 식이 주는 값보다 낮아지며, 식의 값은 이상적인 상한으로 읽어야 합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>직렬 비율은 고정된 값이다</strong> — 문제 크기를 키우면 직렬 비율이 달라질 수 있습니다. 존 구스타프슨은 1988년 같은 시간에 더 큰 문제를 푸는 관점의 '확장 속도 향상(scaled speedup)'을 제시했고, 그 식은 N − (N − 1) × s입니다(s는 병렬 실행 시간에서 직렬 부분의 비율).</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">병렬 비율 90%인 프로그램을 8코어에서 돌리면 속도 향상은 얼마인가요?</h3>
+                            <p class="overview-card__desc">1 / ((1 − 0.9) + 0.9 / 8) = 1 / 0.2125 ≈ 4.71배입니다. 코어를 무한히 늘려도 1 / 0.1 = 10배를 넘을 수 없다는 점까지 말하면 좋습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">암달의 법칙과 구스타프슨의 법칙은 무엇이 다른가요?</h3>
+                            <p class="overview-card__desc">암달의 법칙은 문제 크기를 고정하고 같은 일을 얼마나 빨리 끝내는지(강한 확장성)를 봅니다. 구스타프슨의 법칙은 코어가 늘면 문제 크기도 키워 같은 시간에 더 많은 일을 하는 것(약한 확장성)을 봅니다. 같은 현상을 서로 다른 전제에서 본 것입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">성능을 개선할 부분을 어떻게 고르나요?</h3>
+                            <p class="overview-card__desc">전체 실행 시간에서 차지하는 비율이 큰 부분부터 개선합니다. 비율이 작은 부분은 아무리 빠르게 만들어도 전체 이득이 작기 때문에, 먼저 프로파일링으로 시간이 어디에 쓰이는지 측정합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">직렬 부분이 생기는 대표적인 이유는 무엇인가요?</h3>
+                            <p class="overview-card__desc">한 번에 하나의 스레드만 실행할 수 있는 임계 구역(락으로 보호한 구간), 작업을 나누고 결과를 합치는 단계, 다른 작업과 겹치지 못하는 입출력 대기 같은 것이 직렬 부분이 될 수 있습니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>임계 구역</strong> — 여러 스레드가 락 하나를 두고 경쟁하면 그 구간은 사실상 직렬로 실행됩니다. 락 범위를 줄이거나 락을 쓰지 않는 자료구조로 바꾸면 직렬 비율을 줄일 수 있는 경우가 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>고성능 컴퓨팅의 확장성 측정</strong> — 문제 크기를 고정하고 코어 수를 늘려 가며 시간을 재는 방식을 강한 확장성(strong scaling), 코어 수에 비례해 문제 크기를 키우며 재는 방식을 약한 확장성(weak scaling)이라고 부릅니다. 앞쪽이 암달의 법칙, 뒤쪽이 구스타프슨의 법칙과 연결됩니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>컴퓨터 구조 교재</strong> — Hennessy와 Patterson은 암달의 법칙을 병렬화뿐 아니라 캐시나 명령어 최적화처럼 시스템 일부를 개선하는 모든 경우에 쓰는 기본 원리로 설명합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/arch/pipelining}">파이프라이닝</a> — 명령어 처리를 겹쳐 처리량을 높이는 방법과 그 한계를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/arch/out-of-order-execution}">비순차 실행</a> — 명령어 수준 병렬성을 끌어내는 또 다른 방법을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/thread}">스레드</a> — 한 프로세스 안에서 일을 나눠 실행하는 단위를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/process-sync}">프로세스 동기화</a> — 락과 임계 구역이 왜 직렬 부분이 되는지 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>암달의 법칙 원 발표</strong> — Amdahl, "Validity of the single processor approach to achieving large scale computing capabilities", AFIPS Conference Proceedings (Spring Joint Computer Conference), 1967</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>구스타프슨의 법칙</strong> — Gustafson, "Reevaluating Amdahl's Law", Communications of the ACM 31(5), 532-533, 1988</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>교재</strong> — Hennessy, Patterson, "Computer Architecture: A Quantitative Approach", 6판(2017), 1장 "Fundamentals of Quantitative Design and Analysis"의 Amdahl's Law 설명</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
