@@ -111,7 +111,7 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">교체 정책 (LRU)</h3>
-                            <p class="overview-card__desc">캐시가 가득 찼을 때 가장 오랫동안 사용되지 않은 데이터를 제거합니다. LRU(Least Recently Used)가 가장 널리 쓰입니다.</p>
+                            <p class="overview-card__desc">캐시 라인을 넣을 자리(세트)가 가득 찼을 때 가장 오랫동안 사용되지 않은 라인을 제거합니다. LRU(Least Recently Used)가 대표적이며, 실제 CPU는 비용을 줄이려고 LRU를 근사한 방식(pseudo-LRU)을 쓰기도 합니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
@@ -123,7 +123,7 @@
                     <div class="overview-points">
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>히트율 (Hit Rate)</strong> — 전체 메모리 접근 중 캐시 히트 비율입니다. 히트율이 높을수록 성능이 좋으며, 현대 CPU는 90% 이상을 목표로 합니다.</span>
+                            <span><strong>히트율 (Hit Rate)</strong> — 전체 메모리 접근 중 캐시 히트 비율입니다. 히트율이 높을수록 성능이 좋습니다. 실제 값은 프로그램의 접근 패턴과 캐시 구성에 따라 크게 달라집니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
@@ -143,6 +143,132 @@
                         </div>
                     </div>
 
+
+                    <h2 class="overview-heading">캐시가 나온 배경</h2>
+                    <p class="overview-lead">
+                        1965년 모리스 윌크스(Maurice Wilkes)가 '슬레이브 메모리(slave memory)'라는 이름으로 큰 주기억장치 앞에 작고 빠른 메모리를 두는 개념을 제안했고, 상용 컴퓨터에 캐시를 넣은 초기 사례로는 1960년대 후반의 IBM System/360 모델 85가 알려져 있습니다. 오늘날 CPU와 메모리의 속도 차이가 커서, 캐시가 없으면 메모리 접근 대기가 성능을 크게 좌우합니다. 캐시는 <strong>SRAM</strong>으로 만들고 주기억장치는 보통 <strong>DRAM</strong>으로 만듭니다.
+                    </p>
+
+                    <h2 class="overview-heading">캐시는 주소를 이렇게 나눠 봅니다</h2>
+                    <p class="overview-lead">
+                        캐시는 메모리 주소를 <strong>태그(tag) · 인덱스(index) · 오프셋(offset)</strong> 세 부분으로 나눠 해석합니다. 오프셋은 캐시 라인 안의 위치, 인덱스는 어느 세트에 있는지, 태그는 그 자리에 있는 라인이 찾는 주소의 것이 맞는지 확인하는 값입니다. 예를 들어 32KB, 8-way, 라인 64바이트 캐시(예: Intel Skylake, AMD Zen 4의 L1 데이터 캐시 구성)는 세트가 32768 ÷ (64 × 8) = 64개이므로 오프셋 6비트, 인덱스 6비트를 쓰고 나머지 상위 비트가 태그입니다.
+                    </p>
+
+                    <h2 class="overview-heading">캐시 미스의 세 가지 종류</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>강제 미스(Compulsory)</strong> — 그 블록을 처음 접근해서 캐시에 없는 경우입니다. 캐시가 아무리 커도 피할 수 없습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>용량 미스(Capacity)</strong> — 작업에 필요한 데이터가 캐시보다 커서 쫓겨났다가 다시 필요해지는 경우입니다. 캐시를 키우면 줄어듭니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>충돌 미스(Conflict)</strong> — 캐시에 빈 곳이 있어도 직접 매핑이나 세트 연관 매핑에서 같은 세트로 몰려 쫓겨나는 경우입니다. 연관도(way 수)를 높이면 줄어듭니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>캐시는 읽기만 빠르게 해 준다</strong> — 쓰기도 캐시를 거칩니다. Write-Back 방식은 캐시 라인에 더티(dirty) 비트를 두고, 그 라인이 쫓겨날 때에만 메모리에 써서 메모리 쓰기 횟수를 줄입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>멀티코어에서는 캐시를 코어가 함께 쓰니 동기화 걱정이 없다</strong> — L1은 코어마다 있어서 같은 주소를 서로 다른 값으로 갖지 않도록 캐시 일관성 프로토콜(MESI 등)이 필요합니다. 또 서로 다른 변수라도 같은 캐시 라인에 있으면 한 코어의 쓰기가 다른 코어의 캐시 라인을 무효화하는 <strong>거짓 공유(false sharing)</strong>로 느려질 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>히트율이 90%면 충분하다</strong> — 미스 한 번의 비용이 히트보다 훨씬 커서 히트율이 몇 %p만 달라져도 평균 접근 시간이 크게 달라집니다. 메모리 계층 구조 토픽의 계산 예를 보세요.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>캐시는 코드와 무관한 하드웨어의 일이다</strong> — 캐시는 하드웨어가 자동으로 관리하지만, 같은 데이터를 어떤 순서로 접근하는지에 따라 히트율이 크게 달라집니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">직접 매핑, 연관 매핑, 세트 연관 매핑을 비교해 보세요.</h3>
+                            <p class="overview-card__desc">직접 매핑은 블록이 들어갈 자리가 하나라 검색이 빠르고 구조가 단순하지만 충돌 미스가 많습니다. 완전 연관은 어디든 들어가 충돌 미스가 없지만 모든 라인의 태그를 비교해야 해서 비용이 큽니다. 세트 연관은 이 둘의 절충으로, 실제 CPU 캐시는 대부분 세트 연관 구조입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">Write-Through와 Write-Back의 차이는 무엇인가요?</h3>
+                            <p class="overview-card__desc">Write-Through는 쓸 때마다 캐시와 메모리를 함께 갱신해 단순하고 메모리가 항상 최신이지만 쓰기가 느려지기 쉽습니다(쓰기 버퍼로 완화하기도 합니다). Write-Back은 캐시만 갱신하고 라인이 교체될 때 메모리에 반영해 빠르지만, 더티 비트 관리와 멀티코어 일관성 처리가 필요합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">거짓 공유(false sharing)란 무엇이고 어떻게 피하나요?</h3>
+                            <p class="overview-card__desc">서로 다른 스레드가 쓰는 서로 다른 변수가 같은 캐시 라인에 있어서, 한쪽이 쓸 때마다 다른 쪽 코어의 그 라인이 무효화되어 성능이 떨어지는 현상입니다. 자주 쓰는 변수를 라인 단위로 띄워 배치(패딩)해서 피합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">공간 지역성을 살리려면 코드를 어떻게 짜야 하나요?</h3>
+                            <p class="overview-card__desc">연속된 주소를 순서대로 접근하게 합니다. 2차원 배열은 C처럼 행 우선으로 저장하는 언어에서는 행 단위로 순회하고, 자주 같이 쓰는 필드는 같은 구조체나 객체에 모아 한 캐시 라인에 들어가게 합니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>lscpu</strong> — CPU의 L1d, L1i, L2, L3 캐시 크기를 보여줍니다(man 문서에 따르면 전체 CPU를 요약한 값입니다).</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>리눅스 perf stat</strong> — <code>-e cache-references,cache-misses</code> 이벤트로 캐시 참조와 미스 횟수를 세어 미스율을 계산할 수 있습니다. 보통 마지막 레벨 캐시(LLC) 기준이며, 이벤트의 정확한 의미는 CPU마다 다릅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Java의 LongAdder</strong> — 값을 여러 셀에 나눠 더하고 필요할 때 합치는 구조로, 서로 다른 셀이 같은 캐시 라인에 놓여 거짓 공유가 생기지 않도록 셀에 패딩 어노테이션(@Contended)을 붙입니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/arch/memory-hierarchy}">메모리 계층 구조</a> — 캐시가 계층 안에서 차지하는 위치와 평균 접근 시간 계산을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/arch/virtual-memory}">가상 메모리</a> — TLB도 일종의 캐시라는 점에서 같은 원리를 어떻게 쓰는지 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/arch/von-neumann}">폰 노이만 구조</a> — 캐시가 풀려는 CPU와 메모리 사이의 병목을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/arch/pipelining}">파이프라이닝</a> — MEM 단계의 대기를 캐시가 어떻게 줄이는지 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>lscpu</strong> — <a href="https://man7.org/linux/man-pages/man1/lscpu.1.html" target="_blank" rel="noopener">lscpu(1) — Linux manual page</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>perf stat</strong> — <a href="https://man7.org/linux/man-pages/man1/perf-stat.1.html" target="_blank" rel="noopener">perf-stat(1)</a>, <a href="https://man7.org/linux/man-pages/man2/perf_event_open.2.html" target="_blank" rel="noopener">perf_event_open(2) — Linux manual page</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>교재</strong> — Hennessy, Patterson, "Computer Architecture: A Quantitative Approach" 6판 부록 B "Review of Memory Hierarchy"</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>원 논문</strong> — Wilkes, "Slave memories and dynamic storage allocation", IEEE Transactions on Electronic Computers, 1965</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
