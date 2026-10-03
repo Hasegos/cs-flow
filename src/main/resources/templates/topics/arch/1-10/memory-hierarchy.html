@@ -70,7 +70,7 @@
             <div class="topic-panel is-active" id="panel-overview">
                 <div class="overview-section">
                     <p class="overview-lead">
-                        메모리 계층 구조(Memory Hierarchy)는 <strong>속도와 용량이 반비례</strong>하는 저장 장치들을
+                        메모리 계층 구조(Memory Hierarchy)는 <strong>빠를수록 용량이 작고 비싼 경향</strong>이 있는 저장 장치들을
                         계층으로 배치한 구조입니다. CPU에 가까울수록 빠르고 비싸며 용량이 작고,
                         멀어질수록 느리지만 저렴하고 용량이 큽니다.
                     </p>
@@ -83,7 +83,7 @@
                         <div class="overview-card">
                             <p class="overview-card__label">계층 2</p>
                             <h3 class="overview-card__title">L1 / L2 / L3 캐시</h3>
-                            <p class="overview-card__desc">CPU와 RAM 사이의 고속 버퍼입니다. L1은 수 KB, L2는 수백 KB, L3는 수 MB 규모이며 접근 시간은 1~40ns입니다.</p>
+                            <p class="overview-card__desc">CPU와 RAM 사이의 고속 버퍼입니다. 대략 L1은 코어당 수십 KB, L2는 수백 KB~수 MB, L3는 수 MB~수십 MB 규모이며, 접근 시간은 L1이 약 1ns, L3가 수십 ns입니다(세대와 제품마다 다릅니다).</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">계층 3</p>
@@ -109,11 +109,11 @@
                     <div class="overview-points">
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>속도 vs 용량 트레이드오프</strong> — 레지스터는 RAM보다 약 100배 빠르지만 용량은 수억 배 작습니다. 계층 구조는 이 간극을 효율적으로 메웁니다.</span>
+                            <span><strong>속도 vs 용량 트레이드오프</strong> — 레지스터는 RAM보다 접근 시간이 100배 이상 짧지만 용량은 1억 배 안팎으로 작습니다(범용 레지스터 기준). 계층 구조는 이 간극을 효율적으로 메웁니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>평균 접근 시간</strong> — 히트율 h, 캐시 접근 시간 Tc, 메모리 접근 시간 Tm일 때: 평균 접근 시간 = h×Tc + (1-h)×Tm 로 계산합니다.</span>
+                            <span><strong>평균 접근 시간</strong> — 히트율 h, 캐시 접근 시간 Tc, 메모리 접근 시간 Tm일 때: 평균 접근 시간 = h×Tc + (1-h)×Tm 로 계산합니다. 미스일 때 캐시를 확인하는 시간은 따로 더하지 않은 단순화 모델이며, 교재의 표준형은 히트 시간 + 미스율 × 미스 페널티입니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
@@ -121,11 +121,143 @@
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>가상 메모리</strong> — RAM이 부족할 때 SSD/HDD 일부를 RAM처럼 사용하는 기법입니다. 페이지 폴트 발생 시 디스크에서 페이지를 로드합니다.</span>
+                            <span><strong>가상 메모리</strong> — 프로세스마다 독립된 주소 공간을 주고, 물리 메모리가 부족하면 일부 페이지를 디스크에 내려 두는 기법입니다. 접근한 페이지가 RAM에 없으면 페이지 폴트가 나고 운영체제가 디스크에서 불러옵니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>비용 구조</strong> — SRAM(캐시)은 DRAM(RAM)보다 셀당 단가가 수십 배 높습니다. 이 때문에 캐시는 소용량으로만 사용됩니다.</span>
+                            <span><strong>비용 구조</strong> — SRAM(캐시)은 비트당 트랜지스터가 더 많아(보통 6개, DRAM은 트랜지스터 1개와 커패시터 1개) 같은 용량에서 면적과 비용이 훨씬 큽니다. 이 때문에 캐시는 소용량으로만 사용됩니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">계층이 생긴 이유</h2>
+                    <p class="overview-lead">
+                        CPU 속도는 DRAM 접근 속도보다 훨씬 빠르게 좋아져 왔습니다. 1995년 Wulf와 McKee는 이 격차가 계속 벌어지면 성능을 정하는 것이 CPU가 아니라 <strong>메모리 접근 속도</strong>가 될 것이라며 '메모리 벽(memory wall)'이라는 말을 쓴 글을 발표했습니다. 빠른 저장 장치는 작고 비싸고 느린 장치는 크고 싸기 때문에 한 종류만으로는 속도, 용량, 가격을 함께 만족할 수 없습니다. 그래서 작고 빠른 저장소를 CPU 가까이에 두고, 프로그램이 같은 데이터나 가까운 데이터를 다시 쓴다는 <strong>지역성</strong>을 이용해 대부분의 접근을 위쪽 계층에서 끝내는 구조가 표준이 되었습니다.
+                    </p>
+
+                    <h2 class="overview-heading">평균 접근 시간을 숫자로 보면</h2>
+                    <p class="overview-lead">
+                        위 공식에 설명용 값을 넣어 보겠습니다. 캐시 접근 시간을 1ns, 메모리 접근 시간을 100ns라고 가정합니다.
+                    </p>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>히트율 99%</strong> — 0.99 × 1 + 0.01 × 100 = 1.99ns</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>히트율 95%</strong> — 0.95 × 1 + 0.05 × 100 = 5.95ns</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>히트율 90%</strong> — 0.90 × 1 + 0.10 × 100 = 10.9ns</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>읽는 법</strong> — 히트율이 99%에서 90%로 9%p 떨어졌을 뿐인데 평균 접근 시간은 약 5.5배가 됩니다. 미스 한 번의 비용이 히트보다 훨씬 크기 때문에, 히트율 1%p가 성능에 크게 영향을 줍니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>L1 캐시를 크게 만들수록 좋다</strong> — 캐시가 클수록 원하는 데이터를 찾는 데 시간이 더 걸리고 차지하는 면적과 전력도 늘어납니다. 그래서 L1은 코어마다 수십 KB로 작게 유지해 빠르게 만들고, 조금 느려도 되는 L2와 L3를 더 크게 둡니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>캐시도 프로그래머가 직접 관리한다</strong> — 캐시는 하드웨어가 자동으로 관리하고, 레지스터에 무엇을 넣을지는 보통 컴파일러가 정합니다. 프로그래머가 영향을 줄 수 있는 것은 데이터에 접근하는 순서와 데이터를 배치하는 방식입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>SSD가 빨라졌으니 RAM은 필요 없다</strong> — SSD 접근 시간은 수십~수백 μs이고 DRAM은 수십~100ns 수준이라 수백 배 이상 차이가 납니다. 또 DRAM은 바이트 단위로 접근하지만 SSD는 페이지 단위로 읽고 씁니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>메모리 계층은 하드웨어 이야기라서 코드와는 무관하다</strong> — 같은 계산도 접근 순서에 따라 속도가 크게 달라집니다. 아래 면접 질문의 2차원 배열 순회가 대표적인 예입니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">지역성은 캐시와 어떻게 연결되나요?</h3>
+                            <p class="overview-card__desc">시간 지역성은 최근에 쓴 데이터를 곧 다시 쓴다는 성질이라 캐시에 남겨 두면 이득이 됩니다. 공간 지역성은 가까운 주소를 이어서 쓴다는 성질이라, 캐시는 미스가 나면 한 바이트가 아니라 캐시 라인(x86에서는 보통 64바이트) 단위로 가져옵니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">2차원 배열을 행 순서와 열 순서로 순회하면 속도가 왜 다른가요?</h3>
+                            <p class="overview-card__desc">C에서 2차원 배열은 행 단위로 메모리에 이어서 저장됩니다. Java의 2차원 배열은 배열의 배열이라 행마다 별도의 배열이고, 한 행 안의 원소는 보통 연속해서 놓입니다. 행 순서로 순회하면 한 캐시 라인에 든 원소를 연달아 쓰지만, 행이 충분히 길면 열 순서로 순회할 때 원소마다 다른 라인을 가져와서 미스가 늘어납니다. 결과는 같지만 시간은 다릅니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">레지스터와 캐시는 무엇이 다른가요?</h3>
+                            <p class="overview-card__desc">레지스터는 명령어가 이름으로 직접 지정하는 CPU 내부 저장소입니다. 캐시는 메모리 주소를 기준으로 하드웨어가 투명하게 관리하는 메모리의 사본이라, 프로그램이 캐시를 이름으로 지정하지 않습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">평균 메모리 접근 시간을 줄이려면 어떻게 하나요?</h3>
+                            <p class="overview-card__desc">히트율을 높이거나(지역성 좋은 코드, 캐시 크기와 구성), 미스 때의 비용을 줄이거나(다단계 캐시, 프리페치), 히트 시간을 줄입니다(작고 단순한 L1). 세 요소가 서로 맞물려 있어서 하나를 개선하면 다른 하나가 나빠지기도 합니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>lscpu</strong> — L1d(데이터), L1i(명령어), L2, L3 캐시 크기를 보여줍니다. 기본 출력은 전체 코어를 합산한 값이고, 코어 하나당 크기는 <code>lscpu -C</code>의 ONE-SIZE 열에서 볼 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>리눅스 sysfs</strong> — <code>/sys/devices/system/cpu/cpu0/cache/index0/</code>, <code>index1/</code> 같은 하위 디렉터리 아래의 <code>level</code>, <code>type</code>, <code>size</code>, <code>coherency_line_size</code> 파일로 캐시 계층과 캐시 라인 크기를 읽을 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>L3 공유</strong> — 많은 CPU는 L1과 L2를 코어마다 두고 L3는 여러 코어가 함께 씁니다. 코어 몇 개가 L2를 나누거나 L3를 코어 묶음 단위로 쓰는 설계도 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>RAM은 디스크의 캐시</strong> — 리눅스는 디스크에서 읽은 파일 내용을 남는 메모리에 보관(페이지 캐시)해 두고 캐시에 남아 있는 동안은 같은 파일을 다시 읽어도 디스크에 가지 않습니다. <code>free</code> 명령의 buff/cache 항목에는 이 페이지 캐시가 포함됩니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/arch/cache-memory}">캐시 메모리</a> — 캐시 라인, 매핑 방식, 교체 정책이 어떻게 동작하는지 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/arch/virtual-memory}">가상 메모리</a> — RAM과 디스크 사이에서 주소를 변환하고 페이지를 옮기는 과정을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/arch/von-neumann}">폰 노이만 구조</a> — CPU와 메모리 사이의 통로가 병목이 되는 이유를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/memory-management}">메모리 관리</a> — 운영체제가 물리 메모리를 프로세스에 나눠 주는 방식을 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>메모리 벽</strong> — Wulf, McKee, "Hitting the Memory Wall: Implications of the Obvious", ACM SIGARCH Computer Architecture News 23(1), 1995</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>교재</strong> — Hennessy, Patterson, "Computer Architecture: A Quantitative Approach" 메모리 계층 설계 장</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>lscpu</strong> — <a href="https://man7.org/linux/man-pages/man1/lscpu.1.html" target="_blank" rel="noopener">lscpu(1) — Linux manual page</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>리눅스 페이지 캐시</strong> — <a href="https://docs.kernel.org/admin-guide/mm/concepts.html" target="_blank" rel="noopener">Concepts overview — The Linux Kernel documentation</a></span>
                         </div>
                     </div>
                 </div>

@@ -110,11 +110,11 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">페이지 폴트</h3>
-                            <p class="overview-card__desc">접근하려는 페이지가 물리 메모리에 없을 때 발생합니다. OS가 디스크에서 해당 페이지를 물리 메모리로 로드합니다.</p>
+                            <p class="overview-card__desc">접근하려는 페이지가 물리 메모리에 매핑돼 있지 않을 때 발생합니다. OS가 원인을 확인하고, 적재할 수 있으면 디스크 등에서 읽어 옵니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
-                            <h3 class="overview-card__title">스와핑 (Swapping)</h3>
+                            <h3 class="overview-card__title">스왑 (Swap)</h3>
                             <p class="overview-card__desc">물리 메모리가 부족할 때 사용 빈도가 낮은 페이지를 디스크(Swap 영역)로 내보내고 필요한 페이지를 로드하는 과정입니다.</p>
                         </div>
                     </div>
@@ -126,7 +126,7 @@
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>TLB 히트율</strong> — 일반적으로 95~99%입니다. TLB 미스 시 페이지 테이블 조회로 수십~수백 ns의 추가 비용이 발생합니다.</span>
+                            <span><strong>TLB 히트율</strong> — 지역성 덕분에 대체로 매우 높습니다(보통 99% 안팎 이상). TLB 미스가 나면 페이지 테이블을 걸어 내려가야 해서 수십 사이클 이상의 추가 비용이 듭니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
@@ -134,11 +134,145 @@
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>메모리 보호</strong> — 각 프로세스가 독립된 가상 주소 공간을 가지므로 한 프로세스가 다른 프로세스의 메모리에 접근할 수 없습니다.</span>
+                            <span><strong>메모리 보호</strong> — 각 프로세스가 독립된 가상 주소 공간을 가지므로 한 프로세스가 다른 프로세스의 메모리에 접근할 수 없습니다(공유하도록 명시한 영역은 예외입니다).</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>Thrashing</strong> — 페이지 폴트가 너무 자주 발생해 CPU가 실제 작업보다 페이지 교체에 더 많은 시간을 쓰는 현상입니다.</span>
+                            <span><strong>Thrashing</strong> — 페이지 폴트가 너무 자주 발생해 시스템이 실제 작업보다 페이지 교체에 더 많은 시간을 쓰는 현상입니다.</span>
+                        </div>
+                    </div>
+
+
+                    <h2 class="overview-heading">가상 메모리가 필요했던 이유</h2>
+                    <p class="overview-lead">
+                        가상 메모리가 없던 시절에는 프로그램이 물리 주소를 직접 다뤘기 때문에 세 가지 문제가 있었습니다. 프로그램이 물리 메모리보다 크면 실행할 수 없었고, 여러 프로그램을 함께 올리면 서로의 메모리를 덮어쓸 수 있었으며, 프로그램을 어느 주소에 올릴지 미리 정해 두어야 했습니다. 가상 메모리는 프로그램마다 <strong>자기만의 연속된 주소 공간</strong>을 주고, 실제 물리 위치는 운영체제와 하드웨어(MMU)가 뒤에서 대응시켜서 이 문제를 한꺼번에 풀었습니다. 1960년대 초 영국 맨체스터 대학의 Atlas 컴퓨터가 이 방식을 처음 구현한 시스템 중 하나로 알려져 있습니다.
+                    </p>
+
+                    <h2 class="overview-heading">페이지 폴트가 처리되는 순서</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>1. 접근</strong> — CPU가 가상 주소에 접근합니다. TLB에 변환 결과가 없으면 페이지 테이블을 확인합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>2. 폴트 발생</strong> — 페이지 테이블 항목의 유효(present) 비트가 0이면 CPU가 예외를 일으키고 제어가 운영체제로 넘어갑니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>3. 접근 검사</strong> — 운영체제는 이 접근이 허용된 주소인지 확인합니다. 허용되지 않은 주소이면 프로세스에 오류를 알립니다(리눅스에서는 SIGSEGV 시그널).</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>4. 프레임 확보</strong> — 비어 있는 프레임을 찾습니다. 없으면 페이지 교체 알고리즘으로 내보낼 페이지를 고르고, 내용이 바뀐 페이지는 디스크에 먼저 기록합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>5. 적재</strong> — 디스크(스왑 영역이나 파일)에서 필요한 페이지를 읽어 프레임에 올리고 페이지 테이블을 갱신합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>6. 재실행</strong> — 폴트가 났던 명령어를 처음부터 다시 실행합니다. 프로그램은 폴트가 있었다는 사실을 알지 못합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>가상 메모리는 디스크를 RAM처럼 쓰는 기능이다</strong> — 스왑은 가상 메모리의 한 부분일 뿐입니다. 핵심은 프로세스마다 독립된 주소 공간을 주고 주소를 변환하고 보호하는 것이며, 스왑 영역이 없는 시스템에서도 이 기능은 동작합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>가상 주소 공간의 크기는 설치된 RAM 크기와 같다</strong> — 주소 공간의 크기는 CPU 구조가 정합니다. x86-64의 4단계 페이지 테이블은 48비트 가상 주소를 쓰고, 리눅스는 이를 사용자 영역과 커널 영역으로 128TiB씩 나눕니다. RAM이 16GB여도 프로세스가 볼 수 있는 주소 공간은 그보다 훨씬 큽니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>페이지 폴트는 오류다</strong> — 정상 동작입니다. 리눅스는 디스크 읽기가 필요 없는 마이너 폴트(예: 처음 쓰는 메모리에 0으로 채운 페이지를 할당)와 디스크 읽기가 필요한 메이저 폴트로 구분합니다. 프로그램이 죽는 경우는 허용되지 않은 주소에 접근하거나 권한을 위반했을 때입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>TLB는 데이터 캐시의 일부다</strong> — TLB는 가상 주소를 물리 주소로 바꾼 결과를 저장하는 별도의 캐시이고, 데이터 캐시는 메모리 내용을 저장합니다. 프로세스를 전환하면 주소 대응이 달라지므로 TLB를 비우거나, 항목에 프로세스 식별자(ASID, x86의 PCID)를 붙여 구분합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">단일 단계 페이지 테이블은 왜 문제인가요?</h3>
+                            <p class="overview-card__desc">32비트 주소와 4KB 페이지에서는 페이지가 2의 20제곱(약 100만)개이므로, 항목이 4바이트이면 프로세스마다 4MB 테이블이 필요합니다. 대부분의 주소 공간은 쓰지 않는데도 테이블이 통째로 필요하므로, 쓰는 영역의 하위 테이블만 만드는 다단계 페이지 테이블을 씁니다. x86-64는 기본 4단계(5단계 확장도 있습니다)이고 각 테이블은 8바이트 항목 512개(4KB)입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">요구 페이징(Demand Paging)이란 무엇인가요?</h3>
+                            <p class="overview-card__desc">프로세스를 시작할 때 모든 페이지를 올리지 않고, 실제로 접근하는 순간 페이지 폴트로 필요한 페이지만 올리는 방식입니다. 쓰지 않는 부분은 물리 메모리를 차지하지 않아 시작이 빠르고 메모리를 아낄 수 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">스래싱은 왜 생기고 어떻게 줄이나요?</h3>
+                            <p class="overview-card__desc">실행 중인 프로세스들이 자주 쓰는 페이지의 합(작업 집합, working set)이 물리 메모리보다 커서 페이지 폴트가 계속 나는 현상입니다. 동시에 실행하는 프로세스 수를 줄이거나 메모리를 늘려서 작업 집합이 들어갈 수 있게 합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">fork 뒤 부모와 자식의 메모리는 어떻게 되나요?</h3>
+                            <p class="overview-card__desc">Copy-on-Write 방식으로 페이지를 복사하지 않고 읽기 전용으로 공유합니다. 어느 한쪽이 쓰려고 하면 페이지 폴트가 나고, 그때 해당 페이지만 복사합니다. 그래서 fork 직후에는 메모리를 거의 쓰지 않습니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>리눅스 /proc/&lt;pid&gt;/maps</strong> — 프로세스의 가상 주소 영역(코드, 힙, 스택, 공유 라이브러리)과 읽기·쓰기·실행 권한을 한 줄씩 보여줍니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>/usr/bin/time -v (GNU time)</strong> — 프로그램을 실행하고 마이너 폴트와 메이저 폴트 횟수를 출력합니다. 메이저 폴트가 많으면 디스크 읽기 때문에 느려졌다는 단서가 됩니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Windows</strong> — 프로세스마다 독립된 가상 주소 공간을 주고, 물리 메모리가 부족하면 일부 내용을 디스크의 페이징 파일로 내보냅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/arch/memory-hierarchy}">메모리 계층 구조</a> — 레지스터부터 디스크까지, 가상 메모리가 어느 계층 사이를 잇는지 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/arch/cache-memory}">캐시 메모리</a> — TLB와 비슷하게 최근 결과를 가까이 두는 캐시의 동작을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/virtual-memory-os}">가상 메모리(운영체제)</a> — 운영체제 쪽에서 페이지 교체와 스래싱을 어떻게 다루는지 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/memory-management}">메모리 관리</a> — 페이징과 세그멘테이션 등 메모리 할당 방식을 비교합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>리눅스 메모리 관리 개념</strong> — <a href="https://docs.kernel.org/admin-guide/mm/concepts.html" target="_blank" rel="noopener">Concepts overview — The Linux Kernel documentation</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>x86-64 주소 공간 배치</strong> — <a href="https://docs.kernel.org/arch/x86/x86_64/mm.html" target="_blank" rel="noopener">Complete virtual memory map with 4-level page tables — The Linux Kernel documentation</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>/proc 파일</strong> — <a href="https://man7.org/linux/man-pages/man5/proc_pid_maps.5.html" target="_blank" rel="noopener">proc_pid_maps(5) — Linux manual page</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Windows 가상 주소 공간</strong> — <a href="https://learn.microsoft.com/en-us/windows/win32/memory/virtual-address-space" target="_blank" rel="noopener">Virtual Address Space — Microsoft Learn</a></span>
                         </div>
                     </div>
 
