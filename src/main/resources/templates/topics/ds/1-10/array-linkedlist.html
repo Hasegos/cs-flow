@@ -93,7 +93,7 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">연결 리스트의 메모리 구조</h3>
-                            <p class="overview-card__desc">연결 리스트의 각 노드는 데이터(data)와 다음 노드를 가리키는 포인터(next)로 구성됩니다. 노드들이 메모리에 분산 저장되어 삽입·삭제가 O(1)이지만, 특정 위치까지 순차 탐색이 필요해 임의 접근은 O(n)입니다.</p>
+                            <p class="overview-card__desc">연결 리스트의 각 노드는 데이터(data)와 다음 노드를 가리키는 포인터(next)로 구성됩니다. 노드들이 메모리에 분산 저장되어 위치를 알고 있는 노드의 삽입·삭제가 O(1)이지만, 특정 위치까지 순차 탐색이 필요해 임의 접근은 O(n)입니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
@@ -103,7 +103,7 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">캐시 지역성(Cache Locality)</h3>
-                            <p class="overview-card__desc">배열은 연속 메모리이므로 CPU 캐시 히트율이 높습니다. 연결 리스트는 노드가 힙 메모리 곳곳에 흩어져 있어 캐시 미스가 자주 발생합니다. 실제 성능은 이론적 복잡도보다 캐시 효율 차이가 더 크게 영향을 줍니다.</p>
+                            <p class="overview-card__desc">배열은 연속 메모리이므로 CPU 캐시 히트율이 높습니다. 연결 리스트는 노드가 힙 메모리 곳곳에 흩어져 있어 캐시 미스가 자주 발생합니다. 그래서 이론적 복잡도가 같아도 실제 성능은 캐시 효율 때문에 크게 달라질 수 있습니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
@@ -113,7 +113,7 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">동적 배열(Dynamic Array)</h3>
-                            <p class="overview-card__desc">Java의 ArrayList, Python의 list가 동적 배열입니다. 내부적으로 고정 배열을 사용하되, 크기 초과 시 더 큰 배열을 새로 할당해 복사합니다. 성장 배율은 구현마다 다른데, Java ArrayList는 1.5배(oldCapacity + oldCapacity/2)로 늘립니다. 분할 상환 분석(Amortized)으로 append는 O(1)이며, 배열의 인덱스 접근 장점과 동적 크기 조정을 모두 갖습니다.</p>
+                            <p class="overview-card__desc">Java의 ArrayList, Python의 list가 동적 배열입니다. 내부적으로 고정 배열을 사용하되, 크기 초과 시 더 큰 배열을 새로 할당해 복사합니다. 성장 배율은 구현마다 다른데, OpenJDK의 ArrayList는 약 1.5배(oldCapacity + oldCapacity/2)로 늘립니다. 분할 상환 분석(Amortized)으로 append는 O(1)이며, 배열의 인덱스 접근 장점과 동적 크기 조정을 모두 갖습니다.</p>
                         </div>
                     </div>
 
@@ -128,14 +128,147 @@
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>Java에서의 선택</strong> — ArrayList는 조회 위주, LinkedList는 삽입/삭제 위주라고 알려졌지만, 실제로는 캐시 지역성 덕분에 ArrayList가 대부분 더 빠릅니다. LinkedList가 유리한 경우는 Deque(양끝 삽입/삭제)로 사용할 때입니다.</span>
+                            <span><strong>Java에서의 선택</strong> — ArrayList는 조회 위주, LinkedList는 삽입/삭제 위주라고 알려졌지만, 실제로는 캐시 지역성 덕분에 ArrayList가 대체로 더 빠릅니다. LinkedList를 고려할 만한 경우는 Deque(양끝 삽입/삭제)로 사용할 때이지만, 그 용도에서도 ArrayDeque가 더 빠를 가능성이 높다고 Java 문서가 설명합니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>메모리 사용량</strong> — 배열은 데이터만 저장해 공간 효율이 높습니다. 연결 리스트는 노드마다 포인터(8바이트, 64비트 기준)를 추가로 저장하고, 객체 헤더 오버헤드도 발생합니다. 소규모 데이터에서는 이 차이가 크게 체감됩니다.</span>
+                            <span><strong>메모리 사용량</strong> — 배열은 데이터만 저장해 공간 효율이 높습니다. 연결 리스트는 노드마다 포인터(64비트 환경에서 보통 8바이트이고, Java는 압축 포인터로 4바이트일 수 있습니다)를 추가로 저장하고, 객체 헤더 오버헤드도 발생합니다. 소규모 데이터에서는 이 차이가 크게 체감됩니다.</span>
                         </div>
                     </div>
 
+
+                    <h2 class="overview-heading">왜 둘을 비교하나</h2>
+                    <p class="overview-lead">
+                        배열과 연결 리스트는 '순서 있는 데이터를 저장한다'는 같은 목적을 서로 반대되는 방식으로 풉니다. 배열은 메모리를 연속으로 잡아 위치 계산으로 바로 접근하고, 연결 리스트는 흩어진 노드를 포인터로 이어 붙입니다. 어느 쪽이 낫다기보다 어떤 연산이 많은지에 따라 갈립니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>맨 앞 삽입 비용</strong> — 원소가 1,000,000개인 배열의 맨 앞에 넣으려면 기존 원소 1,000,000개를 한 칸씩 밀어야 합니다. 연결 리스트는 새 노드를 만들고 head 포인터만 바꾸면 됩니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>동적 배열의 복사 총량</strong> — 용량이 꽉 찰 때마다 1.5배로 늘리는 구현이면, 원소 n개를 하나씩 추가하는 동안 일어나는 복사한 원소 수의 합이 등비급수로 대략 3n 이하입니다(1 + 2/3 + 4/9 + … = 3). 원소를 넣는 n번까지 더해도 O(n)이라 append 하나당 평균 O(1)입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>ArrayList의 용량 변화 예</strong> — Java 문서는 빈 ArrayList의 초기 용량이 10이라고 설명하고, OpenJDK 구현에서는 10 → 15 → 22 → 33 → 49처럼 약 1.5배씩 늘어납니다. 증가 방식 자체는 명세에 정해져 있지 않습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>포인터 비용</strong> — 64비트 환경에서 포인터 하나는 8바이트입니다(Java는 기본 설정에서 객체 참조를 4바이트로 줄이기도 합니다). 원소가 4바이트 정수라면 단순 연결 리스트의 노드는 포인터 때문에 최소 3배 정도 큽니다(객체 헤더 등은 제외한 단순 계산).</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>연결 리스트는 삽입·삭제가 항상 O(1)이다</strong> — 삽입할 위치의 노드를 이미 알고 있을 때의 이야기입니다. 값이나 인덱스로 그 위치를 찾으려면 O(n) 순회가 먼저 필요해서, 위치를 찾는 비용까지 합치면 배열과 큰 차이가 없을 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이론 복잡도가 같으면 속도도 같다</strong> — 값으로 탐색은 둘 다 O(n)이지만, 배열은 연속된 메모리를 읽어 CPU 캐시를 잘 활용하고 연결 리스트는 노드를 따라 메모리 곳곳을 오가서 캐시 미스가 늘기 쉽습니다. 상수 차이로 실제 시간은 크게 다를 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>ArrayList는 늘 1.5배로 자란다</strong> — 문서가 보장하는 것은 요소 추가가 분할 상환 상수 시간이라는 점뿐입니다. 1.5배는 OpenJDK의 구현이고, 다른 언어와 구현은 배율이 다릅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>배열은 크기를 못 바꾼다</strong> — 고정 배열은 못 바꾸지만 동적 배열(ArrayList, Python list)은 내부에서 더 큰 배열로 옮겨 가며 크기를 바꿉니다. 그 비용이 분할 상환으로 숨겨져 있을 뿐입니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">배열과 연결 리스트의 차이를 설명해 주세요.</h3>
+                            <p class="overview-card__desc">배열은 연속 메모리라 인덱스로 O(1) 접근이 되지만 중간 삽입·삭제는 원소를 밀어야 해서 O(n)입니다. 연결 리스트는 포인터로 이어져 노드 위치만 알면 삽입·삭제가 O(1)이지만 임의 접근은 O(n)입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">동적 배열의 append가 왜 분할 상환 O(1)인가요?</h3>
+                            <p class="overview-card__desc">용량이 찰 때만 O(n) 복사가 일어나지만 용량을 일정 배율로 늘리면 그 복사가 드물게 일어나서, n번 추가하는 전체 비용을 n으로 나누면 상수가 됩니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">ArrayList와 LinkedList 중 무엇을 쓰나요?</h3>
+                            <p class="overview-card__desc">대부분의 경우 ArrayList가 낫습니다. LinkedList는 양쪽 끝에서 자주 넣고 빼는 Deque 용도에서 쓸 수 있지만, 같은 용도라면 ArrayDeque가 더 빠르다고 Java 문서가 설명합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">이중 연결 리스트의 장점은 무엇인가요?</h3>
+                            <p class="overview-card__desc">prev 포인터가 있어 양방향 순회가 되고, 삭제할 노드를 알면 앞 노드를 따로 찾지 않고 O(1)에 지울 수 있습니다. 대신 노드마다 포인터가 하나 더 듭니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Java</strong> — <code>ArrayList</code> 문서는 크기 조정 가능한 배열 구현이고 add가 분할 상환 상수 시간이라고 설명합니다. <code>LinkedList</code>는 이중 연결 리스트이고 인덱스로 접근하면 처음이나 끝 중 가까운 쪽에서 순회합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Python</strong> — CPython의 <code>list</code>는 객체 참조를 담은 가변 길이 배열입니다. 양쪽 끝에서 자주 넣고 빼려면 <code>collections.deque</code>를 쓰라고 문서가 안내합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>LRU 캐시</strong> — 해시 테이블과 이중 연결 리스트를 함께 써서 O(1)로 만드는 설계가 널리 알려져 있습니다. <a th:href="@{/ds/hash-table}">해시 테이블</a> 토픽에서 이어서 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/ds/stack-queue}">스택 / 큐</a> — 배열과 연결 리스트 위에 만드는 대표 자료구조를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/ds/hash-table}">해시 테이블</a> — 배열 위에서 O(1) 접근을 만드는 방법을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/arch/cache-memory}">캐시 메모리</a> — 배열이 캐시에 유리한 이유를 구조에서 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/complexity}">시간·공간 복잡도</a> — 분할 상환과 점근 표기를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/binary-search}">이진 탐색</a> — 임의 접근이 되는 배열에서만 성립하는 탐색을 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Java ArrayList</strong> — <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/ArrayList.html" target="_blank" rel="noopener">ArrayList — Java SE 21 API</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Java LinkedList</strong> — <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/LinkedList.html" target="_blank" rel="noopener">LinkedList — Java SE 21 API</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Java ArrayDeque</strong> — <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/ArrayDeque.html" target="_blank" rel="noopener">ArrayDeque — Java SE 21 API</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Python deque</strong> — <a href="https://docs.python.org/3/library/collections.html#collections.deque" target="_blank" rel="noopener">collections — deque objects — Python documentation</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>교재</strong> — Cormen, Leiserson, Rivest, Stein, "Introduction to Algorithms" 4판, "Elementary Data Structures" 장(연결 리스트), "Amortized Analysis" 장(동적 테이블)</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
