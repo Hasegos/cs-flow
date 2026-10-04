@@ -126,7 +126,7 @@
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>작은 예제라 차이가 작아 보일 수 있습니다</strong> — 여기서는 값이 12개뿐이라 7번 vs 6번으로 큰 차이가 안 나 보이지만, 실제 테이블처럼 수만~수백만 건이 되면 풀 스캔은 그 수만큼 늘어나고 인덱스는 트리 단계 수(보통 3~4단계)만큼만 늘어납니다.</span>
+                            <span><strong>작은 예제라 차이가 작아 보일 수 있습니다</strong> — 여기서는 값이 12개뿐이라 7번 vs 6번으로 큰 차이가 안 나 보이지만, 실제 테이블처럼 수만~수백만 건이 되면 풀 스캔은 그 수만큼 늘어나고 인덱스는 트리 단계 수(대개 몇 단계)만큼만 늘어납니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
@@ -138,6 +138,123 @@
                         </div>
                     </div>
 
+
+                    <h2 class="overview-heading">B-Tree가 쓰이는 이유</h2>
+                    <p class="overview-lead">
+                        정렬된 배열은 이진 탐색으로 빠르게 찾지만 중간에 끼워 넣을 때마다 뒤를 모두 밀어야 합니다. B-Tree는 한 노드에 키를 여러 개 담는 균형 트리라서, 삽입과 삭제 뒤에도 트리 높이를 낮게 유지하면서 정렬 순서를 지킵니다. 노드 하나가 디스크 페이지 하나에 대응하도록 만들 수 있어서, 디스크에서 읽는 횟수를 줄이는 데 맞는 구조입니다. 이 구조는 Bayer와 McCreight가 1970년대 초에 제안한 것으로 알려져 있고, 많은 데이터베이스가 이 B-Tree 계열(리프에 데이터 위치를 두는 B+Tree형)을 씁니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>트리 높이 계산(설명용 가정)</strong> — 8KB 페이지에 키와 포인터를 합쳐 16바이트씩 넣는다고 가정하면 노드 하나에 약 512개를 담습니다. 512개씩 갈라지는 트리는 3단계로 512³ = 134,217,728건(약 1.3억)까지 가리킵니다. 그래서 수백만 건이어도 몇 단계만 내려가면 됩니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>풀 스캔과의 비교</strong> — 100만 건에서 풀 스캔은 최대 100만 번 비교하고, 이진 탐색 방식의 비교는 log₂(1,000,000) ≈ 20번입니다. B-Tree는 한 노드 안에서 여러 키를 한 번에 읽으므로 디스크 읽기는 트리 높이 수준입니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>WHERE에 컬럼이 있으면 항상 인덱스를 탄다</strong> — 컬럼에 함수를 씌우면 일반 인덱스를 쓰지 못할 수 있습니다. PostgreSQL 문서는 <code>lower(col1) = 'value'</code> 조건이 <code>col1</code> 일반 인덱스를 쓰지 못하고, <code>lower(col1)</code>에 만든 인덱스(표현식 인덱스)가 있으면 쓸 수 있다고 안내합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>LIKE는 어디에 와일드카드가 있어도 인덱스를 쓴다</strong> — B-Tree 인덱스는 패턴이 문자열 맨 앞에서 고정된 상수일 때(<code>LIKE 'abc%'</code>) 쓸 수 있고, <code>LIKE '%abc'</code>처럼 앞이 열려 있으면 쓸 수 없습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>복합 인덱스는 컬럼 순서와 상관없다</strong> — 복합 인덱스는 앞쪽(선두) 컬럼에 조건이 있을 때 가장 효율적입니다. PostgreSQL 문서는 선두 컬럼이 아닌 컬럼만으로도 쓸 수는 있지만 효율이 떨어진다고 설명합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>인덱스는 많을수록 좋다</strong> — 인덱스마다 쓰기 때 갱신해야 하고 저장 공간도 차지합니다. 조회에 거의 쓰이지 않는 인덱스는 비용만 늘립니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">왜 인덱스에 해시 테이블이 아니라 B-Tree를 많이 쓰나요?</h3>
+                            <p class="overview-card__desc">해시는 같은 값 찾기(=)에는 빠르지만 정렬 순서가 없어 범위 조회(BETWEEN, &lt;, &gt;)와 정렬(ORDER BY)에 쓰기 어렵습니다. B-Tree는 정렬된 순서를 유지해서 같은 값과 범위를 모두 지원합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">복합 인덱스에서 컬럼 순서는 어떻게 정하나요?</h3>
+                            <p class="overview-card__desc">자주 조건으로 쓰는 컬럼, 특히 같음(=) 조건에 쓰는 컬럼을 앞에 둡니다. 선두 컬럼에 조건이 없으면 인덱스를 효율적으로 쓰기 어렵기 때문입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">커버링 인덱스란 무엇인가요?</h3>
+                            <p class="overview-card__desc">쿼리에 필요한 컬럼이 모두 인덱스에 들어 있어 테이블 본체를 읽지 않고 인덱스만으로 답하는 경우입니다. PostgreSQL은 이를 인덱스 전용 스캔(index-only scan)이라고 부릅니다. 다만 해당 페이지가 모두 보이는(all-visible) 상태로 기록되어 있어야 테이블 확인을 건너뛸 수 있어서, 항상 본체를 안 읽는 것은 아닙니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">인덱스를 걸면 INSERT가 느려지는 이유는 무엇인가요?</h3>
+                            <p class="overview-card__desc">행을 넣을 때 테이블뿐 아니라 걸려 있는 모든 인덱스에도 새 키를 정렬된 위치에 넣어야 해서 작업이 늘어납니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>PostgreSQL의 인덱스 사용 확인</strong> — <code>pg_stat_user_indexes</code> 뷰의 <code>idx_scan</code> 값으로 인덱스가 스캔된 횟수를 볼 수 있습니다(IN이나 OR 조건에서는 쿼리 하나가 여러 번으로 셀 수 있습니다). 한 번도 쓰이지 않은 인덱스는 정리 후보로 볼 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 사이트의 태그 조회</strong> — topic_tag 테이블에는 조회용 인덱스 두 개가 걸려 있습니다(<code>docs/ddl.sql</code>). 태그와 토픽으로 찾는 조회가 풀 스캔이 되지 않게 하기 위한 것입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>기본키와 인덱스</strong> — PostgreSQL에서 기본키를 선언하면 유일성을 보장하는 B-Tree 인덱스가 자동으로 만들어집니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/query-plan}">쿼리 실행 계획</a> — 옵티마이저가 인덱스를 쓸지 풀 스캔을 할지 고르는 기준을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/sql-join}">SQL JOIN</a> — 조인 조건 컬럼에 인덱스가 왜 중요한지 이어서 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/rdbms-basic}">RDBMS 기초</a> — 기본키와 UNIQUE가 인덱스로 구현되는 배경을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/ds/tree}">트리</a> — B-Tree의 바탕이 되는 트리 구조를 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>PostgreSQL 인덱스</strong> — <a href="https://www.postgresql.org/docs/current/indexes.html" target="_blank" rel="noopener">Indexes — PostgreSQL Documentation</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>인덱스 전용 스캔</strong> — <a href="https://www.postgresql.org/docs/current/indexes-index-only-scans.html" target="_blank" rel="noopener">Index-Only Scans and Covering Indexes — PostgreSQL Documentation</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>원 논문</strong> — Bayer, McCreight, "Organization and Maintenance of Large Ordered Indexes", Acta Informatica, 1972</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>교재</strong> — Silberschatz, Korth, Sudarshan, "Database System Concepts" 7판, "Indexing" 장</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
