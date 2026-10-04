@@ -94,7 +94,7 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">4-way Termination</h3>
-                            <p class="overview-card__desc">TCP 연결 종료 과정입니다. ① 클라이언트가 FIN을 보냅니다. ② 서버가 ACK로 응답합니다(서버는 아직 데이터 전송 가능). ③ 서버가 FIN을 보냅니다. ④ 클라이언트가 ACK를 보내고 TIME_WAIT 상태를 거쳐 완전히 종료됩니다.</p>
+                            <p class="overview-card__desc">TCP 연결 종료 과정입니다. ① 클라이언트가 FIN을 보냅니다. ② 서버가 ACK로 응답합니다(서버가 ACK와 FIN을 합쳐 보내면 3번이 됩니다)(서버는 아직 데이터 전송 가능). ③ 서버가 FIN을 보냅니다. ④ 클라이언트가 ACK를 보내고 TIME_WAIT 상태를 거쳐 완전히 종료됩니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
@@ -121,11 +121,11 @@
                     <div class="overview-points">
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>TIME_WAIT (2MSL)</strong> — 클라이언트가 마지막 ACK를 보낸 후 2×MSL(Maximum Segment Lifetime, 보통 2분)간 TIME_WAIT 상태를 유지합니다. 마지막 ACK가 손실되면 서버가 FIN을 재전송하며, 이때 재응답할 수 있도록 소켓을 열어둡니다.</span>
+                            <span><strong>TIME_WAIT (2MSL)</strong> — 연결을 먼저 닫은 쪽(이 그림에서는 클라이언트)이 마지막 ACK를 보낸 뒤 2×MSL(Maximum Segment Lifetime) 동안 TIME_WAIT 상태를 유지합니다. RFC 9293은 MSL을 2분으로 가정하지만 구현마다 다릅니다. 마지막 ACK가 손실되면 서버가 FIN을 재전송하며, 이때 재응답할 수 있도록 소켓을 열어둡니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>시퀀스 번호 (ISN)</strong> — 초기 시퀀스 번호(ISN)는 예측 불가능한 랜덤 값으로 설정됩니다. 이는 이전 연결의 패킷이 새 연결에 영향을 미치는 것과 TCP 세션 하이재킹을 방지하기 위함입니다.</span>
+                            <span><strong>시퀀스 번호 (ISN)</strong> — 초기 시퀀스 번호(ISN)는 예측하기 어렵게 정하도록 RFC 6528이 권고합니다. 이전 연결의 패킷이 새 연결에 영향을 미치는 것과 시퀀스 번호 추측 공격을 줄이기 위함입니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
@@ -133,10 +133,143 @@
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>Keep-Alive</strong> — 연결이 설정된 후 데이터 교환이 없어도 연결을 유지합니다. 일정 시간마다 빈 ACK를 전송해 상대방이 살아있는지 확인합니다. HTTP/1.1의 Connection: keep-alive가 대표적입니다.</span>
+                            <span><strong>Keep-Alive</strong> — 연결이 설정된 후 데이터 교환이 없어도 연결을 유지합니다. 일정 시간마다 탐지용 ACK 패킷을 전송해 상대방이 살아있는지 확인하는 TCP keepalive입니다. HTTP/1.1의 Connection: keep-alive는 TCP 연결을 여러 요청에 재사용한다는 뜻으로 TCP keepalive와는 다른 개념입니다.</span>
                         </div>
                     </div>
 
+
+                    <h2 class="overview-heading">TCP가 해결하려는 문제</h2>
+                    <p class="overview-lead">
+                        인터넷의 기반인 IP는 패킷을 최선을 다해 전달할 뿐, 도착과 순서를 보장하지 않습니다. TCP는 그 위에서 번호 매기기, 확인 응답, 재전송, 흐름 제어, 혼잡 제어로 '순서대로 빠짐없이 도착하는 바이트 스트림'처럼 보이게 만드는 프로토콜입니다. 현재 사양은 2022년 RFC 9293에 정리되어 있습니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>시퀀스 번호가 한 바퀴 도는 시간</strong> — 시퀀스 번호는 32비트라서 2³² = 4,294,967,296바이트마다 한 바퀴를 돕니다. 초당 125MB(1Gbps)로 보내면 약 34초, 10Gbps면 약 3.4초입니다. 그래서 고속 환경에서는 오래된 패킷을 가려내는 별도 장치가 필요합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>윈도우 크기의 한계</strong> — 헤더의 윈도우 필드는 16비트라서 최대 65,535바이트입니다. 왕복 시간이 100ms이면 한 번에 65,535바이트만 보낼 수 있어 처리량이 대략 65,535 / 0.1 ≈ 655KB/s(약 5.2Mbps)로 제한됩니다. 윈도우 스케일 옵션을 쓰면 이 한계를 크게 넘길 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>연결 설정 비용</strong> — 3-way handshake는 데이터를 보내기 전에 왕복을 한 번 쓰는 셈입니다. 왕복 시간이 100ms이면 연결 설정이 끝나는 데 100ms가 듭니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>세그먼트 크기</strong> — 이더넷의 MTU 1,500바이트에서 IPv4 헤더 20바이트와 TCP 헤더 20바이트(옵션 없음)를 빼면 한 세그먼트에 담는 데이터는 최대 1,460바이트입니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>TCP는 메시지 경계를 지켜 준다</strong> — TCP는 바이트 스트림입니다. 한 번 send한 데이터가 한 번에 recv되리라는 보장이 없어서 응용 계층에서 길이나 구분자로 메시지 경계를 정해야 합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>연결 종료는 항상 4번의 패킷이다</strong> — 양쪽이 각자 FIN을 보내고 각각 ACK를 받으면 4번이지만, RFC의 예시는 4개의 세그먼트이지만, 수신 쪽이 ACK와 자기 FIN을 한 세그먼트에 합치면 3번이 됩니다. 한쪽만 닫는 반 닫기(half-close)도 가능합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>TCP는 데이터가 반드시 전달된다고 보장한다</strong> — 재전송으로 전달을 시도하지만 연결이 끊기면 실패를 알려 줄 뿐입니다. 상대가 데이터를 처리했는지는 응용 계층의 확인이 있어야 압니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>UDP는 신뢰성이 필요한 곳에 쓸 수 없다</strong> — UDP 자체는 보장이 없지만 그 위에 직접 재전송과 순서 보장을 올릴 수 있습니다. QUIC가 대표적입니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">연결을 왜 3-way handshake로 맺나요?</h3>
+                            <p class="overview-card__desc">양쪽이 서로의 초기 시퀀스 번호를 확인하고 동기화해야 해서 양방향으로 SYN과 ACK가 오가야 합니다. RFC 9293은 오래된 중복 SYN이 혼란을 일으키지 않게 하는 것도 이유로 설명합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">TIME_WAIT 상태는 왜 있나요?</h3>
+                            <p class="overview-card__desc">마지막 ACK가 손실되었을 때 상대가 FIN을 다시 보내면 응답할 수 있게 하고, 같은 주소 쌍의 이전 연결에서 늦게 도착한 패킷이 새 연결에 섞이는 것을 막기 위해서입니다. 보통 연결을 먼저 닫은(능동 종료) 쪽이 TIME_WAIT에 들어가고, 동시에 닫으면 양쪽이 들어갑니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">흐름 제어와 혼잡 제어의 차이는 무엇인가요?</h3>
+                            <p class="overview-card__desc">흐름 제어는 수신자의 버퍼를 넘치지 않게 수신 윈도우로 송신 속도를 맞추는 것이고, 혼잡 제어는 네트워크 전체가 막히지 않게 혼잡 윈도우로 송신 속도를 조절하는 것입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">TCP와 UDP는 언제 각각 쓰나요?</h3>
+                            <p class="overview-card__desc">순서와 신뢰성이 중요한 웹, 파일 전송, 메일은 TCP를 씁니다. 지연이 중요하고 약간의 손실을 허용하는 실시간 음성·영상, 짧은 질의응답인 DNS는 UDP를 흔히 씁니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Linux 소켓 설정</strong> — <code>tcp(7)</code> 매뉴얼은 <code>tcp_keepalive_time</code>의 기본값이 7200초(2시간)라고 설명합니다. <code>ss</code> 명령으로 소켓 상태(TIME_WAIT 등)를 볼 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>TIME_WAIT 길이</strong> — RFC 9293은 MSL을 2분으로 가정해 2MSL을 4분으로 설명하지만 구현마다 다릅니다. 리눅스 커널 소스(include/net/tcp.h)는 TIME_WAIT 길이를 약 60초로 정의합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>HTTP 연결 재사용</strong> — HTTP/1.1의 keep-alive는 TCP 연결을 여러 요청에 재사용하는 것이고, TCP keepalive(주기적인 탐지 패킷)와는 다른 개념입니다. <a th:href="@{/network/http}">HTTP</a> 토픽에서 이어서 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/osi-model}">OSI 7계층</a> — TCP가 속한 전송 계층의 위치를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/tcp-congestion}">TCP 혼잡 제어</a> — 혼잡 윈도우가 변하는 과정을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/http}">HTTP</a> — TCP 위에서 도는 응용 프로토콜을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/https-tls}">HTTPS / TLS</a> — TCP 위에 보안 채널을 얹는 방식을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/websocket}">WebSocket</a> — TCP 연결을 오래 유지하는 사용 예를 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>TCP 사양</strong> — <a href="https://www.rfc-editor.org/rfc/rfc9293" target="_blank" rel="noopener">RFC 9293 — Transmission Control Protocol (TCP)</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>TCP 확장</strong> — <a href="https://www.rfc-editor.org/rfc/rfc7323" target="_blank" rel="noopener">RFC 7323 — TCP Extensions for High Performance</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>TCP Fast Open</strong> — <a href="https://www.rfc-editor.org/rfc/rfc7413" target="_blank" rel="noopener">RFC 7413 — TCP Fast Open</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>초기 시퀀스 번호</strong> — <a href="https://www.rfc-editor.org/rfc/rfc6528" target="_blank" rel="noopener">RFC 6528 — Defending against Sequence Number Attacks</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Linux tcp(7)</strong> — <a href="https://man7.org/linux/man-pages/man7/tcp.7.html" target="_blank" rel="noopener">tcp(7) — Linux manual page</a></span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
