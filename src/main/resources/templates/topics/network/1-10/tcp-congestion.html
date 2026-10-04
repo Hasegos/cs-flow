@@ -89,7 +89,7 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">Slow Start</h3>
-                            <p class="overview-card__desc">연결 초기 또는 타임아웃 후 시작합니다. cwnd를 1 MSS에서 시작해 ACK를 받을 때마다 1씩 증가합니다(RTT마다 2배). ssthresh(Slow Start Threshold)에 도달하면 Congestion Avoidance로 전환합니다. 이름은 "Slow"지만 지수적으로 증가합니다.</p>
+                            <p class="overview-card__desc">연결 초기 또는 타임아웃 후 시작합니다. cwnd를 작은 값(여기서는 1 MSS)에서 시작해 새 데이터를 확인하는 ACK를 받을 때마다 최대 1 MSS씩 증가합니다(RTT마다 대략 2배). 실제 초기 윈도우는 구현과 표준에 따라 더 큽니다. ssthresh(Slow Start Threshold)에 도달하면 Congestion Avoidance로 전환합니다. 이름은 "Slow"지만 지수적으로 증가합니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
@@ -104,7 +104,7 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">Fast Recovery (TCP Reno)</h3>
-                            <p class="overview-card__desc">3-Dup ACK 감지 시: ssthresh = cwnd/2, cwnd = ssthresh + 3으로 설정하고 Congestion Avoidance로 진입합니다. Slow Start로 돌아가지 않아 타임아웃보다 빠르게 회복합니다. TCP Tahoe는 Fast Recovery 없이 항상 Slow Start로 복귀했습니다.</p>
+                            <p class="overview-card__desc">3-Dup ACK 감지 시: ssthresh = cwnd/2, cwnd = ssthresh + 3 MSS로 설정하고 Congestion Avoidance로 진입합니다(교재식 단순화이고 RFC 5681은 전송 중인 데이터 양의 절반을 기준으로 합니다). Slow Start로 돌아가지 않아 타임아웃보다 빠르게 회복합니다. TCP Tahoe는 Fast Recovery 없이 항상 Slow Start로 복귀했습니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
@@ -114,14 +114,14 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">TCP CUBIC / BBR</h3>
-                            <p class="overview-card__desc">현대 OS는 TCP Reno 대신 CUBIC(Linux 기본)이나 BBR을 사용합니다. CUBIC은 3차 함수로 cwnd를 조절해 고속·장거리 네트워크에서 효율적입니다. BBR(Bottleneck Bandwidth and RTT)은 손실 기반이 아닌 대역폭·지연 측정 기반으로 더 정확합니다.</p>
+                            <p class="overview-card__desc">Linux는 보통 CUBIC을 기본으로 쓰며(RFC 9438), 기본값은 커널 설정에 따라 다르고 설정으로 BBR 같은 다른 알고리즘을 고를 수 있습니다. CUBIC은 3차 함수로 cwnd를 조절해 고속·장거리 네트워크에서 효율적입니다. BBR(Bottleneck Bandwidth and RTT)은 손실 대신 병목 대역폭과 왕복 시간을 측정해 전송 속도를 정합니다.</p>
                         </div>
                     </div>
 
                     <div class="overview-points">
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>ssthresh (Slow Start Threshold)</strong> — 혼잡 감지 시 cwnd/2로 설정됩니다. 다음 Slow Start 단계에서 ssthresh에 도달하면 Congestion Avoidance로 전환하는 임계값입니다. 초기값은 보통 65535바이트(64KB)로 설정됩니다.</span>
+                            <span><strong>ssthresh (Slow Start Threshold)</strong> — 혼잡 감지 시 대략 절반으로 줄여 설정됩니다. Slow Start 단계에서 cwnd가 ssthresh에 도달하면 Congestion Avoidance로 전환하는 임계값입니다. 초기값은 RFC 5681이 임의로 크게 잡도록 하고, 수신 윈도우 크기를 쓰는 것을 예로 듭니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
@@ -129,7 +129,7 @@
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>AIMD (Additive Increase Multiplicative Decrease)</strong> — Congestion Avoidance의 핵심 원리입니다. 혼잡이 없으면 선형 증가(+1), 혼잡 감지 시 반으로 감소(×0.5)합니다. 이 비대칭적 조절이 네트워크 공정성과 안정성을 보장합니다.</span>
+                            <span><strong>AIMD (Additive Increase Multiplicative Decrease)</strong> — Congestion Avoidance의 핵심 원리입니다. 혼잡이 없으면 선형 증가(+1), 혼잡 감지 시 반으로 감소(×0.5)합니다. 이 비대칭적 조절 덕분에 여러 흐름이 대역폭을 나눠 쓰는 쪽으로 수렴하도록 설계되어 있습니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
@@ -137,6 +137,139 @@
                         </div>
                     </div>
 
+
+                    <h2 class="overview-heading">혼잡 제어는 왜 생겼나</h2>
+                    <p class="overview-lead">
+                        송신자가 네트워크 용량을 모른 채 보내기만 하면 라우터 큐가 넘치고, 손실된 패킷의 재전송이 다시 부하를 키워 모두의 처리량이 무너지는 혼잡 붕괴(congestion collapse)가 생길 수 있습니다. 1980년대 중반 실제 인터넷에서 이 현상이 관찰되었고, 1988년 Van Jacobson의 논문 'Congestion Avoidance and Control'이 슬로 스타트와 혼잡 회피 같은 해법을 제안했습니다. 지금의 표준 설명은 RFC 5681에 있습니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>슬로 스타트의 성장</strong> — cwnd가 1 MSS에서 RTT마다 2배가 되면 1, 2, 4, 8, 16, 32, 64로 늘어 64 MSS에 닿는 데 6 RTT가 걸립니다. RTT가 100ms이면 600ms입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>처리량의 근사식</strong> — 한 RTT에 cwnd만큼 보낼 수 있으므로 처리량은 대략 cwnd / RTT입니다. cwnd가 10 MSS(MSS 1,460바이트이면 14,600바이트)이고 RTT가 100ms이면 약 146KB/s, 곧 약 1.17Mbps입니다. RFC 6928은 초기 윈도우를 최대 10세그먼트까지 올리는 것을 제안합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>AIMD 톱니</strong> — cwnd가 20일 때 손실로 절반인 10이 되면, RTT마다 1 MSS씩 늘어 다시 20에 닿는 데 10 RTT가 걸립니다. 줄어드는 것은 한 번에, 회복은 천천히라서 그래프가 톱니 모양이 됩니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>파이프를 채우는 데 필요한 양</strong> — 1Gbps(125MB/s) 링크에서 RTT가 100ms이면 한 번에 떠 있어야 할 데이터가 125MB/s × 0.1초 = 12.5MB, 약 8,562개 세그먼트(1,460바이트 기준)입니다. 윈도우가 이보다 작으면 링크를 다 쓰지 못합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>슬로 스타트는 느리게 증가한다</strong> — 시작 값이 작을 뿐 RTT마다 2배가 되는 지수 증가입니다. 이름은 한꺼번에 큰 양을 쏟던 초기 방식과 비교해 붙은 것입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>혼잡 제어는 라우터가 한다</strong> — 속도 조절은 송신 쪽 TCP가 합니다. 라우터는 큐가 차면 패킷을 버리거나 ECN으로 표시하고, 송신자가 그 신호로 혼잡을 추정합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>흐름 제어와 같은 것이다</strong> — 흐름 제어는 수신자 버퍼를 보호하고(rwnd), 혼잡 제어는 네트워크 경로를 보호합니다(cwnd). 실제 송신량은 둘 중 작은 값입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>패킷 손실은 항상 혼잡이다</strong> — 손실 기반 알고리즘은 손실을 혼잡 신호로 읽습니다. 무선 구간의 전송 오류처럼 혼잡과 무관한 손실도 있어서 이때는 속도를 불필요하게 줄일 수 있습니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">슬로 스타트가 필요한 이유는 무엇인가요?</h3>
+                            <p class="overview-card__desc">연결 시작 시점에는 경로의 가용 대역폭을 모릅니다. 작은 윈도우로 시작해 ACK가 올 때마다 늘려 가며 용량을 탐색하면, 처음부터 크게 보내 큐를 넘치게 하는 일을 피할 수 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">타임아웃과 3 duplicate ACK는 어떻게 다르게 처리하나요?</h3>
+                            <p class="overview-card__desc">3 duplicate ACK는 뒤 패킷이 도착하고 있다는 뜻이라 덜 심각한 신호입니다. Reno 계열은 빠른 재전송 후 윈도우를 절반 근처로 줄이고 혼잡 회피로 이어 갑니다. 타임아웃은 더 심각해서 cwnd를 1 MSS로 줄이고 슬로 스타트부터 다시 시작합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">Reno, CUBIC, BBR은 무엇이 다른가요?</h3>
+                            <p class="overview-card__desc">Reno는 손실 때 절반으로 줄이고 RTT마다 1 MSS씩 늘리는 고전적 방식입니다. CUBIC은 마지막 손실 시점의 윈도우를 기준으로 3차 함수 모양으로 늘려 고속·장거리 망에서 빨리 회복합니다. BBR은 손실 대신 병목 대역폭과 왕복 시간의 측정으로 전송 속도를 정합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">흐름 제어와 혼잡 제어의 차이는 무엇인가요?</h3>
+                            <p class="overview-card__desc">흐름 제어는 수신자가 알려 주는 수신 윈도우로 수신 버퍼 넘침을 막고, 혼잡 제어는 송신자가 스스로 관리하는 혼잡 윈도우로 네트워크 과부하를 막습니다. 송신량은 두 윈도우 중 작은 값으로 제한됩니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Linux에서 알고리즘 확인</strong> — <code>tcp(7)</code> 매뉴얼은 <code>tcp_congestion_control</code> 설정으로 기본 혼잡 제어 알고리즘을 고른다고 설명하고, 소켓마다 <code>TCP_CONGESTION</code> 옵션으로 바꿀 수도 있습니다. <code>ss -ti</code>로 연결별 cwnd 같은 내부 정보를 볼 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>표준과 구현</strong> — CUBIC은 RFC 9438로, ECN은 RFC 3168로 문서화되어 있습니다. BBR은 Google이 설계해 공개했고 논문 형태로 설명되어 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>고성능 서버의 전송 설정</strong> — 높은 대역폭·긴 RTT 환경에서는 윈도우 스케일 같은 TCP 확장(RFC 7323)과 충분한 소켓 버퍼가 함께 있어야 윈도우가 실제로 커질 수 있습니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/tcp-ip}">TCP/IP</a> — 흐름 제어와 재전송 등 혼잡 제어의 바탕이 되는 TCP 기본을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/http}">HTTP</a> — TCP 위에서 응답 시간에 영향을 주는 요소를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/cdn}">CDN</a> — RTT를 줄여 윈도우가 빨리 커지게 하는 방법을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/websocket}">WebSocket</a> — 오래 유지하는 TCP 연결에서 혼잡 제어가 영향을 주는 사례를 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>혼잡 제어 표준</strong> — <a href="https://www.rfc-editor.org/rfc/rfc5681" target="_blank" rel="noopener">RFC 5681 — TCP Congestion Control</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>초기 윈도우</strong> — <a href="https://www.rfc-editor.org/rfc/rfc6928" target="_blank" rel="noopener">RFC 6928 — Increasing TCP's Initial Window</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>CUBIC</strong> — <a href="https://www.rfc-editor.org/rfc/rfc9438" target="_blank" rel="noopener">RFC 9438 — CUBIC for Fast and Long-Distance Networks</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>ECN</strong> — <a href="https://www.rfc-editor.org/rfc/rfc3168" target="_blank" rel="noopener">RFC 3168 — The Addition of Explicit Congestion Notification (ECN) to IP</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Linux tcp(7)</strong> — <a href="https://man7.org/linux/man-pages/man7/tcp.7.html" target="_blank" rel="noopener">tcp(7) — Linux manual page</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>논문</strong> — V. Jacobson, "Congestion Avoidance and Control", ACM SIGCOMM 1988 / N. Cardwell 외, "BBR: Congestion-Based Congestion Control", ACM Queue 2016</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
