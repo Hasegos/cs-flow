@@ -94,7 +94,7 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">인접과 차수</h3>
-                            <p class="overview-card__desc">두 정점 사이에 간선이 있으면 서로 인접(Adjacent)하다고 합니다. 차수(Degree)는 한 정점에 연결된 간선의 개수로, 그래프에서 해당 정점의 연결 중요도를 나타냅니다.</p>
+                            <p class="overview-card__desc">두 정점 사이에 간선이 있으면 서로 인접(Adjacent)하다고 합니다. 차수(Degree)는 한 정점에 연결된 간선의 개수로, 해당 정점이 얼마나 많이 연결되어 있는지를 나타냅니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
@@ -121,7 +121,7 @@
                     <div class="overview-points">
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>트리는 그래프의 특수한 형태</strong> — 트리는 사이클이 없고 정점 N개에 간선이 정확히 N-1개인 그래프입니다. 반대로 모든 그래프가 트리인 것은 아니며, 사이클과 다중 경로가 자유롭게 존재할 수 있습니다.</span>
+                            <span><strong>트리는 그래프의 특수한 형태</strong> — 트리는 연결되어 있고 사이클이 없는 그래프로, 정점 N개에 간선이 정확히 N-1개입니다. 반대로 모든 그래프가 트리인 것은 아니며, 사이클과 다중 경로가 자유롭게 존재할 수 있습니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
@@ -133,10 +133,139 @@
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>활용 사례</strong> — BFS는 최단 경로 탐색(가중치 없는 그래프), 네트워크 브로드캐스트에 사용됩니다. DFS는 사이클 탐지, 위상 정렬, 연결 요소 찾기의 기반이 되며, 다음 토픽인 다익스트라 알고리즘은 BFS를 가중치 그래프로 확장한 개념입니다.</span>
+                            <span><strong>활용 사례</strong> — BFS는 최단 경로 탐색(가중치 없는 그래프), 네트워크 브로드캐스트에 사용됩니다. DFS는 사이클 탐지, 위상 정렬, 연결 요소 찾기의 기반이 되며, 다음 토픽인 다익스트라 알고리즘은 BFS의 아이디어를 가중치 그래프로 확장한 것으로 볼 수 있습니다.</span>
                         </div>
                     </div>
 
+
+                    <h2 class="overview-heading">그래프로 모델링하는 이유</h2>
+                    <p class="overview-lead">
+                        그래프는 '무언가와 무언가가 연결되어 있다'는 관계를 그대로 담는 자료구조입니다. 도시와 도로, 웹 페이지와 링크, 사람과 친구 관계, 작업과 선행 작업처럼 현실의 많은 문제가 정점과 간선으로 옮겨지면 같은 알고리즘(탐색, 최단 경로, 위상 정렬)으로 풀립니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>간선의 최대 개수</strong> — 정점이 V개인 무방향 단순 그래프는 간선이 최대 V(V − 1) / 2개이고, 방향 그래프는 최대 V(V − 1)개입니다. V = 1,000이면 무방향 최대 499,500개입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>연결 그래프의 최소 간선</strong> — 무방향 그래프에서 정점 V개가 모두 이어지려면 간선이 최소 V − 1개 필요하고, V − 1개이면 트리입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>표현 방식의 크기 비교</strong> — V = 100,000인 그래프의 인접 행렬은 V² = 10¹⁰칸입니다. 칸당 1바이트만 써도 약 10GB입니다. 간선이 E = 500,000개이면 인접 리스트는 정점 V개와 간선 양쪽 기록 2E개를 합쳐 약 1,100,000개 항목입니다(10GB는 10진 단위입니다).</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>소셜 그래프의 밀도</strong> — 사용자 수가 수십만이어도 한 사람의 친구는 많아야 수천 명이라, 가능한 쌍 대비 실제 간선이 매우 적은 희소 그래프가 되기 쉽습니다. 이때 인접 리스트가 맞습니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>그래프와 트리는 서로 다른 자료구조다</strong> — 트리는 사이클이 없는 연결 그래프입니다. 트리에 쓰는 탐색을 그래프에도 쓰되, 그래프는 사이클 때문에 방문 표시가 필요합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>인접 행렬이 항상 더 빠르다</strong> — 두 정점의 간선 조회는 O(1)이지만 한 정점의 이웃을 모두 훑는 데 O(V)가 듭니다. 희소 그래프에서는 인접 리스트가 탐색과 공간에서 모두 유리합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>무방향 그래프의 간선은 한 번만 저장한다</strong> — 인접 리스트에서는 양 끝 정점의 목록에 각각 넣어야 합니다. 인접 행렬은 대칭이라 두 칸이 채워집니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>방향 그래프의 연결은 무방향과 같다</strong> — 방향 그래프에서는 A에서 B로 갈 수 있어도 B에서 A로 갈 수 없을 수 있습니다. 모든 정점 쌍이 방향을 따라 서로 도달 가능하면 강연결, 방향을 무시했을 때 연결이면 약연결이라고 따로 구분합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">인접 행렬과 인접 리스트 중 무엇을 쓰나요?</h3>
+                            <p class="overview-card__desc">간선이 많아 거의 모든 쌍이 연결된 밀집 그래프이거나 간선 존재 여부를 자주 물으면 인접 행렬, 간선이 적은 희소 그래프이거나 이웃 순회가 많으면 인접 리스트를 씁니다. 대부분의 실제 그래프는 희소해서 인접 리스트가 흔합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">방향 그래프에서 사이클은 어떻게 찾나요?</h3>
+                            <p class="overview-card__desc">DFS로 탐색하면서 현재 탐색 경로에 있는 정점으로 다시 돌아오는 간선을 만나면 사이클입니다. 무방향 그래프에서는 부모가 아닌 이미 방문한 이웃을 만날 때입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">위상 정렬은 언제 쓰나요?</h3>
+                            <p class="overview-card__desc">작업 사이에 선행 관계가 있을 때 의존성을 지키는 실행 순서를 정하는 데 씁니다. 사이클이 없는 방향 그래프(DAG)에서만 가능합니다. 빌드 순서와 수강 과목 순서가 예입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">연결 요소의 개수는 어떻게 세나요?</h3>
+                            <p class="overview-card__desc">방문하지 않은 정점에서 BFS나 DFS를 시작할 때마다 새 연결 요소가 하나 발견됩니다. 그 시작 횟수가 연결 요소의 개수입니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Git</strong> — Git 용어집은 커밋 객체가 부모를 가진 방향 그래프이면서 사이클이 없는 DAG를 이룬다고 설명합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Gradle</strong> — Gradle은 빌드할 때 작업 사이의 의존 관계를 방향성 비순환 그래프(DAG)로 만든 뒤 실행 순서를 정한다고 설명합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>PostgreSQL</strong> — <code>WITH RECURSIVE</code> 문서는 재귀 질의로 그래프를 탐색하는 예를 보입니다. PostgreSQL 14부터 너비 우선/깊이 우선 정렬(<code>SEARCH</code>)과 사이클 탐지(<code>CYCLE</code>) 절을 쓸 수 있고, 사이클이 있는데 쓰지 않으면 질의가 반복될 수 있다고 경고합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/bfs-dfs}">BFS / DFS</a> — 그래프 탐색의 두 기본 방식을 비교합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/dijkstra}">다익스트라</a> — 가중치 그래프의 최단 거리를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/mst}">최소 신장 트리</a> — 모든 정점을 최소 비용으로 잇는 방법을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/ds/tree}">트리</a> — 그래프의 특수한 경우인 트리를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/routing}">라우팅</a> — 네트워크를 그래프로 보고 경로를 구하는 방식을 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Git 용어집</strong> — <a href="https://git-scm.com/docs/gitglossary" target="_blank" rel="noopener">gitglossary — Git Documentation</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Gradle 빌드 수명 주기</strong> — <a href="https://docs.gradle.org/current/userguide/build_lifecycle.html" target="_blank" rel="noopener">Build Lifecycle — Gradle User Manual</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>PostgreSQL WITH 질의</strong> — <a href="https://www.postgresql.org/docs/current/queries-with.html" target="_blank" rel="noopener">WITH Queries (Common Table Expressions) — PostgreSQL Documentation</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>교재</strong> — Cormen, Leiserson, Rivest, Stein, "Introduction to Algorithms" 4판, "Elementary Graph Algorithms" 장</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
