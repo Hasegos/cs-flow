@@ -91,7 +91,7 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">하드웨어 인터럽트</h3>
-                            <p class="overview-card__desc">키보드 입력, 마우스 클릭, 네트워크 패킷 수신 등 외부 하드웨어 장치가 CPU에 보내는 신호입니다. 비동기적으로 발생하며 CPU는 이를 즉시 처리합니다.</p>
+                            <p class="overview-card__desc">키보드 입력, 마우스 클릭, 네트워크 패킷 수신 등 외부 하드웨어 장치가 CPU에 보내는 신호입니다. 비동기적으로 발생하며 CPU는 현재 명령어를 끝낸 뒤 처리합니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
@@ -116,14 +116,14 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">인터럽트 우선순위</h3>
-                            <p class="overview-card__desc">여러 인터럽트가 동시에 발생하면 우선순위가 높은 것을 먼저 처리합니다. 우선순위가 낮은 ISR 실행 중 높은 우선순위 인터럽트가 오면 중단하고 처리합니다.</p>
+                            <p class="overview-card__desc">여러 인터럽트가 동시에 발생하면 우선순위가 높은 것을 먼저 처리합니다. 중첩을 허용하는 구성에서는 우선순위가 낮은 ISR 실행 중 높은 우선순위 인터럽트가 오면 중단하고 처리합니다.</p>
                         </div>
                     </div>
 
                     <div class="overview-points">
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>컨텍스트 저장</strong> — 인터럽트 발생 시 CPU는 현재 PC(프로그램 카운터), 레지스터 값 등을 스택에 저장합니다. ISR 종료 후 이를 복원해 원래 작업을 재개합니다.</span>
+                            <span><strong>컨텍스트 저장</strong> — 인터럽트 발생 시 CPU는 복귀에 필요한 최소한의 상태(32비트 x86은 EIP, CS, EFLAGS 등)를 스택에 저장하고, 나머지 레지스터는 ISR이 필요하면 직접 저장합니다. ISR 종료 후 이를 복원해 원래 작업을 재개합니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
@@ -131,7 +131,7 @@
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>폴링 vs 인터럽트</strong> — 폴링은 CPU가 주기적으로 장치 상태를 확인하는 방식으로 CPU 자원을 낭비합니다. 인터럽트 방식은 이벤트 발생 시에만 처리하므로 훨씬 효율적입니다.</span>
+                            <span><strong>폴링 vs 인터럽트</strong> — 폴링은 CPU가 주기적으로 장치 상태를 확인하는 방식으로 CPU 자원을 낭비합니다. 인터럽트 방식은 이벤트 발생 시에만 처리하므로 대개 더 효율적입니다(이벤트가 아주 잦으면 예외).</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
@@ -139,10 +139,127 @@
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>IRET 명령어</strong> — ISR의 마지막에 실행되는 x86 인터럽트 복귀 명령어입니다. 스택에서 EIP, CS, EFLAGS를 한 번에 복원하고 인터럽트 플래그(IF)를 재활성화합니다. (RETI는 AVR/PIC 등 임베디드 MCU에서 사용하는 별개의 명령어입니다.)</span>
+                            <span><strong>IRET 명령어</strong> — ISR의 마지막에 실행되는 x86 인터럽트 복귀 명령어입니다. 스택에서 EIP, CS, EFLAGS를 복원하며, IF는 복원된 EFLAGS 값에 따라 정해집니다. (다른 아키텍처에는 각자의 복귀 명령이 있습니다.)</span>
                         </div>
                     </div>
 
+
+                    <h2 class="overview-heading">인터럽트의 종류와 번호</h2>
+                    <p class="overview-lead">
+                        x86에서 인터럽트와 예외는 0~255번 벡터 번호로 구분됩니다. 인텔 설명서에서 0~31번은 아키텍처가 정의한 예외와 인터럽트용으로 예약되어 있고, 32~255번은 운영체제와 장치가 쓸 수 있는 번호입니다. 예를 들어 0번은 0으로 나누기 오류(#DE), 14번은 페이지 폴트(#PF)입니다. 마스크로 막을 수 없는 NMI(Non-Maskable Interrupt)도 따로 있습니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>IVT 크기</strong> — x86 실제 모드의 인터럽트 벡터 테이블은 256개 항목에 항목당 4바이트(오프셋과 세그먼트 각 2바이트)여서 1KB입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>IDT 크기</strong> — 보호 모드의 인터럽트 디스크립터 테이블은 최대 256개 항목이고 항목은 8바이트라 최대 2KB입니다. 64비트 모드에서는 항목이 16바이트라 최대 4KB입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>폴링의 낭비를 숫자로</strong> — 설명용 값으로, 1ms마다 장치 상태를 확인하는데 이벤트가 하루에 한 번만 온다면 하루에 8,640만 번 확인하고 8,639만 9,999번은 헛걸음입니다. 인터럽트는 이벤트가 올 때 한 번만 CPU를 부릅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>인터럽트와 예외는 같은 것이다</strong> — 하드웨어 인터럽트는 CPU 바깥 장치가 비동기로 일으키고, 예외는 실행 중인 명령어 때문에 CPU 안에서 동기로 일어납니다. 둘 다 같은 벡터 테이블을 거쳐 처리되어서 비슷해 보일 뿐입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>인터럽트가 오면 곧바로 다른 프로세스로 바뀐다</strong> — ISR이 끝나면 대개 원래 실행하던 곳으로 돌아갑니다. 프로세스 전환은 ISR 안에서 스케줄러가 필요하다고 판단한 경우에 일어납니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>ISR은 시간이 오래 걸려도 된다</strong> — ISR이 길면 그동안 다른 인터럽트의 처리가 늦어질 수 있습니다. 그래서 인터럽트 처리는 급한 부분만 ISR에서 하고 나머지는 나중으로 미루는 구조가 흔합니다. 교재와 리눅스 자료에서는 이 나중 처리를 bottom half라고 부르고, softirq, tasklet, workqueue 같은 수단을 씁니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>인터럽트 방식이 항상 폴링보다 낫다</strong> — 이벤트가 아주 자주 오면 인터럽트 처리 비용이 쌓입니다. 리눅스 네트워크 드라이버가 부하가 높을 때 인터럽트 대신 폴링으로 바꾸는 NAPI가 그 예입니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">인터럽트, 예외, 트랩은 어떻게 다른가요?</h3>
+                            <p class="overview-card__desc">인터럽트는 외부 장치가 비동기로 보내는 신호이고, 예외는 명령어 실행 중 CPU가 감지한 오류 상황으로 동기로 발생합니다. 트랩은 프로그램이 의도적으로 일으키는 소프트웨어 인터럽트로 시스템 콜이 대표적입니다. 책마다 용어를 묶는 방식이 조금씩 다릅니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">인터럽트가 발생하면 CPU는 무엇을 하나요?</h3>
+                            <p class="overview-card__desc">현재 명령어를 끝낸 뒤 복귀에 필요한 상태(32비트 보호 모드에서는 EIP, CS, EFLAGS이고, 권한 수준이 바뀌면 SS:ESP도, 일부 예외는 에러 코드도)를 스택에 저장하고, 벡터 번호로 IDT를 찾아 ISR로 점프합니다. ISR이 끝나면 IRET으로 저장한 상태를 복원해 원래 흐름으로 돌아갑니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">ISR 안에서 다른 인터럽트가 오면 어떻게 되나요?</h3>
+                            <p class="overview-card__desc">x86에서 인터럽트 게이트로 진입하면 CPU가 인터럽트 플래그(IF)를 꺼서 마스커블 인터럽트를 막습니다. ISR이 IF를 다시 켜면 더 높은 우선순위의 인터럽트를 받는 중첩이 가능합니다. 방식은 구조와 운영체제마다 다릅니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">폴링과 인터럽트는 언제 무엇을 쓰나요?</h3>
+                            <p class="overview-card__desc">이벤트가 드물고 언제 올지 모르면 인터럽트가 CPU 시간을 아낍니다. 이벤트가 매우 자주 오거나 응답 지연을 극단적으로 줄여야 하면 폴링이 나을 수 있습니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>리눅스 인터럽트 통계</strong> — <code>cat /proc/interrupts</code>를 실행하면 인터럽트 번호별로 CPU마다 처리한 횟수를 볼 수 있습니다. 키보드를 누르거나 네트워크로 패킷을 받을 때 해당 줄의 숫자가 늘어나는 것을 확인할 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>타이머 인터럽트와 스케줄링</strong> — 운영체제는 주기적인 타이머 인터럽트를 받아 실행 중인 프로세스에게서 CPU를 회수할 기회를 얻습니다. 선점형 스케줄링은 이 인터럽트에 의존합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>네트워크 드라이버의 NAPI</strong> — 리눅스 커널 문서에 따르면 NAPI는 패킷이 많이 들어올 때 인터럽트를 줄이고 폴링으로 처리하는 방식입니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/arch/io-methods}">I/O 방식</a> — 인터럽트 구동 I/O와 DMA를 비교합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/system-call}">시스템 콜</a> — 트랩으로 커널 기능을 부르는 과정을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/cpu-scheduling}">CPU 스케줄링</a> — 타이머 인터럽트가 선점형 스케줄링에 쓰이는 방식을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/arch/bus-architecture}">버스 구조</a> — 인터럽트 요청이 제어 버스로 전달되는 경로를 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>/proc/interrupts</strong> — <a href="https://man7.org/linux/man-pages/man5/proc_interrupts.5.html" target="_blank" rel="noopener">proc_interrupts(5) — Linux manual page</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>NAPI</strong> — <a href="https://docs.kernel.org/networking/napi.html" target="_blank" rel="noopener">NAPI — The Linux Kernel documentation</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>설명서</strong> — Intel, Intel 64 and IA-32 Architectures Software Developer's Manual, Volume 3, "Interrupt and Exception Handling" 장</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
