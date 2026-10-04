@@ -109,27 +109,27 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">언제 BFS를 쓰는가</h3>
-                            <p class="overview-card__desc">시작 노드로부터 "가장 가까운" 경로나 최단 거리를 찾을 때 유리합니다. 층 단위로 퍼지기 때문에 처음 도착한 경로가 곧 최단 경로입니다.</p>
+                            <p class="overview-card__desc">시작 노드로부터 "가장 가까운" 경로나 최단 거리를 찾을 때 유리합니다. 층 단위로 퍼지기 때문에 간선 수 기준으로는 처음 도착한 경로가 곧 최단 경로입니다(간선마다 가중치가 다르면 해당하지 않습니다).</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">언제 DFS를 쓰는가</h3>
-                            <p class="overview-card__desc">모든 경로를 끝까지 탐색해봐야 하는 경우(백트래킹, 미로 탐색, 위상 정렬 등)에 유리합니다. 재귀 호출도 결국 함수 호출 스택을 쓰는 것이라 DFS와 원리가 같습니다.</p>
+                            <p class="overview-card__desc">한 갈래를 끝까지 따라가 봐야 하는 경우(백트래킹, 미로 탐색, 위상 정렬 등)에 유리합니다. 재귀 호출도 결국 함수 호출 스택을 쓰는 것이라 DFS와 원리가 같습니다.</p>
                         </div>
                     </div>
 
                     <div class="overview-points">
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>구현 방식의 핵심 차이는 자료구조 하나</strong> — BFS와 DFS 코드는 거의 동일합니다. "다음에 방문할 노드를 어디서 꺼내는가"만 큐(앞에서 꺼냄)에서 스택(뒤에서 꺼냄)으로 바꾸면 BFS가 DFS로 바뀝니다.</span>
+                            <span><strong>구현 방식의 핵심 차이는 자료구조 하나</strong> — BFS와 DFS 코드는 구조가 매우 비슷합니다. "다음에 방문할 노드를 어디서 꺼내는가"만 큐(앞에서 꺼냄)에서 스택(뒤에서 꺼냄)으로 바꾸면 BFS가 DFS로 바뀝니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>재귀 DFS와 스택 DFS</strong> — 이 시각화는 스택을 직접 다루는 반복문 방식으로 구현했지만, 재귀 함수로 구현한 DFS도 원리는 완전히 같습니다. 재귀 호출 자체가 시스템이 관리하는 스택을 사용하기 때문입니다.</span>
+                            <span><strong>재귀 DFS와 스택 DFS</strong> — 이 시각화는 스택을 직접 다루는 반복문 방식으로 구현했지만, 재귀 함수로 구현한 DFS도 원리는 같습니다. 재귀 호출 자체가 시스템이 관리하는 스택을 사용하기 때문입니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>방문 처리를 잊으면 안 되는 이유</strong> — 이미 방문한 노드를 다시 큐/스택에 넣으면 무한히 같은 노드를 맴돌거나 중복 방문할 수 있습니다. 그래서 "발견 즉시 방문 표시"가 두 알고리즘 모두에서 중요합니다.</span>
+                            <span><strong>방문 처리를 잊으면 안 되는 이유</strong> — 이미 방문한 노드를 다시 큐/스택에 넣으면 무한히 같은 노드를 맴돌거나 중복 방문할 수 있습니다. 그래서 방문 여부를 기록해 두는 것이 두 알고리즘 모두에서 중요합니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
@@ -137,6 +137,127 @@
                         </div>
                     </div>
 
+
+                    <h2 class="overview-heading">무엇이 같고 무엇이 다른가</h2>
+                    <p class="overview-lead">
+                        BFS와 DFS는 그래프의 모든 노드를 빠짐없이 한 번씩 방문하는 기본 탐색입니다. 다음에 방문할 노드를 큐에서 꺼내면 BFS, 스택에서 꺼내면 DFS가 되고, 이 차이 하나가 최단 거리 탐색에 유리한지 깊은 구조 탐색에 유리한지를 가릅니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>V = 100,000, E = 500,000일 때</strong> — 인접 리스트로 탐색하면 V + E = 600,000번 정도의 작업입니다. 인접 행렬은 V² = 10¹⁰개의 칸을 가져서 저장 자체가 부담이고 한 노드의 이웃을 찾을 때마다 V칸을 확인해야 합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>메모리 사용량</strong> — BFS의 큐는 한 층의 노드가 몰리면 커지고, DFS의 스택은 탐색 경로가 깊을수록 커집니다. 노드가 100,000개인 한 줄짜리 그래프를 재귀 DFS로 탐색하면 호출 깊이가 100,000까지 갑니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>BFS는 항상 최단 경로를 찾는다</strong> — 간선 수가 가장 적은 경로를 찾습니다. 간선마다 가중치가 다르면 간선 수가 적은 경로가 거리가 짧은 경로가 아닐 수 있어서(예: 직접 간선 가중치 10, 우회 경로 1 + 1) 다익스트라 같은 알고리즘이 필요합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>DFS는 반드시 재귀로 구현한다</strong> — 명시적인 스택으로도 구현할 수 있습니다. 다만 스택 방식에서 이웃을 넣는 순서를 뒤집지 않으면 재귀 DFS와 방문 순서가 달라질 수 있고, 노드를 스택에 넣는 시점에 방문 표시를 하는지 꺼내는 시점에 하는지에 따라서도 순서가 달라질 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>DFS가 BFS보다 메모리를 항상 적게 쓴다</strong> — 그래프 모양에 따라 다릅니다. 폭이 넓고 얕은 그래프는 BFS의 큐가 크고, 깊고 가는 그래프는 DFS의 스택이 큽니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>방문 표시는 선택이다</strong> — 사이클이 있는 그래프에서 방문 여부를 기록하지 않으면 같은 노드를 계속 되돌아와 끝나지 않을 수 있습니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">BFS와 DFS는 언제 각각 쓰나요?</h3>
+                            <p class="overview-card__desc">간선 수 기준의 최단 거리나 가까운 노드부터 처리해야 하면 BFS를 씁니다. 경로를 끝까지 따라가야 하는 문제, 사이클 탐지, 위상 정렬(사이클 없는 방향 그래프에서), 모든 경우를 훑는 백트래킹은 DFS 구조를 씁니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">시간 복잡도는 어떻게 되나요?</h3>
+                            <p class="overview-card__desc">인접 리스트로 표현하면 O(V + E)입니다. 인접 행렬은 한 노드의 이웃을 찾는 데 O(V)가 들어서 전체 O(V²)입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">재귀 DFS의 단점은 무엇인가요?</h3>
+                            <p class="overview-card__desc">그래프가 아주 깊으면 호출 스택이 넘쳐 스택 오버플로가 날 수 있습니다. 이럴 때는 명시적 스택으로 바꾸거나 언어의 재귀 깊이 제한을 확인합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">BFS로 미로의 최단 경로를 어떻게 구하나요?</h3>
+                            <p class="overview-card__desc">시작 칸을 큐에 넣고 층별로 퍼져 나가며 각 칸에 도달한 거리(또는 이전 칸)를 기록합니다. 도착 칸에 처음 닿은 시점의 거리가 간선 수 기준 최단 거리입니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Java 파일 트리 순회</strong> — <code>Files.walkFileTree</code>의 문서는 파일 트리를 깊이 우선으로 순회한다고 설명합니다(같은 디렉터리 안의 방문 순서는 가정할 수 없습니다).</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>재귀 깊이 제한</strong> — 자바에서 지나치게 깊은 재귀는 <code>StackOverflowError</code>를 일으키고, 파이썬은 <code>sys.setrecursionlimit</code>로 재귀 깊이 제한을 조절할 수 있지만 너무 높이면 프로세스가 비정상 종료할 수 있습니다. 깊은 그래프를 재귀 DFS로 풀 때는 이 한계를 먼저 확인해야 합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>네트워크 라우팅</strong> — 최단 경로를 구하는 알고리즘의 바탕이 되는 그래프 탐색입니다. 가중치가 있는 경우는 <a th:href="@{/algo/dijkstra}">다익스트라</a> 토픽에서 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/dijkstra}">다익스트라</a> — 가중치가 있는 그래프의 최단 거리를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/backtracking}">백트래킹</a> — 가지치기가 들어간 DFS를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/ds/graph}">그래프</a> — 인접 리스트와 인접 행렬 표현을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/ds/stack-queue}">스택과 큐</a> — BFS와 DFS를 가르는 두 자료구조를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/ds/tree}">트리</a> — 트리 순회도 DFS와 BFS의 한 형태입니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Java Files</strong> — <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/nio/file/Files.html" target="_blank" rel="noopener">Files — Java SE 21 API</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>StackOverflowError</strong> — <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/StackOverflowError.html" target="_blank" rel="noopener">StackOverflowError — Java SE 21 API</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Python sys</strong> — <a href="https://docs.python.org/3/library/sys.html" target="_blank" rel="noopener">sys — System-specific parameters and functions — Python documentation</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>교재</strong> — Cormen, Leiserson, Rivest, Stein, "Introduction to Algorithms" 4판, "Elementary Graph Algorithms" 장</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
