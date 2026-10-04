@@ -99,7 +99,7 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">점화식: 포함 vs 제외</h3>
-                            <p class="overview-card__desc">매 칸마다 "이 아이템을 포함했을 때"와 "포함하지 않았을 때" 중 더 큰 값을 선택합니다: dp[i][w] = max(dp[i-1][w], dp[i-1][w-무게]+가치).</p>
+                            <p class="overview-card__desc">매 칸마다 "이 아이템을 포함했을 때"와 "포함하지 않았을 때" 중 더 큰 값을 선택합니다: dp[i][w] = max(dp[i-1][w], dp[i-1][w-무게]+가치) (w가 아이템 무게 이상일 때만 포함 경우를 따집니다).</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
@@ -125,7 +125,7 @@
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>왜 "0/1"인가</strong> — 같은 아이템을 여러 번 넣을 수 있다면 "분할 가능 배낭 문제"가 되어 그리디(algo-07)로도 풀 수 있지만, 0/1 배낭 문제는 각 아이템을 최대 한 번만 쓸 수 있어 그리디로는 항상 최적해를 보장할 수 없고 DP가 필요합니다.</span>
+                            <span><strong>왜 "0/1"인가</strong> — 같은 아이템을 여러 번 넣을 수 있다면 "분할 가능 배낭 문제"가 되어 그리디(algo-07)로도 풀 수 있지만, 0/1 배낭 문제는 각 아이템을 최대 한 번만 쓸 수 있어 그리디로는 최적해를 보장할 수 없어서 DP 같은 방법이 필요합니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
@@ -137,6 +137,119 @@
                         </div>
                     </div>
 
+
+                    <h2 class="overview-heading">동적 계획법과 배낭 문제</h2>
+                    <p class="overview-lead">
+                        동적 계획법(Dynamic Programming)은 큰 문제를 겹치는 작은 문제로 나누고, 작은 문제의 답을 저장해 다시 계산하지 않는 방법입니다. 1950년대에 리처드 벨만(Richard Bellman)이 정립하고 이름을 붙인 것으로 알려져 있고, 대표 저서는 『Dynamic Programming』(Princeton University Press, 1957)입니다. 0/1 배낭 문제는 이 방법을 표로 보여 주는 대표적인 예입니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화의 입력</strong> — 아이템은 (무게, 가치) = (2, 3), (3, 4), (4, 5)이고 용량은 5입니다. 1번과 2번을 담으면 무게 5, 가치 7이 최적이고, 이 표는 3 × 5 = 15칸을 계산해 같은 답 7을 얻습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>그리디와의 차이</strong> — 가치가 가장 큰 3번(가치 5, 무게 4)부터 담으면 남은 용량 1에 아무것도 못 넣어 총 가치가 5에 그칩니다. 최적(7)과 다릅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>크기가 커지면</strong> — 아이템 n = 100개, 용량 W = 1,000,000이면 계산할 칸이 100 × 10⁶ = 10⁸개입니다. 용량 숫자가 커지면 칸 수가 그만큼 늘어나기 때문입니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>O(nW)는 다항 시간이라 효율적이다</strong> — 입력의 길이는 W의 자릿수(약 log W)인데 시간은 W 값 자체에 비례하기 때문입니다. 그래서 O(nW)를 의사 다항 시간(pseudo-polynomial)이라고 부르고, 용량이 매우 큰 값이면 느려집니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>DP는 반드시 표를 채우는 반복문이다</strong> — 재귀에 계산 결과를 저장하는 메모이제이션(top-down)으로도 같은 문제를 풉니다. 이 시각화는 표를 채우는 bottom-up 방식입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>그리디로도 0/1 배낭을 풀 수 있다</strong> — 무게 대비 가치 순으로 담는 그리디는 아이템을 쪼갤 수 있는 분할 가능 배낭에서는 최적이지만, 0/1에서는 최적을 보장하지 못합니다(이 시각화에서 가치가 큰 순으로 담으면 5로 최적 7에 못 미칩니다).</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>역추적 없이 표의 마지막 칸만 있으면 충분하다</strong> — 마지막 칸은 최댓값만 알려 줍니다. 어떤 아이템을 골랐는지 알려면 표를 거슬러 올라가야 하고, 그러려면 표 전체를 남겨 두어야 합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">DP 문제인지 어떻게 알아보나요?</h3>
+                            <p class="overview-card__desc">큰 문제의 답이 작은 문제의 답으로 만들어지고(최적 부분 구조), 같은 작은 문제가 여러 번 나오는지(겹치는 부분 문제)를 봅니다. 둘 다 있으면 저장해 재사용하는 DP가 효과적입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">0/1 배낭의 공간을 줄일 수 있나요?</h3>
+                            <p class="overview-card__desc">최댓값만 필요하면 바로 윗줄만 있으면 되므로 한두 줄만 남겨 O(W) 공간으로 줄일 수 있습니다. 대신 어떤 아이템을 골랐는지 역추적하려면 표 전체가 필요합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">메모이제이션과 표 채우기(타뷸레이션)는 어떻게 다른가요?</h3>
+                            <p class="overview-card__desc">메모이제이션은 재귀로 위에서 내려가며 필요한 부분 문제만 계산해 저장하고, 표 채우기는 작은 문제부터 순서대로 모두 계산합니다. 같은 점화식을 쓰지만 호출 깊이와 불필요한 계산이 달라집니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">거스름돈 문제를 DP로 풀면 왜 그리디보다 확실한가요?</h3>
+                            <p class="overview-card__desc">그리디는 매 순간 가장 큰 동전만 보지만 DP는 모든 금액의 최소 개수를 아래에서부터 쌓아 올려서, 동전 단위가 애매해도 최적을 보장합니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Python의 <code>functools</code></strong> — <code>functools.cache</code>는 같은 인자로 다시 호출하면 저장된 결과를 돌려줍니다(인자는 해시 가능해야 합니다). <code>lru_cache</code>는 기본 maxsize가 128이라 오래 쓰지 않은 결과는 버려져 다시 계산될 수 있습니다. 메모이제이션을 직접 구현하지 않고 쓸 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>메모리 사용</strong> — 표 전체를 저장하면 O(nW)의 메모리를 쓰기 때문에, 용량이 큰 문제에서는 필요한 행만 남기는 방식으로 줄이는 것이 중요합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/ds/dp}">동적 프로그래밍 기초</a> — 1차원 DP로 메모이제이션과 표 채우기를 먼저 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/greedy}">그리디</a> — 되돌리지 않는 선택이 DP와 어떻게 다른지 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/backtracking}">백트래킹</a> — 선택을 시도하고 되돌리는 방식과 비교합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/complexity}">시간·공간 복잡도</a> — O(nW)가 어떤 증가율인지 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Python functools</strong> — <a href="https://docs.python.org/3/library/functools.html" target="_blank" rel="noopener">functools — Higher-order functions and operations on callable objects — Python documentation</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>교재</strong> — Cormen, Leiserson, Rivest, Stein, "Introduction to Algorithms" 4판, "Dynamic Programming" 장</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>원 저작</strong> — Bellman, "Dynamic Programming", Princeton University Press, 1957</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
