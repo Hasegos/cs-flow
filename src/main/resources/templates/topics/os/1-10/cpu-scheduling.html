@@ -100,12 +100,12 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">SJF (Shortest Job First)</h3>
-                            <p class="overview-card__desc">CPU 버스트 시간이 가장 짧은 프로세스를 먼저 실행합니다. 평균 대기 시간이 최소인 최적 알고리즘이지만 다음 CPU 버스트 시간을 미리 알 수 없어 실제 구현은 예측값(지수 평균)을 사용합니다.</p>
+                            <p class="overview-card__desc">CPU 버스트 시간이 가장 짧은 프로세스를 먼저 실행합니다. 버스트 길이를 정확히 안다면 평균 대기 시간이 최소인 최적 알고리즘이지만 다음 CPU 버스트 시간을 미리 알 수 없어 실제 구현은 예측값(지수 평균)을 사용합니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">Round Robin (RR)</h3>
-                            <p class="overview-card__desc">각 프로세스에 타임 퀀텀(Time Quantum, q)만큼 CPU를 할당하고 시간이 지나면 선점합니다. 공정하고 응답 시간이 짧지만 q가 너무 작으면 컨텍스트 스위치 오버헤드가 커집니다. 시분할(Time-sharing) 시스템의 기반이며, 현대 OS의 스케줄러도 RR의 선점·시간 분할 개념을 발전시킨 형태입니다(Linux CFS/EEVDF는 비례 공정 분배, POSIX SCHED_RR은 순수 RR).</p>
+                            <p class="overview-card__desc">각 프로세스에 타임 퀀텀(Time Quantum, q)만큼 CPU를 할당하고 시간이 지나면 선점합니다. 공정하고 응답 시간이 짧지만 q가 너무 작으면 컨텍스트 스위치 오버헤드가 커집니다. 시분할(Time-sharing) 시스템의 기반이며, 현대 OS의 스케줄러도 RR의 선점·시간 분할 개념을 발전시킨 형태입니다(Linux CFS/EEVDF는 비례 공정 분배, POSIX SCHED_RR은 같은 우선순위의 실시간 스레드끼리 RR).</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
@@ -130,7 +130,7 @@
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>타임 퀀텀 크기의 영향</strong> — q가 매우 크면 FCFS와 동일해지고, q가 매우 작으면 프로세서 공유(Processor Sharing)처럼 동작합니다. 일반적으로 10~100ms 범위를 사용합니다(Linux SCHED_RR 기본 100ms). 단, Linux의 일반 프로세스 스케줄러(CFS/EEVDF)는 고정 퀀텀 없이 sched_latency_ns·sched_min_granularity_ns로 동적 시간 슬라이스를 계산합니다.</span>
+                            <span><strong>타임 퀀텀 크기의 영향</strong> — q가 매우 크면 FCFS와 동일해지고, q가 매우 작으면 프로세서 공유(Processor Sharing)처럼 동작합니다. Linux SCHED_RR의 기본 퀀텀은 100ms입니다. 단, Linux의 일반 프로세스 스케줄러(CFS/EEVDF)는 RR처럼 모든 프로세스에 같은 고정 퀀텀을 주지 않고, 가중치와 가상 시간(EEVDF는 여기에 태스크별 slice와 virtual deadline)으로 실행 시간을 나눕니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
@@ -138,10 +138,147 @@
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>CFS / EEVDF</strong> — CFS(Completely Fair Scheduler)는 2007년부터 Linux의 기본 스케줄러로, 각 프로세스의 가상 실행 시간(vruntime)을 red-black tree로 관리해 vruntime이 가장 작은 프로세스를 선택하고 nice 값으로 CPU 비율을 조절합니다. Linux 6.6(2023년 10월)부터는 SCHED_NORMAL의 기본 스케줄러가 EEVDF(Earliest Eligible Virtual Deadline First)로 교체되어, lag/virtual deadline 기반으로 더 낮은 지연을 제공합니다.</span>
+                            <span><strong>CFS / EEVDF</strong> — CFS(Completely Fair Scheduler)는 2007년부터 Linux의 기본 스케줄러로, 각 프로세스의 가상 실행 시간(vruntime)을 red-black tree로 관리해 vruntime이 가장 작은 프로세스를 선택하고 nice 값으로 CPU 비율을 조절합니다. Linux 6.6(2023년 10월)부터는 SCHED_NORMAL의 기본 스케줄러가 EEVDF(Earliest Eligible Virtual Deadline First)로 교체되어, lag와 virtual deadline을 기준으로 다음 프로세스를 고릅니다.</span>
                         </div>
                     </div>
 
+
+                    <h2 class="overview-heading">스케줄러는 무엇을 고르는가</h2>
+                    <p class="overview-lead">
+                        프로세스는 CPU를 쓰는 구간(CPU 버스트)과 입출력을 기다리는 구간을 번갈아 가집니다. CPU가 놀지 않게 하려고 운영체제는 여러 프로세스를 메모리에 두고, Ready 큐에서 다음에 CPU를 줄 프로세스를 고릅니다. 이 선택 기준이 스케줄링 알고리즘이고, 기준에 따라 평균 대기 시간, 응답 시간, 공정성이 달라집니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>같은 작업, 다른 순서</strong> — P1(24), P2(3), P3(3)이 모두 시각 0에 도착한다고 합시다. FCFS로 P1, P2, P3 순서이면 대기 시간이 0, 24, 27이라 평균 17이고 평균 반환 시간은 (24 + 27 + 30) / 3 = 27입니다. 짧은 것부터 P2, P3, P1 순서(SJF)이면 대기 시간이 0, 3, 6이라 평균 3이고 평균 반환 시간은 (3 + 6 + 30) / 3 = 13입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Round Robin의 계산(q = 4)</strong> — P1이 0~4, P2가 4~7(종료), P3가 7~10(종료), 이후 P1이 10~30에 남은 20을 이어서 끝냅니다. 대기 시간은 P1 6, P2 4, P3 7로 평균 약 5.67이고, 평균 반환 시간은 (30 + 7 + 10) / 3 ≈ 15.67, 평균 응답 시간은 (0 + 4 + 7) / 3 ≈ 3.67입니다. 프로세스가 바뀌는 컨텍스트 스위치는 3번입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>퀀텀과 전환 비용(가정)</strong> — 컨텍스트 스위치가 0.1ms라고 가정하면 q = 10ms일 때 전환 비용 비율은 0.1 / (10 + 0.1) ≈ 1%이고, q = 1ms이면 약 9%로 늘어납니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>다음 CPU 버스트 예측</strong> — 지수 평균 τ(n+1) = α·t(n) + (1 − α)·τ(n)에서 α = 0.5, 첫 예측 τ = 10, 실제 버스트가 6, 4였다면 다음 예측은 0.5 × 6 + 0.5 × 10 = 8, 그다음은 0.5 × 4 + 0.5 × 8 = 6입니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>SJF가 최적이니 그대로 쓰면 된다</strong> — 평균 대기 시간이 최소인 것은 버스트 길이를 정확히 알 때의 이야기입니다. 실제로는 예측해야 하고, 짧은 작업이 계속 오면 긴 작업이 기아에 빠질 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Round Robin이면 모든 지표가 좋아진다</strong> — 응답 시간은 짧아지지만 위 계산처럼 평균 반환 시간은 SJF(13)보다 길어질 수 있습니다. 퀀텀이 너무 크면 FCFS와 비슷해지고 너무 작으면 전환 비용이 커집니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>선점형이 항상 낫다</strong> — 응답성은 좋아지지만 전환 비용이 들고, 공유 데이터를 만지는 도중에 선점되면 동기화 문제가 생깁니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>우선순위가 높으면 항상 먼저 끝난다</strong> — 높은 우선순위 작업이 계속 오면 낮은 작업은 기아에 빠질 수 있어 에이징 같은 보완이 필요합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">FCFS, SJF, Round Robin을 비교해 주세요.</h3>
+                            <p class="overview-card__desc">FCFS는 단순하지만 긴 작업 뒤에 짧은 작업이 기다리는 호위 효과가 있습니다. SJF는 평균 대기 시간이 최소이지만 버스트 예측이 필요하고 기아가 생길 수 있습니다. Round Robin은 퀀텀마다 돌아가며 응답 시간이 짧고 공정하지만 전환 비용이 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">기아는 어떻게 해결하나요?</h3>
+                            <p class="overview-card__desc">대기 시간에 비례해 우선순위를 올리는 에이징을 씁니다. 일정 시간이 지나면 낮은 우선순위 작업도 결국 높은 우선순위가 되어 실행됩니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">선점형과 비선점형의 차이는 무엇인가요?</h3>
+                            <p class="overview-card__desc">비선점형은 실행 중인 프로세스가 CPU를 스스로 놓을 때까지 기다리고, 선점형은 타이머 인터럽트나 더 높은 우선순위의 도착 같은 사건으로 운영체제가 CPU를 빼앗을 수 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">리눅스는 어떤 스케줄링을 쓰나요?</h3>
+                            <p class="overview-card__desc">일반 프로세스는 가중치로 CPU 시간을 나누는 공정 스케줄러를 씁니다. 오랫동안 CFS였고 리눅스 6.6부터 EEVDF로 바뀌었습니다. 실시간 정책으로 SCHED_FIFO와 SCHED_RR이 따로 있습니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>우선순위 조절</strong> — <code>nice</code>와 <code>renice</code>로 일반 프로세스의 우선순위 값을 바꾸고, <code>chrt</code>로 스케줄링 정책(SCHED_FIFO, SCHED_RR 등)을 지정합니다. 정책의 설명은 sched(7) 매뉴얼에 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>RR의 시간 조각</strong> — sched(7) 매뉴얼은 SCHED_RR에서 스레드가 시간 조각 하나만큼만 실행할 수 있다고 설명하고, sched_rr_get_interval(2) 매뉴얼은 그 길이를 <code>sched_rr_get_interval()</code>이나 Linux 3.9부터 <code>/proc/sys/kernel/sched_rr_timeslice_ms</code>로 볼 수 있으며 기본값이 100ms라고 설명합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Java의 우선순위</strong> — Javadoc은 <code>Thread.setPriority</code> 값이 소속 스레드 그룹의 최대 우선순위로 제한되고, 가상 스레드는 항상 NORM_PRIORITY라서 값이 무시된다고 설명합니다. 우선순위로 실행 순서를 보장하려 하지 않습니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/process}">프로세스</a> — Ready 상태와 컨텍스트 스위칭을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/thread}">스레드</a> — 스케줄링의 단위가 되는 스레드를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/process-sync}">프로세스 동기화</a> — 선점과 공유 데이터 접근의 관계를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/deadlock}">교착 상태</a> — 자원 대기와 기아의 차이를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/greedy}">그리디</a> — SJF가 그리디 선택으로 최적이 되는 이유를 비교합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Linux sched(7)</strong> — <a href="https://man7.org/linux/man-pages/man7/sched.7.html" target="_blank" rel="noopener">sched(7) — Linux manual page</a>, <a href="https://man7.org/linux/man-pages/man2/sched_rr_get_interval.2.html" target="_blank" rel="noopener">sched_rr_get_interval(2) — Linux manual page</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Linux chrt(1)</strong> — <a href="https://man7.org/linux/man-pages/man1/chrt.1.html" target="_blank" rel="noopener">chrt(1) — Linux manual page</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>CFS</strong> — <a href="https://docs.kernel.org/scheduler/sched-design-CFS.html" target="_blank" rel="noopener">CFS Scheduler — The Linux Kernel documentation</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>EEVDF</strong> — <a href="https://docs.kernel.org/scheduler/sched-eevdf.html" target="_blank" rel="noopener">EEVDF Scheduler — The Linux Kernel documentation</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Java Thread</strong> — <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Thread.html" target="_blank" rel="noopener">Thread — Java SE 21 API</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>교재</strong> — Silberschatz, Galvin, Gagne, "Operating System Concepts", 10th Edition, Chapter 5 "CPU Scheduling"</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
