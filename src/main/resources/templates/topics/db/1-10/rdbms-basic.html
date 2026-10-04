@@ -138,6 +138,147 @@
                         </div>
                     </div>
 
+
+                    <h2 class="overview-heading">관계형 모델이 나온 배경</h2>
+                    <p class="overview-lead">
+                        관계형 모델은 에드거 코드(E. F. Codd)가 1970년 논문 "A Relational Model of Data for Large Shared Data Banks"에서 제안했습니다. 데이터를 값의 집합으로 다루고 저장 방식과 분리해서 보게 하자는 생각이 바탕입니다. 교재에서는 테이블을 릴레이션(relation), 행을 튜플(tuple), 컬럼을 어트리뷰트(attribute)라고 부릅니다. 이 토픽의 테이블·행·컬럼은 같은 개념을 실무에서 쓰는 이름으로 부른 것입니다.
+                    </p>
+
+                    <h2 class="overview-heading">엑셀과 다른 점</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>컬럼마다 데이터 타입이 정해집니다</strong> — 정수, 문자열, 날짜처럼 컬럼의 타입을 선언하고, 타입에 맞지 않는 값은 저장되지 않습니다. 엑셀은 한 칸에 아무 값이나 넣을 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>제약 조건을 DB가 강제합니다</strong> — 기본키, 외래키, NOT NULL, UNIQUE, CHECK 같은 제약 조건을 선언하면, 어기는 입력이나 수정을 DB가 거부합니다. 사람이 조심하는 것에 기대지 않습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>여러 사용자가 동시에 쓰는 것을 전제로 합니다</strong> — 트랜잭션과 락으로 동시 접근을 다룹니다. 이 부분은 <a th:href="@{/db/transaction}">트랜잭션</a>, <a th:href="@{/db/lock}">락</a> 토픽에서 이어집니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">키의 종류</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>후보키와 기본키</strong> — 행을 유일하게 식별할 수 있는 최소한의 컬럼 조합을 후보키라고 하고, 후보키 중에서 대표로 고른 것이 기본키입니다. 컬럼 하나일 수도 있고 여러 컬럼을 묶은 복합 키일 수도 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>자연키와 대리키</strong> — 주민 번호나 이메일처럼 업무에서 의미가 있는 값을 키로 쓰면 자연키, 의미 없이 DB가 붙여 주는 번호를 쓰면 대리키(surrogate key)입니다. 이 사이트의 테이블은 BIGSERIAL(자동 증가 번호)을 기본키로 둔 대리키 방식입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>외래키는 참조 대상이 정해져 있습니다</strong> — PostgreSQL 문서에 따르면 외래키가 가리키는 컬럼은 기본키이거나 UNIQUE 제약이 걸린 컬럼이어야 합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>외래키는 반드시 기본키만 참조한다</strong> — 기본키를 참조하는 것이 가장 흔하지만, UNIQUE 제약이 걸린 컬럼도 참조할 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>기본키는 숫자 하나여야 한다</strong> — 타입은 숫자로 정해져 있지 않고, 컬럼 여러 개를 묶은 복합 기본키도 만들 수 있습니다. 숫자 번호를 쓰는 것은 관행입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>외래키를 걸면 조회가 빨라진다</strong> — 외래키는 정합성을 지키는 제약 조건이고, 조회 속도를 높이는 장치가 아닙니다. PostgreSQL은 외래키를 거는 쪽 컬럼에 인덱스를 자동으로 만들지 않으며, 참조하는 쪽 컬럼에 인덱스를 따로 거는 것이 좋을 수 있다고 문서에서 안내합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>NULL은 0이나 빈 문자열과 같다</strong> — NULL은 값이 없거나 알 수 없다는 표시이고, 0이나 빈 문자열은 값입니다. 그래서 NULL과의 비교는 참도 거짓도 아닌 '알 수 없음'이 되어 <code>= NULL</code>이 아니라 <code>IS NULL</code>로 확인합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>테이블을 나누면 항상 좋다</strong> — 중복은 줄지만 데이터를 한 번에 보려면 테이블을 합쳐야 합니다. 어디까지 나눌지는 <a th:href="@{/db/normalization}">정규화</a> 토픽에서 이어집니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">기본키와 UNIQUE 제약은 무엇이 다른가요?</h3>
+                            <p class="overview-card__desc">둘 다 값의 중복을 막습니다. 기본키는 테이블에 하나만 둘 수 있고 NULL이 안 됩니다. UNIQUE는 테이블에 여러 개 둘 수 있고, PostgreSQL에서는 NULL을 여러 개 넣을 수 있습니다(제품마다 다릅니다).</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">외래키를 거는 이유와 걸지 않는 경우를 말해 보세요.</h3>
+                            <p class="overview-card__desc">존재하지 않는 부모 행을 가리키는 자식 행이 저장되는 것을 DB가 막아 주므로 정합성을 지킬 수 있습니다. 대신 입력과 삭제 때 DB가 참조를 확인하는 비용이 듭니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">1:N과 N:M 관계는 어떻게 표현하나요?</h3>
+                            <p class="overview-card__desc">1:N은 N쪽 테이블에 1쪽의 기본키를 외래키로 둡니다. N:M은 양쪽 기본키를 외래키로 가지는 연결 테이블(교차 테이블)을 따로 만들어 두 개의 1:N으로 바꿉니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">외래키가 없어도 JOIN을 할 수 있나요?</h3>
+                            <p class="overview-card__desc">할 수 있습니다. JOIN은 조건식으로 행을 잇는 연산이어서 외래키가 선언되어 있는지와 상관없이 쓸 수 있습니다. 외래키는 그 연결이 깨지지 않도록 지켜 주는 제약일 뿐입니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 사이트의 태그</strong> — 토픽의 태그는 topic 테이블에 쉼표로 이어 붙이지 않고 topic_tag 테이블로 나누고, topic_id를 외래키로 topic에 연결했습니다. 한 토픽에 태그가 여러 개인 1:N 관계입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>PostgreSQL</strong> — 기본키를 선언하면 그 컬럼에 유일성을 보장하는 인덱스가 자동으로 만들어집니다. psql에서 <code>\d 테이블이름</code>을 실행하면 컬럼, 기본키, 외래키를 볼 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>제약 조건 이름</strong> — 제약 조건에 이름을 붙여 두면, 위반했을 때 오류 메시지에 이름이 나와서 어느 규칙을 어겼는지 알기 쉽습니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/sql-join}">SQL JOIN</a> — 외래키로 이은 테이블을 조회에서 합치는 방법을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/normalization}">정규화</a> — 중복을 줄이도록 테이블을 나누는 규칙을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/index}">인덱스</a> — 기본키와 UNIQUE가 인덱스로 구현되는 이유와 조회 속도를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/transaction}">트랜잭션</a> — 여러 행의 변경을 하나로 묶는 방법을 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>관계형 모델 원 논문</strong> — <a href="https://research.ibm.com/publications/a-relational-model-of-data-for-large-shared-data-banks" target="_blank" rel="noopener">A Relational Model of Data for Large Shared Data Banks — IBM Research (Codd, CACM, 1970)</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>테이블 기초</strong> — <a href="https://www.postgresql.org/docs/current/ddl-basics.html" target="_blank" rel="noopener">Table Basics — PostgreSQL Documentation</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>제약 조건</strong> — <a href="https://www.postgresql.org/docs/current/ddl-constraints.html" target="_blank" rel="noopener">Constraints — PostgreSQL Documentation</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>교재</strong> — Silberschatz, Korth, Sudarshan, "Database System Concepts" 7판, "Introduction to the Relational Model" 장</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
