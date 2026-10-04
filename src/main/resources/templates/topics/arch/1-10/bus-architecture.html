@@ -91,7 +91,7 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">Address Bus</h3>
-                            <p class="overview-card__desc">CPU가 접근할 메모리 주소나 I/O 포트를 전달합니다. CPU에서 메모리·I/O 방향의 단방향 버스입니다. 주소선의 수가 주소 공간의 크기를 결정합니다.</p>
+                            <p class="overview-card__desc">CPU가 접근할 메모리 주소나 I/O 포트를 전달합니다. CPU에서 메모리·I/O 방향의 단방향 버스입니다(DMA 같은 다른 버스 마스터도 주소를 보냅니다). 주소선의 수가 주소 공간의 크기를 결정합니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
@@ -106,7 +106,7 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">버스 중재 (Arbitration)</h3>
-                            <p class="overview-card__desc">여러 장치가 동시에 버스를 요청할 때 우선순위를 결정합니다. 중앙집중식(Centralized)과 분산식(Distributed) 방식이 있으며, 현대 시스템은 대부분 중앙 Arbiter를 사용합니다.</p>
+                            <p class="overview-card__desc">여러 장치가 동시에 버스를 요청할 때 우선순위를 결정합니다. 중앙집중식(Centralized)과 분산식(Distributed) 방식이 있으며, 중앙집중식은 하나의 Arbiter가 순서를 정하고, 분산식은 장치들이 스스로 정합니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
@@ -116,14 +116,14 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">DMA (Direct Memory Access)</h3>
-                            <p class="overview-card__desc">I/O 장치가 CPU를 거치지 않고 메모리에 직접 접근하는 방식입니다. CPU 개입 없이 데이터 전송이 가능해 성능이 크게 향상됩니다.</p>
+                            <p class="overview-card__desc">I/O 장치가 CPU를 거치지 않고 메모리에 직접 접근하는 방식입니다. 데이터를 옮기는 동안 CPU가 다른 작업을 할 수 있습니다.</p>
                         </div>
                     </div>
 
                     <div class="overview-points">
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>버스 대역폭 (Bandwidth)</strong> — 버스 폭(비트 수) × 클록 주파수 × 클럭당 전송 횟수로 결정됩니다. SDR(Single Data Rate)은 × 1, DDR(Double Data Rate)은 클럭 상승·하강 엣지 양쪽에서 전송해 × 2가 됩니다. 현대 메모리(DDR4/DDR5)는 모두 DDR 방식입니다. 병목이 되면 CPU가 아무리 빨라도 전체 성능이 제한됩니다.</span>
+                            <span><strong>버스 대역폭 (Bandwidth)</strong> — 버스 폭(비트 수) × 클록 주파수 × 클럭당 전송 횟수로 결정됩니다. SDR(Single Data Rate)은 × 1, DDR(Double Data Rate)은 클럭 상승·하강 엣지 양쪽에서 전송해 × 2가 됩니다. 현대 메모리(DDR4/DDR5)는 모두 DDR 방식입니다. 병목이 되면 CPU가 빨라도 전체 성능이 제한될 수 있습니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
@@ -139,10 +139,123 @@
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>PCIe / USB</strong> — 현대 시스템은 병렬 공유 버스 대신 직렬 Point-to-Point 연결(PCIe, USB, SATA)을 사용해 대역폭과 안정성을 모두 확보합니다.</span>
+                            <span><strong>PCIe / USB</strong> — PCIe, SATA 같은 현대 연결은 직렬 점대점 방식이고, USB도 직렬 연결입니다. 병렬 공유 버스와 달리 장치마다 전용 경로를 갖는 구조가 많습니다.</span>
                         </div>
                     </div>
 
+
+                    <h2 class="overview-heading">버스가 공유 경로인 이유</h2>
+                    <p class="overview-lead">
+                        장치마다 서로 전용선을 깔면 장치가 늘 때마다 배선이 급격히 늘어납니다. 그래서 하나의 경로를 여러 장치가 나눠 쓰는 버스가 쓰였고, 그 대신 한 번에 한 장치만 보낼 수 있어서 누가 쓸지 정하는 중재가 필요해졌습니다. CPU와 메모리 사이의 병목은 <a th:href="@{/arch/von-neumann}">폰 노이만 구조</a>에서 다룬 문제와 이어집니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>주소선 수와 주소 공간</strong> — 주소선이 n개면 2ⁿ개의 주소를 구분합니다. 20개면 1MiB(2²⁰ 바이트), 32개면 4GiB(2³² 바이트)입니다. 바이트 단위로 주소를 매기는 경우의 계산입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>DDR4-3200의 이론 대역폭</strong> — 초당 32억 번(3200 MT/s) 전송하고 한 번에 64비트(8바이트)를 보내므로 3200 × 8 = 25,600 MB/s, 즉 채널 하나당 이론상 최대 25.6 GB/s입니다. 실제 지속 대역폭은 이보다 낮습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>PCIe 3.0 x16의 이론 대역폭</strong> — 레인 하나가 초당 80억 번(8 GT/s) 전송하고 128b/130b 인코딩을 쓰므로 레인당 약 0.985 GB/s, 레인 16개면 한 방향 약 15.75 GB/s입니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>64비트 CPU는 주소선이 64개다</strong> — 레지스터와 데이터 처리 폭이 64비트라는 뜻이지, 실제로 연결된 주소선이 64개라는 뜻이 아닙니다. 지원하는 물리 주소 비트 수는 CPU 구현마다 다릅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>버스 폭이 넓으면 항상 빠르다</strong> — 대역폭은 폭 × 클록 × 클록당 전송 횟수로 정해지고, 지연(요청에서 응답까지 걸리는 시간)은 별개의 지표입니다. 폭을 늘려도 지연이 줄지는 않습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>DDR은 클록 주파수를 두 배로 올린 것이다</strong> — DDR은 클록의 상승 엣지와 하강 엣지에서 모두 전송해 클록당 전송 횟수를 두 배로 만든 방식입니다. 클록 자체를 두 배로 올린 것과는 다릅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>DMA를 쓰면 버스 중재가 필요 없다</strong> — DMA 컨트롤러도 버스 마스터이므로 CPU와 버스를 두고 경쟁합니다. 중재가 필요한 이유 중 하나가 바로 DMA입니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">동기식 버스와 비동기식 버스는 무엇이 다른가요?</h3>
+                            <p class="overview-card__desc">동기식은 모든 장치가 공통 클록에 맞춰 동작해 제어가 단순하지만 가장 느린 장치에 속도가 묶입니다. 비동기식은 요청과 응답 신호를 주고받는 핸드셰이킹으로 각 장치 속도에 맞추지만 제어가 복잡합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">버스 중재 방식에는 어떤 것이 있나요?</h3>
+                            <p class="overview-card__desc">중재자가 하나인 중앙집중식과 장치들이 스스로 정하는 분산식으로 나뉩니다. 데이지 체인은 승인 신호를 장치 줄을 따라 순서대로 넘기는 중앙집중식의 한 형태로, 구조가 단순하지만 체인 앞쪽 장치가 유리합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">PCIe는 왜 병렬 공유 버스 대신 직렬 점대점 연결을 쓰나요?</h3>
+                            <p class="overview-card__desc">병렬 버스는 선 사이의 신호 도착 시간 차이(스큐)와 간섭 때문에 클록을 높이기 어렵다고 알려져 있습니다. 직렬 점대점 연결은 장치마다 전용 레인을 가져 공유로 인한 대기가 없고, 레인 수를 늘려 대역폭을 키웁니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">대역폭과 지연의 차이는 무엇인가요?</h3>
+                            <p class="overview-card__desc">대역폭은 단위 시간에 옮길 수 있는 데이터 양이고, 지연은 요청 하나가 끝나기까지 걸리는 시간입니다. 큰 파일을 옮길 때는 대역폭이, 작은 요청을 자주 보낼 때는 지연이 성능을 좌우합니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>리눅스 PCI 장치 확인</strong> — <code>lspci -t</code>로 버스, 브리지, 장치가 이어진 트리 구조를 볼 수 있습니다. 리눅스 커널 문서에 PCI 서브시스템 설명이 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>메모리 속도 확인</strong> — <code>dmidecode -t memory</code>로 설치된 메모리 모듈의 형식과 속도(MT/s)를 볼 수 있습니다. 읽으려면 관리자 권한이 필요합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/arch/io-methods}">I/O 방식</a> — 프로그램 I/O, 인터럽트, DMA가 버스를 어떻게 쓰는지 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/arch/interrupt}">인터럽트</a> — 버스의 제어 신호로 전달되는 인터럽트 요청의 처리 과정을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/arch/memory-hierarchy}">메모리 계층 구조</a> — 버스 대역폭과 지연이 메모리 계층에서 어떤 의미인지 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/arch/von-neumann}">폰 노이만 구조</a> — CPU와 메모리 사이의 병목이 생기는 구조를 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>리눅스 PCI 서브시스템</strong> — <a href="https://docs.kernel.org/PCI/index.html" target="_blank" rel="noopener">PCI Bus Subsystem — The Linux Kernel documentation</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>표준</strong> — JEDEC, DDR4 SDRAM Standard (JESD79-4)</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>표준</strong> — PCI-SIG, PCI Express Base Specification</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
