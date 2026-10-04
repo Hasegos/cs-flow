@@ -95,7 +95,7 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">프로세스 상태</h3>
-                            <p class="overview-card__desc">New(생성) → Ready(준비) → Running(실행) → Waiting(대기) → Terminated(종료)의 5가지 상태를 가집니다. OS 스케줄러가 Ready ↔ Running 전이를 제어합니다.</p>
+                            <p class="overview-card__desc">New(생성) → Ready(준비) → Running(실행) → Waiting(대기) → Terminated(종료)의 5가지 상태로 설명하는 것이 교재의 일반적인 모델입니다(운영체제마다 세부 상태는 다릅니다). OS 스케줄러가 Ready ↔ Running 전이를 제어합니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
@@ -105,7 +105,7 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">프로세스 메모리 구조</h3>
-                            <p class="overview-card__desc">Code(텍스트) / Data(초기화된 전역·정적 변수) / BSS(미초기화 전역·정적 변수, 0으로 초기화) / Heap(동적 할당, 위로 성장) / Stack(함수 호출, 아래로 성장) 5개 영역으로 구성됩니다.</p>
+                            <p class="overview-card__desc">Code(텍스트) / Data(초기화된 전역·정적 변수) / BSS(미초기화 전역·정적 변수, 0으로 초기화) / Heap(동적 할당, 보통 위로 성장) / Stack(함수 호출, 보통 아래로 성장) 5개 영역으로 나눠 설명하는 것이 일반적입니다(실제 배치는 운영체제와 아키텍처에 따라 다릅니다).</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
@@ -115,7 +115,7 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">좀비 / 고아 프로세스</h3>
-                            <p class="overview-card__desc">자식이 종료됐지만 부모가 wait()을 호출하지 않은 경우 좀비 프로세스가 됩니다. 부모가 먼저 종료되면 자식은 고아(Orphan)가 되어, 가장 가까운 subreaper 프로세스에 입양됩니다(지정된 subreaper가 없으면 init, PID 1).</p>
+                            <p class="overview-card__desc">자식이 종료됐지만 부모가 wait()을 호출하지 않은 경우 좀비 프로세스가 됩니다. 부모가 먼저 종료되면 자식은 고아(Orphan)가 되어, 가장 가까운 subreaper 프로세스에 입양됩니다(지정된 subreaper가 없으면 그 PID 네임스페이스의 init, 보통 PID 1).</p>
                         </div>
                     </div>
 
@@ -134,7 +134,7 @@
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>프로세스 vs 스레드</strong> — 프로세스는 독립된 메모리 공간(Code/Data/Heap/Stack 모두 별도). 스레드는 같은 프로세스 내에서 Code·Data·Heap을 공유하고 Stack만 독립적으로 가집니다.</span>
+                            <span><strong>프로세스 vs 스레드</strong> — 프로세스는 독립된 메모리 공간(Code/Data/Heap/Stack 모두 별도). 스레드는 같은 프로세스 내에서 Code·Data·Heap을 공유하고 Stack과 레지스터를 독립적으로 가집니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
@@ -142,6 +142,151 @@
                         </div>
                     </div>
 
+
+                    <h2 class="overview-heading">프로그램과 프로세스는 무엇이 다른가</h2>
+                    <p class="overview-lead">
+                        프로그램은 디스크에 저장된 명령어의 모음이고, 프로세스는 그 프로그램이 실행되고 있는 상태입니다. 같은 프로그램을 두 번 실행하면 프로세스는 두 개가 됩니다. 운영체제는 프로세스마다 주소 공간, 열린 파일, CPU 레지스터 같은 실행 상태를 따로 관리하고, 리눅스 커널 소스(<code>include/linux/sched.h</code>)에서는 <code>task_struct</code> 구조체가 PID 같은 프로세스 정보를 담습니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>fork를 세 번 이어서 호출하면</strong> — 조건 없이 <code>fork()</code>를 연달아 3번 부르면 호출할 때마다 프로세스 수가 2배가 되어 1 → 2 → 4 → 8개, 곧 원래 프로세스를 포함해 8개(새로 생긴 것은 7개)가 됩니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>fork의 반환값</strong> — <code>fork()</code>는 부모에게 자식의 PID를, 자식에게 0을 돌려줍니다. 이 값 하나로 같은 코드가 부모와 자식으로 갈라집니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>PID의 범위</strong> — 리눅스는 PID가 <code>pid_max</code>에서 정한 상한까지 올라가며, proc_sys_kernel(5) 매뉴얼은 기본값이 32768이고 64비트 시스템에서는 2²², 곧 약 400만까지 늘릴 수 있다고 설명합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>주소 공간의 크기</strong> — x86-64 리눅스(4단계 페이지 테이블)는 사용자 영역에 대략 128TB의 가상 주소를 줍니다. 47비트로 표현되는 주소 공간 전체는 2⁴⁷바이트 = 128TiB이고 그 끝이 <code>0x00007fffffffffff</code>입니다(맨 위 4kB는 guard hole로 비워 둡니다). 프로세스마다 이 범위를 따로 갖는 것은 가상 주소이기 때문입니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>프로세스와 프로그램은 같은 말이다</strong> — 프로그램은 파일이고 프로세스는 실행 중인 인스턴스입니다. 한 프로그램에서 프로세스가 여러 개 생길 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>fork는 부모의 메모리를 즉시 전부 복사한다</strong> — 개념상 복제이지만 리눅스는 쓰기 시점 복사(copy-on-write)로 구현해, 부모와 자식이 쓰기 전까지 같은 물리 페이지를 공유합니다. 리눅스 fork(2) 매뉴얼이 이를 설명합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>좀비 프로세스는 kill로 없앤다</strong> — 좀비는 이미 종료된 프로세스이고 종료 상태를 부모에게 알리려고 프로세스 테이블 항목만 남은 것입니다. 부모가 <code>wait()</code>로 수거하거나 부모가 종료되어 새 부모가 수거해야 사라집니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>컨텍스트 스위칭은 프로세스끼리만 일어난다</strong> — 스레드 사이에서도 일어납니다. 다만 주소 공간을 바꿔야 하는 프로세스 사이 전환이 보통 더 비쌉니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">프로세스와 프로그램의 차이는 무엇인가요?</h3>
+                            <p class="overview-card__desc">프로그램은 디스크에 있는 정적인 코드이고, 프로세스는 메모리에 올라가 실행 중인 상태입니다. 프로세스는 주소 공간, PCB, 열린 파일 같은 실행 환경을 함께 가집니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">PCB에는 무엇이 들어 있나요?</h3>
+                            <p class="overview-card__desc">PID, 프로세스 상태, 프로그램 카운터와 레지스터 값, 메모리 관리 정보, 스케줄링 정보, 열린 파일과 입출력 상태 같은 정보가 들어 있습니다. 컨텍스트 스위칭 때 이 정보로 실행 상태를 저장하고 복원합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">fork와 exec은 어떻게 쓰이나요?</h3>
+                            <p class="overview-card__desc">fork는 호출한 프로세스를 복제해 자식을 만들고, exec은 그 프로세스의 메모리를 새 프로그램으로 바꿉니다. 셸이 명령을 실행할 때 fork로 자식을 만들고 자식에서 exec을 호출하는 방식이 대표적입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">좀비 프로세스와 고아 프로세스는 어떻게 다른가요?</h3>
+                            <p class="overview-card__desc">좀비는 종료했지만 부모가 아직 종료 상태를 수거하지 않은 자식입니다. 고아는 부모가 먼저 종료되어 부모를 잃은 살아 있는 자식이고, init이나 subreaper가 입양해 나중에 수거합니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>상태 확인</strong> — <code>ps -o pid,ppid,stat,cmd</code>로 프로세스의 부모와 상태를 볼 수 있고, ps 매뉴얼은 STAT의 <code>Z</code>가 좀비(defunct)라고 설명합니다. <code>/proc/PID/status</code>에서도 상태를 읽을 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>종료 상태</strong> — wait(2) 매뉴얼은 <code>WEXITSTATUS</code>가 종료 상태의 하위 8비트를 돌려준다고 설명하므로, <code>exit(256)</code>은 부모에게 0으로 보입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>컨테이너의 PID 1</strong> — 컨테이너에서 애플리케이션이 PID 1이 되면 그 PID 네임스페이스의 고아 프로세스를 입양하게 됩니다(pid_namespaces(7) 매뉴얼). Docker 문서는 <code>--init</code> 옵션이 시그널을 전달하고 프로세스를 수거하는 init을 넣어 준다고 설명합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Java에서 자식 프로세스</strong> — <code>ProcessBuilder</code>로 외부 프로그램을 자식 프로세스로 실행하고 <code>Process.waitFor()</code>로 종료를 기다립니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/thread}">스레드</a> — 프로세스 안에서 주소 공간을 공유하는 실행 단위를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/cpu-scheduling}">CPU 스케줄링</a> — Ready 상태의 프로세스를 고르는 방식을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/process-sync}">프로세스 동기화</a> — 프로세스와 스레드가 공유 자원에 접근할 때의 문제를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/system-call}">시스템 콜</a> — fork, exec, wait가 커널로 들어가는 방식을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/memory-management}">메모리 관리</a> — 프로세스의 주소 공간이 메모리에 놓이는 방식을 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>POSIX fork</strong> — <a href="https://pubs.opengroup.org/onlinepubs/9799919799/functions/fork.html" target="_blank" rel="noopener">fork — The Open Group Base Specifications</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Linux fork(2)</strong> — <a href="https://man7.org/linux/man-pages/man2/fork.2.html" target="_blank" rel="noopener">fork(2) — Linux manual page</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Linux wait(2)</strong> — <a href="https://man7.org/linux/man-pages/man2/wait.2.html" target="_blank" rel="noopener">wait(2) — Linux manual page</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Linux proc_sys_kernel(5)</strong> — <a href="https://man7.org/linux/man-pages/man5/proc_sys_kernel.5.html" target="_blank" rel="noopener">proc_sys_kernel(5) — Linux manual page</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>x86-64 메모리 배치</strong> — <a href="https://docs.kernel.org/arch/x86/x86_64/mm.html" target="_blank" rel="noopener">Complete virtual memory map with 4-level page tables — The Linux Kernel documentation</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Docker init</strong> — <a href="https://docs.docker.com/reference/cli/docker/container/run/" target="_blank" rel="noopener">docker container run — Docker Docs</a>, <a href="https://man7.org/linux/man-pages/man7/pid_namespaces.7.html" target="_blank" rel="noopener">pid_namespaces(7) — Linux manual page</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>교재</strong> — Silberschatz, Galvin, Gagne, "Operating System Concepts", 10th Edition, Chapter 3 "Processes" / Tanenbaum, Bos, "Modern Operating Systems", "Processes and Threads" 장</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
