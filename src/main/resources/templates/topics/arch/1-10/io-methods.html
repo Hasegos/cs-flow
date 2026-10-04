@@ -105,7 +105,7 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">Interrupt Controller</h3>
-                            <p class="overview-card__desc">여러 장치의 인터럽트 요청(IRQ)을 수집해 우선순위를 결정하고 CPU에 전달하는 하드웨어입니다. x86에서는 PIC, 현재는 APIC를 사용합니다.</p>
+                            <p class="overview-card__desc">여러 장치의 인터럽트 요청(IRQ)을 수집해 우선순위를 결정하고 CPU에 전달하는 하드웨어입니다. x86에서는 PIC가 쓰였고 현재 시스템은 주로 APIC를 사용합니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
@@ -115,7 +115,7 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">사이클 스틸링</h3>
-                            <p class="overview-card__desc">DMA가 버스를 점유하는 순간 CPU의 메모리 접근이 한 사이클 지연됩니다. 대용량 전송에서 CPU 효율 이득이 지연 비용보다 훨씬 크므로 실용적입니다.</p>
+                            <p class="overview-card__desc">DMA가 버스를 점유하는 순간 CPU의 메모리 접근이 한 사이클 지연됩니다. 대용량 전송에서는 보통 CPU 효율 이득이 지연 비용보다 크므로 실용적입니다.</p>
                         </div>
                     </div>
 
@@ -134,7 +134,7 @@
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>적용 사례</strong> — 저속 소형 장치(GPIO, 센서): Programmed I/O 또는 IRQ / 고속 대용량 전송(NVMe, 네트워크 NIC): DMA / 현대 OS는 대부분 DMA 기반입니다.</span>
+                            <span><strong>적용 사례</strong> — 저속 소형 장치(GPIO, 센서): Programmed I/O 또는 IRQ / 고속 대용량 전송(NVMe, 네트워크 NIC): DMA / 고속 장치는 DMA를 쓰는 것이 일반적입니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
@@ -142,6 +142,119 @@
                         </div>
                     </div>
 
+
+                    <h2 class="overview-heading">세 방식이 나뉘는 이유</h2>
+                    <p class="overview-lead">
+                        입출력 장치는 CPU보다 훨씬 느리고, 언제 끝날지도 장치마다 다릅니다. 완료를 CPU가 직접 기다리면(프로그램 I/O) 그 시간이 낭비되고, 장치가 알려 주게 하면(인터럽트 구동 I/O) 낭비는 줄지만 데이터를 옮기는 일은 여전히 CPU가 합니다. 데이터 이동까지 컨트롤러에 맡긴 것이 DMA입니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>4KB 블록 하나를 옮길 때(설명용 계산)</strong> — 4바이트마다 인터럽트가 걸리는 장치라면 4,096 ÷ 4 = 1,024번의 인터럽트가 필요합니다. DMA는 CPU가 전송을 설정하고 끝났을 때 인터럽트를 한 번 받으므로, 인터럽트 횟수가 블록당 1번으로 줄어듭니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>폴링은 대기 시간만큼 CPU를 씁니다</strong> — 장치가 1ms 걸린다면 프로그램 I/O는 그 1ms 동안 CPU가 상태 레지스터를 계속 읽습니다. 3GHz CPU라면 사이클로 약 300만 번입니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>DMA를 쓰면 CPU가 전혀 관여하지 않는다</strong> — CPU가 DMA 컨트롤러에 출발지, 목적지, 전송 크기를 설정해야 하고, 끝나면 인터럽트로 알려 줍니다. 빠지는 것은 데이터를 한 단위씩 옮기는 일입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>DMA 중에는 CPU가 완전히 멈춘다</strong> — CPU는 다른 작업을 계속합니다. 다만 DMA가 버스를 쓰는 순간에는 CPU의 메모리 접근이 늦어질 수 있습니다(사이클 스틸링).</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>메모리 맵드 I/O는 장치가 메모리라는 뜻이다</strong> — 장치의 레지스터에 메모리 주소를 배정해 일반 읽기·쓰기 명령으로 접근하게 한 것이고, 그 주소 뒤에 있는 것은 RAM이 아니라 장치입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>DMA 버퍼는 CPU 캐시와 상관없다</strong> — DMA가 메모리를 바꾸면 CPU 캐시의 사본이 오래된 값이 될 수 있어서, 운영체제 드라이버가 이를 맞추는 처리를 합니다. 리눅스는 DMA API 문서에서 캐시 일관성을 다룹니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">프로그램 I/O, 인터럽트 구동 I/O, DMA를 비교해 보세요.</h3>
+                            <p class="overview-card__desc">프로그램 I/O는 CPU가 완료까지 폴링해 구현이 단순하지만 CPU를 낭비합니다. 인터럽트 구동 I/O는 완료를 인터럽트로 받아 그동안 다른 일을 하지만 데이터 이동은 CPU가 합니다. DMA는 데이터 이동까지 DMA 컨트롤러가 해서 대용량 전송에 유리합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">메모리 맵드 I/O와 포트 맵드 I/O는 무엇이 다른가요?</h3>
+                            <p class="overview-card__desc">메모리 맵드 I/O는 장치 레지스터를 메모리 주소 공간에 두고 일반 메모리 명령으로 접근합니다. 포트 맵드 I/O는 별도의 I/O 주소 공간을 쓰고 x86의 IN, OUT 같은 전용 명령으로 접근합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">DMA의 단점이나 주의할 점은 무엇인가요?</h3>
+                            <p class="overview-card__desc">DMA가 버스를 쓰는 동안 CPU와 경쟁이 생기고, DMA가 바꾼 메모리와 CPU 캐시가 어긋날 수 있어 운영체제가 처리해야 합니다. 또 전송이 작으면 설정 비용이 이득보다 클 수 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">폴링이 더 나은 경우도 있나요?</h3>
+                            <p class="overview-card__desc">이벤트가 아주 자주 와서 인터럽트 처리 비용이 크거나, 응답 지연을 최소화해야 하는 경우입니다. 리눅스 네트워크 드라이버는 부하가 높을 때 폴링으로 바꾸는 NAPI를 씁니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>리눅스의 I/O 영역 확인</strong> — <code>cat /proc/iomem</code>은 I/O 메모리 맵(물리 주소 영역)을, <code>cat /proc/ioports</code>는 등록된 I/O 포트 영역을 보여 줍니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>DMA API</strong> — 리눅스 커널 문서의 DMA API는 드라이버가 DMA용 메모리를 확보하고 CPU 캐시와의 일관성을 처리하는 방법을 설명합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>인터럽트 통계</strong> — <code>/proc/interrupts</code>에서 장치별 인터럽트 횟수를 볼 수 있어, 인터럽트 구동 I/O가 얼마나 일어나는지 확인할 수 있습니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/arch/interrupt}">인터럽트</a> — I/O 완료를 알리는 인터럽트의 처리 과정을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/arch/bus-architecture}">버스 구조</a> — DMA와 CPU가 버스를 두고 경쟁하는 중재를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/file-system}">파일 시스템</a> — 디스크 I/O가 운영체제에서 어떻게 쓰이는지 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/disk-scheduling}">디스크 스케줄링</a> — I/O 요청 순서를 바꿔 디스크 헤드 이동을 줄이는 방법을 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>DMA API</strong> — <a href="https://docs.kernel.org/core-api/dma-api.html" target="_blank" rel="noopener">Dynamic DMA mapping Guide — The Linux Kernel documentation</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>/proc 파일</strong> — <a href="https://man7.org/linux/man-pages/man5/proc_iomem.5.html" target="_blank" rel="noopener">proc_iomem(5)</a>, <a href="https://man7.org/linux/man-pages/man5/proc_ioports.5.html" target="_blank" rel="noopener">proc_ioports(5) — Linux manual page</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>NAPI</strong> — <a href="https://docs.kernel.org/networking/napi.html" target="_blank" rel="noopener">NAPI — The Linux Kernel documentation</a></span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
