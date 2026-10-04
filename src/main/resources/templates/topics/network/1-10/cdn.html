@@ -88,7 +88,7 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">엣지 서버와 PoP</h3>
-                            <p class="overview-card__desc">PoP(Point of Presence)는 CDN이 전 세계에 배치한 데이터 센터입니다. 각 PoP에는 엣지 서버가 있어 오리진 서버에서 콘텐츠를 캐싱합니다. 사용자는 DNS를 통해 가장 가까운 PoP로 라우팅됩니다. Cloudflare는 300개 이상의 PoP를 운영합니다.</p>
+                            <p class="overview-card__desc">PoP(Point of Presence)는 CDN이 전 세계에 배치한 데이터 센터입니다. 각 PoP에는 엣지 서버가 있어 오리진 서버에서 콘텐츠를 캐싱합니다. 사용자는 DNS 응답이나 애니캐스트 라우팅으로 가까운 PoP에 연결됩니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
@@ -98,40 +98,173 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">Cache-Control 헤더</h3>
-                            <p class="overview-card__desc">TTL(Time To Live)로 캐시 유효 기간을 설정합니다. max-age=31536000은 1년간 캐싱을 의미합니다. immutable은 콘텐츠가 변경되지 않음을 알려 재검증을 생략합니다. no-cache는 매번 오리진에 재검증 요청을 보냅니다. 정적 파일은 긴 TTL, HTML은 짧은 TTL을 권장합니다.</p>
+                            <p class="overview-card__desc">TTL(Time To Live)로 캐시 유효 기간을 설정합니다. max-age=31536000은 1년간 캐싱을 의미합니다. immutable은 콘텐츠가 변경되지 않음을 알려, 신선한 동안 브라우저가 재검증을 생략하게 합니다(RFC 8246). no-cache는 저장한 사본을 쓰기 전에 매번 재검증을 거치게 합니다. 정적 파일은 긴 TTL, HTML은 짧은 TTL을 권장합니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">캐시 무효화</h3>
-                            <p class="overview-card__desc">콘텐츠 변경 시 기존 캐시를 무효화합니다. URL에 해시를 포함하는 캐시 버스팅(app.a1b2c3.js)이 가장 효율적입니다. CDN API로 특정 파일이나 경로를 강제 퍼지(purge)할 수 있습니다. Cloudflare는 캐시 퍼지 API를 제공하며, 배포 시 자동으로 퍼지합니다.</p>
+                            <p class="overview-card__desc">콘텐츠 변경 시 기존 캐시를 무효화합니다. URL에 해시를 포함하는 캐시 버스팅(app.a1b2c3.js)이 가장 효율적입니다. CDN API로 특정 파일이나 경로를 강제 퍼지(purge)할 수 있습니다. Cloudflare는 캐시 퍼지 API를 제공하므로 배포 과정에서 호출할 수 있습니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">동적 콘텐츠 가속</h3>
-                            <p class="overview-card__desc">CDN은 정적 파일만 캐싱하지 않습니다. TCP 연결 재사용, TLS 종료 최적화, HTTP/2·3 지원으로 동적 API 응답도 가속합니다. Cloudflare Argo는 최적화된 경로를 통해 동적 요청의 네트워크 지연을 줄입니다. 오리진 서버와 CDN 간 연결을 상시 유지합니다.</p>
+                            <p class="overview-card__desc">CDN은 정적 파일만 캐싱하지 않습니다. TCP 연결 재사용, TLS 종료 최적화, HTTP/2·3 지원으로 동적 API 응답도 가속합니다. Cloudflare는 Argo Smart Routing 같은 기능으로 경로를 골라 동적 요청의 지연을 줄이도록 안내합니다. 오리진 서버와 CDN 간 연결을 상시 유지합니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">보안 기능</h3>
-                            <p class="overview-card__desc">CDN은 DDoS 방어, WAF(Web Application Firewall), Bot 관리를 제공합니다. 오리진 IP를 숨겨 직접 공격을 차단합니다. Cloudflare는 1.1.1.1 DNS를 통해 글로벌 트래픽을 분석하고 악성 IP를 차단합니다. SSL/TLS 인증서를 자동으로 발급하고 갱신합니다.</p>
+                            <p class="overview-card__desc">CDN은 DDoS 방어, WAF(Web Application Firewall), Bot 관리를 제공합니다. 오리진 IP를 감추면 공격자가 오리진에 직접 접근하기 어려워지지만, IP가 다른 경로로 알려지면 효과가 없습니다. 많은 CDN이 SSL/TLS 인증서의 발급과 갱신도 대신해 줍니다.</p>
                         </div>
                     </div>
 
                     <div class="overview-points">
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>Anycast 라우팅</strong> — CDN은 동일한 IP 주소를 여러 PoP가 공유합니다. 사용자 요청은 BGP 라우팅을 통해 자동으로 가장 가까운 PoP로 전달됩니다. Cloudflare의 IP 주소에 요청하면 전 세계 어디서든 가장 가까운 데이터 센터가 응답합니다.</span>
+                            <span><strong>Anycast 라우팅</strong> — CDN은 동일한 IP 주소를 여러 PoP가 공유합니다. 사용자 요청은 BGP 경로 기준으로 가까운 PoP로 전달됩니다. 여기서 가깝다는 것은 네트워크 경로 기준이라 지리적으로 가장 가까운 곳과 다를 수 있습니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>CDN과 Spring Boot</strong> — Cloudflare를 오리진 앞에 두면 정적 리소스는 엣지에서 캐싱하고, API 요청은 오리진으로 전달합니다. Spring의 Cache-Control 헤더 설정이 CDN 캐싱 동작을 결정합니다. csflow.kr이 이 구조로 동작하고 있습니다.</span>
+                            <span><strong>CDN과 Spring Boot</strong> — Cloudflare를 오리진 앞에 두면 정적 리소스는 엣지에서 캐싱하고, API 요청은 오리진으로 전달합니다. Spring이 보내는 Cache-Control 헤더는 CDN이 참고하는 신호지만, 실제 캐싱은 CDN의 캐시 규칙에도 좌우됩니다. csflow.kr이 이 구조로 동작하고 있습니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>Stale-While-Revalidate</strong> — 캐시가 만료되면 즉시 삭제하는 대신, 만료된 콘텐츠를 일시적으로 제공하면서 백그라운드에서 새 콘텐츠를 가져옵니다. 사용자는 캐시 미스 없이 응답을 받고, 잠시 후 최신 콘텐츠로 교체됩니다. 응답 속도와 최신성을 동시에 확보합니다.</span>
+                            <span><strong>Stale-While-Revalidate</strong> — 캐시가 만료되면 즉시 삭제하는 대신, 만료된 콘텐츠를 일시적으로 제공하면서 백그라운드에서 새 콘텐츠를 가져옵니다. 사용자는 캐시 미스 없이 응답을 받고, 잠시 후 최신 콘텐츠로 교체됩니다. 응답 속도를 우선하면서 최신성도 곧 따라오게 합니다(RFC 5861, 지원 여부는 CDN마다 다릅니다).</span>
                         </div>
                     </div>
 
+
+                    <h2 class="overview-heading">거리는 줄일 수 없지만 콘텐츠는 옮길 수 있다</h2>
+                    <p class="overview-lead">
+                        신호가 먼 거리를 오가는 데는 물리적 시간이 듭니다. 사용자와 오리진 서버 사이를 줄일 수 없다면, 콘텐츠의 사본을 사용자 가까이에 두면 됩니다. CDN은 이렇게 여러 지역에 엣지 서버를 두고 응답을 캐시해서 지연을 줄이고 오리진의 부하를 덜어 주는 서비스입니다. 캐시가 언제까지 유효하고 어떻게 재검증하는지는 HTTP 캐시 표준인 RFC 9111이 정합니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>거리가 만드는 지연(가정)</strong> — 광섬유 안에서 빛이 진공의 약 3분의 2 속도, 곧 초당 약 20만km로 간다고 보면, 서울에서 약 9,000km 떨어진 서버까지 편도 약 45ms, 왕복 약 90ms가 이론상 하한입니다. 실제 경로는 직선이 아니고 장비를 거치므로 더 큽니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>왕복이 쌓이는 비용</strong> — TCP 연결 1 RTT, TLS 1.3 핸드셰이크 1 RTT, 요청과 응답 1 RTT를 합쳐 3 RTT가 필요합니다. RTT가 90ms이면 270ms, 가까운 엣지의 RTT가 20ms이면 60ms입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>히트율이 오리진에 주는 효과</strong> — 요청이 1,000,000건일 때 히트율 95%이면 오리진에 닿는 요청은 50,000건, 99%이면 10,000건입니다. 히트율이 4%포인트만 올라도 오리진 부하는 5분의 1이 됩니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>max-age 환산</strong> — <code>max-age=31536000</code>은 60 × 60 × 24 × 365 = 31,536,000초, 곧 365일입니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>CDN은 정적 파일만 빠르게 한다</strong> — 캐시할 수 없는 동적 응답도 엣지에서 TLS를 끝내고 오리진과 연결을 유지해 주면 연결 설정 지연을 줄일 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>no-cache는 캐시하지 말라는 뜻이다</strong> — no-cache는 저장은 하되 쓰기 전에 재검증하라는 뜻입니다. 저장 자체를 막는 것은 no-store입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>CDN에서 퍼지하면 모든 사본이 사라진다</strong> — 퍼지는 CDN의 캐시를 지울 뿐 사용자의 브라우저 캐시에 있는 사본은 그대로입니다. 그래서 파일 이름에 해시를 넣는 방식을 함께 씁니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>CDN을 쓰면 항상 빨라진다</strong> — 캐시 미스이면 엣지를 거쳐 오리진까지 가야 해서 오히려 한 단계가 더 있는 셈입니다. 히트율이 낮은 콘텐츠에서는 이득이 작습니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">CDN은 사용자 요청을 어떻게 처리하나요?</h3>
+                            <p class="overview-card__desc">사용자의 요청이 DNS 응답이나 애니캐스트 라우팅으로 가까운 엣지에 닿고, 엣지에 유효한 사본이 있으면(히트) 바로 응답합니다. 없거나 만료되었으면(미스) 오리진에서 가져와 응답하고 저장합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">배포한 정적 파일이 사용자에게 바로 반영되게 하려면 어떻게 하나요?</h3>
+                            <p class="overview-card__desc">파일 이름이나 URL에 내용 해시를 넣어 내용이 바뀌면 URL도 바뀌게 하고 긴 TTL을 씁니다. HTML처럼 이름이 고정된 파일은 짧은 TTL이나 재검증을 쓰거나 CDN의 퍼지 기능을 호출합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">Cache-Control의 public, private, no-cache, no-store는 어떻게 다른가요?</h3>
+                            <p class="overview-card__desc">public과 private은 공유 캐시(CDN)에 저장해도 되는지의 범위를 정합니다. no-cache는 저장하되 재검증 후 사용하고, no-store는 저장하지 않습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">stale-while-revalidate는 무엇인가요?</h3>
+                            <p class="overview-card__desc">만료된 사본을 잠시 그대로 응답하면서 뒤에서 새 사본을 받아 오는 방식입니다. 사용자는 대기 없이 응답을 받고 다음 요청부터 최신 사본을 받습니다. CDN과 브라우저마다 지원이 다릅니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>캐시 상태 확인</strong> — Cloudflare 문서는 응답 헤더 <code>CF-Cache-Status</code>로 HIT, MISS 같은 캐시 상태를 알려 준다고 설명합니다. <code>curl -I 주소</code>로 확인할 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Spring Boot의 캐시 헤더</strong> — 정적 리소스의 <code>Cache-Control</code>은 <code>spring.web.resources.cache.cachecontrol.max-age</code> 같은 속성으로 지정할 수 있습니다. CDN이 이 헤더를 따를지는 CDN의 캐시 규칙에 달려 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>CDN 기본 동작</strong> — Cloudflare는 기본으로 파일 확장자를 기준으로 캐시할 콘텐츠를 정하고, HTML 같은 콘텐츠는 규칙을 만들어야 캐시한다고 문서가 설명합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/dns}">DNS</a> — DNS로 가까운 엣지를 고르는 방식을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/http}">HTTP</a> — 캐시와 재검증을 정하는 헤더를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/https-tls}">HTTPS / TLS</a> — 엣지에서 TLS를 끝내는 구조를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/routing}">라우팅</a> — 애니캐스트가 의존하는 BGP를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/load-balancer}">로드 밸런서</a> — 오리진 앞에서 요청을 나누는 방식을 비교합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>HTTP 캐시</strong> — <a href="https://www.rfc-editor.org/rfc/rfc9111" target="_blank" rel="noopener">RFC 9111 — HTTP Caching</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>stale 확장</strong> — <a href="https://www.rfc-editor.org/rfc/rfc5861" target="_blank" rel="noopener">RFC 5861 — HTTP Cache-Control Extensions for Stale Content</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>immutable</strong> — <a href="https://www.rfc-editor.org/rfc/rfc8246" target="_blank" rel="noopener">RFC 8246 — HTTP Immutable Responses</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Cloudflare 캐시</strong> — <a href="https://developers.cloudflare.com/cache/" target="_blank" rel="noopener">Cache — Cloudflare Docs</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Cloudflare 캐시 상태</strong> — <a href="https://developers.cloudflare.com/cache/concepts/cache-responses/" target="_blank" rel="noopener">Cloudflare cache responses — Cloudflare Docs</a></span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
