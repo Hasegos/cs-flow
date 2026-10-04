@@ -98,7 +98,7 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">가지치기(Pruning)</h3>
-                            <p class="overview-card__desc">어떤 행에서 안전한 열이 하나도 없으면, 그 아래로는 절대 답이 나올 수 없다는 뜻입니다. 더 내려가지 않고 즉시 포기하는 것이 가지치기이며, 이것이 완전탐색보다 백트래킹이 빠른 이유입니다.</p>
+                            <p class="overview-card__desc">어떤 행에서 안전한 열이 하나도 없으면, 그 아래로는 답이 나올 수 없다는 뜻입니다. 더 내려가지 않고 즉시 포기하는 것이 가지치기이며, 이것이 완전탐색보다 백트래킹이 빠른 이유입니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
@@ -136,6 +136,119 @@
                         </div>
                     </div>
 
+
+                    <h2 class="overview-heading">N-Queens의 유래</h2>
+                    <p class="overview-lead">
+                        N-Queens는 체스판에서 퀸 N개를 서로 공격하지 못하게 놓는 문제입니다. 8×8 보드의 8-퀸 문제는 19세기 중반(1848년 막스 베젤의 제안)부터 알려진 퍼즐로 소개되고, 해가 모두 92개라고 알려져 있습니다. 백트래킹은 이런 '여러 선택을 이어 붙이는' 문제를 푸는 대표적인 방법입니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>4×4 보드</strong> — 퀸이 칸마다 올 수 있는 모든 경우를 따지면 4⁴ = 256가지이고, 같은 열에 두 번 놓지 않는 경우만 세어도 4! = 24가지입니다. 백트래킹은 이 시각화에서 22개의 탐색 노드(퀸을 놓은 시도, 막다른 길, 해)로 두 해를 모두 찾습니다. 해는 [1, 3, 0, 2]와 [2, 0, 3, 1] 두 가지입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>8×8 보드</strong> — 칸마다 어디에 놓을지를 모두 따지면 8⁸ = 16,777,216가지, 같은 열을 겹치지 않는 경우만 세도 8! = 40,320가지입니다. 이 가운데 해는 92개입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>성장 속도</strong> — N이 커질수록 후보의 수는 N!이나 Nᴺ처럼 폭발적으로 늘어서, 가지치기는 하더라도 최악의 경우 지수 또는 팩토리얼 시간이 걸린다는 점은 달라지지 않습니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>백트래킹은 항상 빠르다</strong> — 가지치기가 잘 안 되면 완전탐색과 큰 차이가 없고 최악의 시간 복잡도는 여전히 지수 또는 팩토리얼 수준입니다. 얼마나 일찍 가망 없는 갈래를 자를 수 있는지가 성능을 가릅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>백트래킹과 DFS는 같다</strong> — 둘 다 깊이 우선으로 파고들지만 DFS는 그래프의 모든 노드를 방문하는 탐색이고, 백트래킹은 가망 없는 갈래를 미리 자르며 해를 찾는 방식입니다. 백트래킹은 DFS 구조 위에 가지치기와 상태 되돌리기를 얹은 것으로 볼 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>해는 하나만 찾으면 끝이다</strong> — 문제에 따라 첫 해에서 멈추기도 하고 모든 해를 세기도 합니다. 4-Queens의 해는 2개이고 이 시각화는 둘 다 찾습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>되돌리기는 화면에서만 필요하다</strong> — 놓았던 퀸을 상태에서 지우지 않으면 이후 충돌 검사가 틀립니다. 재귀 함수 안에서 상태를 바꿨다면 호출이 끝난 뒤 반드시 되돌립니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">백트래킹과 완전탐색의 차이는 무엇인가요?</h3>
+                            <p class="overview-card__desc">완전탐색은 가능한 모든 경우를 끝까지 만든 뒤 확인합니다. 백트래킹은 선택을 하나씩 쌓으면서 조건을 어기는 순간 그 갈래를 버려, 확인하는 경우의 수를 줄입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">N-Queens에서 충돌 검사를 어떻게 빠르게 하나요?</h3>
+                            <p class="overview-card__desc">열과 두 방향의 대각선을 각각 배열이나 집합으로 기록해 두면 새 퀸의 충돌 여부를 이전 퀸 전부를 훑지 않고 상수 시간에 확인할 수 있습니다(행 − 열은 음수가 될 수 있어서 N − 1을 더해 인덱스로 씁니다).</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">백트래킹의 시간 복잡도는 어떻게 되나요?</h3>
+                            <p class="overview-card__desc">가지치기가 거의 안 되면 전수 탐색과 같아져 후보의 수(N!이나 Nᴺ 수준)에 가깝고, 가지치기가 잘 되면 줄지만 일반적인 상한은 보장하지 못합니다. 문제와 가지치기의 질에 따라 달라집니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">백트래킹을 쓰는 다른 문제에는 무엇이 있나요?</h3>
+                            <p class="overview-card__desc">스도쿠처럼 제약을 만족하는 배치를 찾는 문제가 대표적이고, 순열이나 부분집합 생성, 합이 정해진 조합 찾기도 같은 틀로 풀 수 있습니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>정규 표현식 엔진</strong> — 일부 정규 표현식 구현은 일치하지 않으면 이전 선택으로 되돌아가 다른 경로를 시도하는 백트래킹 방식입니다. Google의 RE2는 README에서 매칭 시간이 입력 길이에 비례하도록 설계되었다고 설명하며, 그 대신 백트래킹이 필요한 일부 기능은 지원하지 않습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>제약 만족 문제</strong> — 스도쿠 풀이나 일정 배정 같은 문제는 선택을 하나씩 고르고 제약을 어기면 되돌아가는 구조로 풀 수 있습니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/bfs-dfs}">BFS와 DFS</a> — 백트래킹의 바탕이 되는 깊이 우선 탐색을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/greedy}">그리디</a> — 한 번 정하면 되돌리지 않는 방식과 비교합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/dp-basic}">동적 계획법</a> — 부분 문제의 답을 저장해 재사용하는 방식과 비교합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/complexity}">시간·공간 복잡도</a> — N!과 지수 시간이 얼마나 빨리 커지는지 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>RE2</strong> — <a href="https://github.com/google/re2" target="_blank" rel="noopener">google/re2 — RE2 is a fast, safe, thread-friendly alternative to backtracking regular expression engines</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>참고 서적</strong> — Cormen, Leiserson, Rivest, Stein, "Introduction to Algorithms" 4판, "Elementary Graph Algorithms" 장(깊이 우선 탐색)</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>참고 서적</strong> — Knuth, "The Art of Computer Programming" Volume 4B, "Backtrack programming" 절</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
