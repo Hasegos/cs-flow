@@ -88,7 +88,7 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">신장 트리(Spanning Tree)</h3>
-                            <p class="overview-card__desc">그래프의 모든 노드를 포함하면서 사이클이 없는 부분 그래프입니다. 노드가 n개면 간선은 항상 정확히 n-1개입니다.</p>
+                            <p class="overview-card__desc">그래프의 모든 노드를 포함하면서 사이클이 없는 부분 그래프입니다. 노드가 n개인 연결 그래프의 신장 트리는 간선이 정확히 n-1개입니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
@@ -108,7 +108,7 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">둘 다 그리디다</h3>
-                            <p class="overview-card__desc">크루스칼은 "가장 싼 간선"을, 프림은 "트리에 연결하는 가장 싼 간선"을 매번 선택하고 절대 번복하지 않습니다. algo-07(그리디)과 달리, MST 문제에서는 이 그리디 선택이 항상 최적해를 보장한다고 증명되어 있습니다.</p>
+                            <p class="overview-card__desc">크루스칼은 "가장 싼 간선"을, 프림은 "트리에 연결하는 가장 싼 간선"을 매번 선택하고 절대 번복하지 않습니다. algo-07(그리디)과 달리, MST 문제에서는 이 그리디 선택이 최적해를 보장한다고 증명되어 있습니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
@@ -124,7 +124,7 @@
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>언제 크루스칼, 언제 프림</strong> — 간선 수가 적고 노드 수가 많은 그래프(희소 그래프)는 크루스칼이, 노드 수가 적고 간선이 촘촘한 그래프(밀집 그래프)는 프림이 보통 더 효율적입니다.</span>
+                            <span><strong>언제 크루스칼, 언제 프림</strong> — 간선 수가 적고 노드 수가 많은 그래프(희소 그래프)는 크루스칼이, 노드 수가 적고 간선이 촘촘한 그래프(밀집 그래프)는 프림이 더 효율적인 경우가 많다고 알려져 있지만, 구현에 따라 달라집니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
@@ -136,6 +136,127 @@
                         </div>
                     </div>
 
+
+                    <h2 class="overview-heading">최소 신장 트리의 역사</h2>
+                    <p class="overview-lead">
+                        최소 신장 트리(MST) 알고리즘은 20세기 전반부터 여러 사람이 따로 발견한 것으로 알려져 있습니다. 보루프카(Borůvka)가 1926년에, 크루스칼(Kruskal)이 1956년에, 프림(Prim)이 1957년에 발표했습니다. 프림의 알고리즘은 이보다 앞서 야르니크(Jarník)가 1930년에 발표한 것과 같아서 프림–야르니크 알고리즘이라고도 부릅니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화의 그래프</strong> — 노드 6개, 간선 9개에서 MST는 간선 5개(노드 수 − 1)로 총 가중치가 13입니다. 크루스칼은 가중치 순으로 간선을 보다가 5개를 고르면 멈추는데, 이 시각화에서는 9개 중 7개를 살펴보고 그중 5개를 고릅니다(가중치가 같은 간선의 순서에 따라 살펴보는 개수는 달라질 수 있습니다)(0-2: 1, 1-2: 2, 2-4: 2, 3-4: 3, 4-5: 5).</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>사이클로 건너뛰는 간선</strong> — 0-1(4)과 1-3(5)은 이미 연결된 노드를 다시 잇게 되어 건너뜁니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>복잡도</strong> — 크루스칼은 간선 정렬이 대부분이라 O(E log E), 이진 힙을 쓴 프림은 O(E log V)(인덱스 우선순위 큐 기준)입니다. 둘 다 같은 차수이고, 어느 쪽이 더 빠른지는 그래프의 밀도와 구현에 따라 달라집니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>MST는 항상 하나뿐이다</strong> — 총 가중치는 하나로 정해지지만 같은 가중치의 간선이 있으면 간선 구성이 여러 개일 수 있습니다. 다만 동률이 있다고 항상 여러 개인 것은 아니어서, 이 시각화의 그래프는 같은 가중치 간선(1-2와 2-4)이 있어도 MST가 하나뿐입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>MST는 두 노드 사이의 최단 경로를 준다</strong> — MST는 모든 노드를 연결하는 데 드는 총합을 줄이는 것이고, 두 노드 사이의 경로가 최단이 되지는 않습니다. 그 문제는 다익스트라가 풉니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>가중치가 음수면 MST를 못 구한다</strong> — 크루스칼과 프림은 음수 가중치에서도 동작합니다. 음수 간선을 제한하는 쪽은 다익스트라입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>연결되지 않은 그래프에도 MST가 있다</strong> — 신장 트리는 모든 노드를 연결해야 하므로 그래프가 연결되어 있어야 합니다. 연결되지 않으면 각 연결 요소마다 신장 트리를 구해 신장 숲이라고 부릅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">크루스칼과 프림의 차이는 무엇인가요?</h3>
+                            <p class="overview-card__desc">크루스칼은 모든 간선을 가중치순으로 보며 사이클이 안 생기는 것만 고르고, 프림은 한 노드에서 시작해 현재 트리와 바깥을 잇는 가장 싼 간선으로 트리를 키웁니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">유니온-파인드는 왜 필요한가요?</h3>
+                            <p class="overview-card__desc">간선을 추가했을 때 사이클이 생기는지는 두 노드가 이미 같은 집합에 있는지로 판단할 수 있고, 유니온-파인드는 이를 거의 상수 시간에 확인하고 합칩니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">MST가 유일하지 않을 수 있는 이유는 무엇인가요?</h3>
+                            <p class="overview-card__desc">가중치가 같은 간선이 여러 개 있으면 어느 것을 먼저 고르느냐에 따라 구성이 달라지지만, 총 가중치는 같습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">프림과 다익스트라는 어떻게 다른가요?</h3>
+                            <p class="overview-card__desc">둘 다 우선순위 큐로 가장 가까운 노드를 고르는 같은 골격이지만, 다익스트라는 시작점에서의 누적 거리를, 프림은 트리에 연결하는 간선 하나의 가중치를 기준으로 합니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>NetworkX</strong> — 파이썬 그래프 라이브러리 NetworkX의 <code>minimum_spanning_tree</code>는 알고리즘으로 kruskal(기본), prim, boruvka를 고를 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>네트워크 설계</strong> — 모든 지점을 최소 비용으로 연결하는 통신망·배선 문제를 MST로 모델링할 수 있습니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/dijkstra}">다익스트라</a> — 프림과 같은 골격이지만 기준이 다른 알고리즘입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/greedy}">그리디</a> — MST의 그리디 선택이 항상 최적인 이유의 배경을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/ds/graph}">그래프</a> — 간선 목록과 인접 리스트 표현을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/ds/heap}">힙</a> — 프림에서 쓰는 우선순위 큐의 바탕을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/routing}">라우팅</a> — 경로 계산과 트리 구조가 네트워크에서 쓰이는 방식을 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>NetworkX</strong> — <a href="https://networkx.org/documentation/stable/reference/algorithms/generated/networkx.algorithms.tree.mst.minimum_spanning_tree.html" target="_blank" rel="noopener">minimum_spanning_tree — NetworkX documentation</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>원 논문</strong> — Kruskal, "On the shortest spanning subtree of a graph and the traveling salesman problem", Proceedings of the AMS 7, 1956</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>원 논문</strong> — Prim, "Shortest connection networks and some generalizations", Bell System Technical Journal 36, 1957</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>교재</strong> — Cormen, Leiserson, Rivest, Stein, "Introduction to Algorithms" 4판, "Minimum Spanning Trees" 장</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
