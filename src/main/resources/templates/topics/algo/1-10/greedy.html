@@ -108,7 +108,7 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">그리디가 항상 통하지는 않는다</h3>
-                            <p class="overview-card__desc">algo-06의 0/1 배낭 문제에서 "가치가 가장 높은 아이템부터 담기"는 그리디지만 최적해를 보장하지 못합니다. 반면 이 토픽의 두 문제는 그리디로도 항상 최적해가 나옵니다.</p>
+                            <p class="overview-card__desc">algo-06의 0/1 배낭 문제에서 "가치가 가장 높은 아이템부터 담기"는 그리디지만 최적해를 보장하지 못합니다. 반면 이 토픽의 두 문제는 이 시각화의 조건에서 그리디로 최적해가 나옵니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
@@ -120,11 +120,11 @@
                     <div class="overview-points">
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>그리디가 통하는 조건</strong> — "지금 당장 최선의 선택"들을 모으면 "전체적으로도 최선"이 되는 성질(탐욕적 선택 속성)이 있어야 합니다. 이 두 문제는 이 성질을 만족한다고 수학적으로 증명되어 있습니다.</span>
+                            <span><strong>그리디가 통하는 조건</strong> — "지금 당장 최선의 선택"들을 모으면 "전체적으로도 최선"이 되는 성질(탐욕적 선택 속성)이 있어야 합니다. 활동 선택 문제는 이 성질을 만족한다고 증명되어 있고, 거스름돈은 이 시각화의 동전 단위에서 성립합니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>거스름돈의 함정</strong> — 이 시각화의 동전(500, 100, 50, 10원)은 큰 단위가 작은 단위의 배수라 그리디가 항상 최적입니다. 하지만 동전이 500원, 400원, 100원처럼 애매한 단위라면, 그리디가 최소 개수를 못 찾을 수도 있습니다 — 이런 경우엔 DP(algo-06 방식)가 필요합니다.</span>
+                            <span><strong>거스름돈의 함정</strong> — 이 시각화의 동전(500, 100, 50, 10원)은 큰 단위가 작은 단위의 배수라 그리디가 최적이 되는 경우입니다(배수가 아니어도 그리디가 최적인 동전 체계가 있고, 배수가 아니면 깨질 수도 있습니다). 하지만 동전이 500원, 400원, 100원처럼 애매한 단위라면, 그리디가 최소 개수를 못 찾을 수 있습니다 — 이런 경우엔 DP(algo-06 방식)가 필요합니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
@@ -136,6 +136,115 @@
                         </div>
                     </div>
 
+
+                    <h2 class="overview-heading">그리디가 통하는 때와 아닐 때</h2>
+                    <p class="overview-lead">
+                        그리디 알고리즘은 매 단계에서 지금 가장 좋아 보이는 선택을 하고 그것을 바꾸지 않는 방법입니다. 빠르고 단순하지만 어떤 문제에서든 최적이 되는 것은 아니어서, 쓰기 전에 그 문제에서 그리디가 맞다는 근거를 따져 봐야 합니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화의 거스름돈</strong> — 860원을 500, 100, 50, 10원 동전으로 거슬러 주면 500원 1개, 100원 3개, 50원 1개, 10원 1개로 모두 6개를 씁니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>그리디가 실패하는 예</strong> — 동전이 500, 400, 100원일 때 800원을 그리디로 주면 500 + 100 + 100 + 100으로 4개이지만, 400원 2개면 2개로 끝납니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>활동 선택</strong> — 활동 6개(A 1~3, B 2~5, C 4~7, D 1~8, E 5~9, F 8~10)에서 종료 시간이 빠른 순으로 고르면 A, C, F로 3개입니다. 가장 길게 걸리는 D를 먼저 고르면 D와 F로 2개뿐입니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>그리디는 항상 최적해를 준다</strong> — 문제가 그리디 선택 속성과 최적 부분 구조를 가질 때만 최적이 보장됩니다. 그렇지 않으면 근사치에 그치거나 틀립니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>거스름돈은 항상 큰 동전부터 주면 된다</strong> — 동전 단위에 따라 다릅니다. 이 시각화의 단위(500·100·50·10원)는 맞지만 500·400·100원은 위처럼 실패합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>정렬 기준은 직관대로 고르면 된다</strong> — 활동 선택에서는 시작 시간이나 길이가 아니라 종료 시간이 정답 기준입니다. 기준에 따라 결과가 달라지므로 증명이 필요합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>그리디는 DP의 단순화 버전이다</strong> — 둘은 다른 방식입니다. 그리디는 한 번 고르고 끝내고, DP는 가능한 선택을 모두 비교합니다. 그리디가 통하는 문제는 DP보다 빠르게 풀 수 있습니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">그리디가 맞는지 어떻게 확인하나요?</h3>
+                            <p class="overview-card__desc">그리디로 고른 선택을 최적해에도 포함시킬 수 있다는 것(그리디 선택 속성)과, 선택 후 남은 문제도 같은 구조라는 것(최적 부분 구조)을 보입니다. 보통 교환 논법으로 증명합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">거스름돈에서 그리디가 안 되는 반례를 들어 보세요.</h3>
+                            <p class="overview-card__desc">동전이 500, 400, 100원이고 800원을 줄 때 그리디는 4개(500 + 100 × 3), 최적은 400원 2개입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">활동 선택에서 왜 종료 시간이 빠른 순인가요?</h3>
+                            <p class="overview-card__desc">일찍 끝나는 활동을 고르면 이후에 쓸 수 있는 시간이 가장 많이 남습니다. 시작이 빠른 활동은 길게 이어져 뒤의 여러 활동을 막을 수 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">분할 가능 배낭은 그리디로 풀리는데 0/1 배낭은 왜 안 되나요?</h3>
+                            <p class="overview-card__desc">분할 가능하면 무게 대비 가치가 높은 순으로 담다가 마지막에 쪼갤 수 있어서 최적입니다. 0/1은 쪼갤 수 없어 남는 용량이 낭비될 수 있고, 그래서 DP가 필요합니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>허프만 부호</strong> — DEFLATE(RFC 1951)는 LZ77과 허프만 부호를 함께 씁니다. 허프만 부호를 만드는 알고리즘은 가장 빈도가 낮은 두 노드를 합치는 그리디 방식으로 알려져 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>그래프 알고리즘</strong> — 다익스트라, 크루스칼, 프림은 모두 그리디 선택을 쓰는 알고리즘입니다. <a th:href="@{/algo/mst}">최소 신장 트리</a> 토픽에서 같은 그리디 선택이 항상 최적이 되는 사례를 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/dp-basic}">DP 기초</a> — 그리디가 못 푸는 0/1 배낭을 DP로 풀어 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/mst}">최소 신장 트리</a> — 그리디 선택이 항상 최적인 대표 문제입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/dijkstra}">다익스트라</a> — 그리디 선택으로 최단 거리를 구하는 알고리즘입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/backtracking}">백트래킹</a> — 선택을 되돌리는 방식과 대비해 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>DEFLATE</strong> — <a href="https://www.rfc-editor.org/rfc/rfc1951" target="_blank" rel="noopener">RFC 1951 — DEFLATE Compressed Data Format Specification version 1.3</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>교재</strong> — Cormen, Leiserson, Rivest, Stein, "Introduction to Algorithms" 4판, "Greedy Algorithms" 장(활동 선택, 허프만 부호, 분할 가능 배낭)</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
