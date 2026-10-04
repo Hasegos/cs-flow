@@ -128,14 +128,143 @@
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>힙 정렬 vs 다른 정렬</strong> — Quick Sort는 평균 O(n log n)이지만 최악 O(n²). Merge Sort는 O(n log n)이지만 추가 메모리 O(n) 필요. Heap Sort는 최악도 O(n log n)이고 추가 메모리 O(1)이나, 캐시 지역성이 낮아 실제 성능은 Quick Sort보다 느린 경우가 많습니다.</span>
+                            <span><strong>힙 정렬 vs 다른 정렬</strong> — Quick Sort는 평균 O(n log n)이지만 최악 O(n²). Merge Sort는 O(n log n)이지만 추가 메모리 O(n) 필요. Heap Sort는 최악도 O(n log n)이고 추가 메모리 O(1)이나, 캐시 지역성이 낮아 실제 성능은 Quick Sort보다 느린 경우가 많다고 알려져 있습니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>활용 사례</strong> — 다익스트라 최단 경로(최소 비용 노드 추출), 프림 MST 알고리즘, 운영체제 CPU 스케줄링(우선순위 기반), K번째 최댓값/최솟값 탐색, 실시간 중앙값 유지(Max-Heap + Min-Heap 조합).</span>
+                            <span><strong>활용 사례</strong> — 다익스트라 최단 경로(최소 비용 노드 추출), 프림 MST 알고리즘, 우선순위 기반 스케줄링 같은 작업 선택, K번째 최댓값/최솟값 탐색, 실시간 중앙값 유지(Max-Heap + Min-Heap 조합).</span>
                         </div>
                     </div>
 
+
+                    <h2 class="overview-heading">힙이 필요한 이유</h2>
+                    <p class="overview-lead">
+                        힙은 '가장 큰 값(또는 가장 작은 값)을 빠르게 꺼내는' 데 특화된 자료구조입니다. 전체를 정렬해 두는 것보다 약한 규칙(부모가 자식보다 크거나 같다)만 지켜서 삽입과 삭제를 O(log n)에 끝내고, 최댓값 확인은 O(1)로 합니다. 우선순위 큐의 표준 구현이 힙인 이유입니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>배열 인덱스 계산</strong> — 인덱스 3인 노드의 왼쪽 자식은 2×3 + 1 = 7, 오른쪽 자식은 8, 부모는 (3 − 1) / 2 = 1입니다(루트인 인덱스 0은 부모가 없습니다).</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>힙의 높이</strong> — 원소가 1,000,000개이면 높이가 약 19라서 삽입과 삭제가 최대 19번 안팎의 비교와 교환으로 끝납니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Top-K의 메모리</strong> — 10억 개의 값 중 가장 큰 100개를 찾을 때 크기 100짜리 최소 힙만 유지하면 메모리는 100개분이고 시간은 O(n log K)입니다. 전부 정렬하면 10억 개를 저장해야 합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>힙 만들기 방식 비교</strong> — 원소 n개를 하나씩 삽입하면 O(n log n)이지만, 배열을 한 번에 힙으로 바꾸는 Build-Heap은 O(n)입니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>힙은 정렬된 배열이다</strong> — 루트가 최댓값(최솟값)이라는 것만 보장합니다. 배열을 순서대로 읽으면 정렬되어 있지 않습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>힙에서도 임의의 값을 빨리 찾는다</strong> — 형제 사이에 대소 관계가 없어서 특정 값을 찾으려면 O(n)이 걸립니다. 빠른 것은 최댓값 접근과 삽입, 삭제입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>PriorityQueue를 순회하면 우선순위 순서로 나온다</strong> — Java 문서는 iterator가 특별한 순서로 순회한다는 보장이 없다고 설명합니다. 순서대로 꺼내려면 poll을 반복해야 합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>같은 우선순위는 먼저 넣은 것이 먼저 나온다</strong> — Java 문서는 같은 우선순위의 순서는 임의로 정해진다고 설명합니다. 순서가 필요하면 입력 순번을 비교 기준에 더합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">힙과 이진 탐색 트리의 차이는 무엇인가요?</h3>
+                            <p class="overview-card__desc">힙은 부모와 자식의 대소만 보장해 최댓값 접근이 O(1)이고 배열로 표현됩니다. BST는 왼쪽 < 현재 < 오른쪽을 보장해 정렬된 순회와 임의 값 탐색이 가능합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">Build-Heap이 O(n)인 이유는 무엇인가요?</h3>
+                            <p class="overview-card__desc">아래쪽 노드는 내려갈 거리가 짧습니다. 높이가 h인 노드는 최대 h번 내려가는데 그런 노드의 수가 n/2^(h+1) 정도라서 전체 합이 O(n)으로 수렴합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">스트림에서 중앙값을 실시간으로 구하려면 어떻게 하나요?</h3>
+                            <p class="overview-card__desc">작은 쪽 절반을 최대 힙에, 큰 쪽 절반을 최소 힙에 넣고 두 힙의 크기를 맞춥니다. 두 힙의 루트로 중앙값을 O(1)에 읽고, 값을 추가하는 삽입은 O(log n)입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">힙 정렬이 퀵 정렬보다 느린 경우가 많은 이유는 무엇인가요?</h3>
+                            <p class="overview-card__desc">힙 정렬은 부모와 자식 사이를 오가며 메모리를 건너뛰어 읽어서 캐시 효율이 떨어지는 편이라, 보통 잘 구현한 퀵 정렬보다 느리다고 알려져 있습니다. 최악의 경우 O(n log n)이 보장되는 점은 장점입니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Java</strong> — <code>PriorityQueue</code> 문서는 우선순위 힙 기반의 큐이고 기본은 자연 순서(또는 지정한 Comparator)에서 가장 작은 원소를 꺼내며, offer와 poll은 O(log n), peek는 상수 시간이라고 설명합니다. remove(Object)와 contains는 선형 시간이고 스레드에 안전하지 않습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Python</strong> — <code>heapq</code> 모듈은 리스트를 최소 힙으로 다루는 함수를 제공하고(최대 힙 전용 함수는 3.14부터 추가되었습니다), <code>heap[0]</code>이 가장 작은 원소입니다. <code>nlargest</code>와 <code>nsmallest</code>는 상위 K개를 구하는 함수입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>그래프 알고리즘</strong> — 다익스트라와 프림이 가장 가까운 노드를 꺼내는 데 쓰는 우선순위 큐의 바탕입니다. <a th:href="@{/algo/dijkstra}">다익스트라</a> 토픽에서 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/ds/tree}">트리</a> — 완전 이진 트리의 구조를 먼저 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/ds/stack-queue}">스택 / 큐</a> — 우선순위 큐와 일반 큐의 차이를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/sort-compare}">정렬 비교</a> — 힙 정렬의 비교 횟수를 다른 정렬과 견줘 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/dijkstra}">다익스트라</a> — 힙이 최단 경로 계산을 빠르게 하는 방식을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/ds/bst}">이진 탐색 트리</a> — 힙과 규칙이 다른 트리를 비교합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Java PriorityQueue</strong> — <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/PriorityQueue.html" target="_blank" rel="noopener">PriorityQueue — Java SE 21 API</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Python heapq</strong> — <a href="https://docs.python.org/3/library/heapq.html" target="_blank" rel="noopener">heapq — Heap queue algorithm — Python documentation</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>원 논문</strong> — Williams, "Algorithm 232: Heapsort", Communications of the ACM, 1964</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>교재</strong> — Cormen, Leiserson, Rivest, Stein, "Introduction to Algorithms" 4판, "Heapsort" 장</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
