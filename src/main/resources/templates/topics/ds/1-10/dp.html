@@ -98,7 +98,7 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">완전 탐색 (재귀)</h3>
-                            <p class="overview-card__desc">부분 문제를 저장하지 않고 매번 새로 계산하는 방식입니다. 구현은 간단하지만 같은 계산을 반복해 지수 시간 O(2ⁿ)이 걸립니다. DP가 왜 필요한지 보여주는 기준점입니다.</p>
+                            <p class="overview-card__desc">부분 문제를 저장하지 않고 매번 새로 계산하는 방식입니다. 구현은 간단하지만 같은 계산을 반복해 지수 시간(O(2ⁿ) 이하, 정확히는 약 1.618ⁿ)이 걸립니다. DP가 왜 필요한지 보여주는 기준점입니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
@@ -124,11 +124,11 @@
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>메모이제이션 vs 타뷸레이션</strong> — 메모이제이션은 필요한 부분 문제만 계산하고(느슨함) 재귀 호출 스택을 사용합니다. 타뷸레이션은 모든 부분 문제를 순서대로 계산하지만 재귀가 없어 스택 오버플로 위험이 없고 대체로 더 빠릅니다.</span>
+                            <span><strong>메모이제이션 vs 타뷸레이션</strong> — 메모이제이션은 필요한 부분 문제만 계산하고(느슨함) 재귀 호출 스택을 사용합니다. 타뷸레이션은 모든 부분 문제를 순서대로 계산하지만 재귀가 없어 스택 오버플로 위험이 없고 호출 비용이 적어 더 빠른 경우가 많습니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>피보나치를 넘어서</strong> — 같은 원리가 배낭 문제(Knapsack), 최장 공통 부분 수열(LCS), 최단 경로(다익스트라와 연계) 등 훨씬 복잡한 문제에도 그대로 적용됩니다. 핵심은 "부분 문제를 정의하고, 그 결과를 저장해 재사용한다"는 패턴입니다.</span>
+                            <span><strong>피보나치를 넘어서</strong> — 같은 원리가 배낭 문제(Knapsack), 최장 공통 부분 수열(LCS), 최단 경로(벨만-포드 알고리즘 등) 등 훨씬 복잡한 문제에도 그대로 적용됩니다. 핵심은 "부분 문제를 정의하고, 그 결과를 저장해 재사용한다"는 패턴입니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
@@ -136,6 +136,131 @@
                         </div>
                     </div>
 
+
+                    <h2 class="overview-heading">피보나치로 보는 동적 프로그래밍</h2>
+                    <p class="overview-lead">
+                        동적 프로그래밍은 같은 부분 문제를 여러 번 계산하는 낭비를 저장으로 없애는 방법입니다. 이 토픽은 가장 작은 예인 피보나치로 '저장하지 않을 때'와 '저장할 때'의 차이를 숫자로 보여 줍니다. 배낭 문제 같은 2차원 DP는 <a th:href="@{/algo/dp-basic}">DP 기초</a> 토픽에서 이어집니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>fib(40)의 호출 횟수</strong> — 저장 없이 재귀로 fib(40)을 구하면 함수가 331,160,281번 호출됩니다(호출 수 = 2 × fib(41) − 1). 서로 다른 부분 문제는 fib(0)부터 fib(40)까지 41개뿐입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>증가 속도</strong> — 순수 재귀의 호출 수는 약 1.618ⁿ(황금비의 n제곱)으로 늘어납니다. 그래서 O(2ⁿ)은 느슨한 상한이고(정확히는 Θ(φⁿ)), n이 1 늘 때마다 약 1.6배가 됩니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>저장하면</strong> — 같은 fib(40)을 부분 문제마다 한 번씩만 계산하므로, 기저 사례 fib(0)과 fib(1)을 빼면 fib(2)부터 fib(40)까지 덧셈이 39번이면 됩니다. 시간은 O(n)입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>값의 크기</strong> — fib(92)는 7,540,113,804,746,346,429로 부호 있는 64비트 정수(최댓값 약 9.22×10¹⁸)에 들어가지만, fib(93)은 넘칩니다. 큰 n에서는 오버플로를 따로 다뤄야 합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>DP는 재귀에 캐시를 붙이는 기법일 뿐이다</strong> — 반은 맞습니다. 메모이제이션이 그렇습니다. 하지만 표를 채우는 bottom-up 방식은 재귀 없이 부분 문제를 순서대로 풀어 올라갑니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>메모이제이션은 항상 표 채우기보다 느리다</strong> — 재귀 호출 비용이 드는 건 맞지만, 필요한 부분 문제만 계산하므로 입력에 따라 더 적게 계산할 수도 있습니다. 상황에 따라 다릅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>모든 재귀 문제에 DP가 먹힌다</strong> — 부분 문제가 겹치지 않으면(병합 정렬처럼) 저장해도 이득이 없습니다. 최적 부분 구조와 겹치는 부분 문제 두 성질이 필요합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>피보나치는 반드시 O(n)이다</strong> — 반복문과 변수 두 개로는 O(n) 시간 O(1) 공간입니다. 행렬 거듭제곱이나 빠른 두 배법 같은 방법으로 산술 연산 횟수 기준 O(log n)에도 구할 수 있습니다(큰 수의 곱셈 비용은 별개입니다).</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">계단 오르기(한 번에 1칸 또는 2칸) 경우의 수는 어떻게 구하나요?</h3>
+                            <p class="overview-card__desc">n번째 계단에 오는 방법은 n − 1에서 한 칸, n − 2에서 두 칸 올라오는 경우의 합이라서 피보나치와 같은 점화식 dp[n] = dp[n − 1] + dp[n − 2]입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">메모이제이션과 타뷸레이션을 어떻게 고르나요?</h3>
+                            <p class="overview-card__desc">필요한 부분 문제가 일부뿐이면 메모이제이션이 편하고, 재귀 깊이가 너무 깊거나 모든 부분 문제가 필요하면 표 채우기가 안전합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">공간을 줄일 수 있나요?</h3>
+                            <p class="overview-card__desc">dp[i]가 바로 앞 몇 개에만 의존하면 그 값들만 변수로 유지해 O(n) 공간을 O(1)로 줄입니다. 대신 이전 값들로 경로를 복원할 수는 없습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">DP로 풀 수 있는 다른 대표 문제를 말해 보세요.</h3>
+                            <p class="overview-card__desc">배낭 문제, 최장 공통 부분 수열(LCS), 행렬 연쇄 곱셈 등이 교재에서 다루는 대표 예입니다. 모두 부분 문제를 정의하고 점화식으로 연결하는 같은 틀입니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Python</strong> — <code>functools.cache</code>는 같은 인자로 다시 호출하면 저장된 결과를 돌려줍니다(인자는 해시 가능해야 합니다). <code>lru_cache</code>는 기본 maxsize가 128이라 오래 쓰지 않은 결과가 버려질 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Java의 함정</strong> — 메모를 <code>HashMap</code>에 두고 <code>computeIfAbsent</code>의 매핑 함수 안에서 재귀적으로 같은 맵에 값을 넣으면 안 됩니다. Java 문서는 매핑 함수가 계산하는 동안 이 맵을 수정해서는 안 되고, 수정이 감지되면 ConcurrentModificationException이 던져질 수 있다고 설명합니다. 메모이제이션을 직접 구현할 때는 먼저 get으로 확인하는 방식을 씁니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>재귀 깊이</strong> — 메모이제이션 재귀는 n이 크면 호출 스택이 깊어져 <code>StackOverflowError</code> 같은 한계에 걸릴 수 있어서, 반복문 방식으로 바꾸기도 합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/dp-basic}">DP 기초</a> — 2차원 DP인 배낭 문제로 이어서 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/greedy}">그리디</a> — 저장 없이 한 번에 고르는 방식과 비교합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/complexity}">시간·공간 복잡도</a> — O(2ⁿ)과 O(n)의 차이를 숫자로 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/backtracking}">백트래킹</a> — 선택을 시도하고 되돌리는 방식과 비교합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/ds/hash-table}">해시 테이블</a> — 메모를 저장하는 대표 구조를 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Python functools</strong> — <a href="https://docs.python.org/3/library/functools.html" target="_blank" rel="noopener">functools — Higher-order functions and operations on callable objects — Python documentation</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Java HashMap</strong> — <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/HashMap.html" target="_blank" rel="noopener">HashMap — Java SE 21 API</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>교재</strong> — Cormen, Leiserson, Rivest, Stein, "Introduction to Algorithms" 4판, "Dynamic Programming" 장</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
