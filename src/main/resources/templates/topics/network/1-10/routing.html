@@ -94,12 +94,12 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">RIP (거리 벡터)</h3>
-                            <p class="overview-card__desc">Routing Information Protocol. 목적지까지의 홉(Hop) 수를 메트릭으로 사용합니다. 주기적으로(30초) 인접 라우터에 전체 라우팅 테이블을 브로드캐스트합니다. 최대 홉 수 15로 소규모 네트워크에 적합합니다. 수렴 속도가 느리고 라우팅 루프 문제가 있습니다.</p>
+                            <p class="overview-card__desc">Routing Information Protocol. 목적지까지의 홉(Hop) 수를 메트릭으로 사용합니다. 주기적으로(30초) 인접 라우터에 라우팅 테이블을 알립니다(RIPv1은 브로드캐스트, RIPv2는 멀티캐스트). 최대 홉 수 15로 소규모 네트워크에 적합합니다. 수렴 속도가 느리고 라우팅 루프 문제가 있습니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">OSPF (링크 상태)</h3>
-                            <p class="overview-card__desc">Open Shortest Path First. 대역폭 기반 비용(Cost)을 메트릭으로 사용합니다. 각 라우터가 전체 네트워크 토폴로지를 파악하고 다익스트라 알고리즘으로 최단 경로를 계산합니다. 변화 발생 시에만 LSA를 전파해 빠른 수렴과 확장성을 제공합니다.</p>
+                            <p class="overview-card__desc">Open Shortest Path First. 링크마다 설정하는 비용(Cost)을 메트릭으로 사용하며, 구현은 보통 대역폭에서 자동으로 계산합니다. 각 라우터가 전체 네트워크 토폴로지를 파악하고 다익스트라 알고리즘으로 최단 경로를 계산합니다. 변화가 생기면 LSA를 전파해 빠른 수렴을 얻고, 계층(Area) 설계로 확장성을 높입니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
@@ -114,14 +114,14 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">AS와 IGP/EGP</h3>
-                            <p class="overview-card__desc">AS(Autonomous System)는 단일 관리 체계 아래 있는 라우터 집합입니다. IGP(Interior Gateway Protocol)는 AS 내부 라우팅으로 RIP·OSPF·EIGRP가 있습니다. EGP(Exterior Gateway Protocol)는 AS 간 라우팅으로 BGP가 사실상 유일한 표준입니다.</p>
+                            <p class="overview-card__desc">AS(Autonomous System)는 단일 관리 체계 아래 있는 라우터 집합입니다. IGP(Interior Gateway Protocol)는 AS 내부 라우팅으로 RIP·OSPF·EIGRP가 있습니다. EGP(Exterior Gateway Protocol)는 AS 간 라우팅으로 인터넷에서는 BGP를 씁니다.</p>
                         </div>
                     </div>
 
                     <div class="overview-points">
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>다익스트라 알고리즘 (OSPF)</strong> — OSPF는 각 라우터가 링크 상태 데이터베이스(LSDB)를 기반으로 다익스트라 SPF 알고리즘을 실행해 최단 경로 트리를 계산합니다. 비용(Cost) = 10^8 / 대역폭(bps)으로, 100Mbps 링크의 비용은 1입니다.</span>
+                            <span><strong>다익스트라 알고리즘 (OSPF)</strong> — OSPF는 각 라우터가 링크 상태 데이터베이스(LSDB)를 기반으로 다익스트라 SPF 알고리즘을 실행해 최단 경로 트리를 계산합니다. 비용(Cost)은 기준 대역폭을 링크 대역폭으로 나눈 값으로 정하는 것이 일반적이며, 많은 구현의 기본 기준 대역폭 100Mbps에서 100Mbps 링크의 비용은 1입니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
@@ -129,14 +129,155 @@
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>ECMP (Equal-Cost Multi-Path)</strong> — 같은 비용의 경로가 여러 개일 때 트래픽을 분산합니다. OSPF와 EIGRP 모두 지원하며, 라운드 로빈이나 해시 기반으로 분산합니다. 링크 활용도를 높이고 장애 내성을 강화합니다.</span>
+                            <span><strong>ECMP (Equal-Cost Multi-Path)</strong> — 같은 비용의 경로가 여러 개일 때 트래픽을 분산합니다. OSPF와 EIGRP 모두 지원하며, 보통 패킷 순서가 바뀌지 않도록 흐름 단위 해시로 분산합니다. 링크 활용도를 높이고 장애 내성을 강화합니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>SDN (소프트웨어 정의 네트워킹)</strong> — 제어 평면(Control Plane)을 데이터 평면(Data Plane)에서 분리해 중앙에서 라우팅을 제어합니다. OpenFlow 프로토콜로 스위치·라우터를 프로그래밍합니다. 클라우드 데이터센터에서 많이 사용됩니다.</span>
+                            <span><strong>SDN (소프트웨어 정의 네트워킹)</strong> — 제어 평면(Control Plane)을 데이터 평면(Data Plane)에서 분리해 중앙에서 라우팅을 제어합니다. OpenFlow 프로토콜로 스위치·라우터를 프로그래밍합니다. 일부 데이터센터와 클라우드 네트워크에서 쓰입니다.</span>
                         </div>
                     </div>
 
+
+                    <h2 class="overview-heading">라우팅과 포워딩</h2>
+                    <p class="overview-lead">
+                        라우터는 패킷의 목적지 주소를 보고 자기 테이블에서 다음에 보낼 곳을 고릅니다. 경로 전체를 정하는 것이 아니라 한 홉씩 이어 가는 방식입니다. 테이블을 만드는 일을 라우팅, 테이블을 보고 패킷을 내보내는 일을 포워딩이라고 구분해 부릅니다. 인터넷은 자율 시스템(AS)이라는 관리 단위가 BGP로 서로 연결된 구조입니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>가장 긴 접두사 일치</strong> — 목적지가 10.1.2.3이고 테이블에 10.0.0.0/8, 10.1.0.0/16, 10.1.2.0/24, 0.0.0.0/0이 있으면 앞의 24비트가 일치하는 10.1.2.0/24가 가장 길게 일치하므로 이 항목을 씁니다. 0.0.0.0/0은 길이가 0이라 모든 주소와 일치하지만 가장 마지막 순위입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>/24의 크기</strong> — 접두사 길이가 24이면 호스트 부분이 8비트라서 주소가 2⁸ = 256개이고, 네트워크 주소와 브로드캐스트 주소를 빼면 일반적인 /24에서 호스트 254개를 둡니다(/31, /32 같은 특수 용도는 예외입니다).</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>OSPF 비용 계산</strong> — 기준 대역폭이 100Mbps인 흔한 기본 설정에서 비용은 100Mbps / 링크 대역폭입니다. 10Mbps 링크는 10, 100Mbps 링크는 1이고, 1Gbps 링크는 계산값이 1보다 작아지는데, 구현에 따라 비용이 같은 1로 처리되어 100Mbps와 구별되지 않을 수 있습니다. 그래서 고속 링크가 있는 망은 기준 대역폭을 올려 씁니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>RIP의 홉 한계와 AS 번호</strong> — RIP는 홉 15개까지만 유효하고 16이면 도달 불가로 봅니다. AS 번호는 처음 16비트(65,536개)였다가 RFC 6793에서 32비트(4,294,967,296개)로 늘었습니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>라우터가 출발지에서 목적지까지 전체 경로를 안다</strong> — 라우터는 다음 홉만 압니다. 링크 상태 프로토콜은 토폴로지를 알지만 패킷은 각 라우터의 판단으로 홉마다 이어집니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>BGP는 가장 짧은 경로를 고른다</strong> — BGP는 정책을 반영합니다. RFC 4271은 경로마다 선호도(degree of preference, AS 내부에서는 LOCAL_PREF로 전달)를 먼저 정하고, 선호도가 같을 때 AS-PATH 길이 등으로 가린다고 설명합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>라우팅과 포워딩은 같은 말이다</strong> — 라우팅은 테이블을 만드는 제어 과정이고 포워딩은 테이블을 보고 패킷을 내보내는 데이터 과정입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>정적 라우팅은 구식이다</strong> — 경로가 단순하고 바뀌지 않는 곳에서는 지금도 흔히 쓰이며, 기본 경로(0.0.0.0/0) 설정이 대표적입니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">거리 벡터와 링크 상태 방식은 어떻게 다른가요?</h3>
+                            <p class="overview-card__desc">거리 벡터(RIP)는 이웃에게 받은 거리 정보를 이어 붙여 경로를 학습하고, 링크 상태(OSPF)는 모든 라우터가 같은 토폴로지 정보를 갖고 각자 최단 경로를 계산합니다. 링크 상태가 수렴이 빠르지만 정보를 더 많이 관리합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">OSPF와 BGP는 어떻게 다른가요?</h3>
+                            <p class="overview-card__desc">OSPF는 한 AS 안에서 최단 경로를 구하는 IGP이고, BGP는 AS 사이에서 경로 속성과 정책으로 경로를 고르는 EGP입니다. 같은 조직의 네트워크 안은 OSPF, 인터넷의 AS 사이는 BGP를 씁니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">가장 긴 접두사 일치는 무엇인가요?</h3>
+                            <p class="overview-card__desc">목적지 주소와 일치하는 항목이 여러 개일 때 접두사 길이가 가장 긴, 곧 가장 구체적인 항목을 고르는 규칙입니다. 이 덕분에 큰 대역 안의 일부만 다른 경로로 보낼 수 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">라우팅 루프는 왜 생기고 어떻게 막나요?</h3>
+                            <p class="overview-card__desc">거리 벡터 방식에서 장애 뒤 서로 상대를 통해 갈 수 있다고 잘못 알려 주며 경로가 돌 수 있습니다. 분할 지평선은 경로를 배운 방향으로 되돌려 광고하지 않고, 홉 수의 상한이 무한 증가를 끊습니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Linux에서 보기</strong> — <code>ip route show</code>로 라우팅 테이블을, <code>ip route get 주소</code>로 특정 목적지에 쓰이는 경로를 볼 수 있습니다(ip-route(8) 매뉴얼).</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>BGP 사고 사례</strong> — 2008년 한 사업자가 YouTube의 주소 대역을 잘못 광고해 트래픽이 엉뚱한 곳으로 향한 사건을 RIPE NCC가 BGP 수집 데이터로 분석해 공개했습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>애니캐스트</strong> — <a th:href="@{/network/cdn}">CDN</a>이나 DNS 루트 서버처럼 같은 주소를 여러 곳에서 광고하는 서비스는 BGP로 사용자를 가까운 곳으로 보냅니다. 이때 가깝다는 것은 BGP 경로 기준이며 지리적 거리와 다를 수 있습니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/osi-model}">OSI 7계층</a> — 라우터가 동작하는 네트워크 계층의 위치를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/tcp-ip}">TCP/IP</a> — IP 주소와 패킷 전달의 기본을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/dns}">DNS</a> — 루트 서버의 애니캐스트와 BGP의 관계를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/cdn}">CDN</a> — 애니캐스트로 가까운 엣지를 고르는 방식을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/load-balancer}">로드 밸런서</a> — 라우팅과 다른 층에서 트래픽을 나누는 방식을 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>BGP</strong> — <a href="https://www.rfc-editor.org/rfc/rfc4271" target="_blank" rel="noopener">RFC 4271 — A Border Gateway Protocol 4 (BGP-4)</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>OSPF</strong> — <a href="https://www.rfc-editor.org/rfc/rfc2328" target="_blank" rel="noopener">RFC 2328 — OSPF Version 2</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>RIP</strong> — <a href="https://www.rfc-editor.org/rfc/rfc2453" target="_blank" rel="noopener">RFC 2453 — RIP Version 2</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>4바이트 AS 번호</strong> — <a href="https://www.rfc-editor.org/rfc/rfc6793" target="_blank" rel="noopener">RFC 6793 — BGP Support for Four-Octet AS Number Space</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>CIDR</strong> — <a href="https://www.rfc-editor.org/rfc/rfc4632" target="_blank" rel="noopener">RFC 4632 — Classless Inter-domain Routing (CIDR)</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Linux ip-route</strong> — <a href="https://man7.org/linux/man-pages/man8/ip-route.8.html" target="_blank" rel="noopener">ip-route(8) — Linux manual page</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>BGP 사고 분석</strong> — <a href="https://www.ripe.net/about-us/news/youtube-hijacking-a-ripe-ncc-ris-case-study/" target="_blank" rel="noopener">YouTube Hijacking: A RIPE NCC RIS case study</a></span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
