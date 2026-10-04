@@ -109,7 +109,7 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">CAP 정리</h3>
-                            <p class="overview-card__desc">분산 시스템은 네트워크 분단(Partition tolerance)이 필수 전제이고, 그 안에서 일관성(C)과 가용성(A) 중 하나를 택해야 합니다.</p>
+                            <p class="overview-card__desc">분산 시스템은 네트워크 분단(Partition tolerance)이 필수 전제이고, 분단이 실제로 발생하면 일관성(C)과 가용성(A) 중 하나를 택해야 합니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
@@ -148,7 +148,7 @@
                         <div class="overview-card">
                             <p class="overview-card__label">개념</p>
                             <h3 class="overview-card__title">와이드 컬럼 (Wide-column)</h3>
-                            <p class="overview-card__desc">행 키와 컬럼 패밀리로 데이터를 구성하고 키를 기준으로 여러 노드에 나눠 저장합니다(예: Cassandra, HBase). 로그나 시계열처럼 쓰기가 많고 키로 조회하는 데이터에 쓰이는 경우가 있습니다.</p>
+                            <p class="overview-card__desc">키를 기준으로 데이터를 여러 노드에 나눠 저장합니다. Bigtable과 HBase는 행 키와 컬럼 패밀리로, Cassandra는 테이블과 파티션 키로 구성합니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">개념</p>
@@ -166,15 +166,15 @@
                     <div class="overview-points">
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>NoSQL은 SQL을 쓰지 않는다</strong> — Cassandra는 CQL이라는 SQL과 비슷한 질의 언어를 씁니다. 그래서 'Not Only SQL'로 풀이하기도 합니다.</span>
+                            <span><strong>NoSQL은 SQL을 쓰지 않는다</strong> — Cassandra는 CQL이라는 SQL과 비슷한 질의 언어를 씁니다. 'Not Only SQL'이라는 풀이도 SQL을 아예 버린다는 뜻이 아니라는 의미로 쓰입니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>NoSQL은 트랜잭션이 없다</strong> — 제품마다 다릅니다. MongoDB는 4.0부터 레플리카 셋에서, 4.2부터 샤드 클러스터에서 여러 문서에 걸친 ACID 트랜잭션을 지원합니다. 다만 문서 하나에 대한 연산이 기본적으로 원자적이라서, 관련 데이터를 한 문서에 담아 트랜잭션 없이 해결하는 설계를 권장합니다.</span>
+                            <span><strong>NoSQL은 트랜잭션이 없다</strong> — 제품마다 다릅니다. MongoDB는 4.0부터 레플리카 셋에서, 4.2부터 샤드 클러스터에서 여러 문서에 걸친 ACID 트랜잭션을 지원합니다. 다만 문서 하나에 대한 연산이 기본적으로 원자적이라서, 관련 데이터를 한 문서에 담아 트랜잭션 없이 해결하는 설계가 많은 경우 적합하다고 안내합니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>NoSQL은 항상 RDBMS보다 빠르고 확장성이 좋다</strong> — 조회 패턴에 맞게 데이터를 설계했을 때만 그렇습니다. 키로 한 번에 읽는 조회에는 빠르지만, 임의 조건 검색이나 집계, 여러 데이터를 잇는 조회가 많으면 오히려 불리합니다.</span>
+                            <span><strong>NoSQL은 항상 RDBMS보다 빠르고 확장성이 좋다</strong> — 대체로 조회 패턴에 맞게 데이터를 설계했을 때 그렇습니다. 키로 한 번에 읽는 조회에는 빠르지만, 임의 조건 검색이나 집계, 여러 데이터를 잇는 조회가 많으면 오히려 불리합니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
@@ -191,7 +191,7 @@
                         <div class="overview-card">
                             <p class="overview-card__label">면접 질문</p>
                             <h3 class="overview-card__title">RDBMS와 NoSQL 중 무엇을 고르나요?</h3>
-                            <p class="overview-card__desc">정답이 정해져 있지 않고 조회 패턴으로 고릅니다. 데이터 사이의 관계가 복잡하고 트랜잭션과 임의 조건 질의가 중요하면 RDBMS, 키 기반 조회와 대량 쓰기, 스키마 변화, 수평 확장이 중요하면 NoSQL이 맞습니다. 두 가지를 함께 쓰는 구성도 흔합니다.</p>
+                            <p class="overview-card__desc">정답이 정해져 있지 않고 조회 패턴으로 고릅니다. 데이터 사이의 관계가 복잡하고 트랜잭션과 임의 조건 질의가 중요하면 RDBMS, 키 기반 조회와 대량 쓰기, 스키마 변화, 수평 확장이 중요하면 NoSQL이 맞습니다. 두 가지를 함께 쓰는 구성도 있습니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">면접 질문</p>
@@ -214,7 +214,7 @@
                     <div class="overview-points">
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>Redis</strong> — 메모리에 데이터를 두는 키-값 저장소로, 값에 문자열뿐 아니라 해시, 리스트, 집합, 정렬 집합 같은 자료구조를 쓸 수 있습니다. 캐시와 순위 집계에 많이 쓰입니다.</span>
+                            <span><strong>Redis</strong> — 메모리에 데이터를 두는 키-값 저장소로, 값에 문자열뿐 아니라 해시, 리스트, 집합, 정렬 집합 같은 자료구조를 쓸 수 있습니다. 캐시나 순위표(리더보드)가 대표적인 용도입니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
@@ -262,7 +262,7 @@
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>Cassandra 구조</strong> — <a href="https://cassandra.apache.org/doc/latest/cassandra/architecture/overview.html" target="_blank" rel="noopener">Architecture Overview</a>, <a href="https://cassandra.apache.org/doc/latest/cassandra/architecture/dynamo.html" target="_blank" rel="noopener">Dynamo (일관된 해싱, 일관성 수준)</a>, <a href="https://cassandra.apache.org/_/cassandra-basics.html" target="_blank" rel="noopener">Cassandra Basics (마스터리스)</a> — Apache Cassandra Documentation</span>
+                            <span><strong>Cassandra 구조</strong> — <a href="https://cassandra.apache.org/doc/latest/cassandra/architecture/overview.html" target="_blank" rel="noopener">Architecture Overview (Dynamo·Bigtable 기원, 와이드 컬럼)</a>, <a href="https://cassandra.apache.org/doc/latest/cassandra/architecture/dynamo.html" target="_blank" rel="noopener">Dynamo (일관된 해싱, 일관성 수준)</a>, <a href="https://cassandra.apache.org/_/cassandra-basics.html" target="_blank" rel="noopener">Cassandra Basics (마스터리스)</a> — Apache Cassandra Documentation</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
