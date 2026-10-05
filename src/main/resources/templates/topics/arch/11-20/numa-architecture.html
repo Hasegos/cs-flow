@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">NUMA 아키텍처 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/arch/11-20/numa-architecture.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/arch}" class="topic-breadcrumb__link">컴퓨터 구조</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">NUMA 아키텍처</span>
+                </nav>
+
+                <span class="topic-hero__slug">arch · 16</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">NUMA 아키텍처</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+                <button type="button" class="topic-like" th:classappend="${liked} ? ' topic-like--active' : ''" th:attr="data-topic-slug=${topic.slug}">
+                    <svg class="topic-like__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <span class="topic-like__count" th:text="${likeCount}">0</span>
+                </button>
+                <div class="topic-share">
+                    <button type="button" class="topic-share__btn topic-share__btn--copy" aria-label="링크 복사">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="topic-share__btn topic-share__btn--kakao" aria-label="카카오톡 공유">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                        </svg>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+                <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        서버에는 CPU 소켓이 둘 이상 달린 경우가 많고, 소켓마다 자기 메모리가 직접 붙어 있습니다.
+                        CPU가 자기에게 붙은 메모리(로컬 메모리)를 읽을 때는 빠르지만, 다른 소켓에 붙은 메모리(원격 메모리)를 읽으려면 소켓 사이의 연결(인터커넥트)을 거쳐야 해서 더 오래 걸립니다.
+                        이렇게 <strong>메모리가 어디에 있느냐에 따라 접근 시간이 달라지는 구조</strong>가 <strong>NUMA(Non-Uniform Memory Access)</strong>입니다.
+                        프로그램에서는 모든 메모리가 하나의 주소 공간으로 보이지만, 성능은 데이터가 어느 노드에 있는지에 영향을 받습니다.
+                    </p>
+                    <p class="overview-lead">
+                        반대 개념이 <strong>UMA(Uniform Memory Access)</strong>입니다. 모든 프로세서가 같은 메모리를 같은 지연으로 접근하는 구조입니다.
+                        프로세서가 늘어나면 하나의 메모리 경로를 나눠 써야 해서 병목이 생기므로, 메모리를 여러 개로 나눠 프로세서에 직접 붙이는 NUMA 구조가 서버에서 쓰입니다.
+                        운영체제는 CPU와 그 CPU에 붙은 메모리를 묶어 <strong>노드(node)</strong>라고 부르고, 데이터를 쓰는 스레드와 같은 노드에 두는 것이 성능의 핵심입니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">UMA와 NUMA</h3>
+                            <p class="overview-card__desc">UMA는 모든 프로세서가 메모리를 같은 지연으로 접근하는 구조이고, NUMA는 메모리를 노드별로 나눠 붙여 접근 지연이 위치에 따라 달라지는 구조입니다. 교재는 메모리를 프로세서 쪽에 물리적으로 나눠 둔 분산 공유 메모리(DSM) 구조를 NUMA라고도 부른다고 설명합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">노드</h3>
+                            <p class="overview-card__desc">CPU(코어들)와 그에 직접 연결된 로컬 메모리를 묶은 단위입니다. 리눅스에서 노드 목록은 numactl --hardware 같은 명령으로 확인합니다. 노드 수가 반드시 소켓 수와 같지는 않습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">로컬 접근과 원격 접근</h3>
+                            <p class="overview-card__desc">자기 노드의 메모리를 읽는 것이 로컬 접근이고, 다른 노드의 메모리를 읽는 것이 원격 접근입니다. 원격 접근은 인터커넥트를 지나 상대 노드의 메모리까지 요청이 전달되므로 로컬보다 지연이 큽니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">노드 간 거리</h3>
+                            <p class="overview-card__desc">노드 사이의 상대적인 접근 비용을 거리(distance) 값으로 표시합니다. numactl --hardware 출력에서 자기 자신까지의 거리는 10이고 다른 노드는 그보다 큰 값입니다. 거리는 상대값이지 측정한 지연이 아닙니다. 이 시각화는 로컬 10, 원격 21이라는 예시 값을 거리 그대로 비용으로 가정합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">메모리 배치 정책</h3>
+                            <p class="overview-card__desc">리눅스의 기본 정책은 메모리를 요청한 CPU가 속한 노드에서 할당하는 것(로컬 할당)이고, 익명 메모리는 페이지를 처음 접근(page fault)하는 시점에 실제로 할당됩니다. 정책을 바꿔 특정 노드에만 할당하거나(bind) 페이지 단위로 여러 노드에 돌아가며 할당(interleave)할 수 있고, numactl로 지정합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">자동 NUMA 밸런싱</h3>
+                            <p class="overview-card__desc">리눅스 커널에는 접근 패턴을 보고 페이지나 스레드를 옮겨 로컬 접근을 늘리려는 자동 NUMA 밸런싱 기능이 있고 kernel.numa_balancing 설정으로 켜고 끕니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>NUMA는 확장성을 위한 구조입니다</strong> — 메모리를 노드마다 따로 붙이면 접근이 노드에 고르게 분산될 때 메모리 경로가 노드 수만큼 늘어 전체 대역폭이 커질 수 있고, 한 메모리에 접근이 몰리는 병목이 줄어듭니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>비용은 원격 접근입니다</strong> — 스레드와 데이터가 다른 노드에 있으면 접근마다 인터커넥트를 지나므로 지연이 늘고, 인터커넥트 대역폭도 소비합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>스레드와 데이터를 같은 노드에 둡니다</strong> — 페이지를 처음 접근하는 순간 그 CPU가 속한 노드에 놓이는 기본 정책을 이용하고, 스레드가 다른 노드로 옮겨 다니지 않게 고정하면 로컬 접근을 유지할 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>한 노드에 몰리면 오히려 느려질 수 있습니다</strong> — 모든 데이터가 한 노드에 있으면 다른 노드의 CPU까지 그 노드의 메모리 대역폭과 인터커넥트에 몰려 병목이 될 수 있습니다. 여러 노드가 같은 데이터를 쓰는 경우에는 인터리브로 부하를 나누는 선택이 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "UMA vs NUMA" 탭에서 두 구조의 차이와 로컬·원격 경로를, "로컬 vs 원격 비용" 탭에서 같은 접근 횟수의 총 거리 차이를, "배치와 이동" 탭에서 스레드 이동과 배치 정책에 따라 평균 거리가 달라지는 과정을 STEP으로 확인하세요.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">NUMA의 배경</h2>
+                    <p class="overview-lead">
+                        프로세서 수가 적을 때는 하나의 공용 메모리를 모두가 같은 지연으로 나눠 쓰는 형태(UMA, SMP)가 흔했습니다. 프로세서 수가 늘면 그 메모리 경로가 병목이 되므로, 메모리를 프로세서 쪽으로 나눠 붙이고 필요하면 서로의 메모리를 접근하게 하는 구조가 나왔습니다. 메모리 컨트롤러가 CPU 칩에 들어 있어 소켓이 둘 이상인 서버는 보통 소켓마다 로컬 메모리를 가진 NUMA 구조가 됩니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>로컬과 원격의 총 거리</strong> — 거리를 로컬 10, 원격 21이라고 하면 같은 데이터를 100번 읽을 때 로컬은 10 × 100 = 1,000, 원격은 21 × 100 = 2,100이라 원격이 2.1배입니다. 거리를 비용으로 본 단순 모델이며 실제 비율은 하드웨어마다 다릅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>인터리브의 평균</strong> — 페이지 4개를 노드 0, 1, 0, 1에 번갈아 두고 노드 0의 스레드가 균등하게 읽으면 평균 거리는 (10 + 21 + 10 + 21) ÷ 4 = 15.5이고 원격 접근 비율은 50%입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>스레드 이동의 영향</strong> — 데이터가 노드 0에 있는데 스레드가 노드 1로 옮겨 가면 평균 거리가 10에서 21로 바뀌고 모든 접근이 원격이 됩니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>원격 메모리는 네트워크나 디스크에 있는 메모리다</strong> — 같은 컴퓨터 안의 다른 소켓에 붙은 메모리입니다. 같은 주소 공간으로 일반 로드·스토어 명령으로 접근하고, 단지 더 먼 경로를 거칩니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>NUMA는 운영체제가 알아서 최적화하니 신경 쓰지 않아도 된다</strong> — 기본 정책과 자동 밸런싱이 도움이 되지만, 스레드가 다른 노드로 옮겨 가거나 메모리를 한 스레드가 할당해 다른 스레드가 쓰는 경우에는 원격 접근이 늘 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>소켓 하나가 노드 하나다</strong> — 항상 그렇지는 않습니다. 소켓 하나를 여러 노드로 나눠 보이게 하는 설정이 있는 CPU도 있으므로 노드 구성은 numactl --hardware 같은 명령으로 확인합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>NUMA에서는 메모리를 아무 데나 써도 속도가 같다</strong> — 이름 그대로 접근 시간이 균일하지 않습니다. 같은 프로그램도 데이터와 스레드가 어느 노드에 있느냐에 따라 시간이 달라집니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">NUMA와 UMA의 차이는 무엇인가요?</h3>
+                            <p class="overview-card__desc">UMA는 모든 프로세서가 메모리를 같은 지연으로 접근하고, NUMA는 메모리가 노드별로 나뉘어 로컬 접근이 원격 접근보다 빠릅니다. NUMA는 메모리 경로가 노드 수만큼 늘어 대규모 시스템에 알맞습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">원격 메모리 접근이 왜 느린가요?</h3>
+                            <p class="overview-card__desc">다른 노드의 메모리를 읽으려면 요청이 노드 사이의 인터커넥트를 지나 상대 노드의 메모리 컨트롤러까지 전달되기 때문입니다. 경로가 길고 인터커넥트 대역폭도 나눠 써야 합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">NUMA에서 성능을 높이는 방법은?</h3>
+                            <p class="overview-card__desc">스레드와 그 스레드가 쓰는 데이터를 같은 노드에 둡니다. 스레드를 노드에 고정하고, 데이터를 처음 쓰는 스레드가 있는 노드에 할당되게 하며, 여러 노드가 공유하는 데이터는 인터리브로 분산합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">리눅스에서 NUMA 구성은 어떻게 확인하나요?</h3>
+                            <p class="overview-card__desc">numactl --hardware로 노드, 노드별 메모리, 노드 간 거리를 볼 수 있고, numastat로 노드별 메모리 할당 통계를 볼 수 있습니다. 프로세스는 numactl로 노드 고정과 메모리 정책을 지정해 실행합니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>리눅스 메모리 정책</strong> — 리눅스 커널 문서는 NUMA 메모리 정책을 설명하며, 기본 정책이 요청 CPU의 노드에 할당하는 로컬 할당이고 interleave 정책은 페이지 단위로 노드들에 돌아가며 할당한다고 합니다. numactl 매뉴얼은 --cpunodebind, --membind, --interleave 옵션을 설명합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>JVM</strong> — OpenJDK의 JEP 345는 G1 가비지 컬렉터가 NUMA를 인식해 메모리를 할당하도록 하는 변경을 소개합니다. -XX:+UseNUMA 옵션으로 켭니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>메모리와의 관계</strong> — NUMA는 메모리 접근 지연이 위치에 따라 다른 구조이므로 <a th:href="@{/arch/memory-hierarchy}">메모리 계층</a>의 지연 차이 논의와 이어집니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/arch/memory-hierarchy}">메모리 계층</a> — 가까운 메모리가 빠르다는 원리를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/arch/cache-memory}">캐시 메모리</a> — 메모리 접근 지연을 줄이는 캐시의 동작을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/memory-management}">메모리 관리</a> — 운영체제가 메모리를 어떻게 할당하는지 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/cpu-scheduling}">CPU 스케줄링</a> — 스레드를 어느 CPU에서 실행할지 정하는 방식을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/thread}">스레드</a> — 스레드가 같은 주소 공간을 공유하는 모델을 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>리눅스</strong> — <a href="https://docs.kernel.org/admin-guide/mm/numa_memory_policy.html" target="_blank" rel="noopener">NUMA Memory Policy — The Linux Kernel documentation</a>, <a href="https://man7.org/linux/man-pages/man8/numactl.8.html" target="_blank" rel="noopener">numactl(8) — Linux manual page</a>, <a href="https://docs.kernel.org/admin-guide/sysctl/kernel.html" target="_blank" rel="noopener">Documentation for /proc/sys/kernel — numa_balancing</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>JVM</strong> — <a href="https://openjdk.org/jeps/345" target="_blank" rel="noopener">JEP 345: NUMA-Aware Memory Allocation for G1</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>교재</strong> — Hennessy, Patterson, "Computer Architecture: A Quantitative Approach", "Thread-Level Parallelism" 장</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/arch/11-20/numa-architecture-code :: code}"></th:block>
+            </div>
+
+            <!-- 탭 4: 퀴즈 -->
+            <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
+                <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+    <script th:src="@{/js/quiz.js}"></script>
+    <script th:src="@{/js/like.js}"></script>
+    <script th:src="@{/js/share.js}"></script>
+</body>
+</html>
