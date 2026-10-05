@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">프로세스 간 통신(IPC) | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/os/11-20/ipc-methods.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/os}" class="topic-breadcrumb__link">운영체제</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">프로세스 간 통신(IPC)</span>
+                </nav>
+
+                <span class="topic-hero__slug">os · 14</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">프로세스 간 통신(IPC)</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+                <button type="button" class="topic-like" th:classappend="${liked} ? ' topic-like--active' : ''" th:attr="data-topic-slug=${topic.slug}">
+                    <svg class="topic-like__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <span class="topic-like__count" th:text="${likeCount}">0</span>
+                </button>
+                <div class="topic-share">
+                    <button type="button" class="topic-share__btn topic-share__btn--copy" aria-label="링크 복사">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="topic-share__btn topic-share__btn--kakao" aria-label="카카오톡 공유">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                        </svg>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+                <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        프로세스는 서로 독립된 주소 공간을 가지므로 한 프로세스는 다른 프로세스의 메모리를 마음대로 읽거나 쓸 수 없습니다. 이 격리는 안정성과 보안에 좋지만, 프로세스끼리 데이터를 주고받거나 서로의 작업을 맞춰야 할 때는 걸림돌이 됩니다. 그래서 운영체제는 프로세스 사이의 통신을 위한 방법을 제공하는데, 이를 <strong>IPC(Inter-Process Communication, 프로세스 간 통신)</strong>라고 부릅니다.
+                        IPC는 크게 커널이 중개하는 <strong>메시지 전달</strong> 방식(파이프, 메시지 큐, 소켓)과, 프로세스들이 메모리 영역을 함께 쓰는 <strong>공유 메모리</strong> 방식으로 나뉩니다.
+                    </p>
+                    <p class="overview-lead">
+                        방식마다 통신 범위, 데이터 형태, 속도, 동기화 책임이 다릅니다. 파이프는 셸에서 명령어를 | 로 이을 때 쓰는 단방향 통로이고, 공유 메모리는 같은 메모리를 직접 읽고 써서 가장 빠른 편이지만 동기화를 직접 해야 하며, 소켓은 다른 컴퓨터의 프로세스와도 통신할 수 있습니다.
+                        이 토픽에서는 파이프가 커널 버퍼를 거치며 동작하는 과정, 공유 메모리와 파이프의 비용 차이, 여러 IPC 방식의 범위와 특징을 봅니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">파이프</h3>
+                            <p class="overview-card__desc">한쪽 끝에서 쓰고 다른 쪽 끝에서 읽는 단방향 바이트 통로입니다. 보통 fork로 만든 부모와 자식처럼 관련된 프로세스가 파이프의 끝을 물려받아 씁니다. 버퍼가 차면 쓰는 쪽이, 비면 읽는 쪽이 기다립니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">이름 있는 파이프(FIFO)</h3>
+                            <p class="overview-card__desc">파일 시스템에 이름을 가진 파이프입니다. 이름으로 열 수 있어서 부모와 자식 관계가 아닌 프로세스도 서로 통신할 수 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">메시지 큐</h3>
+                            <p class="overview-card__desc">커널이 관리하는 큐에 메시지를 단위로 넣고 꺼내는 방식입니다. 바이트 스트림이 아니라 메시지 경계가 유지되며, 보내는 쪽과 받는 쪽이 동시에 실행 중이지 않아도 큐에 쌓아 둘 수 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">공유 메모리</h3>
+                            <p class="overview-card__desc">여러 프로세스가 같은 메모리 영역을 각자의 주소 공간에 연결해 쓰는 방식입니다. 연결한 뒤에는 접근마다 시스템 콜 없이 직접 읽고 쓰므로 빠르지만, 동시에 쓰는 문제를 막는 동기화는 직접 해야 합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">소켓</h3>
+                            <p class="overview-card__desc">네트워크 통신에 쓰이는 인터페이스이며 IP 주소와 포트로 다른 컴퓨터의 프로세스와도 통신합니다. 같은 컴퓨터 안에서는 유닉스 도메인 소켓으로 같은 인터페이스를 쓸 수 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">시그널</h3>
+                            <p class="overview-card__desc">프로세스에 사건을 알리는 짧은 신호입니다. 종료 요청이나 오류 같은 알림에 쓰이고, 큰 데이터를 주고받는 용도가 아닙니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>격리된 프로세스 사이의 통로입니다</strong> — 프로세스끼리는 메모리가 격리되어 있어 운영체제가 마련한 통로를 거쳐야 데이터를 주고받습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>커널 중개는 편하고 공유 메모리는 빠릅니다</strong> — 메시지 전달은 커널이 순서와 대기를 처리해 주지만 복사와 시스템 콜 비용이 들고, 공유 메모리는 이 비용이 작은 대신 동기화를 직접 챙겨야 합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>통신 범위를 먼저 봅니다</strong> — 다른 컴퓨터와 통신해야 하면 소켓이고, 같은 컴퓨터라면 파이프, 큐, 공유 메모리 등 여러 선택지가 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>동기화는 공유 메모리의 몫입니다</strong> — 두 프로세스가 같은 메모리를 동시에 고치면 값이 어긋나므로 세마포어나 뮤텍스로 접근 순서를 맞춰야 합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "파이프" 탭에서 버퍼가 차고 비며 쓰는 쪽이 기다리는 과정을, "공유 메모리 vs 파이프" 탭에서 시스템 콜과 복사 횟수의 차이를, "방식 비교" 탭에서 방식별 통신 범위를 STEP으로 확인하세요.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">IPC의 배경</h2>
+                    <p class="overview-lead">
+                        유닉스는 작은 프로그램을 파이프로 이어 큰 일을 하게 하는 철학으로 알려져 있고, 셸의 | 연산자가 그 예입니다. 이후 시스템 V 계열의 메시지 큐, 세마포어, 공유 메모리와 POSIX의 같은 기능, 그리고 BSD에서 온 소켓이 더해져 오늘날 유닉스 계열 운영체제의 IPC 수단이 되었습니다. 윈도우에도 이름 있는 파이프, 공유 메모리(파일 매핑), 소켓 같은 대응 수단이 있습니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>파이프 버퍼</strong> — 이 시각화는 버퍼를 4칸으로 그립니다. 칸 수는 설명용이며, 리눅스의 파이프 용량은 보통 65,536바이트(4KiB 페이지 16개)이고 설정으로 바꿀 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>메시지 5개 전달(단순화한 값)</strong> — 파이프는 메시지마다 write와 read 시스템 콜 2번과 복사 2번이 들어 시스템 콜 10번·복사 10번입니다. 공유 메모리는 연결 때 시스템 콜 2번을 쓰고 이후 추가 복사가 없습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>동기화가 없을 때</strong> — 두 프로세스가 같은 카운터를 각자 1씩 올리려고 둘 다 0을 읽고 1을 쓰면 최종 값이 2가 아니라 1입니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>파이프는 양방향이다</strong> — 기본 파이프는 한 방향입니다. 양방향이 필요하면 파이프를 두 개 쓰거나 소켓을 씁니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공유 메모리는 동기화가 필요 없다</strong> — 오히려 커널이 순서를 보장하지 않으므로 사용자가 동기화해야 합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>소켓은 네트워크 전용이다</strong> — 같은 컴퓨터의 프로세스끼리도 유닉스 도메인 소켓으로 통신할 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>스레드와 프로세스의 통신은 같다</strong> — 같은 프로세스의 스레드는 메모리를 이미 공유하므로 IPC 없이 변수로 통신합니다. 이때는 동기화가 핵심입니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">IPC 방식에는 어떤 것이 있나요?</h3>
+                            <p class="overview-card__desc">파이프, 이름 있는 파이프(FIFO), 메시지 큐, 공유 메모리, 소켓, 시그널이 있습니다. 커널이 중개하는 메시지 전달 방식과 메모리를 함께 쓰는 공유 메모리 방식으로 나눠 설명합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">공유 메모리가 빠른 이유는?</h3>
+                            <p class="overview-card__desc">연결을 마친 뒤에는 접근할 때마다 시스템 콜을 거치지 않고 같은 메모리를 직접 읽고 써서, 메시지 전달에서 생기는 시스템 콜과 데이터 복사가 줄기 때문입니다. 대신 동기화는 직접 해야 합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">파이프와 FIFO의 차이는?</h3>
+                            <p class="overview-card__desc">일반 파이프는 이름이 없어 부모와 자식처럼 파이프를 물려받은 프로세스끼리 쓰고, FIFO는 파일 시스템 이름이 있어 관련 없는 프로세스도 이름으로 열어 통신할 수 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">다른 컴퓨터의 프로세스와 통신하려면?</h3>
+                            <p class="overview-card__desc">소켓을 씁니다. IP 주소와 포트로 상대를 지정해 네트워크를 거쳐 통신하며, 유닉스의 파이프와 공유 메모리는 같은 컴퓨터 안에서만 쓸 수 있습니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>셸의 파이프</strong> — ls | grep txt처럼 | 로 이은 명령어들은 한 명령어의 표준 출력을 다음 명령어의 표준 입력에 파이프로 연결합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>데이터베이스</strong> — PostgreSQL은 접속마다 서버 프로세스를 두고, 이 프로세스들이 공유 메모리의 공유 버퍼를 함께 사용합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>리눅스 문서</strong> — pipe(7)는 파이프의 용량과 가득 차거나 비었을 때의 블로킹 동작을, shm_overview(7)는 POSIX 공유 메모리의 사용 순서를 설명합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>파이썬</strong> — multiprocessing 모듈은 Pipe와 Queue를 제공하고, multiprocessing.shared_memory는 프로세스 사이에 공유 메모리 블록을 만들어 줍니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/process}">프로세스</a> — 독립된 주소 공간을 가진 프로세스가 무엇인지 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/process-sync}">프로세스 동기화</a> — 공유 메모리에서 필요한 세마포어와 뮤텍스를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/system-call}">시스템 콜</a> — 파이프와 공유 메모리가 시스템 콜로 열리는 과정을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/memory-management}">메모리 관리</a> — 공유 메모리가 같은 물리 메모리에 매핑되는 바탕을 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>리눅스</strong> — <a href="https://man7.org/linux/man-pages/man7/pipe.7.html" target="_blank" rel="noopener">pipe(7)</a>, <a href="https://man7.org/linux/man-pages/man7/shm_overview.7.html" target="_blank" rel="noopener">shm_overview(7)</a>, <a href="https://man7.org/linux/man-pages/man7/mq_overview.7.html" target="_blank" rel="noopener">mq_overview(7)</a>, <a href="https://man7.org/linux/man-pages/man7/unix.7.html" target="_blank" rel="noopener">unix(7)</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>파이썬</strong> — <a href="https://docs.python.org/3/library/multiprocessing.shared_memory.html" target="_blank" rel="noopener">multiprocessing.shared_memory</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>교재</strong> — Silberschatz 외, "Operating System Concepts"의 프로세스 간 통신 절, W. Richard Stevens, "Advanced Programming in the UNIX Environment"</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/os/11-20/ipc-methods-code :: code}"></th:block>
+            </div>
+
+            <!-- 탭 4: 퀴즈 -->
+            <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
+                <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+    <script th:src="@{/js/quiz.js}"></script>
+    <script th:src="@{/js/like.js}"></script>
+    <script th:src="@{/js/share.js}"></script>
+</body>
+</html>
