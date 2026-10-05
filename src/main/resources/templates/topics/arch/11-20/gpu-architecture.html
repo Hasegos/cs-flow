@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">GPU 아키텍처 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/arch/11-20/gpu-architecture.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/arch}" class="topic-breadcrumb__link">컴퓨터 구조</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">GPU 아키텍처</span>
+                </nav>
+
+                <span class="topic-hero__slug">arch · 19</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">GPU 아키텍처</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+                <button type="button" class="topic-like" th:classappend="${liked} ? ' topic-like--active' : ''" th:attr="data-topic-slug=${topic.slug}">
+                    <svg class="topic-like__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <span class="topic-like__count" th:text="${likeCount}">0</span>
+                </button>
+                <div class="topic-share">
+                    <button type="button" class="topic-share__btn topic-share__btn--copy" aria-label="링크 복사">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="topic-share__btn topic-share__btn--kakao" aria-label="카카오톡 공유">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                        </svg>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+                <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        GPU(Graphics Processing Unit)는 이름 그대로 화면의 수많은 픽셀을 한꺼번에 계산하려고 만들어진 프로세서입니다. 픽셀마다 하는 계산은 비슷하고 서로 독립이라서, 단순한 연산 유닛을 아주 많이 두고 같은 계산을 수많은 데이터에 동시에 적용하는 구조가 알맞았습니다.
+                        CPU가 몇 개의 크고 영리한 코어로 <strong>한 작업을 빨리</strong> 끝내는 데 맞춰져 있다면, GPU는 단순한 코어를 수천 개 두고 <strong>많은 작업을 한꺼번에</strong> 처리하는 처리량에 맞춰져 있습니다.
+                        행렬 곱셈 같은 계산이 픽셀 계산과 닮아 있어, 오늘날 GPU는 그래픽뿐 아니라 과학 계산과 딥러닝에도 널리 쓰입니다.
+                    </p>
+                    <p class="overview-lead">
+                        NVIDIA GPU에서는 스레드 32개가 <strong>워프(warp)</strong>로 묶여 한 번에 같은 명령어를 실행합니다. 이 방식을 <strong>SIMT(Single Instruction, Multiple Threads)</strong>라고 부릅니다. CPU의 SIMD와 비슷하지만 스레드마다 분기할 수 있다는 점이 다릅니다.
+                        대신 한 워프 안에서 분기가 갈리면 각 경로가 차례로 실행되어 효율이 떨어집니다. 또 GPU에도 캐시가 있지만 CPU처럼 큰 캐시에 면적을 쓰지 않고, 메모리를 기다리는 워프를 두고 다른 워프를 실행하는 식으로 지연을 숨깁니다.
+                        이 토픽에서는 CPU와 GPU의 구조 차이, 워프와 분기, 지연 숨기기를 봅니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">지연 지향과 처리량 지향</h3>
+                            <p class="overview-card__desc">CPU는 한 스레드의 지연을 줄이려고 큰 캐시, 분기 예측, 비순차 실행 같은 장치에 칩 면적을 씁니다. GPU는 그 면적을 연산 유닛에 더 많이 써서 같은 시간에 처리하는 일의 양(처리량)을 키웁니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">SIMT와 워프</h3>
+                            <p class="overview-card__desc">NVIDIA GPU는 스레드 32개를 묶은 워프 단위로 명령어를 하나씩 실행합니다. 워프 안의 스레드는 같은 명령을 각자의 데이터로 실행하고, 분기가 갈리면 각 경로를 차례로 실행하며 해당 경로가 아닌 스레드는 꺼 둡니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">스레드 계층과 SM</h3>
+                            <p class="overview-card__desc">CUDA에서는 스레드를 블록으로, 블록을 그리드로 묶어 실행합니다. 블록은 GPU의 스트리밍 멀티프로세서(SM) 하나에 배정되어 그 안의 워프들이 번갈아 실행됩니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">GPU의 메모리 구조</h3>
+                            <p class="overview-card__desc">모든 스레드가 접근하는 전역 메모리, 블록 안의 스레드가 공유하는 공유 메모리, 스레드마다 쓰는 레지스터로 나뉩니다. 공유 메모리는 전역 메모리보다 훨씬 가까워서 데이터를 재사용할 때 쓰입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">지연 숨기기</h3>
+                            <p class="overview-card__desc">한 워프가 메모리를 기다리면 SM이 곧바로 다른 워프를 실행합니다. 실행할 수 있는 워프가 충분히 많으면 기다리는 시간이 다른 워프의 계산으로 채워져 연산 유닛이 쉬지 않습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">호스트와 장치 사이의 전송</h3>
+                            <p class="overview-card__desc">CPU(호스트)의 메모리와 GPU(장치)의 메모리는 따로이고, 데이터를 PCIe 같은 연결로 옮겨야 합니다. 계산이 이 전송 시간보다 충분히 크지 않으면 GPU로 옮겨도 이득이 작을 수 있습니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>같은 연산을 많은 독립 데이터에 적용할 때 유리합니다</strong> — 큰 행렬 곱셈, 이미지 픽셀 처리, 벡터 덧셈처럼 원소마다 계산이 같고 서로 의존하지 않는 일이 대표적입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>분기가 많거나 앞 결과에 의존하는 작업은 불리합니다</strong> — 한 워프 안에서 경로가 갈리면 시간이 늘고, 앞 결과를 기다리는 순차 작업은 병렬성을 살릴 수 없습니다. 이런 작업은 CPU가 더 잘합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>스레드가 충분히 많아야 합니다</strong> — 워프가 적으면 메모리를 기다리는 동안 바꿔 실행할 워프가 없어 연산 유닛이 놉니다. 그래서 GPU 프로그램은 수만 개 이상의 스레드를 띄우는 것이 일반적입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>메모리 접근 패턴이 성능을 좌우합니다</strong> — 워프의 스레드가 연속된 주소를 함께 읽으면 효율이 좋고, 흩어진 주소를 읽으면 여러 번에 나눠 읽어야 할 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "CPU vs GPU" 탭에서 코어 구성이 다른 두 프로세서의 처리 방식을, "워프와 분기" 탭에서 분기가 갈릴 때 실행이 두 번으로 늘어나는 과정을, "지연 숨기기" 탭에서 워프 수에 따라 연산 유닛 활용률이 달라지는 모습을 STEP으로 확인하세요.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">GPU의 배경</h2>
+                    <p class="overview-lead">
+                        GPU는 3차원 그래픽의 계산을 빠르게 하려는 전용 하드웨어에서 출발했습니다. 정점과 픽셀을 하나씩 처리하는 일은 서로 독립이라서 병렬화하기 쉬웠고, 그래픽 처리 장치는 점점 프로그래밍할 수 있게 되었습니다. 그래픽이 아닌 계산에도 GPU를 쓰는 범용 GPU 컴퓨팅(GPGPU)이 CUDA 같은 프로그래밍 환경과 함께 퍼지면서, 과학 계산과 딥러닝으로 쓰임이 넓어졌습니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>같은 덧셈, 다른 반복 횟수</strong> — 원소 64개를 더할 때 코어 4개가 한 번에 4개씩이면 64 ÷ 4 = 16번, 코어 64개가 한 번에 64개씩이면 1번입니다. 코어 수는 설명을 위한 가정입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>분기의 비용</strong> — 워프 32개 스레드 중 일부는 경로 A, 나머지는 경로 B를 타면 두 경로를 차례로 실행하므로 분기가 없을 때보다 실행이 2번으로 늘어납니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>워프 수와 활용률(단순한 모델)</strong> — 계산 4사이클 뒤 메모리를 12사이클 기다리는 워프라면, 워프 1개는 4 ÷ 16 = 25%, 2개는 50%, 4개는 100%의 시간 동안 계산 유닛을 씁니다. 대기 시간이 다른 워프의 계산으로 채워지기 때문입니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>GPU가 CPU보다 항상 빠르다</strong> — 병렬로 나눌 수 있는 큰 계산에서 빠를 뿐입니다. 작은 계산, 분기가 많은 계산, 데이터 전송이 지배적인 계산은 CPU가 더 빠를 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>GPU 코어 하나가 CPU 코어 하나만큼 강력하다</strong> — GPU 코어는 단순해서 하나하나는 CPU 코어보다 단순한 일을 합니다. 수가 많아서 전체 처리량이 큰 것입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>GPU는 그래픽 전용이다</strong> — 그래픽에서 출발했지만 행렬 계산 같은 범용 계산에도 쓰입니다. 딥러닝 프레임워크가 GPU를 쓰는 이유입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>스레드를 많이 만들면 무조건 빨라진다</strong> — 분기로 워프가 갈라지거나 메모리 접근이 흩어지거나 전송이 병목이면 스레드를 늘려도 이득이 없습니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">CPU와 GPU의 구조 차이는 무엇인가요?</h3>
+                            <p class="overview-card__desc">CPU는 큰 캐시와 복잡한 제어로 한 스레드를 빠르게 처리하는 지연 지향이고, GPU는 단순한 코어를 수천 개 두고 같은 연산을 많은 데이터에 동시에 적용하는 처리량 지향입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">워프와 워프 분기란 무엇인가요?</h3>
+                            <p class="overview-card__desc">NVIDIA GPU에서 스레드 32개 묶음이 한 번에 같은 명령어를 실행하는 단위가 워프입니다. 한 워프 안에서 조건문으로 경로가 갈리면 각 경로가 차례로 실행되어 성능이 떨어지는 것이 워프 분기입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">GPU는 메모리 지연을 어떻게 다루나요?</h3>
+                            <p class="overview-card__desc">GPU에도 캐시가 있지만 지연을 주로 많은 워프를 번갈아 실행해 숨깁니다. 한 워프가 메모리를 기다리는 동안 다른 워프가 계산하므로 연산 유닛이 쉬지 않습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">GPU에 알맞지 않은 작업은?</h3>
+                            <p class="overview-card__desc">조건 분기가 많아 스레드마다 경로가 갈리거나 앞 결과에 의존하는 순차 작업, 데이터가 작아 CPU와 GPU 사이 전송 시간이 더 큰 작업입니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>CUDA</strong> — NVIDIA의 CUDA 프로그래밍 가이드는 SIMT 구조와 워프 실행, 분기하는 워프가 각 경로를 차례로 실행하는 방식을 설명합니다. 모범 사례 가이드는 충분한 워프로 지연을 숨기는 방법을 다룹니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>딥러닝 프레임워크</strong> — PyTorch 문서는 텐서를 GPU로 옮겨 연산하는 방법과 CUDA 연산이 비동기로 실행되는 방식을 설명합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>SIMD와의 관계</strong> — CPU의 벡터 확장은 <a th:href="@{/arch/simd-vectorization}">SIMD 벡터 연산</a> 토픽에서 봅니다. GPU의 SIMT는 이와 비슷하지만 스레드마다 분기할 수 있다는 점이 다릅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/arch/simd-vectorization}">SIMD 벡터 연산</a> — CPU 안에서 하나의 명령으로 여러 데이터를 처리하는 방식을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/arch/amdahls-law}">암달의 법칙</a> — 병렬화할 수 없는 부분이 전체 속도 향상을 제한하는 이유를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/arch/cache-memory}">캐시 메모리</a> — CPU가 메모리 지연을 줄이는 방식과 대비해 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/arch/branch-prediction}">분기 예측</a> — CPU가 분기의 비용을 줄이는 방식을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/arch/memory-hierarchy}">메모리 계층</a> — GPU의 전역·공유 메모리와 비교할 기준이 되는 계층 구조를 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>NVIDIA</strong> — <a href="https://docs.nvidia.com/cuda/cuda-programming-guide/index.html" target="_blank" rel="noopener">CUDA Programming Guide</a>, <a href="https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/index.html" target="_blank" rel="noopener">CUDA C++ Best Practices Guide</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>PyTorch</strong> — <a href="https://pytorch.org/docs/stable/notes/cuda.html" target="_blank" rel="noopener">CUDA semantics — PyTorch documentation</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>교재</strong> — Hennessy, Patterson, "Computer Architecture: A Quantitative Approach", "Data-Level Parallelism in Vector, SIMD, and GPU Architectures" 장</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/arch/11-20/gpu-architecture-code :: code}"></th:block>
+            </div>
+
+            <!-- 탭 4: 퀴즈 -->
+            <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
+                <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+    <script th:src="@{/js/quiz.js}"></script>
+    <script th:src="@{/js/like.js}"></script>
+    <script th:src="@{/js/share.js}"></script>
+</body>
+</html>
