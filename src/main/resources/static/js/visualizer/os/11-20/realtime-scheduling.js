@@ -210,6 +210,8 @@
         if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
     }
     function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
         ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
         ctx.fillStyle = color;
         ctx.textAlign = align || 'center';
@@ -240,31 +242,31 @@
                 if (e && e.run === tk.id) {
                     if (e.late) rr(cx + 1, y, cw - 2, rh, 3, P.red + '40', P.red + 'ff', 1.6);
                     else rr(cx + 1, y, cw - 2, rh, 3, col + '55', col + 'ff', 1.4);
-                    tx(String(e.job + 1), cx + cw / 2, y + rh / 2, fs - 1.5, P.text + 'ee', 'center', true);
+                    tx(String(e.job + 1), cx + cw / 2, y + rh / 2, fs - 0.5, P.text + 'ff', 'center', true);
                 } else if (e && e.ready[tk.id]) {
-                    rr(cx + 1, y, cw - 2, rh, 3, 'none', P.muted + '99', 1.1);
+                    rr(cx + 1, y, cw - 2, rh, 3, 'none', P.sub + 'bb', 1.3);
                 } else {
                     rr(cx + 1, y, cw - 2, rh, 3, 'none', P.muted + '22', 1);
                 }
             }
             for (var k = 0; k * tk.P <= HORIZON; k++) {
                 var rx = x0 + lw + k * tk.P * cw;
-                if (k * tk.P < HORIZON) tx('▲', rx, y + rh + 8, fs - 3, P.green + 'ff', 'center', true);
+                if (k * tk.P < HORIZON) tx('▲', rx, y + rh + 8, fs - 1.5, P.green + 'ff', 'center', true);
                 var dx = x0 + lw + (k + 1) * tk.P * cw;
                 if ((k + 1) * tk.P <= HORIZON) {
                     var missed = sim.misses.some(function (j) { return TASKS[j.ti].id === tk.id && j.n === k; });
                     var shown = upTo >= (k + 1) * tk.P - 1;
-                    tx('▼', dx, y - 8, fs - 3, (missed && shown ? P.red : P.yellow) + 'ff', 'center', true);
+                    tx('▼', dx, y - 8, fs - 1.5, (missed && shown ? P.red : P.yellow) + 'ff', 'center', true);
                 }
             }
         });
         var ay = y0 + 2 * (rh + gap) - gap + 14;
         for (var t2 = 0; t2 <= HORIZON; t2 += 1) {
             if (mob && t2 % 2 === 1) continue;
-            tx(String(t2), x0 + lw + t2 * cw, ay, fs - 3, P.muted + 'cc', 'center', false);
+            tx(String(t2), x0 + lw + t2 * cw, ay, fs - 1.5, P.muted + 'cc', 'center', false);
         }
-        tx('▲ 도착   ▼ 마감 (빨강 = 마감 실패)', x0, ay + 22, fs - 1.5, P.muted + 'ee', 'left', false);
-        tx('채움 = 실행(숫자는 몇 번째 작업), 회색 테두리 = CPU 대기', x0, ay + 40, fs - 1.5, P.muted + 'ee', 'left', false);
+        tx('▲ 도착   ▼ 마감 (빨강 = 마감 실패)', x0, ay + 22, fs - 0.5, P.muted + 'ee', 'left', false);
+        tx('채움 = 실행(숫자는 몇 번째 작업), 회색 테두리 = CPU 대기', x0, ay + 40, fs - 0.5, P.muted + 'ee', 'left', false);
     }
 
     /* ===================== 모드: 이용률 한계 ===================== */
