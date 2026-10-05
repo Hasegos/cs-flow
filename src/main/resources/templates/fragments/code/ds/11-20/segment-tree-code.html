@@ -1,0 +1,131 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — 재귀로 만드는 구간 합 세그먼트 트리</p>
+            <div class="code-block">
+<pre><span class="kw">class</span> <span class="fn">SegTree</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, arr):
+        self.n = <span class="fn">len</span>(arr)
+        self.t = &#91;<span class="num">0</span>&#93; * (<span class="num">4</span> * self.n)             <span class="cm"># 넉넉하게 4n</span>
+        self.<span class="fn">_build</span>(<span class="num">1</span>, <span class="num">0</span>, self.n - <span class="num">1</span>, arr)
+
+    <span class="kw">def</span> <span class="fn">_build</span>(self, node, l, r, arr):
+        <span class="kw">if</span> l == r:                            <span class="cm"># 리프: 원소 하나</span>
+            self.t&#91;node&#93; = arr&#91;l&#93;
+            <span class="kw">return</span>
+        m = (l + r) // <span class="num">2</span>
+        self.<span class="fn">_build</span>(node * <span class="num">2</span>, l, m, arr)
+        self.<span class="fn">_build</span>(node * <span class="num">2</span> + <span class="num">1</span>, m + <span class="num">1</span>, r, arr)
+        self.t&#91;node&#93; = self.t&#91;node * <span class="num">2</span>&#93; + self.t&#91;node * <span class="num">2</span> + <span class="num">1</span>&#93;
+
+    <span class="kw">def</span> <span class="fn">query</span>(self, ql, qr, node=<span class="num">1</span>, l=<span class="num">0</span>, r=<span class="kw">None</span>):
+        <span class="kw">if</span> r <span class="kw">is None</span>:
+            r = self.n - <span class="num">1</span>
+        <span class="kw">if</span> qr &lt; l <span class="kw">or</span> r &lt; ql:                <span class="cm"># 겹치지 않음</span>
+            <span class="kw">return</span> <span class="num">0</span>
+        <span class="kw">if</span> ql &lt;= l <span class="kw">and</span> r &lt;= qr:            <span class="cm"># 완전히 포함: 저장된 값 사용</span>
+            <span class="kw">return</span> self.t&#91;node&#93;
+        m = (l + r) // <span class="num">2</span>                    <span class="cm"># 일부만 겹침: 둘로 나눔</span>
+        <span class="kw">return</span> (self.<span class="fn">query</span>(ql, qr, node * <span class="num">2</span>, l, m)
+                + self.<span class="fn">query</span>(ql, qr, node * <span class="num">2</span> + <span class="num">1</span>, m + <span class="num">1</span>, r))
+
+    <span class="kw">def</span> <span class="fn">update</span>(self, idx, val, node=<span class="num">1</span>, l=<span class="num">0</span>, r=<span class="kw">None</span>):
+        <span class="kw">if</span> r <span class="kw">is None</span>:
+            r = self.n - <span class="num">1</span>
+        <span class="kw">if</span> l == r:
+            self.t&#91;node&#93; = val
+            <span class="kw">return</span>
+        m = (l + r) // <span class="num">2</span>
+        <span class="kw">if</span> idx &lt;= m:
+            self.<span class="fn">update</span>(idx, val, node * <span class="num">2</span>, l, m)
+        <span class="kw">else</span>:
+            self.<span class="fn">update</span>(idx, val, node * <span class="num">2</span> + <span class="num">1</span>, m + <span class="num">1</span>, r)
+        self.t&#91;node&#93; = self.t&#91;node * <span class="num">2</span>&#93; + self.t&#91;node * <span class="num">2</span> + <span class="num">1</span>&#93;   <span class="cm"># 돌아오며 다시 계산</span>
+
+st = <span class="fn">SegTree</span>(&#91;<span class="num">5</span>, <span class="num">8</span>, <span class="num">6</span>, <span class="num">3</span>, <span class="num">2</span>, <span class="num">7</span>, <span class="num">1</span>, <span class="num">4</span>&#93;)
+<span class="fn">print</span>(st.<span class="fn">query</span>(<span class="num">2</span>, <span class="num">6</span>))     <span class="cm"># 19</span>
+st.<span class="fn">update</span>(<span class="num">3</span>, <span class="num">10</span>)
+<span class="fn">print</span>(st.<span class="fn">query</span>(<span class="num">2</span>, <span class="num">6</span>))     <span class="cm"># 26</span>
+<span class="fn">print</span>(st.<span class="fn">query</span>(<span class="num">0</span>, <span class="num">7</span>))     <span class="cm"># 43</span></pre>
+            </div>
+            <p class="code-desc">
+                노드 번호를 1부터 매기고 노드 i의 자식을 2i와 2i + 1로 두면 포인터 없이 배열 하나로 트리를 표현할 수 있습니다. 노드는 자기가 담당하는 구간 [l, r]을 재귀 호출의 인자로 들고 다닙니다. 배열 크기를 4n으로 잡는 것은 n이 2의 거듭제곱이 아니어도 인덱스가 넘치지 않게 하는 관례적인 여유입니다.
+                query는 노드 구간이 찾는 구간과 겹치지 않으면 0을, 완전히 포함되면 저장된 값을 돌려주고, 일부만 겹치면 두 자식에게 나눠 맡깁니다. 이 세 경우가 시각화의 빨강, 초록, 노랑 노드에 해당하며 방문하는 노드 수가 O(log n)입니다.
+                update는 리프 하나를 바꾼 뒤 재귀에서 돌아오며 경로의 부모 값만 두 자식의 합으로 다시 계산합니다. 시각화의 갱신 탭에서 구간 [2, 3]이 9에서 16으로, 전체 합이 36에서 43으로 바뀌는 것과 같은 결과이고, 코드의 쿼리 [2, 6] 합도 19에서 26으로 바뀝니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — 반복문으로 만드는 일반 세그먼트 트리</p>
+            <div class="code-block">
+<pre><span class="kw">class</span> <span class="fn">Seg</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, arr, op, ident):
+        self.n, self.op, self.ident = <span class="fn">len</span>(arr), op, ident
+        self.t = &#91;ident&#93; * self.n + <span class="fn">list</span>(arr)     <span class="cm"># 리프는 n ~ 2n-1</span>
+        <span class="kw">for</span> i <span class="kw">in</span> <span class="fn">range</span>(self.n - <span class="num">1</span>, <span class="num">0</span>, -<span class="num">1</span>):
+            self.t&#91;i&#93; = op(self.t&#91;<span class="num">2</span> * i&#93;, self.t&#91;<span class="num">2</span> * i + <span class="num">1</span>&#93;)
+
+    <span class="kw">def</span> <span class="fn">update</span>(self, i, val):
+        i += self.n
+        self.t&#91;i&#93; = val
+        <span class="kw">while</span> i &gt; <span class="num">1</span>:
+            i //= <span class="num">2</span>
+            self.t&#91;i&#93; = self.<span class="fn">op</span>(self.t&#91;<span class="num">2</span> * i&#93;, self.t&#91;<span class="num">2</span> * i + <span class="num">1</span>&#93;)
+
+    <span class="kw">def</span> <span class="fn">query</span>(self, l, r):                  <span class="cm"># 반개구간 [l, r)</span>
+        res = self.ident
+        l += self.n
+        r += self.n
+        <span class="kw">while</span> l &lt; r:
+            <span class="kw">if</span> l &amp; <span class="num">1</span>:
+                res = self.<span class="fn">op</span>(res, self.t&#91;l&#93;)
+                l += <span class="num">1</span>
+            <span class="kw">if</span> r &amp; <span class="num">1</span>:
+                r -= <span class="num">1</span>
+                res = self.<span class="fn">op</span>(res, self.t&#91;r&#93;)
+            l //= <span class="num">2</span>
+            r //= <span class="num">2</span>
+        <span class="kw">return</span> res
+
+arr = &#91;<span class="num">5</span>, <span class="num">8</span>, <span class="num">6</span>, <span class="num">3</span>, <span class="num">2</span>, <span class="num">7</span>, <span class="num">1</span>, <span class="num">4</span>&#93;
+sums = <span class="fn">Seg</span>(arr, <span class="kw">lambda</span> a, b: a + b, <span class="num">0</span>)
+mins = <span class="fn">Seg</span>(arr, <span class="fn">min</span>, <span class="fn">float</span>(<span class="st">"inf"</span>))
+<span class="fn">print</span>(sums.<span class="fn">query</span>(<span class="num">2</span>, <span class="num">7</span>), mins.<span class="fn">query</span>(<span class="num">2</span>, <span class="num">7</span>))   <span class="cm"># 19 1</span>
+mins.<span class="fn">update</span>(<span class="num">6</span>, <span class="num">9</span>)
+<span class="fn">print</span>(mins.<span class="fn">query</span>(<span class="num">2</span>, <span class="num">7</span>))                   <span class="cm"># 2</span></pre>
+            </div>
+            <p class="code-desc">
+                이 버전은 리프를 배열의 n번부터 2n - 1번에 두고, 위로 올라가며 두 자식의 결과를 합쳐 내부 노드를 채웁니다. 크기가 2n이면 충분하고 재귀가 없어 빠르며, 구간을 반개구간 [l, r)로 받아 아래에서 위로 올라가며 합칠 노드만 골라냅니다.
+                합치는 연산 op와 항등원 ident를 인자로 받으므로 같은 코드로 구간 합(항등원 0)과 구간 최솟값(항등원 무한대)을 모두 처리합니다. 구간 [2, 6]의 합은 19이고 최솟값은 1이며, A[6]을 9로 바꾸면 최솟값이 2가 됩니다.
+                이 반복형 query는 순서를 바꿔 합쳐도 결과가 같은(교환 법칙이 성립하는) 연산에 맞는 단순한 형태입니다. 문자열 이어붙이기나 행렬 곱처럼 교환 법칙이 안 되는 연산에는 왼쪽 결과와 오른쪽 결과를 따로 모아 순서대로 합치는 변형이 필요합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — 무작위 입력으로 정답과 비교하기</p>
+            <div class="code-block">
+<pre><span class="kw">import</span> random
+
+arr = &#91;random.<span class="fn">randint</span>(<span class="num">1</span>, <span class="num">9</span>) <span class="kw">for</span> _ <span class="kw">in</span> <span class="fn">range</span>(<span class="num">20</span>)&#93;
+st = <span class="fn">SegTree</span>(arr)                      <span class="cm"># 첫 번째 코드의 클래스</span>
+<span class="kw">for</span> _ <span class="kw">in</span> <span class="fn">range</span>(<span class="num">1000</span>):
+    <span class="kw">if</span> random.<span class="fn">random</span>() &lt; <span class="num">0.5</span>:
+        i, v = random.<span class="fn">randrange</span>(<span class="num">20</span>), random.<span class="fn">randint</span>(<span class="num">1</span>, <span class="num">9</span>)
+        arr&#91;i&#93; = v
+        st.<span class="fn">update</span>(i, v)
+    <span class="kw">else</span>:
+        l = random.<span class="fn">randrange</span>(<span class="num">20</span>)
+        r = random.<span class="fn">randrange</span>(l, <span class="num">20</span>)
+        <span class="kw">assert</span> st.<span class="fn">query</span>(l, r) == <span class="fn">sum</span>(arr&#91;l:r + <span class="num">1</span>&#93;)
+<span class="fn">print</span>(<span class="st">"ok"</span>)</pre>
+            </div>
+            <p class="code-desc">
+                자료구조를 직접 구현했다면 느리지만 확실한 방법(배열을 직접 더하는 sum)과 무작위로 비교해 보는 것이 가장 빠른 검증 방법입니다. 이 코드는 1000번의 연산을 평균적으로 절반쯤은 값 갱신, 나머지는 구간 합 쿼리로 섞어 두 결과가 항상 같은지 확인합니다.
+                쿼리 한 번의 비용은 배열 직접 합산이 구간 길이에 비례하는 O(n)이고 세그먼트 트리가 O(log n)입니다. 원소가 수십만 개이고 쿼리가 수십만 번이면 O(n × q)와 O(q log n)의 차이가 실행 시간을 가릅니다.
+                값이 바뀌지 않고 쿼리만 여러 번 한다면 누적 합 배열이 더 단순하고 빠르며, 값 갱신과 쿼리가 섞이는 상황에서 세그먼트 트리나 펜윅 트리가 필요해집니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>

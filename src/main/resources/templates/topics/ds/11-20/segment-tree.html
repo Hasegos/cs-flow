@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">세그먼트 트리 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/ds/11-20/segment-tree.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/ds}" class="topic-breadcrumb__link">자료구조</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">세그먼트 트리</span>
+                </nav>
+
+                <span class="topic-hero__slug">ds · 12</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">세그먼트 트리</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+                <button type="button" class="topic-like" th:classappend="${liked} ? ' topic-like--active' : ''" th:attr="data-topic-slug=${topic.slug}">
+                    <svg class="topic-like__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <span class="topic-like__count" th:text="${likeCount}">0</span>
+                </button>
+                <div class="topic-share">
+                    <button type="button" class="topic-share__btn topic-share__btn--copy" aria-label="링크 복사">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="topic-share__btn topic-share__btn--kakao" aria-label="카카오톡 공유">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                        </svg>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+                <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        배열에서 "i번째부터 j번째까지의 합"을 구하고 싶을 때, 매번 구간을 훑으면 쿼리 한 번에 O(n)이 걸립니다. 값이 바뀌지 않는다면 누적 합 배열로 O(1)에 답할 수 있지만, 값이 중간에 자주 바뀌면 누적 합을 매번 다시 만들어야 해서 갱신이 O(n)이 됩니다. <strong>세그먼트 트리(segment tree)</strong>는 구간 쿼리와 값 갱신을 모두 O(log n)에 처리하는 자료구조입니다.
+                    </p>
+                    <p class="overview-lead">
+                        배열 전체 구간을 절반씩 나누는 이진 트리를 만들고, 각 노드에 자기가 담당하는 구간의 합(또는 최솟값, 최댓값 같은 집계 값)을 미리 저장해 둡니다. 쿼리는 필요한 구간을 몇 개의 노드로 쪼개 저장된 값을 합치고, 갱신은 바뀐 원소에서 루트까지의 노드만 다시 계산합니다. 이 토픽에서는 트리를 만드는 과정, 구간 합 쿼리가 노드를 고르는 방법, 값 갱신이 퍼지는 경로를 단계별로 봅니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">구간 분할</h3>
+                            <p class="overview-card__desc">루트가 전체 구간 [0, n - 1]을 담당하고, 각 노드는 구간을 반으로 나눠 두 자식에게 맡깁니다. 리프는 원소 하나짜리 구간을 담당하며, 높이(간선 수)는 ⌈log2 n⌉이고 층 수는 ⌈log2 n⌉ + 1입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">집계 값 저장</h3>
+                            <p class="overview-card__desc">각 노드는 담당 구간의 합, 최솟값, 최댓값 같은 집계 결과를 저장합니다. 부모의 값은 두 자식의 값을 합쳐서 만들기 때문에 구간 전체를 다시 훑을 필요가 없습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">구간 쿼리</h3>
+                            <p class="overview-card__desc">루트에서 내려가며 노드 구간이 찾는 구간과 겹치지 않으면 건너뛰고, 완전히 포함되면 저장된 값을 쓰고, 일부만 겹치면 두 자식으로 나눠 확인합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">점 갱신</h3>
+                            <p class="overview-card__desc">원소 하나를 바꾸면 그 원소를 포함하는 구간의 노드, 즉 리프에서 루트까지의 경로에 있는 노드만 두 자식의 합으로 다시 계산합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">배열 표현</h3>
+                            <p class="overview-card__desc">노드 i의 자식을 2i와 2i + 1에 두면 포인터 없이 배열로 트리를 저장할 수 있습니다. 재귀 구현에서는 n이 2의 거듭제곱이 아니어도 안전하도록 보통 4n 크기를 잡습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">결합 법칙</h3>
+                            <p class="overview-card__desc">두 자식의 결과를 합치는 연산이 결합 법칙을 만족하고 항등원이 있으면 세그먼트 트리에 쓸 수 있습니다. 합, 최솟값, 최댓값, 최대공약수 등이 대표적입니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>쿼리와 갱신이 모두 O(log n)입니다</strong> — 트리의 층 수가 log n에 비례하고, 한 번의 쿼리나 갱신이 층마다 일정한 수의 노드만 건드립니다. 만드는 데는 O(n)이 걸립니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>누적 합과 비교해 값 변경에 강합니다</strong> — 누적 합 배열은 쿼리가 O(1)이지만 값이 바뀌면 O(n)을 다시 계산해야 합니다. 세그먼트 트리는 두 연산을 O(log n)으로 맞춥니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>저장 공간은 O(n)입니다</strong> — 원소 n개에 노드가 약 2n개 필요합니다. 배열로 구현할 때 크기를 4n으로 넉넉히 잡는 것은 인덱스 안전을 위한 관례입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>구간 갱신에는 지연 전파가 필요합니다</strong> — 구간 전체에 값을 더하는 갱신을 O(log n)에 하려면 변경을 나중으로 미루는 지연 전파(lazy propagation)를 씁니다. 이 토픽은 점 갱신까지 다룹니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "트리 만들기" 탭에서 아래에서 위로 합이 쌓이는 과정을, "구간 합 쿼리" 탭에서 고르는 노드와 건너뛰는 노드를, "값 갱신" 탭에서 갱신이 번지는 경로를 STEP으로 확인하세요.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">세그먼트 트리의 배경</h2>
+                    <p class="overview-lead">
+                        세그먼트 트리라는 이름의 구조는 계산 기하학에서 나왔습니다. 1977년 카네기멜런대 기술 보고서에서 존 벤틀리(Jon Bentley)가 클리(Klee)의 직사각형 문제, 즉 직사각형들의 합집합 넓이를 구하는 문제를 풀며 소개한 것으로 알려져 있습니다. 원래의 구조는 구간(선분) 집합을 노드에 나눠 저장해 점 질의(stabbing)와 합집합 길이를 다룹니다. 이 토픽의 구간 합 트리는 노드에 구간의 집계 값을 저장한다는 같은 발상을 배열 구간 질의에 쓴 형태입니다. 펜윅 트리(BIT)는 같은 문제를 더 짧은 코드로 풀 수 있고, 세그먼트 트리는 합 이외의 연산과 지연 전파까지 다룰 수 있어 더 유연합니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>트리 크기</strong> — 배열 5, 8, 6, 3, 2, 7, 1, 4(원소 8개)로 만든 트리는 노드가 15개(= 2 × 8 - 1)이고 층이 4개(높이 3)입니다. 루트 값은 전체 합 36입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>구간 합 쿼리</strong> — 구간 [2, 6]의 합은 6 + 3 + 2 + 7 + 1 = 19입니다. 노드 9개를 방문해 그 가운데 3개의 저장값(구간 [2, 3]은 9, [4, 5]는 9, [6, 6]은 1)만 더해 같은 값을 얻습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>값 갱신</strong> — A[3]을 3에서 10으로 바꾸면 노드 4개(리프, 구간 [2, 3], [0, 3], [0, 7])만 다시 계산합니다. 구간 [2, 3]이 9에서 16으로, 전체 합이 36에서 43으로 바뀝니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>규모의 차이</strong> — 원소가 100만 개이면 층이 21개(높이 20)여서, 쿼리 한 번이 층마다 최대 4개씩 약 84개 이하의 노드만 방문합니다. 구간을 직접 훑으면 최대 100만 번을 더해야 합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>쿼리가 구간 안의 모든 리프를 방문한다</strong> — 완전히 포함된 구간은 저장된 값을 한 번 쓰고 더 내려가지 않습니다. 그래서 방문하는 노드가 구간 길이가 아니라 트리의 층 수에 비례합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>노드 수가 4n개다</strong> — 실제 노드는 약 2n개이고, 4n은 재귀 구현에서 인덱스가 넘치지 않도록 잡는 배열 크기입니다. 반복형 구현은 2n으로 충분합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>합 전용 자료구조다</strong> — 두 구간의 결과를 합치는 연산만 정의하면 최솟값, 최댓값, 최대공약수, 행렬 곱 같은 다른 집계에도 쓸 수 있습니다. 노드가 저장하는 값만 바꾸면 됩니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>항상 세그먼트 트리가 최선이다</strong> — 값이 바뀌지 않으면 누적 합이 더 단순하고 빠르고, 합과 점 갱신만 필요하면 펜윅 트리가 코드가 짧고 메모리를 덜 씁니다. 필요한 기능에 맞게 고릅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">세그먼트 트리는 언제, 왜 쓰나요?</h3>
+                            <p class="overview-card__desc">값이 자주 바뀌는 배열에서 구간 합이나 구간 최솟값을 반복해서 구할 때 씁니다. 구간 쿼리와 값 갱신을 모두 O(log n)에 처리해, 직접 계산하는 O(n)이나 누적 합의 갱신 O(n)보다 유리합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">구간 쿼리는 어떻게 O(log n)이 되나요?</h3>
+                            <p class="overview-card__desc">찾는 구간을 트리 노드 몇 개의 구간으로 쪼갭니다. 완전히 포함되는 노드의 저장값만 합치고 겹치지 않는 노드는 건너뛰므로, 한 층에서 방문하는 노드 수가 최대 4개로 제한되어 전체가 층 수에 비례합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">배열로 구현할 때 왜 4n 크기를 잡나요?</h3>
+                            <p class="overview-card__desc">n이 2의 거듭제곱이 아니면 트리가 완전 이진 트리가 아니어서 노드 번호가 2n보다 커질 수 있습니다. 층 수가 ⌈log2 n⌉ + 1이라 최대 노드 번호가 2의 (⌈log2 n⌉ + 1)제곱 미만이고, 이 값은 4n보다 작으므로 4n이면 어떤 n에서도 넘치지 않습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">구간 전체에 값을 더하는 갱신은 어떻게 하나요?</h3>
+                            <p class="overview-card__desc">지연 전파를 씁니다. 구간을 완전히 덮는 노드는 자기 집계 값(합이면 더하는 값 × 구간 길이)을 바로 갱신하고, 자식에게 줄 값은 "나중에 전달할 값"으로 표시만 해 둡니다. 그 노드를 지나 내려갈 때 비로소 자식에게 전달하므로 구간 갱신도 O(log n)에 처리합니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>알고리즘 대회와 코딩 테스트</strong> — 구간 합, 구간 최솟값, 구간 갱신 문제의 대표 해법입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>계산 기하</strong> — 구간과 영역에 대한 질의를 처리하는 계산 기하 알고리즘의 부품으로 쓰입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>자료구조 확장 기법</strong> — CLRS 14장(자료구조 확장)은 레드-블랙 트리 노드에 부분 트리 크기나 구간 끝점의 최댓값을 저장해 순위 질의와 구간 검색을 O(log n)에 하는 기법을 설명합니다. 노드에 요약값을 저장한다는 점에서 세그먼트 트리와 같은 발상입니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/ds/tree}">트리</a> — 높이, 깊이, 이진 트리의 기본 용어를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/ds/heap}">힙</a> — 배열 위에 완전 이진 트리를 올리는 같은 표현을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/complexity}">시간 복잡도</a> — O(log n)과 O(n)의 차이가 규모에 따라 벌어지는 방식을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/binary-search}">이분 탐색</a> — 구간을 절반씩 줄여 가는 O(log n)의 원리를 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>교재</strong> — de Berg 외, Computational Geometry: Algorithms and Applications, 3판(Springer, 2008), 10장 10.3 Segment Trees (구간 집합에 대한 점 질의용 구조로, 이 토픽의 구간 합 트리와는 쓰임이 다릅니다)</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>학습 자료</strong> — <a href="https://cp-algorithms.com/data_structures/segment_tree.html" target="_blank" rel="noopener">cp-algorithms Segment Tree</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>기술 보고서</strong> — J. L. Bentley, Klee의 직사각형 문제에 관한 카네기멜런대 컴퓨터과학과 기술 보고서(1977, 미출판)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/ds/11-20/segment-tree-code :: code}"></th:block>
+            </div>
+
+            <!-- 탭 4: 퀴즈 -->
+            <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
+                <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+    <script th:src="@{/js/quiz.js}"></script>
+    <script th:src="@{/js/like.js}"></script>
+    <script th:src="@{/js/share.js}"></script>
+</body>
+</html>
