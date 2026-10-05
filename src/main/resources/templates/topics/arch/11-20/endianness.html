@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">엔디언(빅/리틀) | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/arch/11-20/endianness.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/arch}" class="topic-breadcrumb__link">컴퓨터 구조</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">엔디언(빅/리틀)</span>
+                </nav>
+
+                <span class="topic-hero__slug">arch · 20</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">엔디언(빅/리틀)</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+                <button type="button" class="topic-like" th:classappend="${liked} ? ' topic-like--active' : ''" th:attr="data-topic-slug=${topic.slug}">
+                    <svg class="topic-like__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <span class="topic-like__count" th:text="${likeCount}">0</span>
+                </button>
+                <div class="topic-share">
+                    <button type="button" class="topic-share__btn topic-share__btn--copy" aria-label="링크 복사">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="topic-share__btn topic-share__btn--kakao" aria-label="카카오톡 공유">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                        </svg>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+                <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        컴퓨터의 메모리는 바이트 단위로 주소가 붙어 있습니다. 그런데 32비트 정수 0x12345678처럼 바이트 여러 개로 이뤄진 값은 어떤 바이트를 낮은 주소에 놓을지 정해야 합니다. 이 바이트 배치 순서를 <strong>엔디언(endianness)</strong>이라고 부릅니다.
+                        가장 큰 자릿수 바이트(MSB)를 낮은 주소에 먼저 놓으면 <strong>빅 엔디언</strong>, 가장 작은 자릿수 바이트(LSB)를 먼저 놓으면 <strong>리틀 엔디언</strong>입니다.
+                    </p>
+                    <p class="overview-lead">
+                        같은 값이라도 순서가 다르면 메모리에 놓인 바이트 모양이 다릅니다. 평소 변수를 쓸 때는 CPU가 알아서 처리하므로 드러나지 않지만, 메모리를 바이트 단위로 직접 들여다보거나, 파일과 네트워크로 여러 바이트 정수를 주고받거나, 서로 다른 CPU 사이에서 데이터를 옮길 때 문제가 됩니다.
+                        이 토픽에서는 두 방식의 바이트 배치, 네트워크 바이트 순서가 필요한 이유, 같은 바이트가 읽는 쪽의 엔디언에 따라 다른 값이 되는 과정을 봅니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">빅 엔디언</h3>
+                            <p class="overview-card__desc">가장 큰 자릿수 바이트를 가장 낮은 주소에 저장합니다. 0x12345678은 낮은 주소부터 12 34 56 78로 놓여 값을 쓴 모양 그대로 읽힙니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">리틀 엔디언</h3>
+                            <p class="overview-card__desc">가장 작은 자릿수 바이트를 가장 낮은 주소에 저장합니다. 0x12345678은 낮은 주소부터 78 56 34 12로 놓입니다. x86과 x86-64가 이 방식입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">바이트 단위 순서</h3>
+                            <p class="overview-card__desc">엔디언은 바이트를 놓는 순서이고 바이트 안의 비트 순서가 아닙니다. 바이트 하나(8비트)짜리 값에는 순서가 없어 엔디언의 영향을 받지 않습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">네트워크 바이트 순서</h3>
+                            <p class="overview-card__desc">네트워크 프로토콜이 여러 바이트 필드를 보낼 때 쓰는 표준 순서로, 빅 엔디언입니다. 호스트가 리틀 엔디언이면 보내기 전에 변환하고 받은 뒤 되돌립니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">htons·htonl 계열</h3>
+                            <p class="overview-card__desc">host to network short/long의 약자로, 16비트와 32비트 값을 호스트 순서에서 네트워크 순서로 바꾸는 함수입니다. 반대 방향은 ntohs, ntohl입니다. 호스트 순서가 이미 빅 엔디언이면 값이 그대로입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">바이트로 접근할 때 드러남</h3>
+                            <p class="overview-card__desc">정수를 정수로만 읽고 쓰면 엔디언이 보이지 않습니다. 정수가 놓인 메모리를 1바이트씩 읽거나, 바이트 배열을 정수로 해석하거나, 바이트를 그대로 파일·소켓에 쓸 때 드러납니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>값은 같고 배치만 다릅니다</strong> — 0x12345678이라는 수 자체는 바뀌지 않습니다. 메모리에서 어느 바이트가 어느 주소에 놓이는지만 다릅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>주고받는 양쪽이 약속해야 합니다</strong> — 송신자와 수신자가 서로 다른 순서를 가정하면 같은 바이트가 다른 값으로 읽힙니다. 그래서 네트워크 프로토콜은 바이트 순서를 하나로 정해 둡니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>한 바이트는 해당 없습니다</strong> — char 한 개나 ASCII 문자열은 순서 문제가 생기지 않습니다. 2바이트 이상의 정수와 부동소수점 값이 대상입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>어느 쪽이 더 낫지는 않습니다</strong> — 두 방식 모두 값을 올바르게 표현합니다. 어떤 방식이 쓰이는지는 ISA 설계와 역사적 선택의 문제입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "바이트 저장 순서" 탭에서 같은 값이 놓이는 순서를, "네트워크 바이트 순서" 탭에서 변환이 필요한 이유를, "같은 바이트 다른 값" 탭에서 읽는 크기에 따른 값의 차이를 STEP으로 확인하세요.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">엔디언의 배경</h2>
+                    <p class="overview-lead">
+                        엔디언이라는 이름은 걸리버 여행기에서 달걀을 어느 쪽 끝으로 깰지를 두고 싸우는 이야기에서 따왔으며, 컴퓨터 분야에서는 1980년의 글 "On Holy Wars and a Plea for Peace"가 이 용어를 알렸습니다. 두 방식 모두 기술적으로 타당해서 CPU마다 서로 다른 선택을 했고, 그 결과 서로 다른 시스템 사이에서 데이터를 주고받을 때 바이트 순서를 맞추는 일이 생겼습니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>같은 값 0x12345678</strong> — 빅 엔디언은 낮은 주소부터 12 34 56 78, 리틀 엔디언은 78 56 34 12입니다. 4바이트의 순서가 정확히 뒤집힌 모양입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>순서가 어긋나면</strong> — 16비트 값 0x1234(4660)를 리틀 엔디언 메모리 바이트 34 12 그대로 보내 빅 엔디언 수신자가 읽으면 0x3412(13330)가 됩니다. 값이 달라집니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>읽는 크기에 따라</strong> — 메모리 바이트 12 34 56 78을 32비트로 읽으면 빅 엔디언은 0x12345678, 리틀 엔디언은 0x78563412입니다. 1바이트로 읽으면 둘 다 0x12입니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>엔디언은 비트 순서를 뒤집는다</strong> — 바이트 단위의 순서입니다. 바이트 안의 비트 모양은 그대로입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>정수 연산 결과가 엔디언에 따라 달라진다</strong> — 덧셈이나 비교 같은 연산 결과는 같습니다. 달라지는 것은 메모리 속 바이트 배치이고, 이는 바이트 단위로 다룰 때만 드러납니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>문자열도 순서가 뒤집힌다</strong> — ASCII 같은 1바이트 문자열은 엔디언과 무관하게 앞 글자가 낮은 주소에 놓입니다. 2바이트 코드 단위를 쓰는 UTF-16(UTF-32는 4바이트)처럼 한 글자가 여러 바이트 단위로 이뤄진 인코딩에서만 순서가 문제입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>네트워크 순서는 항상 변환이 필요하다</strong> — 빅 엔디언 호스트에서는 htons가 값을 바꾸지 않습니다. 이식성을 위해 변환 함수를 항상 호출하는 것이 안전합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">빅 엔디언과 리틀 엔디언의 차이는 무엇인가요?</h3>
+                            <p class="overview-card__desc">여러 바이트로 이뤄진 값을 메모리에 놓는 순서입니다. 빅 엔디언은 MSB를 낮은 주소에, 리틀 엔디언은 LSB를 낮은 주소에 먼저 놓습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">네트워크 바이트 순서가 왜 필요한가요?</h3>
+                            <p class="overview-card__desc">통신하는 호스트들의 엔디언이 다를 수 있어서 전송되는 바이트 순서를 하나로 정해야 같은 값으로 해석됩니다. 인터넷 프로토콜은 빅 엔디언을 씁니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">내 컴퓨터의 엔디언을 코드로 확인하려면?</h3>
+                            <p class="overview-card__desc">정수 1을 저장한 뒤 첫 바이트를 char 포인터로 읽어 보면 됩니다. int가 2바이트 이상일 때 첫 바이트가 1이면 리틀 엔디언, 0이면 빅 엔디언입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">엔디언 문제는 언제 생기나요?</h3>
+                            <p class="overview-card__desc">바이트 단위로 정수를 다룰 때입니다. 소켓으로 정수를 보내거나, 바이너리 파일 형식을 읽고 쓰거나, 서로 다른 아키텍처 사이에서 메모리 덤프를 옮길 때 순서를 맞춰야 합니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>인터넷 프로토콜</strong> — IP, TCP, UDP 헤더의 포트 번호와 길이 같은 여러 바이트 필드는 빅 엔디언(네트워크 바이트 순서)으로 전송됩니다. IP 헤더는 RFC 791 부록 B(데이터 전송 순서)가 정하고, TCP와 UDP도 같은 인터넷 관례를 따라 빅 엔디언으로 보냅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>소켓 API</strong> — POSIX는 htons, htonl, ntohs, ntohl 함수를 정의합니다. 포트와 IP 주소를 소켓 주소 구조체에 넣을 때 사용합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>언어와 도구</strong> — Java의 ByteBuffer는 기본이 빅 엔디언이며 order()로 바꿀 수 있고, Python의 struct 모듈은 형식 문자열 앞의 문자로 바이트 순서를 지정합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/arch/ieee754-float}">IEEE 754 부동소수점</a> — 부동소수점 값의 비트 구조를 봅니다. 이 값을 바이트로 보낼 때도 엔디언이 적용됩니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/arch/memory-hierarchy}">메모리 계층</a> — 바이트 주소가 붙는 메모리가 어떤 계층 구조 위에 있는지 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>표준</strong> — <a href="https://pubs.opengroup.org/onlinepubs/9799919799/functions/htonl.html" target="_blank" rel="noopener">POSIX htonl, htons, ntohl, ntohs</a>, <a href="https://www.rfc-editor.org/rfc/rfc791" target="_blank" rel="noopener">RFC 791 Internet Protocol</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>논문</strong> — Danny Cohen, "On Holy Wars and a Plea for Peace", 1980 (<a href="https://www.rfc-editor.org/ien/ien137.txt" target="_blank" rel="noopener">IEN 137</a>)</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>문서</strong> — <a href="https://docs.python.org/3/library/struct.html" target="_blank" rel="noopener">Python struct 모듈</a>, <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/nio/ByteBuffer.html" target="_blank" rel="noopener">Java ByteBuffer</a></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/arch/11-20/endianness-code :: code}"></th:block>
+            </div>
+
+            <!-- 탭 4: 퀴즈 -->
+            <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
+                <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+    <script th:src="@{/js/quiz.js}"></script>
+    <script th:src="@{/js/like.js}"></script>
+    <script th:src="@{/js/share.js}"></script>
+</body>
+</html>
