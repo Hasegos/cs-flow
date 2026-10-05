@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">유니 / 멀티 / 브로드캐스트 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/network/11-20/multicast-broadcast.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/network}" class="topic-breadcrumb__link">네트워크</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">유니 / 멀티 / 브로드캐스트</span>
+                </nav>
+
+                <span class="topic-hero__slug">network · 20</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">유니 / 멀티 / 브로드캐스트</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+                <button type="button" class="topic-like" th:classappend="${liked} ? ' topic-like--active' : ''" th:attr="data-topic-slug=${topic.slug}">
+                    <svg class="topic-like__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <span class="topic-like__count" th:text="${likeCount}">0</span>
+                </button>
+                <div class="topic-share">
+                    <button type="button" class="topic-share__btn topic-share__btn--copy" aria-label="링크 복사">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="topic-share__btn topic-share__btn--kakao" aria-label="카카오톡 공유">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                        </svg>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+                <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        네트워크에서 데이터를 보낼 때 가장 먼저 정해야 할 것은 "누구에게 보내는가"입니다. 한 명에게만 보낼 수도 있고, 같은 네트워크의 모두에게 보낼 수도 있고, 관심 있는 그룹에게만 보낼 수도 있습니다. 이 세 가지가 <strong>유니캐스트(unicast)</strong>, <strong>브로드캐스트(broadcast)</strong>, <strong>멀티캐스트(multicast)</strong>입니다. 각각 목적지 주소의 종류와 전달 범위가 다르고, 같은 데이터를 여럿에게 보낼 때 드는 비용도 크게 다릅니다.
+                    </p>
+                    <p class="overview-lead">
+                        유니캐스트는 송신자와 수신자가 1:1로 통신하는 방식으로, 웹 접속처럼 대부분의 인터넷 통신이 여기에 속합니다. 브로드캐스트는 같은 브로드캐스트 도메인의 모든 호스트에게 보내는 방식이고, ARP 요청이나 DHCP Discover가 대표 예입니다. 멀티캐스트는 특정 그룹에 가입한 호스트에게만 한 번의 전송으로 데이터를 전달하는 방식으로, 실시간 영상 배포나 서비스 탐색에 쓰입니다. 이 토픽에서는 세 방식이 누구에게 전달되는지, 주소가 어떻게 다른지, 멀티캐스트 그룹 가입이 어떻게 이루어지는지를 단계별로 봅니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">유니캐스트</h3>
+                            <p class="overview-card__desc">한 송신자가 특정한 한 수신자에게 1:1로 보냅니다. 같은 데이터를 여러 명에게 주려면 수신자 수만큼 반복해서 보내야 합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">브로드캐스트</h3>
+                            <p class="overview-card__desc">같은 네트워크(브로드캐스트 도메인)의 모든 호스트에게 보냅니다. 라우터는 브로드캐스트를 넘기지 않아 인터넷 전체로 퍼지지 않습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">멀티캐스트</h3>
+                            <p class="overview-card__desc">그룹 주소로 한 번 보내면 그 그룹에 가입한 호스트에게만 전달됩니다. 송신은 1번이고 수신자가 늘어도 송신자의 부담이 거의 변하지 않습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">멀티캐스트 주소</h3>
+                            <p class="overview-card__desc">IPv4에서는 224.0.0.0부터 239.255.255.255까지가 멀티캐스트 그룹 주소입니다. 224.0.0.1은 같은 네트워크의 모든 호스트, 224.0.0.2는 모든 라우터를 뜻합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">IGMP</h3>
+                            <p class="overview-card__desc">IPv4 호스트가 멀티캐스트 그룹 가입과 탈퇴를 라우터에 알리는 프로토콜입니다. IPv6에서는 같은 역할을 MLD가 맡습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">IGMP 스누핑</h3>
+                            <p class="overview-card__desc">스위치가 IGMP 메시지를 엿보고 가입자가 있는 포트만 기억해, 멀티캐스트 프레임을 그 포트로만 보내는 기능입니다. 없으면 모든 포트로 흘러갑니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>수신자가 많을수록 차이가 벌어집니다</strong> — 같은 데이터를 N명에게 보낼 때 유니캐스트는 송신이 N번이지만, 브로드캐스트와 멀티캐스트는 1번입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>브로드캐스트는 원치 않는 호스트도 받습니다</strong> — 같은 네트워크의 모든 호스트가 패킷을 받아 처리한 뒤에야 관련이 없다는 것을 알고 버립니다. 호스트가 많을수록 낭비가 커집니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>멀티캐스트는 가입이 있어야 받습니다</strong> — 그룹에 가입한 호스트에게만 전달됩니다. 대신 TCP로는 쓸 수 없고 보통 UDP로 보내므로 손실 복구를 애플리케이션이 직접 챙겨야 합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>범위는 라우터가 정합니다</strong> — 브로드캐스트는 같은 네트워크에서 끝나고, 멀티캐스트는 멀티캐스트 라우팅이 설정된 곳까지 퍼질 수 있습니다. 인터넷 전체에서는 일반적으로 쓸 수 없습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "전송 방식" 탭에서 누가 받는지와 송신 횟수를, "주소" 탭에서 주소 영역과 MAC 변환을, "그룹 가입" 탭에서 가입과 스위치 전달 범위를 STEP으로 확인하세요.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">전송 방식의 배경</h2>
+                    <p class="overview-lead">
+                        ARP와 DHCP 같은 기본 프로토콜은 브로드캐스트를 이용합니다. 1989년 RFC 1112는 IP 멀티캐스트를 위한 호스트 확장과 IGMP를 정의했고, 이후 IGMPv2(RFC 2236)에서 탈퇴 메시지(Leave)가 추가되었습니다. IPv6에는 브로드캐스트가 없고, 같은 용도를 멀티캐스트가 대신합니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>송신 횟수</strong> — 호스트 5대 가운데 3대(H1, H3, H5)가 데이터를 원할 때 유니캐스트는 3번, 브로드캐스트와 멀티캐스트는 1번 보냅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>받는 호스트 수</strong> — 유니캐스트는 3대, 브로드캐스트는 5대 전부(원하지 않는 2대 포함), 멀티캐스트는 가입한 3대입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>MAC 변환</strong> — 그룹 주소 239.1.2.3은 01:00:5e로 시작하는 MAC 주소 뒤에 하위 23비트(1.2.3)를 붙여 01:00:5e:01:02:03이 됩니다. 5비트가 빠져 그룹 주소 32개가 같은 MAC 주소를 씁니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>브로드캐스트 주소</strong> — 192.168.1.0/24 네트워크의 브로드캐스트 주소는 호스트 비트가 모두 1인 192.168.1.255이고, 제한된 브로드캐스트 주소는 255.255.255.255입니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>브로드캐스트는 인터넷 전체에 퍼진다</strong> — 라우터가 브로드캐스트를 다른 네트워크로 넘기지 않으므로 같은 브로드캐스트 도메인 안에서만 전달됩니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>멀티캐스트는 모두에게 전달된다</strong> — 그룹에 가입한 호스트에게만 전달됩니다. 다만 IGMP 스누핑이 없는 스위치는 가입하지 않은 포트로도 프레임을 내보낼 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>멀티캐스트면 인터넷으로 영상 방송을 할 수 있다</strong> — 인터넷의 일반 라우터는 멀티캐스트를 전달하지 않는 경우가 많아, 통신사 내부망(IPTV)이나 기업 내부망처럼 관리되는 네트워크에서 주로 씁니다. 인터넷 방송은 보통 HTTP 기반 스트리밍 같은 유니캐스트 방식으로 합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>192.168.1.255는 아무 호스트 주소다</strong> — 192.168.1.0/24에서는 브로드캐스트 전용 주소라 호스트에 할당할 수 없습니다. 네트워크 크기에 따라 브로드캐스트 주소가 달라집니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">유니캐스트, 브로드캐스트, 멀티캐스트의 차이는?</h3>
+                            <p class="overview-card__desc">유니캐스트는 1:1, 브로드캐스트는 같은 네트워크의 모든 호스트, 멀티캐스트는 그룹에 가입한 호스트들에게만 보냅니다. 같은 데이터를 여럿에게 보낼 때 유니캐스트는 수신자 수만큼 송신해야 하지만 나머지는 한 번이면 됩니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">브로드캐스트의 문제점은 무엇인가요?</h3>
+                            <p class="overview-card__desc">필요 없는 호스트도 모두 패킷을 받아 처리해야 해서 호스트가 많을수록 낭비가 큽니다. 브로드캐스트가 폭주하는 폭풍이 생기면 같은 도메인 전체 성능이 크게 떨어집니다. VLAN으로 도메인을 나누면 영향 범위가 줄고, 스톰 컨트롤과 STP로 폭풍 자체를 막습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">멀티캐스트 수신자는 어떻게 그룹에 가입하나요?</h3>
+                            <p class="overview-card__desc">IPv4에서는 호스트가 IGMP 멤버십 보고를 보내 가입을 알리고, 탈퇴도 IGMP로 알립니다. 스위치의 IGMP 스누핑이 가입자 포트를 기억해 그 포트로만 전달합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">IPv6에는 왜 브로드캐스트가 없나요?</h3>
+                            <p class="overview-card__desc">IPv6는 브로드캐스트를 없애고 멀티캐스트로 대체했습니다. 모든 노드에게 보내는 주소(ff02::1) 같은 멀티캐스트 주소를 쓰고, ARP 역할도 멀티캐스트 기반의 이웃 탐색(NDP)이 맡습니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>ARP와 DHCP</strong> — ARP 요청과 DHCP Discover는 브로드캐스트로 보냅니다. 상대의 주소를 모를 때 같은 네트워크 전체에 묻는 방식입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>서비스 탐색</strong> — mDNS(224.0.0.251)와 SSDP(239.255.255.250) 같은 프로토콜이 멀티캐스트로 같은 네트워크의 기기와 서비스를 찾습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>IPTV와 금융 시세</strong> — 통신사의 IPTV나 금융 시세 배포처럼 같은 데이터를 많은 수신자에게 동시에 보내는 관리된 네트워크에서 멀티캐스트를 씁니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>라우팅 프로토콜</strong> — OSPF는 Hello와 링크 상태 전달에 224.0.0.5(모든 OSPF 라우터)를, 대표 라우터(DR/BDR)로 보내는 전달에 224.0.0.6을 씁니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/arp}">ARP</a> — 브로드캐스트로 MAC 주소를 묻는 과정을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/dhcp}">DHCP</a> — 브로드캐스트로 시작하는 주소 할당 과정을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/subnetting-cidr}">서브네팅 / CIDR</a> — 브로드캐스트 주소가 정해지는 방식을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/routing}">라우팅</a> — 브로드캐스트를 막고 네트워크를 나누는 라우터를 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>표준</strong> — <a href="https://www.rfc-editor.org/rfc/rfc1112" target="_blank" rel="noopener">RFC 1112 Host Extensions for IP Multicasting</a>, <a href="https://www.rfc-editor.org/rfc/rfc2236" target="_blank" rel="noopener">RFC 2236 IGMPv2</a>, <a href="https://www.rfc-editor.org/rfc/rfc9776" target="_blank" rel="noopener">RFC 9776 IGMPv3 (RFC 3376 대체)</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>스위치와 IPv6</strong> — <a href="https://www.rfc-editor.org/rfc/rfc4541" target="_blank" rel="noopener">RFC 4541 IGMP and MLD Snooping</a>, <a href="https://www.rfc-editor.org/rfc/rfc4291" target="_blank" rel="noopener">RFC 4291 IPv6 Addressing Architecture</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>주소 할당</strong> — <a href="https://www.iana.org/assignments/multicast-addresses/multicast-addresses.xhtml" target="_blank" rel="noopener">IANA IPv4 Multicast Address Space Registry</a></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/network/11-20/multicast-broadcast-code :: code}"></th:block>
+            </div>
+
+            <!-- 탭 4: 퀴즈 -->
+            <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
+                <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+    <script th:src="@{/js/quiz.js}"></script>
+    <script th:src="@{/js/like.js}"></script>
+    <script th:src="@{/js/share.js}"></script>
+</body>
+</html>
