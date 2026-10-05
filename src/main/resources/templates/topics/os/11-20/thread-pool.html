@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">스레드 풀 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/os/11-20/thread-pool.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/os}" class="topic-breadcrumb__link">운영체제</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">스레드 풀</span>
+                </nav>
+
+                <span class="topic-hero__slug">os · 11</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">스레드 풀</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+                <button type="button" class="topic-like" th:classappend="${liked} ? ' topic-like--active' : ''" th:attr="data-topic-slug=${topic.slug}">
+                    <svg class="topic-like__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <span class="topic-like__count" th:text="${likeCount}">0</span>
+                </button>
+                <div class="topic-share">
+                    <button type="button" class="topic-share__btn topic-share__btn--copy" aria-label="링크 복사">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="topic-share__btn topic-share__btn--kakao" aria-label="카카오톡 공유">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                        </svg>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+                <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        서버가 요청을 받을 때마다 스레드를 새로 만들고 일이 끝나면 없애는 방식은 단순하지만 비용이 듭니다. 스레드를 만들려면 운영체제가 스택 메모리와 스레드 관리 구조를 준비해야 하고, 없앨 때도 정리가 필요합니다. 요청이 몰리면 스레드도 그만큼 동시에 늘어나 메모리와 CPU를 다 써 버릴 수 있습니다.
+                        <strong>스레드 풀(thread pool)</strong>은 스레드를 일정 수까지 만들어 두고 재사용하는 방식입니다. 일감이 오면 쉬고 있는 스레드가 맡고, 모두 바쁘면 일감이 <strong>작업 큐(task queue)</strong>에서 기다립니다.
+                    </p>
+                    <p class="overview-lead">
+                        스레드 풀은 두 가지를 해결합니다. 스레드를 만들고 없애는 비용을 줄이고, 동시에 실행되는 스레드 수에 상한을 두어 과부하를 막습니다. 대신 풀 크기와 큐 길이를 잘 정해야 합니다. 너무 작으면 일감이 오래 기다리고, 너무 크면 컨텍스트 스위칭과 메모리 부담이 커집니다.
+                        이 토픽에서는 요청마다 스레드를 만들 때와 풀을 쓸 때의 비용 차이, 작업 큐가 동작하는 방식, 작업 성격에 따라 풀 크기를 정하는 기준을 봅니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">스레드 재사용</h3>
+                            <p class="overview-card__desc">풀의 스레드는 일을 마치면 사라지지 않고 큐에서 다음 일감을 꺼내 이어서 실행합니다. 스레드 생성과 소멸이 일감마다 일어나지 않고, 풀이 필요한 만큼만 스레드를 만들어 재사용합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">작업 큐</h3>
+                            <p class="overview-card__desc">모든 스레드가 일하는 동안 들어온 작업이 순서를 기다리는 곳입니다. 스레드가 비면 보통 먼저 들어온 작업부터 꺼내 실행하므로, 큐가 가득 차기 전까지는 요청이 몰려도 코어 수를 넘어 스레드가 늘지 않습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">풀 크기</h3>
+                            <p class="overview-card__desc">동시에 일하는 스레드의 상한입니다. 계산이 많은 작업은 코어 수 안팎이면 코어가 차고, 입출력을 기다리는 시간이 긴 작업은 대기 시간 동안 다른 스레드가 일하도록 더 크게 잡습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">CPU 바운드와 I/O 바운드</h3>
+                            <p class="overview-card__desc">작업 시간 대부분을 계산에 쓰면 CPU 바운드, 디스크나 네트워크를 기다리는 데 쓰면 I/O 바운드입니다. 두 유형은 알맞은 풀 크기가 다릅니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">거부 정책</h3>
+                            <p class="overview-card__desc">큐가 가득 차고 스레드도 상한에 닿으면 새 작업을 받을 수 없습니다. 이때 예외를 던지거나, 호출한 스레드가 직접 실행하거나, 작업을 버리는 정책 가운데 하나를 고릅니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">큐의 길이</h3>
+                            <p class="overview-card__desc">큐에 길이 제한이 없으면 일감이 끝없이 쌓여 메모리를 다 쓸 수 있습니다. 길이를 제한하면 과부하를 일찍 드러내고 거부 정책으로 이어집니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>생성 비용을 한 번만 냅니다</strong> — 요청마다 스레드를 만들면 요청 수만큼 생성과 소멸이 반복되지만, 풀은 미리 만든 스레드를 계속 씁니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>스레드 수의 상한이 시스템을 지킵니다</strong> — 요청이 몰려도 동시에 실행되는 스레드는 풀 크기를 넘지 않아 메모리와 전환 비용이 일정 선에서 멈춥니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>크기는 작업 성격으로 정합니다</strong> — 계산 중심이면 코어 수 안팎, 대기 중심이면 대기 비율만큼 더 크게 시작하고 측정으로 조정합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>풀 안에서 다른 작업을 기다리면 위험합니다</strong> — 풀의 모든 스레드가 같은 풀의 다른 작업이 끝나기를 기다리면 아무도 진행하지 못하는 교착 상태가 될 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "생성 비용 비교" 탭에서 요청마다 스레드와 풀의 시간 합을, "작업 큐" 탭에서 스레드가 모두 바쁠 때 작업이 큐에서 기다리는 과정을, "풀 크기" 탭에서 작업 유형별 코어 사용률을 STEP으로 확인하세요.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">스레드 풀의 배경</h2>
+                    <p class="overview-lead">
+                        요청마다 스레드를 만들면 생성과 소멸 비용이 요청마다 들기 때문에, 스레드를 재사용해 이 비용을 여러 작업에 나누어 부담하는 풀 방식이 쓰입니다. 자바는 java.util.concurrent의 Executor 프레임워크로 스레드 풀을 표준 라이브러리에 포함하고, 파이썬은 concurrent.futures의 ThreadPoolExecutor를 제공합니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>생성·소멸 시간의 합(가정값)</strong> — 스레드 생성 3, 소멸 1, 작업 실행 2로 가정하고 요청 8개를 처리하면, 요청마다 스레드는 생성 24 + 소멸 8 = 32를 쓰고, 스레드 3개짜리 풀은 생성 9 + 소멸 3 = 12를 씁니다. 실행 시간 16은 같습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>작업 큐</strong> — 스레드 3개에 작업 7개가 시간 차를 두고 들어오면 스레드가 모두 일하는 동안 일부 작업은 큐에서 기다렸다가 스레드가 비는 순서대로 실행됩니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>풀 크기 공식</strong> — 목표 CPU 사용률을 100%로 두고 코어 4개에서 계산 1, 대기 3인 작업은 코어 수 × (1 + 대기/계산) = 4 × (1 + 3/1) = 16개 정도의 스레드가 있어야 코어를 채울 수 있다고 어림합니다. 실제 값은 측정으로 정합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>스레드가 많을수록 빠르다</strong> — 계산 중심 작업은 코어 수 이상으로 스레드를 늘려도 동시에 실행되는 수는 코어 수에 묶이고 전환 비용만 늘어납니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>풀을 쓰면 스레드가 필요 없는 일도 빨라진다</strong> — 풀은 생성 비용과 동시 실행 수를 다루는 장치입니다. 작업 자체가 느리면 풀을 써도 그만큼 느립니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>큐는 무한해도 상관없다</strong> — 길이 제한이 없는 큐는 처리가 밀릴 때 일감이 계속 쌓여 메모리를 소진할 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>하나의 풀로 모든 작업을 처리하면 된다</strong> — 오래 걸리는 작업이 풀의 스레드를 다 잡고 있으면 짧은 작업이 기다립니다. 성격이 다른 작업은 풀을 나누는 방법이 있습니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">스레드 풀을 왜 쓰나요?</h3>
+                            <p class="overview-card__desc">스레드를 요청마다 만들고 없애는 비용을 줄이고, 동시에 실행되는 스레드 수에 상한을 두어 요청이 몰려도 과부하가 되지 않게 하기 위해서입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">작업 큐는 무슨 역할을 하나요?</h3>
+                            <p class="overview-card__desc">풀의 스레드가 모두 일하는 동안 들어온 작업을 순서대로 보관합니다. 스레드가 비면 보통 먼저 들어온 작업부터 꺼내 실행합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">풀 크기는 어떻게 정하나요?</h3>
+                            <p class="overview-card__desc">CPU 바운드 작업은 코어 수 안팎으로, I/O 바운드 작업은 코어 수 × (1 + 대기 시간/계산 시간) 정도를 출발점으로 잡고 실제 부하를 측정해 조정합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">큐가 가득 차면 어떻게 되나요?</h3>
+                            <p class="overview-card__desc">스레드가 상한에 닿고 큐도 가득 차면 거부 정책이 동작합니다. 예외를 던지거나, 호출한 스레드가 직접 실행하거나, 작업을 버리는 방식 가운데 선택합니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>자바 Executor 프레임워크</strong> — ThreadPoolExecutor는 코어 스레드 수, 최대 스레드 수, 작업 큐, 거부 정책을 설정합니다. 문서는 코어 스레드가 모두 일하면 먼저 큐에 넣고, 큐가 차면 최대 스레드 수까지 새 스레드를 만든다고 설명합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>웹 서버</strong> — 톰캣 같은 서블릿 컨테이너는 요청 처리용 스레드 풀을 두고 최대 스레드 수를 설정으로 정합니다. 스프링 부트의 내장 톰캣은 server.tomcat.threads.max로 이 값을 바꿉니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>자바 21의 가상 스레드</strong> — JEP 444는 가상 스레드를 풀에 담지 않고 작업마다 새로 만들도록 권장합니다. 가상 스레드는 생성 비용이 매우 작기 때문입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>파이썬</strong> — concurrent.futures.ThreadPoolExecutor는 max_workers를 지정하지 않으면 CPU 수에 맞춘 기본값을 쓰며, I/O 위주 작업에 알맞다고 문서가 안내합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/thread}">스레드</a> — 풀이 재사용하는 스레드가 무엇인지, 프로세스와 어떻게 다른지 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/cpu-scheduling}">CPU 스케줄링</a> — 풀의 스레드들이 코어를 나눠 쓰는 방식을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/process-sync}">프로세스 동기화</a> — 풀의 스레드가 공유 자원을 안전하게 쓰는 방법을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/deadlock}">교착 상태</a> — 풀 안의 작업이 서로를 기다릴 때 일어나는 문제와 연결해 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>자바</strong> — <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/ThreadPoolExecutor.html" target="_blank" rel="noopener">ThreadPoolExecutor (Java SE 21)</a>, <a href="https://openjdk.org/jeps/444" target="_blank" rel="noopener">JEP 444: Virtual Threads</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>파이썬</strong> — <a href="https://docs.python.org/3/library/concurrent.futures.html" target="_blank" rel="noopener">concurrent.futures</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>교재</strong> — Brian Goetz 외, "Java Concurrency in Practice" (스레드 풀 크기 산정과 Executor 프레임워크), Silberschatz 외 "Operating System Concepts"의 스레드 풀 절</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/os/11-20/thread-pool-code :: code}"></th:block>
+            </div>
+
+            <!-- 탭 4: 퀴즈 -->
+            <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
+                <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+    <script th:src="@{/js/quiz.js}"></script>
+    <script th:src="@{/js/like.js}"></script>
+    <script th:src="@{/js/share.js}"></script>
+</body>
+</html>
