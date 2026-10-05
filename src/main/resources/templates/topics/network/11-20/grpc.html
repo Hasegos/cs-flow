@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">gRPC 통신 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/network/11-20/grpc.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/network}" class="topic-breadcrumb__link">네트워크</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">gRPC 통신</span>
+                </nav>
+
+                <span class="topic-hero__slug">network · 19</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">gRPC 통신</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+                <button type="button" class="topic-like" th:classappend="${liked} ? ' topic-like--active' : ''" th:attr="data-topic-slug=${topic.slug}">
+                    <svg class="topic-like__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <span class="topic-like__count" th:text="${likeCount}">0</span>
+                </button>
+                <div class="topic-share">
+                    <button type="button" class="topic-share__btn topic-share__btn--copy" aria-label="링크 복사">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="topic-share__btn topic-share__btn--kakao" aria-label="카카오톡 공유">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                        </svg>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+                <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        서비스가 여러 개로 나뉘면 서비스끼리 서로의 기능을 호출해야 합니다. 이때 다른 서버에 있는 함수를 내 코드의 함수처럼 부르게 해 주는 방식이 <strong>RPC(Remote Procedure Call, 원격 프로시저 호출)</strong>이고, <strong>gRPC</strong>는 구글이 만든 오픈 소스 RPC 프레임워크입니다. 호출할 함수와 주고받을 데이터의 구조를 <strong>.proto</strong> 파일에 한 번 정의하면, 여러 언어의 클라이언트와 서버 코드를 자동으로 만들어 줍니다.
+                    </p>
+                    <p class="overview-lead">
+                        gRPC는 전송에 <strong>HTTP/2</strong>를, 메시지 직렬화에 기본적으로 <strong>Protocol Buffers</strong>를 씁니다. 이진 형식이라 JSON보다 작고 빠르며, HTTP/2의 스트림 덕분에 요청과 응답이 꼭 1:1일 필요가 없어 서버 스트리밍, 클라이언트 스트리밍, 양방향 스트리밍도 지원합니다. 이 토픽에서는 네 가지 호출 방식, 직렬화 크기 차이, HTTP/2 다중화를 단계별로 봅니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">RPC</h3>
+                            <p class="overview-card__desc">다른 서버의 함수를 로컬 함수처럼 호출하는 방식입니다. 네트워크 통신, 직렬화, 오류 처리를 프레임워크가 감춰 주어 개발자는 함수 호출처럼 코드를 씁니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">Protocol Buffers</h3>
+                            <p class="overview-card__desc">.proto 파일에 스키마를 정의하고 이진 형식으로 직렬화하는 데이터 포맷입니다. 필드 이름 대신 필드 번호를 전송해 JSON보다 크기가 작고 처리도 빠릅니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">HTTP/2 위의 전송</h3>
+                            <p class="overview-card__desc">gRPC 호출은 HTTP/2 스트림 하나에 대응합니다. 연결 하나에서 여러 호출이 동시에 진행되는 멀티플렉싱과 헤더 압축의 이점을 그대로 얻습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">네 가지 호출 방식</h3>
+                            <p class="overview-card__desc">단항(요청 1, 응답 1), 서버 스트리밍(응답 여러 개), 클라이언트 스트리밍(요청 여러 개), 양방향 스트리밍(양쪽이 여러 개)이 있고 .proto의 stream 키워드로 정합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">스텁과 코드 생성</h3>
+                            <p class="overview-card__desc">protoc 컴파일러가 .proto에서 클라이언트 스텁과 서버 뼈대 코드를 만듭니다. 언어가 달라도 같은 .proto를 쓰면 서로 호출할 수 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">상태 코드와 데드라인</h3>
+                            <p class="overview-card__desc">gRPC는 HTTP 상태 코드와 별개로 자체 상태 코드(OK, NOT_FOUND, DEADLINE_EXCEEDED 등)를 쓰고, 호출마다 제한 시간(데드라인)을 정해 오래 걸리는 호출을 끊을 수 있습니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>스키마 우선입니다</strong> — 호출과 데이터 구조를 .proto로 먼저 정의하고 코드를 생성하므로, 서버와 클라이언트의 계약이 파일 하나로 고정되고 언어가 달라도 어긋나지 않습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>작고 빠른 이진 메시지입니다</strong> — 필드 이름을 보내지 않고 번호와 가변 길이 정수로 인코딩해, 같은 정보를 JSON보다 훨씬 작게 표현할 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>스트리밍이 기본 기능입니다</strong> — 요청과 응답이 1:1일 필요가 없어, 시세 구독, 대용량 업로드, 실시간 양방향 통신을 같은 방식으로 다룹니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>대신 사람이 읽기는 어렵습니다</strong> — 이진 메시지는 브라우저 개발자 도구나 curl로 바로 읽을 수 없고, 같은 .proto 스키마가 있어야 해석됩니다. 디버깅에는 전용 도구가 필요합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "호출 방식" 탭에서 네 가지 호출의 메시지 수를, "직렬화 크기" 탭에서 JSON과의 바이트 차이를, "HTTP/2 다중화" 탭에서 연결 하나로 호출 여러 개가 진행되는 모습을 STEP으로 확인하세요.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">gRPC의 배경</h2>
+                    <p class="overview-lead">
+                        구글은 내부 서비스끼리 통신하는 데 Stubby라는 RPC 시스템을 오래 써 왔고, 2015년에 이를 바탕으로 한 gRPC를 오픈 소스로 공개했습니다. 이후 CNCF(Cloud Native Computing Foundation)의 프로젝트가 되었고, 마이크로서비스 사이의 통신에 쓰이기도 합니다. 웹 브라우저는 gRPC의 HTTP/2 기능을 그대로 쓸 수 없어, 브라우저용으로는 변환 계층을 둔 gRPC-Web을 사용합니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>호출 방식별 메시지 수</strong> — 시각화에서 단항은 요청 1개 · 응답 1개, 서버 스트리밍은 1개 · 3개, 클라이언트 스트리밍은 3개 · 1개, 양방향 스트리밍은 3개 · 3개를 주고받습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>직렬화 크기</strong> — id 150, name "kim"인 같은 정보가 JSON(공백 없이)으로는 23바이트, Protocol Buffers로는 08 96 01 12 03 6b 69 6d 8바이트입니다. 약 65% 작습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>태그 계산</strong> — 필드 태그는 (필드 번호 &lt;&lt; 3) | 와이어 타입입니다. 필드 1의 정수는 (1 &lt;&lt; 3) | 0 = 8(0x08), 필드 2의 문자열은 (2 &lt;&lt; 3) | 2 = 18(0x12)입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>다중화</strong> — 시각화에서 연결 1개 안에 스트림 3개(번호 1, 3, 5)가 열리고 프레임 9개가 교차해 오갑니다. HTTP/1.1이라면 동시 호출 3개에 연결이 보통 3개 필요합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>gRPC는 항상 REST보다 빠르다</strong> — 작은 이진 메시지와 연결 재사용 덕분에 유리한 경우가 많지만, 성능은 메시지 크기, 네트워크, 구현에 따라 달라집니다. 공개 API나 브라우저 직접 호출에서는 REST가 더 편하기도 합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>gRPC는 Protocol Buffers만 쓴다</strong> — 기본 직렬화가 Protocol Buffers일 뿐, 다른 직렬화 형식을 쓰도록 바꿀 수도 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>브라우저에서 바로 호출된다</strong> — 브라우저의 API로는 gRPC가 필요로 하는 HTTP/2 제어를 다 쓸 수 없어, gRPC-Web과 중간 변환 프록시를 거치는 구성이 일반적입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>스키마를 바꿔도 호환된다</strong> — 새 필드를 추가하는 것은 대체로 호환되지만, 이미 쓴 필드 번호를 바꾸거나 다른 의미로 재사용하면 오래된 클라이언트가 데이터를 잘못 해석합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">gRPC와 REST의 차이는 무엇인가요?</h3>
+                            <p class="overview-card__desc">REST는 보통 HTTP/1.1과 JSON으로 자원을 주고받고, gRPC는 HTTP/2와 Protocol Buffers로 함수 호출을 주고받습니다. gRPC는 스키마가 엄격하고 스트리밍을 지원하며, REST는 사람이 읽기 쉽고 브라우저에서 바로 쓸 수 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">Protocol Buffers가 JSON보다 작은 이유는?</h3>
+                            <p class="overview-card__desc">필드 이름 대신 .proto에서 정한 필드 번호를 보내고, 정수를 가변 길이로 인코딩하며, 따옴표나 구분 기호 같은 텍스트 요소가 없기 때문입니다. 대신 양쪽이 같은 스키마를 가져야 합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">gRPC의 스트리밍은 왜 가능한가요?</h3>
+                            <p class="overview-card__desc">HTTP/2가 한 연결 안에서 독립된 스트림을 여럿 열고 각 스트림에 메시지를 이어서 실을 수 있기 때문입니다. 호출 하나가 스트림 하나에 대응해 메시지 여러 개를 주고받을 수 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">gRPC를 쓰기 좋은 곳과 어려운 곳은?</h3>
+                            <p class="overview-card__desc">서비스 사이의 내부 통신, 지연이 중요한 호출, 스트리밍이 필요한 곳에 좋습니다. 브라우저가 직접 호출하는 공개 API나 사람이 읽고 디버깅해야 하는 환경에서는 불편할 수 있습니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>마이크로서비스</strong> — 서비스 사이의 내부 호출에 gRPC를 쓰고, 외부에는 REST API를 제공하는 구성이 흔합니다. 스프링 부트에서도 gRPC 서버와 클라이언트를 만들 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>인프라 도구</strong> — etcd, 쿠버네티스의 컨테이너 런타임 인터페이스(CRI) 같은 인프라 구성요소가 gRPC로 통신합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>로드 밸런싱</strong> — gRPC는 긴 연결 하나에 호출을 여럿 싣기 때문에 연결 단위(L4) 분산만으로는 한 서버로 쏠릴 수 있어, 호출 단위로 분산하는 HTTP/2 인식 프록시나 클라이언트 측 분산을 씁니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>호환성 관리</strong> — .proto의 필드 번호를 바꾸지 않고, 쓰지 않는 필드는 번호를 예약(reserved)해 재사용을 막는 식으로 서버와 클라이언트의 버전을 따로 올립니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/http}">HTTP</a> — gRPC가 올라타는 HTTP의 구조를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/websocket}">WebSocket</a> — 양방향 통신을 구현하는 또 다른 방식을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/load-balancer}">로드 밸런서</a> — 긴 연결 위의 호출을 나누는 방법을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/https-tls}">HTTPS / TLS</a> — gRPC 연결을 암호화하는 TLS를 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>gRPC</strong> — <a href="https://grpc.io/docs/what-is-grpc/core-concepts/" target="_blank" rel="noopener">gRPC Core concepts</a>, <a href="https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md" target="_blank" rel="noopener">gRPC over HTTP2</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Protocol Buffers</strong> — <a href="https://protobuf.dev/programming-guides/encoding/" target="_blank" rel="noopener">Protocol Buffers Encoding</a>, <a href="https://protobuf.dev/programming-guides/proto3/" target="_blank" rel="noopener">Proto3 언어 가이드</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>표준</strong> — <a href="https://www.rfc-editor.org/rfc/rfc9113" target="_blank" rel="noopener">RFC 9113 HTTP/2</a></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/network/11-20/grpc-code :: code}"></th:block>
+            </div>
+
+            <!-- 탭 4: 퀴즈 -->
+            <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
+                <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+    <script th:src="@{/js/quiz.js}"></script>
+    <script th:src="@{/js/like.js}"></script>
+    <script th:src="@{/js/share.js}"></script>
+</body>
+</html>

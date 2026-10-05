@@ -1,0 +1,97 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Protocol Buffers — .proto로 서비스와 메시지 정의</p>
+            <div class="code-block">
+<pre>syntax = <span class="st">"proto3"</span>;
+package demo;
+
+service Chat {
+  <span class="cm">// 단항: 요청 1개, 응답 1개</span>
+  rpc GetUser (UserRequest) returns (User);
+  <span class="cm">// 서버 스트리밍: 요청 1개, 응답 여러 개</span>
+  rpc WatchPrice (PriceRequest) returns (stream Price);
+  <span class="cm">// 클라이언트 스트리밍: 요청 여러 개, 응답 1개</span>
+  rpc Upload (stream Chunk) returns (UploadResult);
+  <span class="cm">// 양방향 스트리밍</span>
+  rpc Talk (stream Msg) returns (stream Msg);
+}
+
+message User {
+  int32 id = <span class="num">1</span>;
+  string name = <span class="num">2</span>;
+}</pre>
+            </div>
+            <p class="code-desc">
+                .proto 파일은 서비스(service)의 호출 목록과 주고받을 메시지(message)의 구조를 언어와 무관하게 정의합니다. rpc 줄에서 stream 키워드가 요청 쪽에 있는지, 응답 쪽에 있는지에 따라 네 가지 호출 방식이 정해집니다.
+                메시지의 각 필드에는 이름과 함께 번호(= 1, = 2)가 붙는데, 이 번호가 실제 전송 데이터에서 필드 이름을 대신합니다. 한 번 쓴 번호는 바꾸지 않는 것이 호환성을 지키는 규칙입니다.
+                protoc 컴파일러가 이 파일에서 각 언어의 클라이언트 스텁과 서버 뼈대 코드를 생성하므로, 클라이언트는 원격 호출을 일반 함수 호출처럼 쓸 수 있습니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — grpcio 서버와 클라이언트 (단항 호출)</p>
+            <div class="code-block">
+<pre><span class="cm"># server.py</span>
+<span class="kw">from</span> concurrent <span class="kw">import</span> futures
+<span class="kw">import</span> grpc
+<span class="kw">import</span> helloworld_pb2, helloworld_pb2_grpc
+
+<span class="kw">class</span> <span class="fn">Greeter</span>(helloworld_pb2_grpc.GreeterServicer):
+    <span class="kw">def</span> <span class="fn">SayHello</span>(self, request, context):
+        <span class="kw">return</span> helloworld_pb2.<span class="fn">HelloReply</span>(message=<span class="st">"Hello, "</span> + request.name)
+
+server = grpc.<span class="fn">server</span>(futures.<span class="fn">ThreadPoolExecutor</span>(max_workers=<span class="num">10</span>))
+helloworld_pb2_grpc.<span class="fn">add_GreeterServicer_to_server</span>(<span class="fn">Greeter</span>(), server)
+server.<span class="fn">add_insecure_port</span>(<span class="st">"localhost:50051"</span>)
+server.<span class="fn">start</span>()
+server.<span class="fn">wait_for_termination</span>()
+
+<span class="cm"># client.py</span>
+<span class="kw">with</span> grpc.<span class="fn">insecure_channel</span>(<span class="st">"localhost:50051"</span>) <span class="kw">as</span> channel:
+    stub = helloworld_pb2_grpc.<span class="fn">GreeterStub</span>(channel)
+    reply = stub.<span class="fn">SayHello</span>(helloworld_pb2.<span class="fn">HelloRequest</span>(name=<span class="st">"kim"</span>))
+    <span class="fn">print</span>(reply.message)             <span class="cm"># Hello, kim</span></pre>
+            </div>
+            <p class="code-desc">
+                서버는 .proto에서 생성된 GreeterServicer를 상속해 SayHello 메서드를 구현하고, grpc.server에 등록한 뒤 포트를 열어 요청을 기다립니다. 스레드 풀(ThreadPoolExecutor)이 동시에 들어온 호출을 나눠 처리합니다.
+                클라이언트는 채널(channel)로 서버에 연결하고, 생성된 스텁(GreeterStub)의 SayHello를 일반 함수처럼 호출합니다. 호출 한 번이 단항 RPC 하나이며, 직렬화와 HTTP/2 전송은 gRPC 라이브러리가 맡습니다.
+                위 코드는 암호화 없는 insecure 채널을 쓰는 연습용 예시이고, 실제 서비스에서는 TLS를 적용한 채널과 호출 제한 시간(deadline)을 함께 설정합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — Protocol Buffers 바이트를 손으로 만들기</p>
+            <div class="code-block">
+<pre><span class="kw">import</span> json
+
+<span class="kw">def</span> <span class="fn">varint</span>(n):
+    out = <span class="fn">bytearray</span>()
+    <span class="kw">while</span> <span class="kw">True</span>:
+        b = n &amp; <span class="num">0x7F</span>
+        n &gt;&gt;= <span class="num">7</span>
+        <span class="kw">if</span> n:
+            out.<span class="fn">append</span>(b | <span class="num">0x80</span>)       <span class="cm"># 뒤에 바이트가 더 있음</span>
+        <span class="kw">else</span>:
+            out.<span class="fn">append</span>(b)
+            <span class="kw">return</span> <span class="fn">bytes</span>(out)
+
+<span class="kw">def</span> <span class="fn">encode_user</span>(uid, name):
+    data = name.<span class="fn">encode</span>()
+    <span class="kw">return</span> (<span class="fn">bytes</span>(&#91;(<span class="num">1</span> &lt;&lt; <span class="num">3</span>) | <span class="num">0</span>&#93;) + <span class="fn">varint</span>(uid)      <span class="cm"># 필드 1: varint</span>
+            + <span class="fn">bytes</span>(&#91;(<span class="num">2</span> &lt;&lt; <span class="num">3</span>) | <span class="num">2</span>&#93;) + <span class="fn">varint</span>(<span class="fn">len</span>(data)) + data)   <span class="cm"># 필드 2: 길이 + 문자열</span>
+
+msg = <span class="fn">encode_user</span>(<span class="num">150</span>, <span class="st">"kim"</span>)
+<span class="fn">print</span>(msg.<span class="fn">hex</span>(<span class="st">" "</span>), <span class="fn">len</span>(msg))      <span class="cm"># 08 96 01 12 03 6b 69 6d 8</span>
+<span class="fn">print</span>(<span class="fn">len</span>(json.<span class="fn">dumps</span>({<span class="st">"id"</span>: <span class="num">150</span>, <span class="st">"name"</span>: <span class="st">"kim"</span>}, separators=(<span class="st">","</span>, <span class="st">":"</span>))))   <span class="cm"># 23</span></pre>
+            </div>
+            <p class="code-desc">
+                Protocol Buffers의 각 필드는 태그, 값 순서로 직렬화됩니다. 태그는 (필드 번호 &lt;&lt; 3) | 와이어 타입이고, 정수는 7비트씩 끊어 쓰는 가변 길이 정수(varint)로 150이 0x96 0x01 두 바이트가 됩니다. 문자열은 와이어 타입 2(길이 접두)로 길이 뒤에 바이트가 따라옵니다.
+                결과 08 96 01 12 03 6b 69 6d는 8바이트로, 같은 정보를 담은 JSON 23바이트보다 작습니다. 시각화의 직렬화 크기 탭이 보여 주는 값과 같습니다.
+                실제로는 protoc가 생성한 코드가 이 일을 대신하고, 음수나 큰 수, 중첩 메시지 같은 규칙이 더 있으므로 이 코드는 원리만 보이는 최소 예시입니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
