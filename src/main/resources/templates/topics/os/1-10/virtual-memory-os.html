@@ -103,7 +103,7 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">Optimal (OPT)</h3>
-                            <p class="overview-card__desc">앞으로 가장 오랫동안 사용되지 않을 페이지를 교체합니다. 미래를 알아야 하므로 실제 구현 불가능하지만 다른 알고리즘 성능 비교의 기준(Upper Bound)이 됩니다.</p>
+                            <p class="overview-card__desc">앞으로 가장 오랫동안 사용되지 않을 페이지를 교체합니다. 미래를 알아야 하므로 실제 구현 불가능하지만 다른 알고리즘 성능 비교의 기준(가장 적은 폴트를 내는 이상적인 알고리즘)이 됩니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
@@ -120,22 +120,155 @@
                     <div class="overview-points">
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>Belady's Anomaly</strong> — FIFO에서 프레임 수를 늘렸는데 오히려 페이지 폴트가 증가하는 현상입니다. LRU·OPT는 이 현상이 없어 Stack Algorithm이라 불립니다.</span>
+                            <span><strong>Belady's Anomaly</strong> — FIFO에서 프레임 수를 늘렸는데 오히려 페이지 폴트가 증가하는 현상입니다. LRU·OPT는 이 현상이 없는 것으로 알려져 있으며 스택 알고리즘(Stack Algorithm)으로 분류됩니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>Copy-on-Write (CoW)</strong> — fork() 시 부모·자식이 같은 물리 페이지를 공유하다가 쓰기 발생 시점에만 복사합니다. 불필요한 복사를 줄여 fork() 성능을 크게 향상시킵니다.</span>
+                            <span><strong>Copy-on-Write (CoW)</strong> — fork() 시 부모·자식이 같은 물리 페이지를 공유하다가 쓰기 발생 시점에만 복사합니다. 불필요한 복사를 줄여 fork() 비용을 낮춥니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>페이지 폴트 처리 순서</strong> — ① 유효 비트 확인 → ② OS 트랩 → ③ 빈 프레임 확인 → ④ 교체 알고리즘 선택 → ⑤ 디스크 I/O → ⑥ 페이지 테이블 갱신 → ⑦ 프로세스 재개. 디스크 I/O가 포함되어 수 밀리초가 소요됩니다.</span>
+                            <span><strong>페이지 폴트 처리 순서</strong> — ① MMU가 유효 비트 확인 → ② OS 트랩 → ③ 빈 프레임 확인 → ④ (빈 프레임이 없으면) 교체 알고리즘 선택 → ⑤ 디스크 I/O → ⑥ 페이지 테이블 갱신 → ⑦ 프로세스 재개. 디스크 I/O가 포함되어 메모리 접근보다 훨씬 오래 걸립니다(HDD는 밀리초 단위).</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>Clock 알고리즘 (Second Chance)</strong> — FIFO의 변형으로 참조 비트(R)를 추가합니다. 교체 대상이 R=1이면 R을 0으로 바꾸고 기회를 한 번 더 줍니다. LRU의 근사 구현으로 Linux에서 사용합니다.</span>
+                            <span><strong>Clock 알고리즘 (Second Chance)</strong> — FIFO의 변형으로 참조 비트(R)를 추가합니다. 교체 대상이 R=1이면 R을 0으로 바꾸고 기회를 한 번 더 줍니다. LRU를 근사하는 구현입니다.</span>
                         </div>
                     </div>
 
+
+                    <h2 class="overview-heading">가상 메모리가 주는 것</h2>
+                    <p class="overview-lead">
+                        가상 메모리는 프로세스마다 크고 연속된 자신만의 주소 공간을 주고, 실제로 쓰는 페이지만 물리 메모리에 올리는 기법입니다. 덕분에 프로세스끼리 서로의 메모리를 볼 수 없고, 물리 메모리보다 큰 프로그램도 실행할 수 있으며, 같은 물리 페이지를 여러 프로세스가 공유할 수도 있습니다. 주소 변환의 기본은 <a th:href="@{/os/memory-management}">메모리 관리</a> 토픽에서 다룹니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Belady의 모순 예제</strong> — 참조 열이 1, 2, 3, 4, 1, 2, 5, 1, 2, 3, 4, 5일 때 FIFO는 프레임 3개에서 페이지 폴트가 9번, 프레임 4개에서 10번입니다. 프레임을 늘렸는데 폴트가 늘었습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>같은 열에서 알고리즘 비교</strong> — 프레임 3개 기준으로 FIFO 9번, LRU 10번, OPT 7번이고 프레임 4개에서는 FIFO 10번, LRU 8번, OPT 6번입니다. 이 열에서 LRU와 OPT는 프레임이 늘면 폴트가 줄어듭니다. 이 열에서는 3개일 때 LRU가 FIFO보다 나쁩니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>페이지 폴트가 평균 접근 시간에 미치는 영향(가정)</strong> — 메모리 접근 200ns, 폴트 처리 8ms(8,000,000ns)로 가정하면 평균 접근 시간은 (1 − p) × 200 + p × 8,000,000입니다. p가 1/1,000이면 199.8 + 8,000 = 약 8,200ns로 약 41배 느려집니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>성능 저하를 10% 이내로 막으려면</strong> — 같은 가정에서 평균 접근 시간을 220ns 이하로 두려면 p × (8,000,000 − 200) ≤ 20이라서 p는 약 0.0000025, 곧 접근 약 400,000번에 폴트 한 번 이하여야 합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>가상 메모리는 디스크를 메모리처럼 쓰는 기능이다</strong> — 디스크 스왑은 가상 메모리를 구현하는 수단 중 하나이고, 가상 메모리의 본질은 프로세스별 주소 공간의 추상화와 격리입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>페이지 폴트는 오류다</strong> — 요구 페이징에서는 정상 동작입니다. 리눅스는 디스크 I/O가 필요한 major fault와 필요 없는 minor fault를 구분하며 getrusage(2)가 두 횟수를 알려 줍니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>프레임을 늘리면 폴트는 항상 줄어든다</strong> — FIFO는 Belady의 모순으로 늘 수 있습니다. 위 예제가 그 사례입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>스왑을 쓰면 항상 문제다</strong> — 거의 쓰이지 않는 페이지를 내보내 메모리를 확보하는 것은 정상입니다. 문제는 자주 쓰는 페이지가 계속 오가는 스래싱입니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">가상 메모리가 왜 필요한가요?</h3>
+                            <p class="overview-card__desc">프로세스마다 독립된 주소 공간으로 보호와 격리를 주고, 물리 메모리보다 큰 프로그램을 실행하게 하며, 필요한 페이지만 올려 메모리를 효율적으로 씁니다. 프로그램이 물리 메모리 배치를 신경 쓰지 않아도 됩니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">페이지 폴트가 났을 때 어떤 일이 일어나나요?</h3>
+                            <p class="overview-card__desc">MMU가 유효하지 않은 항목을 발견해 운영체제로 트랩합니다. 운영체제가 접근이 유효한지 확인하고, 빈 프레임을 찾거나 교체 알고리즘으로 희생 페이지를 정한 뒤 디스크에서 페이지를 읽어 페이지 테이블을 고치고 명령을 다시 실행합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">스래싱은 무엇이고 어떻게 해결하나요?</h3>
+                            <p class="overview-card__desc">프로세스가 필요한 프레임을 얻지 못해 폴트와 교체만 반복하는 상태입니다. 워킹셋을 기준으로 프레임을 배분하고, 동시에 실행하는 프로세스 수를 줄이거나 메모리를 늘려 해결합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">LRU는 어떻게 구현하나요?</h3>
+                            <p class="overview-card__desc">정확한 LRU는 접근마다 순서를 갱신해야 해서 비용이 큽니다. 그래서 참조 비트를 쓰는 Clock 같은 근사 알고리즘을 씁니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>메모리 상태 보기</strong> — <code>/proc/meminfo</code>는 시스템 전체 메모리와 스왑 사용량을, <code>/proc/PID/status</code>의 <code>VmSize</code>와 <code>VmRSS</code>는 프로세스의 가상 크기와 실제 올라온 크기를 보여 줍니다(proc_meminfo(5), proc_pid_status(5) 매뉴얼).</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>스왑 성향 조절</strong> — 커널 문서는 <code>vm.swappiness</code>를 스왑 I/O와 파일시스템 페이징의 상대적 비용을 나타내는 값(0~200)으로 설명하며, 값에 따라 페이지 캐시와 스왑 대상 페이지에 가하는 회수 압박의 비중이 달라집니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>LRU 근사</strong> — 커널 문서는 페이지 회수를 개선하는 LRU 구현인 다세대(multi-gen) LRU 기능을 설명합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/memory-management}">메모리 관리</a> — 페이징과 주소 변환의 기본을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/process}">프로세스</a> — fork와 쓰기 시점 복사를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/disk-scheduling}">디스크 스케줄링</a> — 페이지 폴트가 일으키는 디스크 I/O를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/arch/virtual-memory}">가상 메모리(아키텍처)</a> — 하드웨어 쪽에서 본 가상 메모리를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/arch/cache-memory}">캐시 메모리</a> — 교체 정책이 캐시에서도 쓰이는 방식을 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>getrusage(2)</strong> — <a href="https://man7.org/linux/man-pages/man2/getrusage.2.html" target="_blank" rel="noopener">getrusage(2) — Linux manual page</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>proc_meminfo(5)</strong> — <a href="https://man7.org/linux/man-pages/man5/proc_meminfo.5.html" target="_blank" rel="noopener">proc_meminfo(5) — Linux manual page</a>, <a href="https://man7.org/linux/man-pages/man5/proc_pid_status.5.html" target="_blank" rel="noopener">proc_pid_status(5) — Linux manual page</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>vm sysctl</strong> — <a href="https://docs.kernel.org/admin-guide/sysctl/vm.html" target="_blank" rel="noopener">Documentation for /proc/sys/vm — The Linux Kernel documentation</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>다세대 LRU</strong> — <a href="https://docs.kernel.org/admin-guide/mm/multigen_lru.html" target="_blank" rel="noopener">Multi-Gen LRU — The Linux Kernel documentation</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>논문·교재</strong> — P. J. Denning, "The Working Set Model for Program Behavior", Communications of the ACM, 1968 / Silberschatz, Galvin, Gagne, "Operating System Concepts", 10th Edition, "Virtual Memory" 장</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
