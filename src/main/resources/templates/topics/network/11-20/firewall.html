@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">방화벽 패킷 필터링 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/network/11-20/firewall.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/network}" class="topic-breadcrumb__link">네트워크</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">방화벽 패킷 필터링</span>
+                </nav>
+
+                <span class="topic-hero__slug">network · 16</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">방화벽 패킷 필터링</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+                <button type="button" class="topic-like" th:classappend="${liked} ? ' topic-like--active' : ''" th:attr="data-topic-slug=${topic.slug}">
+                    <svg class="topic-like__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <span class="topic-like__count" th:text="${likeCount}">0</span>
+                </button>
+                <div class="topic-share">
+                    <button type="button" class="topic-share__btn topic-share__btn--copy" aria-label="링크 복사">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="topic-share__btn topic-share__btn--kakao" aria-label="카카오톡 공유">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                        </svg>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+                <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        서버를 인터넷에 연결하면 누구나 그 서버에 패킷을 보낼 수 있습니다. 그 가운데는 정상적인 사용자의 요청도 있지만, 열려 있는 모든 포트를 두드려 보는 스캔이나 공격 시도도 섞여 있습니다. <strong>방화벽(firewall)</strong>은 네트워크의 경계나 서버 앞에서 들어오고 나가는 트래픽을 규칙에 따라 허용하거나 차단하는 장치(또는 소프트웨어)입니다. 건물의 출입문에서 출입증을 확인하는 경비와 비슷합니다.
+                        가장 기본적인 방식인 <strong>패킷 필터링</strong>은 패킷 헤더의 출발지와 목적지 IP 주소, 포트 번호, 프로토콜 같은 값을 규칙과 비교해 통과 여부를 정합니다.
+                    </p>
+                    <p class="overview-lead">
+                        iptables나 네트워크 ACL처럼 규칙에 순서가 있는 방화벽은 위에서부터 차례로 비교해 처음 일치한 규칙을 적용하기 때문에 순서가 중요하고, 어느 규칙에도 일치하지 않는 패킷은 기본 정책이 정합니다. 또한 응답 패킷을 어떻게 통과시킬지에 따라 상태를 보지 않는 방식과 연결 상태를 추적하는 <strong>상태 기반(stateful)</strong> 방식으로 나뉩니다. 이 토픽에서는 규칙이 매칭되는 과정, 상태 추적이 응답을 처리하는 방식, 기본 거부와 기본 허용의 차이를 단계별로 봅니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">패킷 필터링</h3>
+                            <p class="overview-card__desc">패킷 헤더의 출발지 · 목적지 IP, 포트 번호, 프로토콜(TCP, UDP 등)을 규칙과 비교해 허용하거나 차단합니다. 패킷의 내용(페이로드)은 보지 않는 것이 기본입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">규칙과 매칭 순서</h3>
+                            <p class="overview-card__desc">iptables, nftables, 네트워크 ACL처럼 순서가 있는 규칙은 위에서부터 차례로 비교해 처음 일치한 규칙의 동작을 적용합니다(AWS 보안 그룹은 허용 규칙만 있어 순서가 없습니다). 그래서 구체적인 규칙을 위에, 넓은 규칙을 아래에 두는 순서가 결과를 바꿉니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">기본 정책</h3>
+                            <p class="overview-card__desc">어떤 규칙에도 일치하지 않는 패킷을 어떻게 할지 정하는 설정입니다. 기본 거부(default deny)는 허용한 것만 통과시키고, 기본 허용은 차단한 것만 막습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">상태 기반 방화벽</h3>
+                            <p class="overview-card__desc">연결 상태를 표로 추적해, 허용된 연결의 응답 패킷은 별도 규칙 없이 통과시킵니다. 표에 없는 패킷은 허용 규칙에 일치하지 않으면(보통 인바운드 기본 거부) 차단합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">인바운드와 아웃바운드</h3>
+                            <p class="overview-card__desc">밖에서 안으로 들어오는 방향이 인바운드, 안에서 밖으로 나가는 방향이 아웃바운드입니다. 보통 인바운드는 엄격하게, 아웃바운드는 비교적 느슨하게 정합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">애플리케이션 계층 방화벽</h3>
+                            <p class="overview-card__desc">헤더뿐 아니라 HTTP 요청 같은 응용 계층의 내용을 보고 판단하는 방화벽입니다. 웹 공격을 막는 웹 애플리케이션 방화벽(WAF)이 한 예입니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>헤더만 봐도 많이 막습니다</strong> — 어느 IP에서 어느 포트로 오는지만 따져도, 열어 둘 필요 없는 포트로 오는 접근을 걸러 낼 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>순서가 결과를 정합니다</strong> — 순서가 있는 규칙에서는 처음 일치한 규칙에서 판단이 끝나므로, 넓은 허용 규칙이 위에 있으면 아래의 차단 규칙이 소용없어집니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>응답은 상태가 돕습니다</strong> — 상태를 추적하면 "안에서 시작한 연결의 응답"을 자동으로 허용해 규칙이 단순해지고 안전해집니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>기본은 거부가 안전합니다</strong> — 필요한 것만 허용하면 빠뜨린 트래픽은 저절로 차단되고, 기본 허용은 차단 규칙 하나를 놓치면 바로 구멍이 됩니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "규칙 매칭" 탭에서 패킷이 규칙을 비교하는 과정을, "상태 추적" 탭에서 응답이 통과하는 이유를, "기본 정책" 탭에서 기본 거부와 기본 허용의 차이를 STEP으로 확인하세요.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">방화벽의 배경</h2>
+                    <p class="overview-lead">
+                        방화벽은 라우터 같은 장비에서 패킷을 걸러 내는 패킷 필터링으로 시작되었고, 이후 연결 상태를 추적하는 상태 기반 방식, 연결을 둘로 나눠 중계하며 내용을 검사하는 프록시 방식, 응용 계층까지 보는 방식이 등장했습니다. 개념과 설계 원칙은 NIST의 방화벽 가이드(SP 800-41)에 정리되어 있습니다. 오늘날에는 전용 장비뿐 아니라 운영체제 커널의 필터링 기능(리눅스의 netfilter 등), 클라우드의 보안 그룹처럼 소프트웨어로도 흔히 쓰입니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>시각화의 규칙</strong> — 허용 2개(출발지 10.0.0.0/8의 포트 22, 모든 출발지의 포트 443), 차단 1개(포트 23), 마지막에 기본 거부 1개로 규칙이 4개입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>패킷 5개의 결과</strong> — 내부 SSH(22)와 외부 HTTPS(443)는 허용, 외부 SSH, 텔넷(23), UDP 53은 차단됩니다. 5개 가운데 2개가 허용, 3개가 차단입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>포트의 범위</strong> — 포트 번호는 16비트로 0~65535입니다. 기본 허용에서는 이 중 막아 둔 포트를 뺀 나머지가 모두 통과하고, 기본 거부에서는 허용한 포트만 통과합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>응답 규칙의 차이</strong> — 상태 없는 필터에서는 아웃바운드로 쓰는 서비스마다 그 응답이 돌아올 포트 범위를 허용하는 인바운드 규칙이 따로 필요하지만, 상태 기반에서는 연결 표가 이를 대신합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>방화벽이 있으면 안전하다</strong> — 허용한 포트로 들어오는 공격(예: 웹 서버의 취약점 공격)은 헤더만 보는 방화벽이 막지 못합니다. 방화벽은 여러 방어 수단 가운데 하나입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>패킷 필터링은 패킷 내용까지 검사한다</strong> — 기본적인 패킷 필터링은 IP, 포트, 프로토콜 같은 헤더 정보만 봅니다. 내용을 보려면 응용 계층 방화벽이나 침입 방지 시스템이 필요합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>기본 허용이 편해서 낫다</strong> — 편하긴 하지만 규칙에서 빠뜨린 트래픽이 그대로 통과합니다. 보안에서는 필요한 것만 허용하는 기본 거부를 권장합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>방화벽은 경계에만 둔다</strong> — 네트워크 경계의 방화벽 외에 서버마다 호스트 방화벽을 두고 내부 구간도 나누는 구성이 흔합니다. 한 곳이 뚫려도 피해가 번지지 않게 합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">방화벽은 무엇이고 어떻게 동작하나요?</h3>
+                            <p class="overview-card__desc">네트워크 트래픽을 규칙에 따라 허용하거나 차단하는 장치입니다. 패킷 필터링 방화벽은 패킷 헤더의 IP 주소, 포트, 프로토콜을 규칙과 위에서부터 비교해 처음 일치한 규칙을 적용합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">상태 기반 방화벽은 무엇이 다른가요?</h3>
+                            <p class="overview-card__desc">연결 상태 표를 유지해, 허용된 연결에 대한 응답 패킷을 별도 규칙 없이 통과시킵니다. 상태를 보지 않는 필터보다 규칙을 단순하고 안전하게 만들 수 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">기본 정책은 어떻게 정하는 게 좋은가요?</h3>
+                            <p class="overview-card__desc">기본 거부(default deny)가 권장됩니다. 필요한 트래픽만 명시적으로 허용하면 규칙에서 빠뜨린 트래픽이 자동으로 차단되어, 실수가 구멍이 되지 않습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">방화벽과 NAT는 어떻게 다른가요?</h3>
+                            <p class="overview-card__desc">NAT는 주소를 바꾸는 기술이고 방화벽은 트래픽을 허용하거나 차단하는 정책 장치입니다. NAT 때문에 외부 접속이 막히는 효과가 있어도 접근 제어의 용도는 아닙니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>리눅스</strong> — 커널의 netfilter가 패킷을 걸러 내고, iptables나 nftables로 규칙을 설정합니다. ufw나 firewalld는 이를 쉽게 다루는 도구입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>클라우드</strong> — AWS의 보안 그룹은 상태 기반이고 네트워크 ACL은 상태를 추적하지 않는 방식이어서, 응답 트래픽에 대한 규칙이 필요한지가 다릅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>호스트 방화벽</strong> — 운영체제 자체에 방화벽이 있어 서버나 PC 단위로 열 포트를 정합니다. 윈도우는 기본으로 켜져 있고, 리눅스는 커널에 netfilter가 포함되어 있으며 켜져 있는지는 배포판과 설정에 따라 다릅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>웹 애플리케이션 방화벽</strong> — HTTP 요청의 내용을 검사해 SQL 삽입 같은 웹 공격을 막는 응용 계층 방화벽으로, 일반 패킷 필터링과 목적이 다릅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/nat}">NAT</a> — 연결 추적과 변환 표를 함께 쓰는 방식을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/tcp-ip}">TCP/IP</a> — 방화벽이 보는 IP 주소와 포트, 프로토콜을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/vpn}">VPN 터널링</a> — 방화벽과 함께 쓰는 접근 보호 방법을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/load-balancer}">로드 밸런서</a> — 서버 앞에 놓이는 또 다른 네트워크 장치를 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>가이드</strong> — <a href="https://csrc.nist.gov/pubs/sp/800/41/r1/final" target="_blank" rel="noopener">NIST SP 800-41 Rev. 1 Guidelines on Firewalls and Firewall Policy</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>리눅스</strong> — <a href="https://man7.org/linux/man-pages/man8/iptables.8.html" target="_blank" rel="noopener">iptables(8)</a>, <a href="https://man7.org/linux/man-pages/man8/iptables-extensions.8.html" target="_blank" rel="noopener">iptables-extensions(8)</a>, <a href="https://wiki.nftables.org/wiki-nftables/index.php/Main_Page" target="_blank" rel="noopener">nftables wiki</a>, <a href="https://www.netfilter.org/projects/nftables/index.html" target="_blank" rel="noopener">netfilter nftables</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>클라우드</strong> — <a href="https://docs.aws.amazon.com/vpc/latest/userguide/vpc-security-groups.html" target="_blank" rel="noopener">AWS 보안 그룹</a>, <a href="https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html" target="_blank" rel="noopener">AWS 네트워크 ACL</a></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/network/11-20/firewall-code :: code}"></th:block>
+            </div>
+
+            <!-- 탭 4: 퀴즈 -->
+            <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
+                <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+    <script th:src="@{/js/quiz.js}"></script>
+    <script th:src="@{/js/like.js}"></script>
+    <script th:src="@{/js/share.js}"></script>
+</body>
+</html>
