@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">컨텍스트 스위칭 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/os/11-20/context-switching.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/os}" class="topic-breadcrumb__link">운영체제</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">컨텍스트 스위칭</span>
+                </nav>
+
+                <span class="topic-hero__slug">os · 12</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">컨텍스트 스위칭</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+                <button type="button" class="topic-like" th:classappend="${liked} ? ' topic-like--active' : ''" th:attr="data-topic-slug=${topic.slug}">
+                    <svg class="topic-like__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <span class="topic-like__count" th:text="${likeCount}">0</span>
+                </button>
+                <div class="topic-share">
+                    <button type="button" class="topic-share__btn topic-share__btn--copy" aria-label="링크 복사">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="topic-share__btn topic-share__btn--kakao" aria-label="카카오톡 공유">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                        </svg>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+                <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        CPU 코어 하나는 한 순간에 하나의 실행 흐름(프로세스나 스레드)만 실행합니다. 그런데 컴퓨터에는 훨씬 많은 작업이 동시에 돌고 있는 것처럼 보입니다. 운영체제가 CPU를 작업들 사이에서 번갈아 넘겨 주기 때문입니다. 이렇게 CPU가 실행하던 작업에서 다른 작업으로 바뀌는 일을 <strong>컨텍스트 스위칭(context switching, 문맥 교환)</strong>이라고 부릅니다.
+                        작업이 나중에 멈춘 곳에서 이어서 실행되려면 그 작업의 실행 상태, 곧 프로그램 카운터와 레지스터 값 등을 어딘가에 저장해 두어야 합니다. 운영체제는 이 상태를 프로세스의 PCB(스레드는 보통 TCB라 부릅니다)에 저장하고, 다음에 실행할 작업의 상태를 복원합니다.
+                    </p>
+                    <p class="overview-lead">
+                        컨텍스트 스위칭은 멀티태스킹을 가능하게 하는 대신 비용이 듭니다. 전환하는 동안에는 사용자 작업이 실행되지 못하고, 전환 뒤에는 이전 작업 위주로 채워져 있던 캐시와 TLB가 새 작업에 맞지 않아 한동안 느려질 수 있습니다.
+                        이 토픽에서는 상태를 저장하고 복원하는 과정, 시간 조각 길이에 따라 전환 비용의 비율이 달라지는 모습, 프로세스 사이 전환과 스레드 사이 전환의 차이를 봅니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">컨텍스트</h3>
+                            <p class="overview-card__desc">작업을 나중에 이어서 실행하는 데 필요한 정보입니다. 프로그램 카운터, 스택 포인터를 포함한 CPU 레지스터 값과 프로세스 상태, 메모리 관리 정보 등이 PCB에 담깁니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">저장과 복원</h3>
+                            <p class="overview-card__desc">전환할 때 운영체제는 지금 실행하던 작업의 레지스터 값을 그 작업의 PCB에 저장하고, 다음에 실행할 작업의 PCB에서 값을 꺼내 CPU에 채웁니다. 그러면 CPU는 그 작업이 멈췄던 곳부터 이어서 실행합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">전환이 일어나는 때</h3>
+                            <p class="overview-card__desc">할당된 시간이 끝났을 때, 입출력 같은 이벤트를 기다리며 스스로 CPU를 내놓을 때, 더 높은 우선순위의 작업이 준비되었을 때 일어납니다. 입출력 대기로 스스로 내놓는 경우는 비선점 스케줄링에서도 일어나고, 시간 만료와 우선순위 선점은 선점 스케줄링에서만 일어납니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">직접 비용과 간접 비용</h3>
+                            <p class="overview-card__desc">직접 비용은 상태를 저장하고 복원하는 시간과 다음 작업을 고르는 스케줄러 시간입니다. 간접 비용은 전환 뒤 캐시와 TLB가 새 작업에 맞지 않아 생기는 성능 저하입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">주소 공간 전환</h3>
+                            <p class="overview-card__desc">다른 프로세스로 바꾸면 그 프로세스의 가상 주소 공간으로 바꿔야 해서 페이지 테이블 전환이 필요합니다. 같은 프로세스의 스레드는 주소 공간을 공유하므로 이 일이 없습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">자발적 전환과 비자발적 전환</h3>
+                            <p class="overview-card__desc">작업이 입출력 등 자원을 기다리며 CPU를 내놓은 전환이 자발적, 시간 조각이 끝나거나 더 높은 우선순위 작업에 밀려난 전환이 비자발적입니다. 리눅스는 이 둘의 횟수를 따로 세어 보여 줍니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>전환 자체는 일을 하지 않습니다</strong> — 저장과 복원, 스케줄링에 쓰는 시간은 사용자에게 유용한 계산을 하지 않는 시간입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>시간 조각은 응답성과 비용의 균형입니다</strong> — 짧으면 여러 작업이 빨리 번갈아 응답하지만 전환이 잦아 비용의 비율이 커지고, 길면 비용은 줄지만 다른 작업이 기다립니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>스레드 전환이 보통 더 가볍습니다</strong> — 같은 프로세스의 스레드끼리 바꾸면 주소 공간을 바꿀 필요가 없습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>스레드를 무작정 늘리면 전환만 늘어납니다</strong> — 코어보다 실행 가능한 스레드가 훨씬 많으면 전환이 잦아지고 실제 일하는 시간이 줄 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "저장과 복원" 탭에서 레지스터 값이 PCB로 저장되고 복원되는 과정을, "전환 비용" 탭에서 시간 조각에 따른 사용자 작업 시간의 비율을, "프로세스 vs 스레드" 탭에서 두 전환이 해야 하는 일의 차이를 STEP으로 확인하세요.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">컨텍스트 스위칭의 배경</h2>
+                    <p class="overview-lead">
+                        여러 프로그램을 동시에 올려 두고 CPU를 번갈아 쓰게 하는 다중 프로그래밍과 시분할 시스템은 한 CPU로 여러 작업을 진행하는 것처럼 보이게 합니다. 이를 가능하게 하는 기본 동작이 컨텍스트 스위칭입니다. 전환이 얼마나 빠른가는 하드웨어가 레지스터를 저장하고 복원하는 방식과 운영체제의 구현에 달려 있습니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>저장과 복원</strong> — 프로세스 A의 PC가 0x4010, B의 PC가 0x8200이라면 전환 뒤 CPU의 PC는 0x8200이 되어 B가 멈춘 곳부터 이어집니다. 값은 예시입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>전환 비용의 비율(가정값)</strong> — 전환 한 번에 1의 시간이 든다고 하고 시간 33 동안 시간 조각을 2로 하면 사용자 작업은 22/33(66.7%), 5로 하면 28/33(84.8%), 10으로 하면 30/33(90.9%)입니다. 조각이 짧을수록 전환 비율이 커집니다(마지막 조각은 남은 시간만큼만 실행합니다).</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>해야 할 일의 수</strong> — 이 토픽의 예에서 프로세스 전환은 항목 4개(상태 저장·복원, 커널 개입, 주소 공간 전환, TLB 처리), 같은 프로세스 안의 스레드 전환은 2개입니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>전환은 공짜다</strong> — 전환 중에는 사용자 작업이 실행되지 못하고, 이후 캐시와 TLB 효율도 떨어집니다. 잦은 전환은 처리량을 깎습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>시간 조각은 짧을수록 좋다</strong> — 응답은 빨라지지만 전환 횟수가 늘어 비용의 비율이 커집니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>스레드 전환은 비용이 없다</strong> — 주소 공간 전환이 없어 가벼울 뿐, 레지스터 저장과 복원, 스케줄링, 캐시 영향은 여전히 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>컨텍스트 스위칭은 멀티코어에서만 의미가 있다</strong> — 코어가 하나여도 여러 작업이 번갈아 실행되려면 필요합니다. 코어가 여러 개여도 코어보다 작업이 많으면 각 코어에서 계속 일어납니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">컨텍스트 스위칭이 무엇인가요?</h3>
+                            <p class="overview-card__desc">CPU가 실행하던 작업에서 다른 작업으로 바뀌는 일입니다. 실행하던 작업의 상태(PC, 레지스터 등)를 PCB에 저장하고 다음 작업의 상태를 복원해 이어서 실행합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">왜 오버헤드가 생기나요?</h3>
+                            <p class="overview-card__desc">전환 중에는 사용자 작업이 실행되지 못하고, 전환 뒤에는 캐시와 TLB의 내용이 새 작업에 맞지 않아 한동안 성능이 떨어지기 때문입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">프로세스 전환과 스레드 전환의 차이는?</h3>
+                            <p class="overview-card__desc">같은 프로세스의 스레드는 주소 공간을 공유해 페이지 테이블 전환과 그에 따른 TLB 처리가 필요 없어서 보통 더 가볍습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">컨텍스트 스위칭을 줄이려면?</h3>
+                            <p class="overview-card__desc">코어 수에 맞춰 스레드 수를 제한하고(스레드 풀), 불필요한 락 경합과 잦은 블로킹을 줄이며, 시간 조각을 지나치게 짧게 잡지 않는 방법이 있습니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>리눅스의 관찰</strong> — proc 파일 시스템의 /proc/PID/status는 voluntary_ctxt_switches와 nonvoluntary_ctxt_switches를 보여 주고, vmstat의 cs 열은 초당 컨텍스트 스위치 수를 보여 줍니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>주소 공간 식별자</strong> — 일부 CPU는 TLB 항목에 주소 공간 식별자를 붙여, 주소 공간이 바뀌어도 TLB를 통째로 비우지 않게 합니다. x86의 PCID와 Arm의 ASID가 그런 장치입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>사용자 수준 스레드</strong> — 코루틴이나 그린 스레드처럼 런타임이 사용자 공간에서 실행 흐름을 바꾸는 방식은 커널 개입 없이 전환해 비용이 더 작을 수 있습니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/process}">프로세스</a> — 상태가 저장되는 PCB와 프로세스 상태를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/thread}">스레드</a> — 주소 공간을 공유하는 실행 흐름이 어떻게 다른지 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/cpu-scheduling}">CPU 스케줄링</a> — 언제 어떤 작업으로 전환할지 정하는 방식을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/virtual-memory-os}">가상 메모리</a> — 주소 공간과 TLB가 무엇인지 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/system-call}">시스템 콜</a> — 사용자 모드와 커널 모드 사이의 전환을 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>교재</strong> — Silberschatz 외, "Operating System Concepts"의 프로세스 스케줄링과 컨텍스트 스위치 절, Tanenbaum, Bos, "Modern Operating Systems"</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>리눅스</strong> — <a href="https://man7.org/linux/man-pages/man5/proc_pid_status.5.html" target="_blank" rel="noopener">proc_pid_status(5)</a>, <a href="https://man7.org/linux/man-pages/man8/vmstat.8.html" target="_blank" rel="noopener">vmstat(8)</a>, <a href="https://man7.org/linux/man-pages/man2/getrusage.2.html" target="_blank" rel="noopener">getrusage(2)</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>파이썬</strong> — <a href="https://docs.python.org/3/library/resource.html" target="_blank" rel="noopener">resource 모듈</a></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/os/11-20/context-switching-code :: code}"></th:block>
+            </div>
+
+            <!-- 탭 4: 퀴즈 -->
+            <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
+                <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+    <script th:src="@{/js/quiz.js}"></script>
+    <script th:src="@{/js/like.js}"></script>
+    <script th:src="@{/js/share.js}"></script>
+</body>
+</html>
