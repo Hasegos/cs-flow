@@ -293,7 +293,10 @@
         else drawStore(padX, top, fullW, mob, step);
 
         if (!step) {
-            tx('아래 STEP을 눌러 빅 엔디언과 리틀 엔디언의 차이를 확인하세요.', W / 2, GH() - (mob ? 12 : 14), mob ? 11 : 12.5, P.muted + 'aa', 'center', false);
+            var hint = '아래 STEP으로 두 방식의 차이를 확인하세요.';
+            ctx.font = '500 ' + (mob ? 11 : 12.5) + 'px "JetBrains Mono",monospace';
+            var hs = (mob ? 11 : 12.5) * Math.min(1, (W - 16) / ctx.measureText(hint).width);
+            tx(hint, W / 2, GH() - (mob ? 12 : 14), hs, P.muted + 'aa', 'center', false);
         }
     }
 

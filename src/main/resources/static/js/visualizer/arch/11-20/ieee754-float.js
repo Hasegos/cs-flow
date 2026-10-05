@@ -278,7 +278,10 @@
         else drawFields(padX, top, fullW, mob, step);
 
         if (!step) {
-            tx('아래 STEP을 눌러 부동소수점이 어떻게 저장되는지 확인하세요.', W / 2, GH() - (mob ? 12 : 14), mob ? 11 : 12.5, P.muted + 'aa', 'center', false);
+            var hint = '아래 STEP을 눌러 부동소수점이 어떻게 저장되는지 확인하세요.';
+            ctx.font = '500 ' + (mob ? 11 : 12.5) + 'px "JetBrains Mono",monospace';
+            var hs = (mob ? 11 : 12.5) * Math.min(1, (W - 16) / ctx.measureText(hint).width);
+            tx(hint, W / 2, GH() - (mob ? 12 : 14), hs, P.muted + 'aa', 'center', false);
         }
     }
 

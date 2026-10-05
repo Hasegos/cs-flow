@@ -310,7 +310,10 @@
         else drawPages(padX, top, fullW, mob, step, !!(step && step.cmp));
 
         if (!step) {
-            tx('아래 STEP을 눌러 Copy-on-Write가 어떻게 동작하는지 확인하세요.', W / 2, GH() - (mob ? 12 : 14), mob ? 11 : 12.5, P.muted + 'aa', 'center', false);
+            var hint = '아래 STEP으로 COW 동작을 확인하세요.';
+            ctx.font = '500 ' + (mob ? 11 : 12.5) + 'px "JetBrains Mono",monospace';
+            var hs = (mob ? 11 : 12.5) * Math.min(1, (W - 16) / ctx.measureText(hint).width);
+            tx(hint, W / 2, GH() - (mob ? 12 : 14), hs, P.muted + 'aa', 'center', false);
         }
     }
 
