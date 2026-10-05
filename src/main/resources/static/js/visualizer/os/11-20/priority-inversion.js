@@ -215,6 +215,8 @@
         if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
     }
     function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
         ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
         ctx.fillStyle = color;
         ctx.textAlign = align || 'center';
@@ -243,19 +245,19 @@
                 var col = colOf[id];
                 if (running) {
                     rr(cx + 1, y, cw - 2, rh, 3, col + '55', col + 'ff', 1.4);
-                    if (e.owner === id) tx('락', cx + cw / 2, y + rh / 2, fs - 2, P.text + 'ee', 'center', true);
-                    if (e.eff[id] > PRIO[id]) tx('▲', cx + cw / 2, y + 7, fs - 3, P.yellow + 'ff', 'center', true);
+                    if (e.owner === id) tx('락', cx + cw / 2, y + rh / 2, fs - 0.5, P.text + 'ff', 'center', true);
+                    if (e.eff[id] > PRIO[id]) tx('▲', cx + cw / 2, y + 7, fs - 2, P.yellow + 'ff', 'center', true);
                 } else if (s === 'blocked') {
                     rr(cx + 1, y, cw - 2, rh, 3, P.red + '33', P.red + 'cc', 1.2);
                 } else if (s === 'ready') {
-                    rr(cx + 1, y, cw - 2, rh, 3, 'none', P.muted + '99', 1.1);
+                    rr(cx + 1, y, cw - 2, rh, 3, 'none', P.sub + 'bb', 1.3);
                 } else {
                     rr(cx + 1, y, cw - 2, rh, 3, 'none', P.muted + '22', 1);
                 }
             }
         });
         var ly = top + 8 + 3 * (rh + gap);
-        tx('락', x0, ly + 9, fs - 1.5, P.muted + 'ee', 'left', true);
+        tx('락', x0, ly + 9, fs - 0.5, P.muted + 'ee', 'left', true);
         for (var t2 = 0; t2 < TT; t2++) {
             var ce = t2 <= upTo ? sim.timeline[t2] : null;
             var cxx = x0 + lw + t2 * cw;
@@ -265,10 +267,10 @@
             } else {
                 rr(cxx + 1, ly, cw - 2, 18, 3, 'none', P.muted + '22', 1);
             }
-            tx(String(t2), cxx + cw / 2, ly + 32, fs - 3, P.muted + 'cc', 'center', false);
+            tx(String(t2), cxx + cw / 2, ly + 32, fs - 1.5, P.muted + 'cc', 'center', false);
         }
         var legY = ly + 52;
-        tx('채움 = 실행, 빨강 = 락 대기, 회색 테두리 = CPU 대기', x0, legY, fs - 1.5, P.muted + 'ee', 'left', false);
+        tx('채움 = 실행, 빨강 = 락 대기, 회색 테두리 = CPU 대기', x0, legY, fs - 0.5, P.muted + 'ee', 'left', false);
     }
 
     /* ===================== 모드: 비교 ===================== */
