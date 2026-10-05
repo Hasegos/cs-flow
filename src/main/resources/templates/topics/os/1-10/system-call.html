@@ -80,7 +80,7 @@
                 <div class="overview-section">
 
                     <p class="overview-lead">
-                        시스템 콜은 <strong>사용자 프로그램이 OS 커널의 서비스를 요청하는 유일한 공식 통로</strong>입니다.
+                        시스템 콜은 <strong>사용자 프로그램이 OS 커널의 서비스를 요청하는 표준 통로</strong>입니다.
                         프로세스는 파일 읽기·네트워크·프로세스 생성 등 하드웨어 접근이 필요한 모든 작업에서 반드시 시스템 콜을 통해 커널에 요청합니다.
                     </p>
 
@@ -88,12 +88,12 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">유저 모드 / 커널 모드</h3>
-                            <p class="overview-card__desc">CPU는 두 가지 특권 수준을 갖습니다. 유저 모드(Ring 3)는 제한된 명령만 실행하며 하드웨어에 직접 접근할 수 없습니다. 커널 모드(Ring 0)는 모든 명령과 하드웨어에 접근 가능합니다. 시스템 콜이 두 모드를 전환시킵니다.</p>
+                            <p class="overview-card__desc">CPU는 특권 수준을 나눕니다(여기서는 x86의 두 모드를 기준으로 합니다). 유저 모드(Ring 3)는 제한된 명령만 실행하며 하드웨어에 직접 접근할 수 없습니다. 커널 모드(Ring 0)는 모든 명령과 하드웨어에 접근 가능합니다. 시스템 콜이 두 모드를 전환시킵니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">트랩 (Trap)</h3>
-                            <p class="overview-card__desc">시스템 콜 호출 시 발생하는 소프트웨어 인터럽트입니다. x86에서는 int 0x80(구식) 또는 syscall 명령어를 사용합니다. 트랩이 발생하면 CPU가 커널 모드로 전환되고 미리 등록된 트랩 핸들러가 실행됩니다.</p>
+                            <p class="overview-card__desc">시스템 콜 호출 시 일어나는 커널 진입(트랩)입니다. x86에서는 int 0x80(32비트의 구식 방식) 또는 syscall 명령어를 사용합니다. 트랩이 발생하면 CPU가 커널 모드로 전환되고 미리 등록된 트랩 핸들러가 실행됩니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
@@ -103,39 +103,176 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">시스템 콜 종류</h3>
-                            <p class="overview-card__desc">파일 제어(open·read·write·close), 프로세스 제어(fork·exec·exit·wait), 메모리 관리(mmap·brk), 장치 제어(ioctl), 정보 유지(getpid·time), 통신(socket·send·recv)의 6가지로 분류됩니다.</p>
+                            <p class="overview-card__desc">교재에 따라 프로세스 제어, 파일 관리, 장치 관리, 정보 유지, 통신, 보호 같은 범주로 나눕니다. 대표 예는 파일(open·read·write·close), 프로세스(fork·exec·exit·wait), 메모리(mmap·brk), 장치(ioctl), 정보(getpid·time), 통신(socket·send·recv)입니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">C 라이브러리 래퍼</h3>
-                            <p class="overview-card__desc">프로그래머는 보통 시스템 콜을 직접 호출하지 않습니다. glibc의 printf()→write(), fopen()→open() 같이 표준 라이브러리가 시스템 콜을 래핑합니다. 이를 통해 이식성이 보장되고 에러 처리가 표준화됩니다.</p>
+                            <p class="overview-card__desc">프로그래머는 보통 시스템 콜을 직접 호출하지 않습니다. glibc의 printf()→write(), fopen()→open() 같이 표준 라이브러리가 시스템 콜을 래핑합니다. 이를 통해 이식성이 높아지고 에러 처리가 표준화됩니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">시스템 콜 오버헤드</h3>
-                            <p class="overview-card__desc">모드 전환에는 수백 나노초~수 마이크로초가 소요됩니다. 레지스터 저장·복원, TLB 플러시, 컨텍스트 전환 비용이 발생합니다. vDSO(virtual Dynamic Shared Object)는 gettimeofday() 같은 일부 시스템 콜을 모드 전환 없이 처리합니다.</p>
+                            <p class="overview-card__desc">모드 전환과 커널 진입·복귀에 비용이 들며, 크기는 CPU와 보안 완화 설정에 따라 다릅니다. 레지스터 저장·복원이 필요하고 설정에 따라 페이지 테이블 전환 비용이 더해집니다. vDSO(virtual Dynamic Shared Object)는 gettimeofday() 같은 일부 시스템 콜을 모드 전환 없이 처리합니다.</p>
                         </div>
                     </div>
 
                     <div class="overview-points">
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>syscall 명령어 (x86-64)</strong> — RAX에 시스템 콜 번호, RDI·RSI·RDX 등에 인수를 넣고 syscall을 실행합니다. 커널은 처리 후 RAX에 반환값을 저장하고 sysret으로 유저 모드로 복귀합니다.</span>
+                            <span><strong>syscall 명령어 (x86-64)</strong> — RAX에 시스템 콜 번호, RDI·RSI·RDX 등에 인수를 넣고 syscall을 실행합니다. 커널은 처리 후 RAX에 반환값을 저장하고 유저 모드로 복귀합니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>strace 도구</strong> — 프로세스의 모든 시스템 콜을 추적합니다. `strace ls` 실행 시 execve·openat·read·write 등 수십 개의 시스템 콜이 표시됩니다. 성능 분석과 디버깅에 유용합니다.</span>
+                            <span><strong>strace 도구</strong> — 프로세스의 모든 시스템 콜을 추적합니다. <code>strace ls</code> 실행 시 execve·openat·read·write 등 여러 시스템 콜이 표시됩니다. 성능 분석과 디버깅에 유용합니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>Spectre/Meltdown 이후</strong> — CPU 취약점 패치(KPTI)로 시스템 콜마다 페이지 테이블을 교체하게 되어 성능이 크게 저하됐습니다. 최신 CPU는 하드웨어 수준에서 이를 완화합니다.</span>
+                            <span><strong>Spectre/Meltdown 이후</strong> — Meltdown 완화책인 KPTI는 유저와 커널의 페이지 테이블을 분리해 커널 진입·복귀 비용을 늘릴 수 있고, 영향은 워크로드와 CPU에 따라 다릅니다. CPU가 Meltdown 영향권이 아니면 커널이 자동 모드에서 PTI를 켜지 않습니다(커널 소스 arch/x86/mm/pti.c 참고).</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>seccomp</strong> — 프로세스가 사용할 수 있는 시스템 콜을 필터링합니다. Docker·Chrome 샌드박스가 seccomp을 사용해 컨테이너/프로세스가 호출할 수 있는 시스템 콜을 제한합니다.</span>
+                            <span><strong>seccomp</strong> — 프로세스가 사용할 수 있는 시스템 콜을 필터링합니다. Docker 컨테이너는 기본 seccomp 프로필로 호출할 수 있는 시스템 콜이 일부 제한됩니다.</span>
                         </div>
                     </div>
 
+
+                    <h2 class="overview-heading">왜 시스템 콜이 있는가</h2>
+                    <p class="overview-lead">
+                        사용자 프로그램이 하드웨어나 다른 프로세스의 메모리를 마음대로 다루면 시스템 전체가 위험해집니다. 그래서 CPU는 권한이 다른 모드를 두고, 권한이 필요한 일은 커널에 요청하도록 합니다. 시스템 콜은 이 요청이 커널로 들어가는 정해진 입구이고, 리눅스는 시스템 콜 목록을 syscalls(2) 매뉴얼에 정리합니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>write 한 번의 레지스터</strong> — x86-64 리눅스에서 <code>write(1, buf, 3)</code>은 RAX에 1(write 번호), RDI에 1(표준 출력), RSI에 버퍼 주소, RDX에 3을 넣고 <code>syscall</code>을 실행합니다. 3바이트를 썼다면 RAX에 3이 돌아옵니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>시스템 콜 번호</strong> — 커널 소스의 x86-64 시스템 콜 표에서 read 0, write 1, open 2, close 3, fork 57, execve 59, exit 60, exit_group 231을 확인할 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>오류는 음수로 돌아온다</strong> — syscall(2)와 intro(2) 매뉴얼은 대부분의 시스템 콜이 실패하면 음수 오류 번호를 돌려주고, C 라이브러리 래퍼가 이를 errno에 넣고 -1을 돌려준다고 설명합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>printf는 시스템 콜이다</strong> — printf는 C 라이브러리 함수입니다. 출력을 stdout 버퍼에 모으고, 터미널이면 줄바꿈 때, 파일이나 파이프면 버퍼가 차거나 닫힐 때 내보내며 이때 보통 write를 호출합니다(strace로 확인할 수 있습니다).</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>모든 함수 호출이 커널로 들어간다</strong> — 대부분의 함수 호출은 유저 모드에서 끝납니다. 시스템 콜은 커널의 서비스가 필요할 때만 일어납니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>시스템 콜은 컨텍스트 스위치다</strong> — 시스템 콜은 같은 프로세스가 모드만 바꿔 커널에 들어가는 것이고, 다른 프로세스로 CPU가 넘어가는 컨텍스트 스위치와 다릅니다. 다만 시스템 콜 안에서 기다려야 하면 스케줄러가 다른 프로세스를 고를 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>malloc은 시스템 콜이다</strong> — malloc은 라이브러리 함수입니다. 작은 요청은 보통 이미 확보한 힙에서 처리하고, 힙을 늘려야 할 때 brk 계열을, glibc에서 큰 요청(기본 약 128KB 이상)은 mmap을 호출합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">시스템 콜이 호출되면 어떤 일이 일어나나요?</h3>
+                            <p class="overview-card__desc">프로그램이 번호와 인수를 레지스터에 넣고 syscall 같은 특수 명령을 실행하면 CPU가 커널 모드로 전환되어 커널의 진입점으로 갑니다. 커널이 번호로 처리 함수를 찾아 실행하고 결과를 레지스터에 담아 유저 모드로 돌아옵니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">유저 모드와 커널 모드를 왜 나누나요?</h3>
+                            <p class="overview-card__desc">프로그램의 오류나 악의적인 동작이 커널과 다른 프로세스를 망가뜨리지 못하게 하기 위해서입니다. 하드웨어 접근 같은 특권 명령은 커널 모드에서만 실행할 수 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">라이브러리 함수와 시스템 콜의 차이는 무엇인가요?</h3>
+                            <p class="overview-card__desc">라이브러리 함수는 유저 모드의 코드이고 그 안에서 필요하면 시스템 콜을 호출합니다. 예를 들어 fopen은 라이브러리 함수이고 내부에서 open이나 openat 시스템 콜을 부릅니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">시스템 콜 횟수를 줄이려면 어떻게 하나요?</h3>
+                            <p class="overview-card__desc">작은 읽기와 쓰기를 버퍼에 모아 한 번에 처리하고, vDSO가 제공하는 호출은 커널 진입 없이 처리하며, 여러 I/O를 한꺼번에 제출하는 io_uring 같은 인터페이스를 쓸 수 있습니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>strace</strong> — <code>strace -c 명령</code>은 시스템 콜별 횟수와 시간을 요약하고, <code>strace -e trace=openat 명령</code>은 특정 시스템 콜만 보여 줍니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>seccomp</strong> — seccomp(2) 매뉴얼은 프로세스가 호출할 수 있는 시스템 콜을 제한하는 기능이라고 설명하고, Docker 문서는 컨테이너에 기본 seccomp 프로필이 적용된다고 설명합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>vDSO</strong> — vdso(7) 매뉴얼은 일부 호출을 커널 진입 없이 사용자 공간에서 처리하는 메커니즘이라고 설명하며, x86-64에서는 clock_gettime, gettimeofday, time, getcpu가 대상입니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/process}">프로세스</a> — fork, exec, wait 시스템 콜의 흐름을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/file-system}">파일 시스템</a> — open과 read가 도달하는 파일 시스템을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/memory-management}">메모리 관리</a> — brk와 mmap이 주소 공간을 바꾸는 방식을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/thread}">스레드</a> — 스레드 생성이 시스템 콜로 이어지는 방식을 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>syscall(2)</strong> — <a href="https://man7.org/linux/man-pages/man2/syscall.2.html" target="_blank" rel="noopener">syscall(2) — Linux manual page</a>, <a href="https://man7.org/linux/man-pages/man2/intro.2.html" target="_blank" rel="noopener">intro(2) — Linux manual page</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>syscalls(2)</strong> — <a href="https://man7.org/linux/man-pages/man2/syscalls.2.html" target="_blank" rel="noopener">syscalls(2) — Linux manual page</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>vdso(7)</strong> — <a href="https://man7.org/linux/man-pages/man7/vdso.7.html" target="_blank" rel="noopener">vdso(7) — Linux manual page</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>strace(1)</strong> — <a href="https://man7.org/linux/man-pages/man1/strace.1.html" target="_blank" rel="noopener">strace(1) — Linux manual page</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>seccomp(2)</strong> — <a href="https://man7.org/linux/man-pages/man2/seccomp.2.html" target="_blank" rel="noopener">seccomp(2) — Linux manual page</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Docker seccomp</strong> — <a href="https://docs.docker.com/engine/security/seccomp/" target="_blank" rel="noopener">Seccomp security profiles for Docker — Docker Docs</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>x86-64 시스템 콜 표</strong> — <a href="https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/x86/entry/syscalls/syscall_64.tbl" target="_blank" rel="noopener">arch/x86/entry/syscalls/syscall_64.tbl — Linux kernel source</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>교재</strong> — Silberschatz, Galvin, Gagne, "Operating System Concepts", 10th Edition</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
