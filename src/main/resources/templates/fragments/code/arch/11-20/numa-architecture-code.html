@@ -1,0 +1,56 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">NUMA 구성 확인 — numactl과 numastat</p>
+            <div class="code-block">
+<pre><span class="cm"># 노드, 노드별 메모리, 노드 간 거리를 출력</span>
+numactl --hardware
+
+<span class="cm"># 출력 예(노드 2개): 자기 자신은 10, 다른 노드는 더 큰 값</span>
+<span class="cm"># node distances:</span>
+<span class="cm"># node   0   1</span>
+<span class="cm">#   0:  10  21</span>
+<span class="cm">#   1:  21  10</span>
+
+<span class="cm"># 노드별 메모리 사용 통계</span>
+numastat</pre>
+            </div>
+            <p class="code-desc">
+                <span class="st">numactl --hardware</span>는 시스템의 노드 수, 노드마다 붙은 메모리 크기, 노드 사이의 거리를 보여 줍니다. 거리 행렬에서 대각선(자기 자신)은 10이고 값이 클수록 멀다는 뜻이므로, 이 시각화의 로컬 10, 원격 21은 그런 출력의 예시 값입니다.
+                실제 값은 하드웨어마다 다르고 노드가 하나뿐인 시스템에서는 거리 행렬이 한 칸입니다.
+                <span class="st">numastat</span>은 노드별로 의도한 노드에서 할당된 횟수(numa_hit)와 다른 노드에서 할당된 횟수(numa_miss, other_node)를 보여 줍니다. 접근 횟수가 아니라 할당 횟수이므로, 메모리가 의도한 노드에 놓이고 있는지 가늠할 때 확인합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">스레드와 메모리를 같은 노드에 고정해 실행</p>
+            <div class="code-block">
+<pre><span class="cm"># 노드 0의 CPU에서만 실행하고, 메모리도 노드 0에서만 할당</span>
+numactl --cpunodebind=<span class="num">0</span> --membind=<span class="num">0</span> ./server
+
+<span class="cm"># 메모리를 모든 노드에 번갈아 할당(인터리브)</span>
+numactl --interleave=all ./server</pre>
+            </div>
+            <p class="code-desc">
+                첫 명령은 프로세스를 노드 0의 CPU에 묶고 메모리도 노드 0에서만 받게 해서 모든 접근을 로컬로 유지합니다. 다만 노드 0의 메모리가 부족하면 할당이 실패할 수 있어, 데이터가 그 노드에 들어가는 크기인지 확인해야 합니다.
+                둘째 명령은 페이지를 노드에 번갈아 배치해 한 노드에 접근이 몰리는 것을 막습니다. 접근의 일부는 원격이 되므로, 여러 노드가 같은 큰 데이터를 쓰는 서버에서 선택하는 방식입니다.
+                어느 쪽이 빠른지는 작업 패턴에 달려 있으므로 실제 워크로드로 측정해 정해야 합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">JVM에서 NUMA 인식 켜기</p>
+            <div class="code-block">
+<pre><span class="cm"># G1 가비지 컬렉터가 NUMA를 인식해 메모리를 할당하도록 함</span>
+java -XX:+UseNUMA -XX:+UseG1GC -jar app.jar</pre>
+            </div>
+            <p class="code-desc">
+                <span class="st">-XX:+UseNUMA</span>는 JVM이 힙을 NUMA 노드에 맞춰 할당하도록 하는 옵션이고, JEP 345가 G1에서 이를 지원하도록 한 변경입니다.
+                스레드가 객체를 만들 때 그 스레드가 실행되는 노드의 메모리에서 할당하려는 목적입니다. 노드가 하나뿐인 시스템에서는 이점이 없습니다(JEP는 NUMA 인식을 끈 경우와 성능이 같아야 한다고 명시합니다).
+                이 옵션이 이득인지는 애플리케이션의 메모리 접근 패턴과 하드웨어에 따라 다르므로 켜기 전후를 측정해 비교해야 합니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
