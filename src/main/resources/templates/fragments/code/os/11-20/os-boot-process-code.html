@@ -1,0 +1,65 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">리눅스 셸 — BIOS인지 UEFI인지 확인</p>
+            <div class="code-block">
+<pre><span class="cm"># UEFI로 부팅했으면 이 디렉터리가 있다</span>
+ls /sys/firmware/efi
+
+<span class="cm"># UEFI 부트 항목과 순서 보기 (NVRAM)</span>
+efibootmgr -v
+
+<span class="cm"># 디스크 · 파티션 · 파일 시스템 확인 (ESP는 보통 vfat)</span>
+lsblk -f
+
+<span class="cm"># 부팅 한 번 동안의 커널 메시지</span>
+dmesg | head -n <span class="num">30</span></pre>
+            </div>
+            <p class="code-desc">
+                리눅스는 UEFI로 부팅하면 /sys/firmware/efi 디렉터리를 만들어 주므로, 이 디렉터리가 있는지로 부팅 방식을 구분할 수 있습니다. efibootmgr는 NVRAM에 저장된 UEFI 부트 항목과 BootOrder를 보여 주는 도구입니다.
+                lsblk -f에서 ESP는 대개 FAT 계열(vfat) 파일 시스템으로 보이고, 이 파티션 안에 .efi 부트로더 파일이 있습니다.
+                dmesg는 커널이 부팅하면서 남긴 메시지를 보여 주어, 커널이 장치를 초기화하는 순서를 확인할 때 씁니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">GRUB — 부팅 항목 설정 (개념 예시)</p>
+            <div class="code-block">
+<pre><span class="kw">menuentry</span> <span class="st">'My Linux'</span> {
+    <span class="fn">search</span> --set=root --fs-uuid <span class="num">1234-ABCD</span>   <span class="cm"># 커널이 있는 파티션 찾기</span>
+    <span class="fn">linux</span>  /boot/vmlinuz root=/dev/sda2 ro quiet   <span class="cm"># 커널과 명령줄</span>
+    <span class="fn">initrd</span> /boot/initramfs.img                  <span class="cm"># initramfs</span>
+}</pre>
+            </div>
+            <p class="code-desc">
+                GRUB 설정의 menuentry 하나가 부팅 메뉴의 한 항목입니다. linux 줄은 메모리에 올릴 커널 이미지와 커널 명령줄(예: 루트 파일 시스템 위치 root=)을 정하고, initrd 줄은 함께 올릴 initramfs를 정합니다.
+                부트로더는 이 설정대로 커널과 initramfs를 메모리에 적재한 뒤 커널의 시작 위치로 제어를 넘깁니다.
+                파일 이름, 경로, UUID는 배포판과 설치에 따라 다르며, 위 코드는 구조를 보이는 최소 예시입니다. 실제 설정은 grub.cfg를 직접 고치기보다 배포판의 도구로 생성합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">리눅스 셸 — 커널 이후: PID 1과 부팅 시간</p>
+            <div class="code-block">
+<pre><span class="cm"># PID 1 프로세스의 이름 (대부분 systemd)</span>
+cat /proc/<span class="num">1</span>/comm
+
+<span class="cm"># 부팅에 걸린 시간을 단계별로 나눠 보기</span>
+systemd-analyze
+
+<span class="cm"># 서비스별로 오래 걸린 순서</span>
+systemd-analyze blame | head -n <span class="num">10</span>
+
+<span class="cm"># 커널이 받은 명령줄</span>
+cat /proc/cmdline</pre>
+            </div>
+            <p class="code-desc">
+                /proc/1/comm은 PID 1 프로세스의 이름을 보여 주며, systemd를 쓰는 배포판에서는 systemd가 출력됩니다. systemd-analyze는 커널, initrd, 사용자 공간(환경에 따라 펌웨어와 로더) 단계별 부팅 시간을 나누어 보여 줍니다.
+                systemd-analyze blame은 서비스를 시작하는 데 오래 걸린 순서대로 나열해, 부팅이 느린 원인을 찾을 때 쓰입니다.
+                /proc/cmdline은 부트로더가 커널에 전달한 명령줄을 보여 주어, 앞의 GRUB 항목의 linux 줄이 어떻게 반영됐는지 확인할 수 있습니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
