@@ -1,0 +1,62 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">리눅스 셸 — ARP 캐시 보기와 ARP 요청 보내기</p>
+            <div class="code-block">
+<pre><span class="cm"># 이웃(ARP) 캐시 보기</span>
+ip neigh show
+
+<span class="cm"># net-tools의 arp 명령으로 보기</span>
+arp -a
+
+<span class="cm"># 192.168.0.20의 MAC 주소를 ARP 요청으로 직접 확인 (root 권한)</span>
+sudo arping -I eth0 -c <span class="num">3</span> <span class="num">192.168.0.20</span></pre>
+            </div>
+            <p class="code-desc">
+                ip neigh show는 커널이 가진 이웃 캐시를 보여 주며, IPv4에서는 IP 주소에 대응하는 MAC 주소(lladdr)와 항목의 상태(REACHABLE, STALE 등)가 나옵니다. arp -a는 net-tools의 명령으로 같은 정보를 보여 줍니다.
+                arping은 지정한 인터페이스로 ARP 요청을 직접 보내고 응답한 장치의 MAC 주소와 응답 시간을 보여 줍니다. ping과 달리 IP 계층이 아니라 링크 계층에서 동작해, 방화벽이 ICMP를 막아도 같은 네트워크 안의 장치가 켜져 있는지 확인할 수 있습니다(ARP 응답까지 막는 설정이 없다면).
+                인터페이스 이름 eth0과 IP 주소는 환경에 맞게 바꿔야 하고, 위 옵션은 iputils의 arping 기준이며 다른 구현(Habets arping)은 인터페이스를 -i로 지정합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">tcpdump — ARP 요청과 응답 캡처</p>
+            <div class="code-block">
+<pre><span class="cm"># arp 패킷만 이더넷 헤더와 함께 출력 (root 권한)</span>
+sudo tcpdump -i eth0 -n -e arp
+
+<span class="cm"># 출력 예 (시각은 생략)</span>
+<span class="num">02:00:00:00:00:0a</span> &gt; ff:ff:ff:ff:ff:ff, ethertype ARP (<span class="num">0x0806</span>), length <span class="num">42</span>:
+    Request who-has <span class="num">192.168.0.20</span> tell <span class="num">192.168.0.10</span>, length <span class="num">28</span>
+<span class="num">02:00:00:00:00:0b</span> &gt; <span class="num">02:00:00:00:00:0a</span>, ethertype ARP (<span class="num">0x0806</span>), length <span class="num">42</span>:
+    Reply <span class="num">192.168.0.20</span> is-at <span class="num">02:00:00:00:00:0b</span>, length <span class="num">28</span></pre>
+            </div>
+            <p class="code-desc">
+                tcpdump의 arp 필터는 ARP 패킷만 잡고, -e 옵션은 이더넷 헤더(출발지 MAC, 목적지 MAC, 유형)를 함께 보여 줍니다. 위 출력은 시각화와 같은 값으로 쓴 예시입니다.
+                요청은 목적지 MAC이 ff:ff:ff:ff:ff:ff(브로드캐스트)이고 who-has 192.168.0.20 tell 192.168.0.10으로 표시됩니다. 응답은 요청한 장치의 MAC으로 직접 가고 is-at 뒤에 알아낸 MAC 주소가 나옵니다.
+                ARP 메시지 자체가 28바이트이고 이더넷 프레임은 그에 헤더가 붙은 크기(여기서는 42바이트로 표시)입니다. 실제 출력의 형식은 tcpdump 버전에 따라 조금 다를 수 있습니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python (scapy) — ARP 요청을 직접 만들기</p>
+            <div class="code-block">
+<pre><span class="kw">from</span> scapy.all <span class="kw">import</span> ARP, Ether, srp
+
+<span class="cm"># 브로드캐스트 프레임에 ARP 요청 실어 보내기 (root 권한)</span>
+pkt = <span class="fn">Ether</span>(dst=<span class="st">"ff:ff:ff:ff:ff:ff"</span>) / <span class="fn">ARP</span>(pdst=<span class="st">"192.168.0.20"</span>)
+ans, _ = <span class="fn">srp</span>(pkt, timeout=<span class="num">2</span>, verbose=<span class="kw">False</span>)
+
+<span class="kw">for</span> sent, recv <span class="kw">in</span> ans:
+    <span class="fn">print</span>(recv.psrc, recv.hwsrc)   <span class="cm"># 응답한 IP와 MAC</span></pre>
+            </div>
+            <p class="code-desc">
+                scapy는 패킷을 직접 만들어 보내는 파이썬 라이브러리로, 별도로 설치해야 합니다. Ether(dst=...)는 이더넷 헤더를 만들고 ARP(pdst=...)는 "이 IP의 MAC은?"이라는 ARP 요청을 만들며, / 연산자로 계층을 쌓습니다.
+                srp는 링크 계층 프레임을 보내고 응답을 받아 오는 함수이고, 응답의 psrc와 hwsrc가 각각 응답한 장치의 IP 주소와 MAC 주소입니다.
+                직접 만든 ARP는 자신이 속한 네트워크에서 자기가 관리하는 장치에만 써야 합니다. 허락 없이 다른 네트워크에 ARP를 보내거나 거짓 응답을 만드는 것은 ARP 스푸핑과 같은 공격이 될 수 있습니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
