@@ -1,0 +1,60 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Dockerfile — 스프링 부트 앱을 컨테이너 이미지로</p>
+            <div class="code-block">
+<pre><span class="kw">FROM</span> eclipse-temurin:21-jre
+<span class="kw">WORKDIR</span> /app
+<span class="kw">COPY</span> build/libs/app.jar app.jar
+<span class="kw">EXPOSE</span> 8080
+<span class="kw">ENTRYPOINT</span> [<span class="st">"java"</span>, <span class="st">"-jar"</span>, <span class="st">"app.jar"</span>]</pre>
+            </div>
+            <p class="code-desc">
+                파일을 바꾸는 명령(RUN, COPY 등)이 이미지의 층(레이어)을 만들고, EXPOSE나 ENTRYPOINT 같은 설정 명령은 메타데이터만 바꿉니다. FROM이 자바 실행 환경이 담긴 기반 이미지의 층을 가져오고, COPY가 앱 jar를 한 층으로 얹습니다.
+                기반 이미지에는 앱이 필요로 하는 사용자 공간의 파일과 라이브러리가 들어 있고, 게스트 운영체제 커널을 따로 담지 않습니다. 컨테이너는 실행할 때 호스트의 커널을 그대로 씁니다.
+                자주 바뀌는 앱 jar를 뒤쪽 층에 두면 기반 층은 캐시와 재사용이 되어 빌드와 내려받기가 빨라집니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">셸 — 호스트와 컨테이너의 커널 비교, 자원 제한</p>
+            <div class="code-block">
+<pre><span class="cm"># 리눅스 호스트에서 호스트와 컨테이너의 커널 버전이 같다</span>
+uname -r
+docker run --rm alpine uname -r
+
+<span class="cm"># 컨테이너에 메모리와 CPU 상한을 걸어 실행 (cgroups 이용)</span>
+docker run -d --name web --memory 512m --cpus 1 nginx
+
+<span class="cm"># 사용량 확인</span>
+docker stats --no-stream web</pre>
+            </div>
+            <p class="code-desc">
+                alpine 컨테이너 안에서 uname -r을 실행하면 호스트와 같은 커널 버전이 나옵니다. 컨테이너에는 자기 커널이 없고 호스트 커널을 쓰기 때문입니다.
+                VM이라면 게스트 안에서 uname -r이 게스트 운영체제의 커널 버전을 보여 주므로 호스트와 다를 수 있습니다. 윈도우나 맥의 Docker Desktop에서는 내부 리눅스 VM의 커널이 나옵니다.
+                --memory와 --cpus는 컨테이너가 쓸 수 있는 자원의 상한을 정하며, 리눅스에서는 cgroups 기능으로 구현됩니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">셸 — 이미지 레이어와 크기, 시작 시간 관찰</p>
+            <div class="code-block">
+<pre><span class="cm"># 이미지가 어떤 레이어로 이뤄졌는지</span>
+docker history nginx
+
+<span class="cm"># 내려받은 이미지 목록과 크기</span>
+docker image ls
+
+<span class="cm"># 컨테이너 하나를 띄우고 끝날 때까지 걸리는 시간</span>
+time docker run --rm alpine echo hello</pre>
+            </div>
+            <p class="code-desc">
+                docker history는 이미지를 이룬 레이어를 순서대로 보여 줍니다. 같은 기반 이미지를 쓰는 이미지끼리는 공통 레이어를 한 번만 저장하므로 저장 공간이 절약됩니다.
+                time으로 컨테이너 하나를 띄워 끝낼 때까지 재 보면 게스트 운영체제를 부팅하는 VM에 비해 시작이 빠르다는 것을 체감할 수 있습니다. 이미지를 처음 내려받을 때는 그 시간이 더해지므로 두 번째 실행부터 비교하는 것이 좋습니다.
+                측정값은 하드웨어와 이미지, 도커 설정에 따라 크게 달라지므로 절대 수치보다 상대적인 차이를 봅니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>

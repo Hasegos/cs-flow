@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">VM vs 컨테이너 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/os/11-20/containerization.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/os}" class="topic-breadcrumb__link">운영체제</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">VM vs 컨테이너</span>
+                </nav>
+
+                <span class="topic-hero__slug">os · 15</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">VM vs 컨테이너</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+                <button type="button" class="topic-like" th:classappend="${liked} ? ' topic-like--active' : ''" th:attr="data-topic-slug=${topic.slug}">
+                    <svg class="topic-like__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <span class="topic-like__count" th:text="${likeCount}">0</span>
+                </button>
+                <div class="topic-share">
+                    <button type="button" class="topic-share__btn topic-share__btn--copy" aria-label="링크 복사">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="topic-share__btn topic-share__btn--kakao" aria-label="카카오톡 공유">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                        </svg>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+                <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        서버 한 대에서 여러 애플리케이션을 서로 방해하지 않게 돌리려면 격리가 필요합니다. 오랫동안 쓰인 방법이 <strong>가상 머신(VM)</strong>입니다. 하이퍼바이저가 하드웨어를 가상화해 가상의 컴퓨터를 여러 대 만들고, 각 가상 컴퓨터에 게스트 운영체제를 따로 설치해 실행합니다. 격리는 강하지만 앱마다 운영체제 한 벌을 통째로 띄우는 비용이 듭니다.
+                        <strong>컨테이너</strong>는 다른 접근입니다. 운영체제를 새로 띄우지 않고, 호스트의 커널을 공유한 채 프로세스를 격리해 마치 독립된 환경처럼 보이게 합니다. 게스트 운영체제가 없어서 가볍고 빠르게 시작합니다.
+                    </p>
+                    <p class="overview-lead">
+                        컨테이너는 앱과 그 실행에 필요한 라이브러리, 설정을 이미지로 묶어 어디서나 같은 환경으로 실행하게 해 주어 배포와 확장에 널리 쓰입니다. 대신 호스트 커널을 공유하므로 격리 경계가 VM보다 얇고, 호스트와 같은 종류의 커널 위에서만 돌 수 있습니다.
+                        이 토픽에서는 두 방식이 쌓이는 층의 차이, 자원과 시작 시간의 차이, 격리 경계의 차이를 봅니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">가상 머신</h3>
+                            <p class="overview-card__desc">하이퍼바이저가 만든 가상 하드웨어 위에서 게스트 운영체제가 통째로 실행되는 방식입니다. 게스트마다 자기 커널을 가지므로 호스트와 다른 종류의 운영체제도 실행할 수 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">하이퍼바이저</h3>
+                            <p class="overview-card__desc">하드웨어 자원을 여러 가상 머신에 나누어 주고 서로 격리하는 소프트웨어입니다. VMware ESXi, KVM, Hyper-V, Xen 등이 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">컨테이너</h3>
+                            <p class="overview-card__desc">호스트 운영체제의 커널을 공유하면서 프로세스를 격리해 실행하는 방식입니다. 컨테이너 안의 프로세스는 호스트에서 보면 일반 프로세스이며, 격리는 커널의 기능으로 만들어집니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">컨테이너 이미지</h3>
+                            <p class="overview-card__desc">앱과 실행에 필요한 파일을 묶은 읽기 전용 템플릿입니다. 여러 층(레이어)으로 이뤄져 공통 층을 컨테이너끼리 재사용하고, 이미지로부터 컨테이너를 실행합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">커널 공유의 의미</h3>
+                            <p class="overview-card__desc">컨테이너는 게스트 운영체제를 부팅하지 않으므로 시작이 빠르고 메모리와 디스크를 적게 씁니다. 반대로 호스트 커널이 곧 모든 컨테이너의 커널이라 호스트와 다른 종류의 커널은 쓸 수 없습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">격리의 강도</h3>
+                            <p class="overview-card__desc">VM은 게스트 커널과 하이퍼바이저가 경계를 이루고, 컨테이너는 공유하는 커널의 격리 기능이 경계입니다. 커널의 취약점은 컨테이너에서 더 넓은 영향을 줄 수 있어 보안이 중요하면 둘을 함께 쓰기도 합니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>VM은 컴퓨터를, 컨테이너는 프로세스를 격리합니다</strong> — VM은 하드웨어 수준에서 컴퓨터 전체를 가상화하고, 컨테이너는 운영체제 수준에서 프로세스의 시야와 자원을 격리합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>컨테이너가 가벼운 이유는 게스트 OS가 없기 때문입니다</strong> — 운영체제를 부팅하고 상주시키는 비용이 사라져 시작이 빠르고 같은 서버에 더 많이 올릴 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>격리 경계가 다릅니다</strong> — 컨테이너는 호스트 커널을 공유해 커널 취약점의 영향이 여러 컨테이너에 미칠 수 있고, VM은 게스트마다 커널이 분리됩니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>어느 쪽이 낫다기보다 용도가 다릅니다</strong> — 다른 운영체제나 강한 격리가 필요하면 VM, 같은 커널 위에서 빠르게 배포하고 확장하려면 컨테이너가 알맞습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "구조 비교" 탭에서 두 방식이 쌓이는 층과 커널 수를, "자원과 시작" 탭에서 자원 차이를, "격리의 경계" 탭에서 커널 취약점이 미치는 범위를 STEP으로 확인하세요.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">가상화와 컨테이너의 배경</h2>
+                    <p class="overview-lead">
+                        서버 가상화는 한 대의 물리 서버를 여러 대처럼 쓰려는 필요에서 널리 퍼졌고, 하이퍼바이저가 그 기반입니다. 이후 리눅스 커널에 격리 기능(네임스페이스)과 자원 제한 기능(cgroups)이 갖춰지면서 프로세스 수준의 격리가 가능해졌고, 이를 쉽게 쓰게 해 주는 도구(예: Docker)가 나오면서 컨테이너가 널리 쓰이게 되었습니다. 컨테이너 이미지와 런타임의 형식은 OCI(Open Container Initiative) 표준으로 정리되어 있습니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>커널 수</strong> — 앱 3개를 VM으로 격리하면 게스트 커널이 3개 더 생기고, 컨테이너로 격리하면 호스트 커널 하나를 공유해 추가 커널이 0개입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>자원 비교(가정값)</strong> — 게스트 운영체제를 1,024MB, 앱을 100MB로 가정하면 앱 3개는 VM에서 3 × 1,124 = 3,372MB, 컨테이너에서 3 × 100 = 300MB입니다. 실제 크기는 환경마다 다릅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>시작 시간(상대 단위, 가정)</strong> — VM은 게스트 운영체제를 부팅해야 해서 30, 컨테이너는 프로세스를 시작하면 되어 1로 가정해 차이를 보입니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>컨테이너는 작은 VM이다</strong> — 컨테이너에는 게스트 운영체제가 없습니다. 호스트 커널 위에서 격리된 프로세스로 실행됩니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>컨테이너는 어떤 운영체제 이미지든 실행한다</strong> — 호스트 커널을 쓰므로 리눅스 컨테이너는 리눅스 커널 위에서 돌아갑니다. 윈도우나 맥에서 리눅스 컨테이너를 쓰는 도구는 내부에 리눅스 VM을 둡니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>컨테이너는 VM보다 항상 안전하다 또는 위험하다</strong> — 격리 경계가 다를 뿐입니다. 설정과 권한, 커널 업데이트에 따라 안전성이 달라지고, 강한 격리가 필요하면 둘을 함께 쓰는 구성도 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>컨테이너를 쓰면 성능 손실이 없다</strong> — 격리 기능의 비용은 작지만 공유 자원 경쟁과 자원 제한 설정에 따라 성능이 달라질 수 있습니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">VM과 컨테이너의 차이는?</h3>
+                            <p class="overview-card__desc">VM은 하이퍼바이저 위에 게스트 운영체제를 통째로 실행하고, 컨테이너는 호스트 커널을 공유하며 프로세스 단위로 격리합니다. 컨테이너가 가볍고 빠르지만 격리 경계는 더 얇습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">컨테이너가 가벼운 이유는?</h3>
+                            <p class="overview-card__desc">각 컨테이너가 게스트 운영체제를 따로 띄우지 않고 호스트 커널을 공유하기 때문입니다. 운영체제 부팅과 상주 비용이 없습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">컨테이너의 격리가 약하다고 하는 이유는?</h3>
+                            <p class="overview-card__desc">모든 컨테이너가 호스트 커널을 공유해서 커널 취약점이 악용되면 여러 컨테이너와 호스트에 영향을 줄 수 있기 때문입니다. VM은 게스트마다 커널이 분리되어 경계가 더 강합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">컨테이너 이미지는 왜 레이어로 이루어졌나요?</h3>
+                            <p class="overview-card__desc">변경된 부분만 새 레이어로 쌓고 공통 레이어는 이미지와 컨테이너가 재사용해, 저장 공간과 내려받는 시간을 줄이고 빌드를 캐시할 수 있게 하려는 설계입니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Docker</strong> — Docker 문서는 컨테이너를 격리된 프로세스로 설명하고 모든 컨테이너가 같은 커널을 공유한다고 설명합니다. 윈도우와 맥의 Docker Desktop은 리눅스 컨테이너를 위해 내부에서 리눅스 VM을 사용합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>마이크로 VM</strong> — AWS의 Firecracker는 컨테이너처럼 빠르게 시작하면서 VM의 격리를 얻으려는 마이크로 VM이며, AWS Lambda와 Fargate에 쓰인다고 공개되어 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>윈도우 컨테이너</strong> — 마이크로소프트 문서는 윈도우 컨테이너에 호스트 커널을 공유하는 프로세스 격리와, 컨테이너마다 가벼운 VM을 쓰는 Hyper-V 격리를 구분합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>오케스트레이션</strong> — 쿠버네티스는 여러 서버에 걸쳐 컨테이너를 배치하고 관리합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/process}">프로세스</a> — 컨테이너가 격리하는 대상인 프로세스가 무엇인지 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/virtual-memory-os}">가상 메모리</a> — 하드웨어와 운영체제가 주소 공간을 격리하는 기본 원리를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/system-call}">시스템 콜</a> — 컨테이너 안의 프로세스도 호스트 커널의 시스템 콜을 호출함을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/memory-management}">메모리 관리</a> — 컨테이너의 메모리 제한이 걸리는 바탕을 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Docker</strong> — <a href="https://docs.docker.com/get-started/docker-concepts/the-basics/what-is-a-container/" target="_blank" rel="noopener">What is a container?</a>, <a href="https://docs.docker.com/desktop/features/vmm/" target="_blank" rel="noopener">Docker Desktop virtual machine manager</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>표준·프로젝트</strong> — <a href="https://opencontainers.org/about/overview/" target="_blank" rel="noopener">Open Container Initiative</a>, <a href="https://firecracker-microvm.github.io/" target="_blank" rel="noopener">Firecracker</a>, <a href="https://aws.amazon.com/blogs/opensource/firecracker-open-source-secure-fast-microvm-serverless/" target="_blank" rel="noopener">AWS: Firecracker 소개</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>마이크로소프트</strong> — <a href="https://learn.microsoft.com/en-us/virtualization/windowscontainers/manage-containers/hyperv-container" target="_blank" rel="noopener">Hyper-V isolation for containers</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>교재</strong> — Silberschatz 외, "Operating System Concepts"의 가상화 장</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/os/11-20/containerization-code :: code}"></th:block>
+            </div>
+
+            <!-- 탭 4: 퀴즈 -->
+            <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
+                <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+    <script th:src="@{/js/quiz.js}"></script>
+    <script th:src="@{/js/like.js}"></script>
+    <script th:src="@{/js/share.js}"></script>
+</body>
+</html>
