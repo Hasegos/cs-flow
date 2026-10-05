@@ -1,0 +1,97 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — AVL 트리 삽입과 회전</p>
+            <div class="code-block">
+<pre><span class="kw">class</span> <span class="fn">Node</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, key):
+        self.key, self.left, self.right, self.h = key, <span class="kw">None</span>, <span class="kw">None</span>, <span class="num">1</span>
+
+<span class="kw">def</span> <span class="fn">h</span>(n): <span class="kw">return</span> n.h <span class="kw">if</span> n <span class="kw">else</span> <span class="num">0</span>
+<span class="kw">def</span> <span class="fn">update</span>(n): n.h = <span class="num">1</span> + <span class="fn">max</span>(<span class="fn">h</span>(n.left), <span class="fn">h</span>(n.right))
+<span class="kw">def</span> <span class="fn">balance</span>(n): <span class="kw">return</span> <span class="fn">h</span>(n.left) - <span class="fn">h</span>(n.right)    <span class="cm"># 균형 인수</span>
+
+<span class="kw">def</span> <span class="fn">rotate_right</span>(z):
+    y = z.left
+    z.left, y.right = y.right, z
+    <span class="fn">update</span>(z); <span class="fn">update</span>(y)
+    <span class="kw">return</span> y                          <span class="cm"># 서브트리의 새 루트</span>
+
+<span class="kw">def</span> <span class="fn">rotate_left</span>(z):
+    y = z.right
+    z.right, y.left = y.left, z
+    <span class="fn">update</span>(z); <span class="fn">update</span>(y)
+    <span class="kw">return</span> y
+
+<span class="kw">def</span> <span class="fn">insert</span>(n, key):
+    <span class="kw">if</span> <span class="kw">not</span> n: <span class="kw">return</span> <span class="fn">Node</span>(key)
+    <span class="kw">if</span> key &lt; n.key: n.left = <span class="fn">insert</span>(n.left, key)
+    <span class="kw">else</span>: n.right = <span class="fn">insert</span>(n.right, key)
+    <span class="fn">update</span>(n)
+    b = <span class="fn">balance</span>(n)
+    <span class="kw">if</span> b &gt; <span class="num">1</span>:                                  <span class="cm"># 왼쪽이 무거움</span>
+        <span class="kw">if</span> <span class="fn">balance</span>(n.left) &lt; <span class="num">0</span>: n.left = <span class="fn">rotate_left</span>(n.left)    <span class="cm"># LR: 먼저 왼쪽 회전</span>
+        <span class="kw">return</span> <span class="fn">rotate_right</span>(n)
+    <span class="kw">if</span> b &lt; -<span class="num">1</span>:                                 <span class="cm"># 오른쪽이 무거움</span>
+        <span class="kw">if</span> <span class="fn">balance</span>(n.right) &gt; <span class="num">0</span>: n.right = <span class="fn">rotate_right</span>(n.right)  <span class="cm"># RL: 먼저 오른쪽 회전</span>
+        <span class="kw">return</span> <span class="fn">rotate_left</span>(n)
+    <span class="kw">return</span> n
+
+root = <span class="kw">None</span>
+<span class="kw">for</span> k <span class="kw">in</span> &#91;<span class="num">10</span>, <span class="num">20</span>, <span class="num">30</span>, <span class="num">40</span>, <span class="num">50</span>, <span class="num">25</span>&#93;:
+    root = <span class="fn">insert</span>(root, k)
+<span class="fn">print</span>(root.key, root.left.key, root.right.key)   <span class="cm"># 30 20 40</span></pre>
+            </div>
+            <p class="code-desc">
+                각 노드는 서브트리의 높이 h를 저장하고, 균형 인수(왼쪽 높이 - 오른쪽 높이)가 1보다 크거나 -1보다 작아지면 회전으로 복구합니다. 균형 인수가 2이고 왼쪽 자식이 왼쪽으로 기운 경우는 오른쪽 회전 한 번(LL), 왼쪽 자식이 오른쪽으로 기운 경우는 왼쪽 자식을 먼저 왼쪽 회전한 뒤 오른쪽 회전(LR)입니다. 오른쪽 방향은 대칭입니다.
+                재귀로 삽입한 뒤 돌아오면서 경로의 노드마다 높이를 갱신하고 균형을 검사하므로, 불균형이 생긴 가장 아래 노드에서 회전하면 위쪽은 자동으로 균형이 복구됩니다. 회전은 포인터 몇 개를 바꾸는 O(1) 작업입니다.
+                키 10, 20, 30, 40, 50, 25를 넣으면 시각화의 AVL 탭과 같이 루트 30, 왼쪽 자식 20, 오른쪽 자식 40이 됩니다. 삭제도 같은 회전으로 복구하지만 위쪽까지 여러 번 회전이 필요할 수 있어 이 코드에는 넣지 않았습니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — 정렬된 입력에서 BST와 AVL의 높이</p>
+            <div class="code-block">
+<pre><span class="kw">def</span> <span class="fn">bst_insert</span>(n, key):          <span class="cm"># 균형을 맞추지 않는 일반 삽입</span>
+    <span class="kw">if</span> <span class="kw">not</span> n: <span class="kw">return</span> <span class="fn">Node</span>(key)
+    <span class="kw">if</span> key &lt; n.key: n.left = <span class="fn">bst_insert</span>(n.left, key)
+    <span class="kw">else</span>: n.right = <span class="fn">bst_insert</span>(n.right, key)
+    <span class="fn">update</span>(n)
+    <span class="kw">return</span> n
+
+plain = avl = <span class="kw">None</span>
+<span class="kw">for</span> k <span class="kw">in</span> <span class="fn">range</span>(<span class="num">1</span>, <span class="num">16</span>):          <span class="cm"># 1, 2, ..., 15를 정렬된 순서로</span>
+    plain = <span class="fn">bst_insert</span>(plain, k)
+    avl = <span class="fn">insert</span>(avl, k)
+<span class="fn">print</span>(<span class="fn">h</span>(plain), <span class="fn">h</span>(avl))        <span class="cm"># 15 4</span></pre>
+            </div>
+            <p class="code-desc">
+                같은 Node와 update를 쓰되 회전을 하지 않는 삽입 함수를 하나 더 만들어, 1부터 15까지 정렬된 순서로 넣었을 때의 높이를 비교합니다. 일반 이진 탐색 트리는 모든 키가 오른쪽으로 이어져 높이가 15인 연결 리스트가 되고, AVL 트리는 회전으로 높이 4를 유지합니다.
+                탐색은 높이만큼 비교하므로 일반 트리에서는 최대 15번, AVL에서는 최대 4번입니다. 키가 100만 개이면 이 차이는 100만 번 대 약 20번(정렬된 입력일 때 AVL의 높이)으로 벌어집니다.
+                시각화의 높이 비교 탭이 보여 주는 값(15와 4)과 같습니다. 레드-블랙 트리도 같은 입력에서 높이 O(log n)을 유지합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — TreeMap(레드-블랙 트리 기반) 사용</p>
+            <div class="code-block">
+<pre><span class="kw">import</span> java.util.TreeMap;
+
+TreeMap&lt;Integer, String&gt; map = <span class="kw">new</span> TreeMap&lt;&gt;();
+map.<span class="fn">put</span>(<span class="num">30</span>, <span class="st">"c"</span>); map.<span class="fn">put</span>(<span class="num">10</span>, <span class="st">"a"</span>); map.<span class="fn">put</span>(<span class="num">20</span>, <span class="st">"b"</span>);
+
+System.out.<span class="fn">println</span>(map.<span class="fn">firstKey</span>());      <span class="cm">// 10  (가장 작은 키)</span>
+System.out.<span class="fn">println</span>(map.<span class="fn">floorKey</span>(<span class="num">25</span>));    <span class="cm">// 20  (25 이하 중 가장 큰 키)</span>
+System.out.<span class="fn">println</span>(map.<span class="fn">ceilingKey</span>(<span class="num">25</span>));  <span class="cm">// 30  (25 이상 중 가장 작은 키)</span>
+System.out.<span class="fn">println</span>(map.<span class="fn">headMap</span>(<span class="num">30</span>));     <span class="cm">// {10=a, 20=b}  (30 미만)</span></pre>
+            </div>
+            <p class="code-desc">
+                자바의 TreeMap은 레드-블랙 트리를 바탕으로 한 NavigableMap으로, put, get, remove가 O(log n)에 동작하고 키를 정렬된 순서로 유지합니다. 직접 균형을 맞추는 코드를 쓰지 않아도 레드-블랙 트리의 이점을 그대로 얻습니다.
+                해시 맵과 달리 정렬된 순서를 알기 때문에 floorKey, ceilingKey, headMap 같은 범위 질의를 쓸 수 있습니다. 25 이하에서 가장 큰 키를 O(log n)에 찾는 일은, 해시 맵으로는 전체를 훑어야 해서 O(n)이 걸립니다.
+                정렬이나 범위 검색이 필요 없다면 해시 맵이 평균 O(1)로 더 빠르므로, 순서가 필요한 곳에 TreeMap을 고르는 것이 일반적입니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
