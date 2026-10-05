@@ -312,7 +312,10 @@
         else drawGantt(padX, top, fullW, mob, step, mode === 'inherit');
 
         if (!step) {
-            tx('아래 STEP을 눌러 우선순위 역전과 상속이 어떻게 다른지 확인하세요.', W / 2, GH() - (mob ? 12 : 14), mob ? 11 : 12.5, P.muted + 'aa', 'center', false);
+            var hint = '아래 STEP으로 우선순위 역전과 상속을 확인하세요.';
+            ctx.font = '500 ' + (mob ? 11 : 12.5) + 'px "JetBrains Mono",monospace';
+            var hs = (mob ? 11 : 12.5) * Math.min(1, (W - 16) / ctx.measureText(hint).width);
+            tx(hint, W / 2, GH() - (mob ? 12 : 14), hs, P.muted + 'aa', 'center', false);
         }
     }
 
