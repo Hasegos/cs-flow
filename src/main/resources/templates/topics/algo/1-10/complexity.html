@@ -136,6 +136,139 @@
                         </div>
                     </div>
 
+
+                    <h2 class="overview-heading">빅오가 필요한 이유와 표기의 뜻</h2>
+                    <p class="overview-lead">
+                        알고리즘을 비교할 때 실제 걸린 시간은 컴퓨터와 언어마다 달라서 기준이 되기 어렵습니다. 그래서 입력 크기 n에 대해 연산 횟수가 어떤 함수로 늘어나는지를 보는 점근 표기를 씁니다. 교재(CLRS)에서 <code>O</code>는 증가율의 <strong>상한</strong>, <code>Ω</code>는 <strong>하한</strong>, <code>Θ</code>는 같은 증가율로 위와 아래를 모두 막는 경우를 뜻합니다. 보통 말하는 '빅오'는 이 중 O입니다.
+                    </p>
+
+                    <h2 class="overview-heading">빅오를 구하는 규칙</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>상수와 낮은 차수의 항은 버립니다</strong> — <code>3n² + 5n + 7</code>은 n이 커질수록 n² 항이 지배하므로 O(n²)입니다. 상수 3도 증가율을 바꾸지 않아 버립니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>순서대로 이어지면 더하고, 중첩되면 곱합니다</strong> — O(n) 반복문 두 개가 차례로 있으면 O(n), 반복문 안에 반복문이 있으면 O(n × n) = O(n²)입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>가장 큰 항만 남깁니다</strong> — O(n²)과 O(n)이 더해지면 O(n²)입니다. 입력이 커질수록 작은 항은 영향이 사라집니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>n = 1,000,000일 때 연산 횟수</strong> — log₂ n은 약 20, n은 100만, n log₂ n은 약 2천만, n²은 1조입니다. 이진 탐색은 100만 개를 뒤져도 비교가 최대 20번 안팎입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>초 단위로 바꾸면</strong> — 1초에 단순 연산 1억 번을 한다고 가정하면, n = 100만에서 O(n log n)은 약 0.2초, O(n²)은 약 1만 초(2시간 40분 안팎)입니다. 이 가정은 설명용 값이고 실제 속도는 환경마다 다릅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>지수 시간은 작은 n에서도 폭발합니다</strong> — 2ⁿ은 n = 30이면 약 10억(2³⁰ = 1,073,741,824), n = 60이면 약 1.15×10¹⁸입니다. n이 조금만 늘어도 현실적인 시간 안에 끝나지 않게 됩니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>O(n)이 O(n²)보다 항상 빠르다</strong> — 빅오는 n이 충분히 클 때의 증가율을 비교합니다. n이 작을 때는 상수가 큰 O(n) 알고리즘이 상수가 작은 O(n²) 알고리즘보다 느릴 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>빅오는 최악의 경우를 뜻한다</strong> — O는 증가율의 상한을 나타내는 수학적 표기이고, 최선·평균·최악은 입력을 어떤 경우로 보느냐를 가르는 별개의 축입니다. 최악의 경우 실행 시간에도, 평균의 경우에도 O를 쓸 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>반복문이 중첩되면 무조건 O(n²)이다</strong> — 안쪽 반복이 몇 번 도는지를 세어야 합니다. 안쪽이 <code>j = 1</code>부터 <code>j *= 2</code>로 커지면 안쪽은 약 log n번이어서 전체는 O(n log n)입니다. 안쪽이 <code>i</code>번만 돌면 1 + 2 + … + n = n(n+1)/2 이므로 이 경우는 O(n²)입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공간 복잡도는 입력 크기를 더한 값이다</strong> — 입력 자체가 차지하는 메모리를 포함할지, 알고리즘이 추가로 쓰는 보조 공간만 셀지는 문제와 교재마다 다릅니다. 정의를 확인하고 일관되게 씁니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">O(log n)이 되는 대표적인 예는 무엇인가요?</h3>
+                            <p class="overview-card__desc">범위를 매번 절반으로 줄이는 이진 탐색입니다. 정렬된 배열에서 n이 두 배가 되어도 비교가 한 번 늘 뿐입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">해시 테이블 조회의 시간 복잡도는 얼마인가요?</h3>
+                            <p class="overview-card__desc">해시 함수가 키를 고르게 흩뜨린다는 가정 아래 평균적으로 O(1)입니다. 충돌이 심하면 한 버킷에 몰려 최악에는 O(n)까지 나빠질 수 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">재귀로 피보나치를 구하는 코드의 복잡도는 얼마인가요?</h3>
+                            <p class="overview-card__desc">캐시 없이 <code>fib(n-1) + fib(n-2)</code>를 부르면 같은 값을 반복해서 계산합니다. 호출 횟수는 정확히는 황금비 약 1.618의 n제곱에 비례하지만, O(2ⁿ)도 올바른 상한입니다. 메모이제이션을 쓰면 O(n)이 됩니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">비교 기반 정렬은 왜 O(n log n)보다 빠를 수 없나요?</h3>
+                            <p class="overview-card__desc">n개를 비교만으로 정렬하려면 가능한 순서가 n!가지이므로 결과를 가려내는 데 최악의 경우 최소 log₂(n!) = Ω(n log n)번의 비교가 필요하다고 알려져 있습니다. 그래서 병합·힙 정렬은 이 하한에 닿는 알고리즘입니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Java ArrayList</strong> — 공식 문서에 따르면 <code>get</code>·<code>set</code>은 상수 시간이고, 끝에 추가하는 <code>add</code>는 분할 상환 상수 시간입니다. 맨 앞에 넣으면 뒤의 원소를 모두 밀어야 해서 원소 수에 비례하는 시간이 듭니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Java HashMap</strong> — 공식 문서는 해시 함수가 원소를 알맞게 흩뜨린다는 가정 아래 <code>get</code>과 <code>put</code>이 상수 시간 성능을 제공한다고 설명합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>입력 크기가 정해진 제약</strong> — 알고리즘 문제의 입력 제한(예: n ≤ 10⁵, 시간 제한 1초)은 어떤 복잡도까지 허용되는지 가늠하는 단서가 됩니다. n ≤ 10⁵이면 O(n²)은 약 10¹⁰번이라 보통 부족하고 O(n log n)은 여유가 있습니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/binary-search}">이진 탐색</a> — O(log n)이 되는 이유를 단계별로 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/sort-compare}">정렬 비교</a> — 병합·퀵·힙 정렬의 비교 횟수를 실제로 셉니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/dp-basic}">동적 계획법 기초</a> — 지수 시간이던 재귀를 메모이제이션으로 줄이는 과정을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/two-pointer}">투 포인터</a> — 이중 반복문을 한 번의 순회로 줄이는 방법을 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>교재</strong> — Cormen, Leiserson, Rivest, Stein, "Introduction to Algorithms" 4판, 3장 "Characterizing Running Times"</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>ArrayList</strong> — <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/ArrayList.html" target="_blank" rel="noopener">ArrayList — Java SE 21 API</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>HashMap</strong> — <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/HashMap.html" target="_blank" rel="noopener">HashMap — Java SE 21 API</a></span>
+                        </div>
+                    </div>
                 </div>
             </div>
 

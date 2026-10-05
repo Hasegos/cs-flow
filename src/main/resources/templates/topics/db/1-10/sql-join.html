@@ -83,7 +83,7 @@
                         SQL JOIN은 <strong>두 개 이상의 테이블을 하나의 결과로 합치는</strong> 방법입니다.
                         USERS와 ORDERS처럼 외래키로 연결된 테이블이 있을 때, 어느 쪽 데이터를 기준으로 얼마나 남길지에 따라
                         <strong>INNER / LEFT / RIGHT / FULL</strong> 네 가지 방식으로 나뉩니다. 벤 다이어그램으로 생각하면
-                        가장 직관적입니다 — 두 원 중 어느 부분을 결과로 남기느냐의 차이일 뿐입니다.
+                        이해하기 쉽습니다(다만 비유일 뿐입니다) — 두 원 중 어느 부분을 결과로 남기느냐의 차이일 뿐입니다.
                     </p>
 
                     <div class="overview-grid">
@@ -138,6 +138,123 @@
                         </div>
                     </div>
 
+
+                    <h2 class="overview-heading">JOIN이 하는 일</h2>
+                    <p class="overview-lead">
+                        개념적으로 JOIN은 두 테이블의 모든 행 조합(곱집합)을 만든 뒤 JOIN 조건에 맞는 조합만 남기는 연산입니다. 그 위에서 OUTER JOIN은 조건에 맞는 짝이 없는 행도 NULL로 채워 남깁니다. 실제로 DB가 곱집합을 다 만들지는 않고 해시나 인덱스 같은 방법으로 같은 결과를 더 빠르게 계산합니다. <code>JOIN ... ON</code> 형태의 명시적 구문은 SQL-92에서 도입되었다고 알려져 있습니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>곱집합의 크기</strong> — USERS가 100행, ORDERS가 1,000행이면 모든 조합은 100 × 1,000 = 100,000행입니다. 조건에 맞는 행만 남기므로 INNER JOIN 결과는 보통 이보다 훨씬 작습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>1:N에서 결과 행 수</strong> — 사용자 한 명이 주문을 3건 가졌다면 INNER JOIN 결과에 그 사용자는 3행으로 나옵니다. 결과 행 수는 사용자 수가 아니라 짝이 맞는 주문 수를 따릅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화의 행 수</strong> — 같은 데이터에서 INNER는 2행, LEFT와 RIGHT는 3행, FULL은 4행입니다. 짝이 없는 사용자 1명과 짝이 없는 주문 1건이 각각 더해지기 때문입니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>JOIN은 벤 다이어그램의 집합 연산이다</strong> — 벤 다이어그램은 어느 쪽 행이 남는지 이해하는 비유일 뿐입니다. JOIN은 행을 조건으로 짝짓는 연산이라, 한 행이 여러 행과 짝지어지면 결과 행이 늘어납니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>LEFT JOIN에서 오른쪽 조건을 WHERE에 써도 같다</strong> — WHERE는 JOIN 결과를 거른 뒤에 적용되어, 오른쪽 컬럼이 NULL인 행이 사라져 INNER JOIN처럼 동작합니다. 오른쪽 테이블의 조건을 유지하며 왼쪽 행을 남기려면 ON 절에 씁니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>NULL끼리도 조인된다</strong> — <code>NULL = NULL</code>은 참이 아니라 알 수 없음이어서, 조인 키가 NULL인 행은 서로 짝지어지지 않습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>RIGHT JOIN이 따로 꼭 필요하다</strong> — 테이블 순서를 바꾸면 RIGHT JOIN은 LEFT JOIN으로 같은 행을 냅니다(<code>SELECT *</code>의 열 순서는 달라집니다). 그래서 LEFT JOIN만 쓰는 스타일도 많습니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">INNER JOIN과 OUTER JOIN의 차이는 무엇인가요?</h3>
+                            <p class="overview-card__desc">INNER JOIN은 양쪽에 짝이 있는 행만 남깁니다. OUTER JOIN은 한쪽(LEFT, RIGHT) 또는 양쪽(FULL)의 모든 행을 남기고, 짝이 없으면 상대 컬럼을 NULL로 채웁니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">ON과 WHERE의 차이는 무엇인가요?</h3>
+                            <p class="overview-card__desc">ON은 어떤 행끼리 짝지을지 정하는 조건이고, WHERE는 만들어진 결과를 거르는 조건입니다. INNER JOIN에서는 결과가 같지만 OUTER JOIN에서는 NULL로 채워진 행의 유지 여부가 달라집니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">주문이 한 건도 없는 사용자를 어떻게 찾나요?</h3>
+                            <p class="overview-card__desc">USERS LEFT JOIN ORDERS로 사용자를 모두 남긴 뒤, 오른쪽 기본키가 NULL인 행만 WHERE로 고릅니다. 짝이 없는 행만 남는 anti-join 패턴입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">DB는 JOIN을 어떻게 실행하나요?</h3>
+                            <p class="overview-card__desc">중첩 루프, 해시, 병합(정렬 후 합치기) 방식이 대표적이고, 옵티마이저가 테이블 크기와 인덱스를 보고 비용이 낮은 방법을 고릅니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>PostgreSQL의 실행 계획</strong> — EXPLAIN 결과에 Nested Loop, Hash Join, Merge Join 같은 노드 이름으로 어떤 방식이 선택되었는지 나옵니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>조인 키의 인덱스</strong> — 조인에 쓰는 컬럼에 인덱스가 있으면 중첩 루프에서 상대 테이블을 빠르게 찾을 수 있습니다. 외래키 컬럼에는 PostgreSQL이 인덱스를 자동으로 만들지 않으므로 필요하면 직접 만듭니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>FULL OUTER JOIN 지원</strong> — PostgreSQL은 FULL JOIN을 지원하고, MySQL은 지원하지 않아서 LEFT JOIN과 RIGHT JOIN 결과를 UNION으로 합쳐 같은 결과를 만듭니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/rdbms-basic}">RDBMS 기초</a> — JOIN의 바탕이 되는 기본키와 외래키를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/index}">인덱스</a> — 조인 조건 컬럼에 인덱스가 왜 도움이 되는지 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/query-plan}">쿼리 실행 계획</a> — 옵티마이저가 조인 방법을 고르는 기준을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/normalization}">정규화</a> — 정규화로 나눈 테이블을 다시 합치는 이유를 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>조인 튜토리얼</strong> — <a href="https://www.postgresql.org/docs/current/tutorial-join.html" target="_blank" rel="noopener">Joins Between Tables — PostgreSQL Documentation</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>조인 표현식</strong> — <a href="https://www.postgresql.org/docs/current/queries-table-expressions.html" target="_blank" rel="noopener">Table Expressions — PostgreSQL Documentation</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>교재</strong> — Silberschatz, Korth, Sudarshan, "Database System Concepts" 7판, "Intermediate SQL" 장</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 

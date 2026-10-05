@@ -88,7 +88,7 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">해시 함수</h3>
-                            <p class="overview-card__desc">임의 크기의 키를 고정 범위의 정수(해시값)로 변환합니다. 좋은 해시 함수는 결정론적(같은 입력 → 같은 출력), 균등 분포, 빠른 계산 속도를 갖춥니다. 일반적으로 hash(key) % capacity로 버킷 인덱스를 결정합니다.</p>
+                            <p class="overview-card__desc">임의 크기의 키를 고정 범위의 정수(해시값)로 변환합니다. 좋은 해시 함수는 결정론적(같은 입력 → 같은 출력), 균등 분포, 빠른 계산 속도를 갖춥니다. 개념적으로는 hash(key) % capacity로 버킷 인덱스를 결정하고, 실제 구현은 비트 연산 등으로 조금씩 다릅니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
@@ -98,12 +98,12 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">체이닝 (Chaining)</h3>
-                            <p class="overview-card__desc">같은 버킷에 충돌한 키들을 연결 리스트로 연결합니다. 버킷이 연결 리스트의 헤드를 가리킵니다. 삽입은 O(1)이고 탐색은 버킷의 리스트 길이에 비례합니다. Java의 HashMap이 이 방식을 사용하며, 한 버킷의 길이가 8 이상이고 전체 용량이 64 이상일 때 트리(Red-Black Tree)로 전환합니다.</p>
+                            <p class="overview-card__desc">같은 버킷에 충돌한 키들을 연결 리스트로 연결합니다. 버킷이 연결 리스트의 헤드를 가리킵니다. 삽입은 O(1)이고 탐색은 버킷의 리스트 길이에 비례합니다. Java의 HashMap이 이 방식을 사용하며, OpenJDK 구현에서는 한 버킷이 길어지고 전체 용량이 64 이상이면 트리(Red-Black Tree)로 전환합니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">오픈 어드레싱 (Open Addressing)</h3>
-                            <p class="overview-card__desc">충돌 시 다른 빈 버킷을 탐색합니다. Linear Probing은 index+1, +2, ...를 순서대로 탐색합니다. Quadratic Probing은 index+1², +2², ...으로 탐색합니다. Double Hashing은 두 번째 해시 함수로 보폭을 결정합니다. 메모리 지역성이 좋아 캐시 효율이 높습니다.</p>
+                            <p class="overview-card__desc">충돌 시 다른 빈 버킷을 탐색합니다. Linear Probing은 index+1, +2, ...를 순서대로 탐색합니다. Quadratic Probing은 index+1², +2², ...으로 탐색합니다. Double Hashing은 두 번째 해시 함수로 보폭을 결정합니다. 일반적으로 메모리 지역성이 좋아 캐시 효율이 높은 편입니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
@@ -120,15 +120,15 @@
                     <div class="overview-points">
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>시간복잡도</strong> — 평균 O(1) 삽입·탐색·삭제. 최악(모든 키가 같은 버킷)은 O(n). 좋은 해시 함수와 적절한 부하율 유지로 최악 케이스를 실질적으로 방지합니다. Java HashMap은 트리 전환으로 최악을 O(log n)으로 제한합니다.</span>
+                            <span><strong>시간복잡도</strong> — 평균 O(1) 삽입·탐색·삭제. 최악(모든 키가 같은 버킷)은 O(n). 좋은 해시 함수와 적절한 부하율 유지로 최악 케이스를 실질적으로 방지합니다. Java HashMap은 트리 전환으로 최악을 O(log n)으로 줄이려 합니다(키가 Comparable일 때 더 효과적입니다).</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>Java HashMap 내부 구조</strong> — 기본 용량 16, 부하율 0.75, 임계값 초과 시 2배 리사이징. 버킷당 연결 리스트 길이 ≥ 8이고 전체 용량 ≥ 64면 Red-Black Tree로 전환, 길이 ≤ 6이면 다시 리스트로 전환합니다. hashCode()와 equals()를 반드시 함께 재정의해야 합니다.</span>
+                            <span><strong>Java HashMap 내부 구조</strong> — 기본 용량 16, 부하율 0.75, 임계값 초과 시 2배 리사이징. OpenJDK 소스 기준으로 버킷에 노드가 8개 이상 쌓인 상태에서 추가가 일어나고 테이블 용량이 64 이상이면 Red-Black Tree로 바꾸고(용량이 64 미만이면 트리 대신 테이블을 키웁니다), 리사이즈로 버킷이 쪼개져 노드가 6개 이하가 되면 다시 리스트로 돌립니다. hashCode()와 equals()를 반드시 함께 재정의해야 합니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>해시 충돌 공격</strong> — 악의적 입력으로 모든 키를 동일 버킷에 몰아 O(n) 성능을 유발하는 공격입니다. Java는 해시 무작위화 대신, 한 버킷의 체인이 길어지면(길이 ≥ 8, 전체 용량 ≥ 64) Red-Black Tree로 전환해 최악을 O(log n)으로 막습니다(JEP 180, Java 8+). 반면 파이썬은 3.3부터 SipHash 기반 해시 무작위화가 기본 활성화되어 있습니다.</span>
+                            <span><strong>해시 충돌 공격</strong> — 악의적 입력으로 모든 키를 동일 버킷에 몰아 O(n) 성능을 유발하는 공격입니다. Java는 해시 무작위화 대신, 한 버킷의 체인이 길어지면 Red-Black Tree로 전환해 최악을 O(log n)으로 줄이려 합니다(JEP 180, Java 8+). 반면 파이썬은 3.3부터 해시 무작위화가 기본으로 켜져 있고, 3.4부터 문자열 해시에 SipHash 계열을 씁니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
@@ -136,6 +136,143 @@
                         </div>
                     </div>
 
+
+                    <h2 class="overview-heading">해시 테이블이 만들어진 이유</h2>
+                    <p class="overview-lead">
+                        해시 테이블은 키를 해시 함수로 정수로 바꿔 배열 위치를 곧바로 계산하는 자료구조입니다. 정렬된 배열이나 트리가 키를 비교하며 찾는 것과 달리, 위치를 계산해 바로 접근해서 평균적으로 상수 시간에 넣고 찾을 수 있습니다. 대신 서로 다른 키가 같은 위치로 갈 수 있다는 충돌을 다뤄야 합니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Java HashMap의 리사이즈 시점</strong> — 기본 용량 16, 부하율 0.75이면 임계값은 16 × 0.75 = 12입니다. 항목이 13번째로 들어갈 때 용량이 32로 늘어나고 모든 항목이 다시 배치됩니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>충돌은 생각보다 빨리 생긴다</strong> — 버킷이 365개일 때 키가 23개만 있어도 어딘가에서 충돌할 확률이 50%를 넘습니다(생일 문제, 해시값이 버킷에 고르게 퍼진다고 가정한 값). 키 수가 버킷 수보다 훨씬 적어도 충돌은 흔합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>비둘기집 원리</strong> — 키가 될 수 있는 값이 버킷보다 많으면 충돌이 피할 수 없습니다. 예를 들어 문자열 키의 가능한 값은 사실상 무한이지만 버킷은 유한합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>체인 길이</strong> — 부하율이 0.75이면 한 버킷에 평균 0.75개가 들어 있어 평균 탐색이 거의 상수 시간입니다. 부하율을 3으로 두면 평균 체인 길이가 3으로 늘어납니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>해시 테이블은 항상 O(1)이다</strong> — 평균적인 경우입니다. 모든 키가 한 버킷에 몰리면 O(n)이 됩니다. 해시 함수와 부하율 관리가 평균을 지켜 줍니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>키를 넣은 순서대로 나온다</strong> — 해시 테이블 자체는 순서를 보장하지 않습니다. Java의 HashMap 문서는 순서가 시간이 지나도 일정하다는 보장이 없다고 설명합니다. 순서가 필요하면 LinkedHashMap이나 TreeMap을 씁니다. 파이썬 3.7부터 dict는 삽입 순서를 유지하는 것이 언어 명세입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>equals만 재정의하면 된다</strong> — Java에서 equals가 같은 두 객체는 hashCode도 같아야 합니다. hashCode를 함께 재정의하지 않으면 같은 키를 다른 버킷에서 찾아 못 찾을 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>가변 객체를 키로 써도 된다</strong> — Java 문서는 키를 바꾸면 맵의 동작이 보장되지 않는다고 경고합니다. HashMap에서는 보통 넣을 때 정해진 버킷과 달라져 get으로 찾지 못하는 일이 생기므로, 키는 변하지 않는 값(불변 객체)을 쓰는 것이 안전합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">해시 충돌은 어떻게 해결하나요?</h3>
+                            <p class="overview-card__desc">한 버킷에 여러 키를 연결 리스트 같은 구조로 모으는 체이닝과, 충돌 시 다른 빈 버킷을 찾아가는 오픈 어드레싱이 있습니다. Java HashMap은 체이닝 방식을 씁니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">해시 테이블이 이진 탐색 트리보다 항상 좋은가요?</h3>
+                            <p class="overview-card__desc">평균 탐색은 해시 테이블이 빠르지만 키 순서나 범위 검색은 못 합니다. 정렬된 순회나 범위 조회가 필요하면 트리가 낫습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">리사이즈(rehash)는 왜 필요하고 비용은 어떤가요?</h3>
+                            <p class="overview-card__desc">부하율이 높아지면 충돌이 늘어 성능이 떨어져서 버킷 수를 늘립니다. 모든 항목의 위치를 다시 계산하니 그 순간은 O(n)이지만 드물게 일어나서 분할 상환하면 삽입은 평균 상수 시간입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">해시 충돌 공격이란 무엇이고 어떻게 막나요?</h3>
+                            <p class="overview-card__desc">공격자가 같은 버킷으로 가는 키를 일부러 만들어 연산 하나를 O(n)으로 느리게 만드는 공격입니다. 해시 함수에 무작위 시드를 넣거나, Java처럼 긴 체인을 트리로 바꿔 최악을 줄이는 방법이 있습니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Java HashMap</strong> — 문서는 기본 부하율 0.75가 시간과 공간 비용의 균형이라고 설명하고, 항목 수가 용량과 부하율의 곱을 넘으면 버킷 수를 대략 두 배로 늘려 다시 해시한다고 설명합니다. 한 버킷이 너무 커지면 트리 노드 구조로 바꾸는 최적화가 들어 있습니다(구현 노트, JEP 180).</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Python dict</strong> — 삽입 순서를 유지하는 것이 3.7부터 언어 명세입니다. 문자열 해시는 서비스 거부 공격을 막으려고 무작위화가 3.3부터 기본으로 켜져 있습니다(PEP 456은 3.4에서 SipHash를 채택).</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>알고리즘적 복잡도 공격</strong> — 해시 충돌로 서비스를 느리게 만드는 공격은 2003년 Crosby와 Wallach의 논문 등으로 알려졌습니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/ds/array-linkedlist}">배열 vs 연결 리스트</a> — 버킷과 체인을 이루는 두 구조를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/ds/bst}">이진 탐색 트리</a> — 순서와 범위 검색이 필요할 때의 대안을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/ds/trie}">트라이</a> — 문자열 키를 다른 방식으로 다루는 구조를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/index}">인덱스</a> — 해시 인덱스와 B-Tree 인덱스의 차이를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/complexity}">시간·공간 복잡도</a> — 평균과 최악의 차이를 숫자로 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Java HashMap</strong> — <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/HashMap.html" target="_blank" rel="noopener">HashMap — Java SE 21 API</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>JEP 180</strong> — <a href="https://openjdk.org/jeps/180" target="_blank" rel="noopener">JEP 180: Handle Frequent HashMap Collisions with Balanced Trees</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Python 3.7 변경</strong> — <a href="https://docs.python.org/3/whatsnew/3.7.html" target="_blank" rel="noopener">What's New In Python 3.7 — Python documentation</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>PEP 456</strong> — <a href="https://peps.python.org/pep-0456/" target="_blank" rel="noopener">PEP 456 — Secure and interchangeable hash algorithm</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>논문</strong> — Crosby, Wallach, "Denial of Service via Algorithmic Complexity Attacks", USENIX Security Symposium, 2003</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>교재</strong> — Cormen, Leiserson, Rivest, Stein, "Introduction to Algorithms" 4판, "Hash Tables" 장</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 

@@ -80,7 +80,7 @@
                 <div class="overview-section">
 
                     <p class="overview-lead">
-                        데이터가 한 서버의 용량과 처리량을 넘어서면, 아무리 인덱스를 잘 걸어도 결국 한계가 옵니다.
+                        데이터가 한 서버의 용량과 처리량을 넘어서면, 인덱스를 잘 걸어도 한계가 올 수 있습니다.
                         <strong>샤딩(Sharding)</strong>은 같은 스키마의 데이터를 여러 서버(<strong>샤드</strong>)에 나눠 저장해서
                         하나의 큰 테이블을 여러 개의 작은 테이블로 수평 분할하는 방법입니다.
                     </p>
@@ -99,7 +99,7 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">해시 샤딩 (Hash Sharding)</h3>
-                            <p class="overview-card__desc">샤드 키를 해시한 값을 샤드 개수로 나눈 나머지로 샤드를 결정합니다. 데이터가 고르게 퍼지지만 범위 조회가 어렵습니다.</p>
+                            <p class="overview-card__desc">샤드 키를 해시한 값으로 샤드를 결정합니다. 가장 단순한 방식은 해시값을 샤드 개수로 나눈 나머지를 쓰는 것이고, MongoDB나 Citus는 해시값의 범위를 샤드에 배정합니다. 데이터가 고르게 퍼지지만 범위 조회가 어렵습니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
@@ -109,7 +109,7 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">크로스 샤드 쿼리</h3>
-                            <p class="overview-card__desc">여러 샤드에 걸친 JOIN이나 집계는 DB가 한 번에 처리해주지 못해, 애플리케이션에서 각 샤드 결과를 따로 모아 합쳐야 합니다.</p>
+                            <p class="overview-card__desc">여러 샤드에 걸친 JOIN이나 집계는 비용이 크고, 애플리케이션이 직접 샤딩하는 구조에서는 각 샤드 결과를 따로 모아 합쳐야 합니다. MongoDB의 mongos처럼 라우터가 대신 모아 주는 제품도 있습니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
@@ -125,11 +125,11 @@
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>레인지 샤딩의 핫스팟</strong> — 가입일 순으로 샤딩하면 신규 가입자 쓰기가 전부 최신 샤드 하나에 몰립니다. 나머지 샤드는 한가한데 그 샤드만 바빠지는 불균형이 생깁니다.</span>
+                            <span><strong>레인지 샤딩의 핫스팟</strong> — 가입일 순으로 샤딩하면 신규 가입자 쓰기가 대부분 최신 샤드 하나에 몰립니다. 나머지 샤드는 한가한데 그 샤드만 바빠지는 불균형이 생깁니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>샤드 키는 나중에 바꾸기 어렵습니다</strong> — 이미 흩어져 저장된 데이터를 다른 기준으로 다시 나누려면 전체 재분배가 필요해, 설계 초기에 신중하게 정해야 합니다.</span>
+                            <span><strong>샤드 키는 나중에 바꾸기 어렵습니다</strong> — 샤드 키를 바꾸려면 이미 흩어져 저장된 데이터를 새 기준으로 다시 나눠야 해서 비용이 큽니다(일부 제품은 온라인 리샤딩을 지원하지만 여분의 저장 공간과 시간이 듭니다). 그래서 설계 초기에 신중하게 정합니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
@@ -137,6 +137,139 @@
                         </div>
                     </div>
 
+
+                    <h2 class="overview-heading">샤딩과 비슷한 말 구분하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>파티셔닝(Partitioning)</strong> — 큰 테이블을 기준에 따라 여러 조각으로 나누는 일입니다. PostgreSQL의 선언적 파티셔닝처럼 한 DB 서버 안에서 나눌 수도 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>샤딩(Sharding)</strong> — 파티셔닝된 조각(샤드)을 서로 다른 서버에 두어 저장 용량과 처리량을 함께 늘립니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>복제(Replication)</strong> — 같은 데이터의 사본을 여러 서버에 둡니다. 읽기와 장애 대비에 도움이 되지만 데이터가 한 서버에 다 들어가야 한다는 한계는 그대로입니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">샤드 수를 바꾸면 얼마나 옮겨야 할까</h2>
+                    <p class="overview-lead">
+                        해시값을 샤드 수로 나눈 나머지(<code>hash(key) % N</code>)로 샤드를 정하면 N이 바뀔 때 대부분의 키가 다른 샤드로 이동합니다. 예를 들어 샤드가 3개에서 4개가 되면, 정수 키 기준으로 나머지가 그대로인 키는 12개 중 3개뿐이어서 약 75%의 키가 옮겨 가야 합니다. 이 문제를 줄이는 방법이 <strong>일관된 해싱(consistent hashing)</strong>으로, 샤드를 해시 공간의 원 위에 배치해 샤드를 추가해도 일부 키만 옮기게 합니다. Amazon의 Dynamo 논문이 이 방식을 사용한 설계로 알려져 있고, Cassandra 공식 문서도 노드를 해시 링 위의 토큰에 대응시키는 방식을 설명합니다.
+                    </p>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>샤딩은 읽기와 쓰기를 모두 늘려 주는 만능 해법이다</strong> — 데이터를 나누는 순간 여러 샤드에 걸친 조회, JOIN, 트랜잭션이 어려워지고 운영도 복잡해집니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>파티셔닝과 샤딩은 같은 말이다</strong> — 파티셔닝은 데이터를 나누는 일 자체를, 샤딩은 그렇게 나눈 조각을 여러 서버에 분산하는 것을 가리킵니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>해시 샤딩이면 부하가 항상 고르게 퍼진다</strong> — 키가 고르게 분포하면 데이터는 고르게 퍼지지만, 특정 키(예: 인기 계정) 하나에 요청이 몰리면 그 키가 있는 샤드는 여전히 바쁩니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>샤드를 추가하면 성능이 샤드 수에 비례해 늘어난다</strong> — 여러 샤드를 모아야 하는 조회와 분산 트랜잭션의 비용이 늘어서 보통 그보다 덜 늘어납니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">좋은 샤드 키는 어떤 조건을 갖나요?</h3>
+                            <p class="overview-card__desc">값의 종류가 많아 데이터를 잘게 나눌 수 있고, 값이 고르게 분포하며, 자주 쓰는 조회가 한 샤드 안에서 끝나게 하는 키입니다. 범위 샤딩에서 시간순으로 증가하는 값을 그대로 쓰면 새 데이터가 한 샤드에 몰립니다(해시 샤딩이면 완화됩니다).</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">여러 샤드에 걸친 JOIN과 트랜잭션은 어떻게 처리하나요?</h3>
+                            <p class="overview-card__desc">자주 같이 쓰는 데이터를 같은 샤드 키로 모아 두어 샤드 안에서 끝나게 설계하는 것이 우선입니다. 불가피하면 라우터가 각 샤드에 질의해 결과를 합치거나, 비용이 큰 분산 트랜잭션을 씁니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">샤드를 늘릴 때 데이터를 어떻게 옮기나요?</h3>
+                            <p class="overview-card__desc">해시 나머지 방식은 대부분의 키가 이동하므로 일관된 해싱처럼 이동하는 키를 줄이는 방식을 씁니다. 서비스를 멈추지 않고 옮기려면 복사하는 동안 변경분을 따라잡는 절차가 필요합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">샤딩하기 전에 먼저 해 볼 것은 무엇인가요?</h3>
+                            <p class="overview-card__desc">쿼리와 인덱스 개선, 읽기 부하를 나누는 복제, 서버 사양 증설 등이 있습니다. 샤딩은 데이터를 다시 나누는 비용이 크고 여러 샤드에 걸친 조회가 어려워지는 대가가 있습니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>MongoDB</strong> — 샤드 클러스터에서 앱이 mongos라는 라우터에 요청하면 라우터가 알맞은 샤드로 보냅니다. 샤드 키는 해시 방식과 범위 방식 중에서 고를 수 있고, 값이 계속 커지는 키를 범위 방식에 쓰면 쓰기가 한 곳에 몰리므로 해시 샤딩을 쓰라고 안내합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Citus</strong> — PostgreSQL 확장으로, 분산 테이블의 한 컬럼(분산 컬럼)을 기준으로 행을 여러 노드의 샤드에 나눕니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Cassandra와 Dynamo 계열</strong> — 파티션 키를 해시해 노드에 분산하고, 일관된 해싱 계열의 방식을 씁니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/replication}">복제</a> — 같은 데이터를 여러 서버에 두는 방법과 샤딩의 차이를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/nosql}">NoSQL</a> — 수평 확장을 염두에 둔 저장소가 많은 NoSQL을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/index}">인덱스</a> — 조회 성능을 높이는 기본 수단인 인덱스를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/transaction}">트랜잭션</a> — 샤드를 넘나드는 트랜잭션이 왜 어려운지 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>MongoDB 샤딩</strong> — <a href="https://www.mongodb.com/docs/manual/sharding/" target="_blank" rel="noopener">Sharding — MongoDB Docs</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>샤드 키 고르기</strong> — <a href="https://www.mongodb.com/docs/manual/core/sharding-choose-a-shard-key/" target="_blank" rel="noopener">Choose a Shard Key — MongoDB Docs</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>해시 샤딩</strong> — <a href="https://www.mongodb.com/docs/manual/core/hashed-sharding/" target="_blank" rel="noopener">Hashed Sharding — MongoDB Docs</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>PostgreSQL 파티셔닝</strong> — <a href="https://www.postgresql.org/docs/current/ddl-partitioning.html" target="_blank" rel="noopener">Table Partitioning — PostgreSQL Documentation</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Citus 개념</strong> — <a href="https://docs.citusdata.com/en/stable/get_started/concepts.html" target="_blank" rel="noopener">Concepts — Citus Documentation</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Dynamo 논문(2007)</strong> — <a href="https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf" target="_blank" rel="noopener">Dynamo: Amazon's Highly Available Key-value Store</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Cassandra 아키텍처</strong> — <a href="https://cassandra.apache.org/doc/latest/cassandra/architecture/dynamo.html" target="_blank" rel="noopener">Dynamo — Apache Cassandra Documentation</a></span>
+                        </div>
+                    </div>
                 </div>
             </div>
 

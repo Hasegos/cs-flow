@@ -100,7 +100,7 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">Mutex (상호 배제 락)</h3>
-                            <p class="overview-card__desc">한 번에 하나의 스레드만 Lock을 획득하고 임계 구역에 진입할 수 있습니다. Lock을 보유한 스레드만 Unlock할 수 있습니다. 소유권(Ownership) 개념이 있어 이진 Semaphore와 구별됩니다.</p>
+                            <p class="overview-card__desc">한 번에 하나의 스레드만 Lock을 획득하고 임계 구역에 진입할 수 있습니다. 일반적으로 Lock을 보유한 스레드가 Unlock합니다(Java의 ReentrantLock은 락을 갖지 않은 스레드가 풀려 하면 예외를 던집니다). 소유권(Ownership) 개념이 있어 이진 Semaphore와 구별됩니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
@@ -115,7 +115,7 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">Spinlock vs Blocking</h3>
-                            <p class="overview-card__desc">Spinlock은 Lock이 해제될 때까지 CPU를 점유하며 바쁜 대기(Busy Waiting)합니다. 컨텍스트 스위치 비용이 없어 짧은 대기에 유리합니다. Blocking은 스레드를 Sleep 시켜 CPU를 양보하므로 긴 대기에 적합합니다.</p>
+                            <p class="overview-card__desc">Spinlock은 Lock이 해제될 때까지 CPU를 점유하며 바쁜 대기(Busy Waiting)합니다. 컨텍스트 스위치 비용이 없어 짧은 대기에 유리하고, 멀티코어에서 의미가 있습니다. Blocking은 스레드를 Sleep 시켜 CPU를 양보하므로 긴 대기에 적합합니다.</p>
                         </div>
                     </div>
 
@@ -130,7 +130,7 @@
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>메모리 가시성 (Visibility)</strong> — 한 스레드의 쓰기가 다른 스레드에 즉시 보이지 않을 수 있습니다. Java의 volatile, C의 memory barrier(fence)로 CPU 캐시와 컴파일러 재정렬을 제어합니다.</span>
+                            <span><strong>메모리 가시성 (Visibility)</strong> — 한 스레드의 쓰기가 다른 스레드에 즉시 보이지 않을 수 있습니다. Java의 volatile, C의 memory barrier(fence)로 가시성과 CPU·컴파일러의 재정렬을 제어합니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
@@ -138,10 +138,147 @@
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>CAS (Compare-And-Swap)</strong> — 하드웨어 원자 명령어로 락 없이 공유 변수를 안전하게 갱신합니다. Java의 AtomicInteger, C의 __atomic_compare_exchange가 내부적으로 사용합니다. Lock-Free 알고리즘의 기반입니다.</span>
+                            <span><strong>CAS (Compare-And-Swap)</strong> — 하드웨어 원자 명령어로 락 없이 공유 변수를 안전하게 갱신합니다. Java의 AtomicInteger는 락 없는 스레드 안전 연산을 제공하고, GCC에는 __atomic_compare_exchange 내장 함수가 있습니다. Lock-Free 알고리즘의 기반입니다.</span>
                         </div>
                     </div>
 
+
+                    <h2 class="overview-heading">왜 동기화가 필요한가</h2>
+                    <p class="overview-lead">
+                        여러 스레드나 프로세스가 같은 데이터를 동시에 바꾸면 실행 순서에 따라 결과가 달라질 수 있습니다. 동기화는 이런 접근의 순서를 통제해 결과를 항상 같게 만드는 일입니다. 상호 배제 문제는 1960년대에 Dijkstra의 논문 'Solution of a Problem in Concurrent Programming Control'(1965) 등으로 연구되었고, 세마포어도 Dijkstra가 제안한 도구로 알려져 있습니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>출금 경쟁</strong> — 잔액이 100원일 때 두 스레드가 동시에 30원씩 출금합니다. 둘 다 100을 읽고 각자 70을 저장하면 결과는 70원입니다. 순서대로 처리했다면 40원이어야 합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>세마포어 값 따라가기</strong> — 자원이 2개라서 S = 2로 시작하면 wait 한 번에 S는 1, 두 번째 wait에 0이 됩니다. 세 번째 wait는 S가 0이라서 블로킹되고, 누군가 signal을 호출할 때 풀립니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>생산자-소비자(버퍼 5칸)</strong> — empty = 5, full = 0, mutex = 1로 시작합니다. 생산자가 3개를 넣으면 empty는 2, full은 3이 되고, 소비자가 1개를 꺼내면 empty는 3, full은 2가 됩니다. empty가 0이면 생산자가, full이 0이면 소비자가 기다립니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>임계 구역의 비용</strong> — 작업 시간 중 락으로 보호한 임계 구역이 10%라면 이 부분은 한 번에 하나만 실행하므로, 코어를 아무리 늘려도 속도 향상은 최대 10배입니다. 임계 구역은 짧게 둘수록 좋습니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>volatile이면 count++도 안전하다</strong> — Java의 volatile은 다른 스레드에 쓰기가 보이게 하고 순서를 정할 뿐, 읽기-더하기-쓰기를 하나의 원자 연산으로 만들지 않습니다. 원자성은 synchronized, 락, AtomicInteger 같은 도구가 줍니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Mutex와 이진 세마포어는 같다</strong> — 둘 다 0과 1처럼 쓸 수 있지만 뮤텍스는 락을 잡은 스레드가 풀어야 하고, 세마포어는 다른 스레드가 signal을 호출할 수 있어 신호 전달 용도로도 쓰입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Python은 GIL이 있어서 경쟁 상태가 없다</strong> — GIL은 인터프리터 내부를 보호할 뿐, <code>i = i + 1</code> 같은 여러 단계 연산이 중간에 끊기는 것은 막지 않습니다. 필요하면 <code>threading.Lock</code>을 씁니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>락을 많이 걸수록 안전하다</strong> — 락이 많거나 범위가 넓으면 성능이 떨어지고 교착 상태가 생길 위험도 커집니다. 보호할 데이터와 범위를 정확히 잡아야 합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">임계 구역 문제의 해결 조건 세 가지는 무엇인가요?</h3>
+                            <p class="overview-card__desc">상호 배제는 한 번에 하나만 들어가는 것, 진행은 들어갈 수 있는데도 아무도 못 들어가는 일이 없게 하는 것, 한정 대기는 기다리는 시간에 상한이 있어 기아가 없게 하는 것입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">Mutex와 Semaphore는 어떻게 다른가요?</h3>
+                            <p class="overview-card__desc">Mutex는 상호 배제를 위한 락으로 잡은 스레드가 소유자가 되어 풀어야 합니다. Semaphore는 카운터로 동시에 접근할 수 있는 수를 제한하거나 스레드 사이에 신호를 전달하는 데 쓰고 소유자 개념이 없습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">Spinlock은 언제 쓰나요?</h3>
+                            <p class="overview-card__desc">락을 기다리는 동안 CPU를 쓰며 반복 확인하므로, 기다리는 시간이 컨텍스트 스위치 비용보다 짧을 때 유리하고 멀티코어에서 의미가 있습니다. 대기가 길면 스레드를 재우는 블로킹 락이 낫습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">락 없이 동기화할 수 있나요?</h3>
+                            <p class="overview-card__desc">하드웨어가 제공하는 원자 명령인 CAS로 값을 비교하고 바꾸는 락 프리 방식이 있습니다. Java의 AtomicInteger가 대표적이고, 실패하면 다시 시도하는 반복이 필요합니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Java의 도구</strong> — Java는 <code>synchronized</code>, <code>ReentrantLock</code>, <code>java.util.concurrent.atomic</code> 패키지를 제공합니다. 메모리 가시성과 happens-before 규칙은 Java 언어 명세 17장이 정의합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>POSIX 뮤텍스</strong> — <code>pthread_mutex_lock</code>은 POSIX 표준이 정의하며, 소유하지 않은 뮤텍스를 푸는 동작은 뮤텍스 종류에 따라 정의가 달라집니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>futex</strong> — futex(2) 매뉴얼은 리눅스의 futex가 빠른 사용자 공간 락의 바탕이 되는 시스템 콜이라고 설명합니다. 경쟁이 없을 때는 시스템 콜 없이 처리하고 기다려야 할 때만 커널의 도움을 받는 구조입니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/thread}">스레드</a> — 공유 데이터에 동시에 접근하는 실행 단위를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/deadlock}">교착 상태</a> — 락을 여러 개 잡을 때 생기는 문제를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/cpu-scheduling}">CPU 스케줄링</a> — 선점이 동기화 문제와 만나는 지점을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/process}">프로세스</a> — 프로세스 사이의 통신과 자원 공유를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/lock}">락 / 동시성</a> — 데이터베이스의 락과 동시성 제어를 비교합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>POSIX 뮤텍스</strong> — <a href="https://pubs.opengroup.org/onlinepubs/9799919799/functions/pthread_mutex_lock.html" target="_blank" rel="noopener">pthread_mutex_lock — The Open Group Base Specifications</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Linux futex(2)</strong> — <a href="https://man7.org/linux/man-pages/man2/futex.2.html" target="_blank" rel="noopener">futex(2) — Linux manual page</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Java 동기화</strong> — <a href="https://docs.oracle.com/javase/tutorial/essential/concurrency/sync.html" target="_blank" rel="noopener">Synchronization — The Java Tutorials</a>, <a href="https://docs.oracle.com/javase/tutorial/essential/concurrency/atomic.html" target="_blank" rel="noopener">Atomic Access — The Java Tutorials</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Java 메모리 모델</strong> — <a href="https://docs.oracle.com/javase/specs/jls/se21/html/jls-17.html" target="_blank" rel="noopener">Threads and Locks — Java Language Specification SE 21</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Python 스레드 안전</strong> — <a href="https://docs.python.org/3/faq/library.html" target="_blank" rel="noopener">Library and Extension FAQ — Python documentation</a>, <a href="https://docs.python.org/3/library/threading.html" target="_blank" rel="noopener">threading — Python documentation</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>논문·교재</strong> — E. W. Dijkstra, "Solution of a Problem in Concurrent Programming Control", Communications of the ACM, 1965 / E. W. Dijkstra, "Cooperating Sequential Processes", EWD 123 (세마포어를 도입한 글) / Silberschatz, Galvin, Gagne, "Operating System Concepts", 10th Edition, "Synchronization Tools" 장</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 

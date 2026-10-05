@@ -93,49 +93,198 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">디렉토리 구조</h3>
-                            <p class="overview-card__desc">디렉토리는 파일명과 inode 번호의 쌍을 저장하는 특수 파일입니다. 경로 탐색 시 OS는 루트(/)부터 각 디렉토리의 inode를 거쳐 목표 파일의 inode를 찾습니다.</p>
+                            <p class="overview-card__desc">inode 기반 파일 시스템(ext4 등)에서 디렉토리는 파일명과 inode 번호의 쌍을 저장하는 특수 파일입니다. 경로 탐색 시 OS는 루트(/)부터 각 디렉토리의 inode를 거쳐 목표 파일의 inode를 찾습니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">FAT (File Allocation Table)</h3>
-                            <p class="overview-card__desc">디스크 블록(클러스터)의 연결 관계를 테이블로 관리합니다. 각 항목이 다음 블록 번호를 가리키는 연결 리스트 방식입니다. 단순하지만 랜덤 접근이 느리고 FAT 손상 시 파일 전체를 잃을 수 있습니다.</p>
+                            <p class="overview-card__desc">디스크 블록(클러스터)의 연결 관계를 테이블로 관리합니다. 각 항목이 다음 블록 번호를 가리키는 연결 리스트 방식입니다. 단순하지만 랜덤 접근이 느리고 FAT가 손상되면 파일의 블록 연결 정보를 잃을 수 있습니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">하드 링크 vs 심볼릭 링크</h3>
-                            <p class="overview-card__desc">하드 링크는 같은 inode를 가리키는 또 다른 디렉토리 엔트리입니다. 원본 삭제 후에도 데이터가 유지됩니다. 심볼릭 링크(소프트 링크)는 경로를 저장하는 별도 파일로 원본 삭제 시 깨집니다.</p>
+                            <p class="overview-card__desc">하드 링크는 같은 inode를 가리키는 또 다른 디렉토리 엔트리입니다. 한 이름을 지워도 다른 이름(링크)이 남아 있으면 데이터가 유지됩니다. 심볼릭 링크(소프트 링크)는 경로를 저장하는 별도 파일로 원본 삭제 시 깨집니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">저널링 (Journaling)</h3>
-                            <p class="overview-card__desc">파일 시스템 변경 전 로그(저널)에 먼저 기록합니다. 시스템 충돌 시 저널을 재실행해 일관성을 복구합니다. Linux ext4, NTFS, macOS APFS 모두 저널링을 지원합니다.</p>
+                            <p class="overview-card__desc">파일 시스템 변경 전 로그(저널)에 먼저 기록합니다. 시스템 충돌 시 저널을 재실행해 일관성을 복구합니다. ext4와 NTFS는 저널링을 쓰고, APFS는 저널 대신 메타데이터를 쓰기 시점 복사(CoW) 방식으로 갱신해 일관성을 유지합니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">VFS (Virtual File System)</h3>
-                            <p class="overview-card__desc">다양한 파일 시스템(ext4, FAT, NTFS, tmpfs)을 동일한 인터페이스로 추상화하는 Linux 커널 계층입니다. open(), read(), write() 같은 시스템 콜이 어떤 파일 시스템에서도 동일하게 동작하는 이유입니다.</p>
+                            <p class="overview-card__desc">다양한 파일 시스템(ext4, FAT, NTFS, tmpfs)을 동일한 인터페이스로 추상화하는 Linux 커널 계층입니다. open(), read(), write() 같은 시스템 콜 인터페이스로 여러 파일 시스템에 접근할 수 있는 이유입니다(지원하는 기능은 파일 시스템마다 다릅니다).</p>
                         </div>
                     </div>
 
                     <div class="overview-points">
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>블록 포인터 구조</strong> — 전통적 Unix inode(ext2·ext3)는 직접 포인터(12개), 1단계 간접 포인터, 2단계 간접 포인터, 3단계 간접 포인터로 구성됩니다. 블록 크기 4KB 기준으로 수 TB 크기의 파일을 지원합니다. ext4는 이 방식 대신 연속된 블록 범위를 묶어 표현하는 Extent Tree를 기본으로 사용해 대용량 파일에서 더 효율적입니다.</span>
+                            <span><strong>블록 포인터 구조</strong> — 전통적 Unix inode(ext2·ext3)는 직접 포인터(12개), 1단계 간접 포인터, 2단계 간접 포인터, 3단계 간접 포인터로 구성됩니다. 블록 크기 4KB 기준으로 이론상 수 TB 크기의 파일까지 가리킬 수 있습니다(숫자로 확인하기의 계산 참고). ext4는 이 방식 대신 연속된 블록 범위를 묶어 표현하는 extent를 쓸 수 있어 대용량 파일에서 더 효율적입니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>파일 삭제의 실제 동작</strong> — rm 명령은 데이터를 지우지 않습니다. 디렉토리 엔트리를 제거하고 inode의 링크 카운트를 1 감소시킵니다. 카운트가 0이 되면 블록이 해제됩니다. 이것이 복구 도구가 작동하는 원리입니다.</span>
+                            <span><strong>파일 삭제의 실제 동작</strong> — rm 명령은 데이터를 지우지 않습니다. 디렉토리 엔트리를 제거하고 inode의 링크 카운트를 1 감소시킵니다. 카운트가 0이 되고 파일을 열고 있는 프로세스가 없으면 블록이 해제됩니다. 일반적으로 이 때문에 복구 도구가 동작할 수 있습니다(저장장치와 설정에 따라 다릅니다).</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>ext4 vs NTFS vs APFS</strong> — ext4는 Linux 기본으로 안정적이고 빠릅니다. NTFS는 Windows 기본으로 권한 관리와 암호화를 지원합니다. APFS는 macOS/iOS 기본으로 SSD 최적화, 스냅샷, 복사 시 쓰기(CoW)를 지원합니다.</span>
+                            <span><strong>ext4 vs NTFS vs APFS</strong> — ext4는 많은 Linux 배포판의 기본 파일 시스템입니다. NTFS는 Windows 기본으로 권한 관리와 암호화를 지원합니다. APFS는 macOS/iOS 기본으로 SSD 최적화, 스냅샷, 쓰기 시점 복사(CoW)를 지원합니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>파일 디스크립터 (fd)</strong> — open() 시스템 콜이 반환하는 정수입니다. 프로세스의 파일 테이블 인덱스이며 실제 inode를 가리킵니다. 0(stdin), 1(stdout), 2(stderr)는 예약되어 있습니다.</span>
+                            <span><strong>파일 디스크립터 (fd)</strong> — open() 시스템 콜이 반환하는 정수입니다. 프로세스의 파일 디스크립터 테이블 인덱스이며, 그 항목은 열린 파일 정보를 거쳐 inode를 가리킵니다. 관례상 0(stdin), 1(stdout), 2(stderr)입니다.</span>
                         </div>
                     </div>
 
+
+                    <h2 class="overview-heading">파일 시스템이 하는 일</h2>
+                    <p class="overview-lead">
+                        디스크는 번호가 매겨진 블록의 모음일 뿐이라서, 이름이 있는 파일과 디렉토리 계층으로 보이게 하려면 어떤 블록이 어떤 파일의 것인지 기록하는 구조가 필요합니다. 파일 시스템은 이 기록과 빈 공간 관리, 접근 권한, 충돌 뒤 복구를 맡습니다. 리눅스는 여러 종류의 파일 시스템을 VFS라는 공통 계층 아래에서 같은 인터페이스로 다룹니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>inode 블록 포인터가 가리키는 크기(계산)</strong> — 블록이 4KB이고 포인터가 4바이트이면 한 블록에 포인터가 1,024개 들어갑니다. 직접 포인터 12개는 48KB, 1단계 간접은 1,024 × 4KB = 4MB, 2단계 간접은 1,024² × 4KB = 4GB, 3단계 간접은 1,024³ × 4KB = 4TB를 가리킬 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>하드 링크 수</strong> — 파일 하나에 하드 링크를 2개 더 만들면 inode의 링크 수는 3이 됩니다. 이름을 하나씩 지우면 3 → 2 → 1 → 0이고 0이 되고 더 이상 열려 있지 않을 때 블록이 해제됩니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>작은 파일과 블록 단위(계산)</strong> — 블록이 4KB이고 인라인 데이터 같은 기능이 없다면 100바이트짜리 파일 10,000개의 데이터는 합쳐서 약 1MB이지만 블록으로는 10,000 × 4KB = 약 40MB를 차지합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>FAT32의 파일 크기 한계</strong> — 디렉토리 항목의 파일 크기 필드가 32비트라서 파일 하나는 최대 2³² − 1바이트, 곧 약 4GiB 미만입니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>파일 이름은 inode에 저장된다</strong> — 이름은 디렉토리 항목에 있고 inode에는 크기, 권한, 시각, 블록 위치 같은 메타데이터가 있습니다. 그래서 같은 inode에 이름이 여러 개일 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>rm으로 지우면 데이터가 바로 사라진다</strong> — 이름을 지우고 링크 수를 줄일 뿐입니다. 링크 수가 0이어도 어떤 프로세스가 파일을 열고 있으면 닫을 때까지 해제되지 않습니다(unlink(2) 매뉴얼).</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>저널링이면 데이터가 절대 손상되지 않는다</strong> — ext4의 기본 모드는 메타데이터를 저널링하고, 파일 내용의 일관성은 별도 설정에 달려 있습니다. 저널링은 파일 시스템 구조를 빠르게 복구하는 장치입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>심볼릭 링크는 하드 링크와 같다</strong> — 심볼릭 링크는 경로 문자열을 담은 별도 파일이라 대상이 지워지면 끊어지고, 하드 링크는 같은 inode를 가리키는 또 다른 이름입니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">inode란 무엇인가요?</h3>
+                            <p class="overview-card__desc">파일의 메타데이터와 데이터 블록 위치를 담은 구조체입니다. 파일 이름은 담지 않고 디렉토리 항목이 이름과 inode 번호를 연결합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">/home/a.txt를 열 때 어떤 일이 일어나나요?</h3>
+                            <p class="overview-card__desc">루트 디렉토리의 inode에서 시작해 home 디렉토리의 항목을 찾고, 그 디렉토리에서 a.txt의 inode 번호를 찾습니다. 그 inode의 권한을 확인한 뒤 데이터 블록을 읽습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">하드 링크와 심볼릭 링크는 어떻게 다른가요?</h3>
+                            <p class="overview-card__desc">하드 링크는 같은 inode에 이름을 하나 더 붙이는 것이라 같은 파일 시스템 안에서만 가능하고 어느 이름을 지워도 데이터는 남습니다. 심볼릭 링크는 경로를 담은 별도 파일이라 다른 파일 시스템도 가리킬 수 있고 대상이 지워지면 끊어집니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">저널링은 왜 필요한가요?</h3>
+                            <p class="overview-card__desc">파일 하나를 바꾸는 데 여러 블록을 고쳐야 하는데 중간에 전원이 꺼지면 구조가 어긋납니다. 변경 내용을 먼저 로그에 기록해 두면 재부팅 때 로그를 보고 완료하거나 취소해 일관성을 복구할 수 있습니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>확인 명령</strong> — <code>ls -i</code>로 inode 번호를, <code>stat</code>으로 inode의 메타데이터를, <code>df -i</code>로 inode 사용량을 볼 수 있습니다. ext2·ext3·ext4처럼 inode 수가 만들 때 정해지는 파일 시스템에서는 파일이 적어도 inode가 바닥나면 새 파일을 만들 수 없습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>ext4 구조</strong> — 리눅스 커널 문서는 ext4가 블록 포인터 대신 extent로 파일의 블록 위치를 표현할 수 있고, 전통적인 ext2·ext3의 직접·간접 블록 맵도 설명합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Java의 링크</strong> — <code>Files.createLink</code>와 <code>Files.createSymbolicLink</code>로 하드 링크와 심볼릭 링크를 만들 수 있습니다(파일 시스템과 OS가 지원하고 권한이 있을 때).</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>데이터베이스의 로그</strong> — PostgreSQL의 WAL은 저널링과 비슷하게, 데이터 파일을 고치기 전에 변경을 먼저 로그에 기록합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/system-call}">시스템 콜</a> — open, read, write가 파일 시스템으로 가는 길을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/disk-scheduling}">디스크 스케줄링</a> — 파일 시스템 아래에서 디스크 요청을 정렬하는 방식을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/process}">프로세스</a> — 프로세스의 파일 디스크립터 테이블을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/virtual-memory-os}">가상 메모리</a> — 파일을 메모리에 매핑하는 방식과 연결해 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/transaction}">트랜잭션</a> — 로그를 먼저 쓰는 방식이 트랜잭션에서 쓰이는 모습을 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>inode(7)</strong> — <a href="https://man7.org/linux/man-pages/man7/inode.7.html" target="_blank" rel="noopener">inode(7) — Linux manual page</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>unlink(2)</strong> — <a href="https://man7.org/linux/man-pages/man2/unlink.2.html" target="_blank" rel="noopener">unlink(2) — Linux manual page</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>symlink(7)</strong> — <a href="https://man7.org/linux/man-pages/man7/symlink.7.html" target="_blank" rel="noopener">symlink(7) — Linux manual page</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Linux VFS</strong> — <a href="https://docs.kernel.org/filesystems/vfs.html" target="_blank" rel="noopener">Overview of the Linux Virtual File System — The Linux Kernel documentation</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>ext4</strong> — <a href="https://docs.kernel.org/filesystems/ext4/index.html" target="_blank" rel="noopener">ext4 Data Structures and Algorithms — The Linux Kernel documentation</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>exFAT</strong> — <a href="https://learn.microsoft.com/en-us/windows/win32/fileio/exfat-specification" target="_blank" rel="noopener">exFAT file system specification — Microsoft Learn</a>, <a href="https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2003/cc776720(v=ws.10)" target="_blank" rel="noopener">How FAT Works — Microsoft Learn(FAT32 한계)</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>PostgreSQL WAL</strong> — <a href="https://www.postgresql.org/docs/current/wal-intro.html" target="_blank" rel="noopener">Reliability and the Write-Ahead Log — PostgreSQL Documentation</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>교재</strong> — Silberschatz, Galvin, Gagne, "Operating System Concepts", 10th Edition, "File-System Interface", "File-System Implementation" 장</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 

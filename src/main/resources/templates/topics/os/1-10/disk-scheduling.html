@@ -81,14 +81,14 @@
 
                     <p class="overview-lead">
                         디스크 스케줄링은 <strong>여러 I/O 요청이 들어왔을 때 디스크 헤드의 이동 순서를 결정해 총 이동 거리(탐색 시간)를 최소화</strong>하는 OS 기법입니다.
-                        HDD에서 탐색 시간이 전체 I/O 시간의 대부분을 차지하기 때문에 스케줄링이 중요합니다.
+                        HDD에서는 기계적으로 움직이는 탐색과 회전 지연이 I/O 시간의 큰 부분을 차지하기 때문에 스케줄링이 중요합니다.
                     </p>
 
                     <div class="overview-grid">
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">FCFS (First-Come, First-Served)</h3>
-                            <p class="overview-card__desc">요청이 들어온 순서대로 처리합니다. 구현이 가장 단순하지만 헤드가 불필요하게 왔다갔다 해 총 이동 거리가 가장 깁니다. 공정하지만 비효율적입니다.</p>
+                            <p class="overview-card__desc">요청이 들어온 순서대로 처리합니다. 구현이 가장 단순하지만 헤드가 불필요하게 왔다갔다 해 총 이동 거리가 길어지기 쉽습니다. 공정하지만 비효율적입니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
@@ -98,7 +98,7 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">SCAN (엘리베이터 알고리즘)</h3>
-                            <p class="overview-card__desc">헤드가 한쪽 끝까지 이동하면서 요청을 처리하고, 끝에 도달하면 방향을 바꿔 반대쪽으로 이동합니다. 기아 현상 없이 균등하게 처리하며 실제 엘리베이터와 유사합니다.</p>
+                            <p class="overview-card__desc">헤드가 한쪽 끝까지 이동하면서 요청을 처리하고, 끝에 도달하면 방향을 바꿔 반대쪽으로 이동합니다. SSTF와 달리 기아가 생기지 않으며 실제 엘리베이터와 유사합니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
@@ -108,34 +108,159 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">탐색 시간 (Seek Time)</h3>
-                            <p class="overview-card__desc">헤드를 원하는 트랙으로 이동시키는 시간입니다. 전체 디스크 I/O 시간(탐색+회전지연+전송) 중 가장 큰 비중을 차지합니다. SSD는 기계적 헤드가 없어 탐색 시간이 사실상 0입니다.</p>
+                            <p class="overview-card__desc">헤드를 원하는 트랙으로 이동시키는 시간입니다. 전체 디스크 I/O 시간(탐색+회전지연+전송) 중 큰 비중을 차지합니다. SSD는 기계적 헤드가 없어 탐색 시간이 없습니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">현대 디스크 스케줄링</h3>
-                            <p class="overview-card__desc">Linux 커널은 Deadline, CFQ, BFQ, mq-deadline 스케줄러를 제공합니다. SSD 환경에서는 none 또는 mq-deadline을 사용합니다. NVMe SSD는 큐 깊이가 수만 개로 OS 스케줄링보다 하드웨어 자체 처리가 효율적입니다.</p>
+                            <p class="overview-card__desc">Linux의 멀티큐 블록 계층은 none, mq-deadline, kyber, BFQ 스케줄러를 제공합니다(CFQ와 옛 Deadline은 커널 5.0에서 제거되었습니다). 커널 소스는 하드웨어 큐가 하나인 장치의 기본 스케줄러를 mq-deadline, 여러 개인 장치(NVMe 등)의 기본을 none으로 정합니다(버전에 따라 다릅니다).</p>
                         </div>
                     </div>
 
                     <div class="overview-points">
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>디스크 구조</strong> — 플래터(원판)가 회전하고 헤드가 방사형으로 움직입니다. 트랙(동심원)→섹터(트랙 분할)→클러스터(섹터 묶음) 순으로 구성됩니다. 7200RPM HDD의 회전 지연은 평균 4.2ms입니다.</span>
+                            <span><strong>디스크 구조</strong> — 플래터(원판)가 회전하고 헤드가 방사형으로 움직입니다. 트랙(동심원)→섹터(트랙 분할) 순으로 구성됩니다(클러스터는 보통 파일 시스템의 할당 단위입니다). 7200RPM HDD의 평균 회전 지연은 약 4.17ms입니다(한 바퀴 8.33ms의 절반).</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>LOOK / C-LOOK</strong> — SCAN/C-SCAN의 최적화 버전입니다. 디스크의 끝(0 또는 최대)까지 이동하지 않고, 마지막 요청 위치까지만 이동합니다. 불필요한 이동이 줄어들어 실제 OS에서 더 많이 사용됩니다.</span>
+                            <span><strong>LOOK / C-LOOK</strong> — SCAN/C-SCAN의 최적화 버전입니다. 디스크의 끝(0 또는 최대)까지 이동하지 않고, 마지막 요청 위치까지만 이동합니다. 불필요한 이동이 줄어듭니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>SSTF vs SCAN</strong> — SSTF는 평균 탐색 시간이 짧지만 기아 가능성이 있습니다. SCAN은 약간 더 이동하지만 모든 요청에 공평합니다. 실제 시스템은 SCAN 계열(Deadline, BFQ)을 주로 사용합니다.</span>
+                            <span><strong>SSTF vs SCAN</strong> — SSTF는 평균 탐색 시간이 짧지만 기아 가능성이 있습니다. SCAN은 약간 더 이동할 수 있지만 모든 요청이 한 번의 왕복 안에 처리됩니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>SSD와 스케줄링</strong> — SSD는 기계적 헤드가 없어 탐색 시간이 없습니다. 하지만 Write Amplification, 가비지 컬렉션 때문에 여전히 I/O 스케줄링이 필요합니다. Linux는 SSD에 none 또는 mq-deadline 스케줄러를 권장합니다.</span>
+                            <span><strong>SSD와 스케줄링</strong> — SSD는 기계적 헤드가 없어 탐색 시간이 없습니다. SSD도 내부 동작에 따라 지연이 달라질 수 있습니다. Linux의 기본 스케줄러는 장치의 하드웨어 큐 수에 따라 정해집니다.</span>
                         </div>
                     </div>
 
+
+                    <h2 class="overview-heading">디스크 I/O 시간은 어디서 걸리나</h2>
+                    <p class="overview-lead">
+                        HDD에서 데이터를 읽는 시간은 헤드를 원하는 트랙으로 옮기는 탐색 시간, 원판이 돌아 원하는 섹터가 헤드 아래로 오는 회전 지연, 실제 전송 시간의 합입니다. 이 중 기계적으로 움직이는 탐색과 회전이 큰 부분이라, 요청이 여러 개일 때 처리 순서를 바꿔 헤드 이동을 줄이는 것이 디스크 스케줄링입니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>같은 요청, 다른 이동 거리</strong> — 헤드가 53번 실린더에 있고 요청이 98, 183, 37, 122, 14, 124, 65, 67번(0~199번 범위)이라고 합시다. FCFS는 45 + 85 + 146 + 85 + 108 + 110 + 59 + 2 = 640칸을 움직입니다. SSTF는 65, 67, 37, 14, 98, 122, 124, 183 순서로 가까운 것부터 처리해 236칸입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>SCAN과 LOOK</strong> — 헤드가 0번 쪽으로 먼저 가는 SCAN은 53칸을 가서 0번에 닿고 다시 183번까지 183칸을 가서 모두 236칸입니다. 끝까지 가지 않고 요청이 있는 14번에서 되돌아가는 LOOK은 39 + 169 = 208칸입니다. 이 예에서는 SSTF(236)가 LOOK(208)보다 더 많이 움직여서, SSTF가 전체 최적이 아님을 볼 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>회전 지연 계산</strong> — 7200RPM이면 한 바퀴가 60 ÷ 7200 = 약 8.33ms이고 평균 회전 지연은 절반인 약 4.17ms입니다. 15,000RPM이면 한 바퀴 4ms에 평균 2ms입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>랜덤 4KB 읽기의 시간(가정)</strong> — 평균 탐색 9ms, 회전 지연 4.17ms, 150MB/s 전송(4KB에 약 0.03ms)으로 가정하면 약 13.2ms이고 이 중 탐색이 약 68%입니다. 1초에 약 76번밖에 처리하지 못하는 셈이라 순서를 바꿔 탐색을 줄이는 것이 중요합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>SSTF가 가장 좋은 알고리즘이다</strong> — 매번 가까운 것을 고르는 탐욕적 방식이라 전체 이동 거리가 최소임을 보장하지 않고, 위 예에서 LOOK보다 더 움직였습니다. 먼 요청이 계속 밀리는 기아도 생깁니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>SSD에서도 헤드 이동을 줄이려고 정렬한다</strong> — SSD에는 헤드가 없어서 탐색 시간이 없으므로 헤드 이동을 줄이는 정렬의 이득이 작습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>SCAN은 항상 SSTF보다 이동 거리가 짧다</strong> — 위 예에서는 같은 236칸입니다. 요청의 분포에 따라 달라집니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>운영체제의 스케줄러가 디스크 접근 순서를 완전히 정한다</strong> — 요청은 페이지 캐시와 미리 읽기 같은 위쪽 계층을 거쳐 만들어집니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">FCFS, SSTF, SCAN, C-SCAN의 차이는 무엇인가요?</h3>
+                            <p class="overview-card__desc">FCFS는 도착 순서이고 이동이 많습니다. SSTF는 가까운 요청을 먼저 처리해 이동은 줄지만 기아가 생깁니다. SCAN은 한 방향으로 쓸고 가며 처리하고 끝에서 방향을 바꾸며, C-SCAN은 끝에 닿으면 처음으로 돌아가 한 방향으로만 처리해 대기 시간이 더 고릅니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">LOOK은 SCAN과 무엇이 다른가요?</h3>
+                            <p class="overview-card__desc">SCAN은 디스크 끝까지 가지만 LOOK은 해당 방향에서 마지막 요청까지만 가고 돌아옵니다. 불필요한 이동이 줄어듭니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">SSD에도 디스크 스케줄링이 필요한가요?</h3>
+                            <p class="overview-card__desc">탐색 시간이 없어서 헤드 이동을 줄이는 정렬은 의미가 작습니다. 다만 요청 사이의 공정성이나 지연 상한을 관리하려고 간단한 스케줄러를 둘 수 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">디스크 I/O 시간은 무엇으로 구성되나요?</h3>
+                            <p class="overview-card__desc">탐색 시간, 회전 지연, 전송 시간의 합입니다. HDD에서는 앞의 두 가지가 대부분입니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>스케줄러 확인</strong> — 리눅스 커널 문서는 <code>/sys/block/장치/queue/scheduler</code>에서 현재 I/O 스케줄러를 보고 바꿀 수 있다고 설명합니다. <code>lsblk -d -o NAME,ROTA</code>의 ROTA 열은 커널이 보고하는 회전식 여부(<code>queue/rotational</code>)를 보여 줍니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>mq-deadline</strong> — 커널 문서는 mq-deadline이 요청을 섹터 순서의 묶음으로 처리하되 읽기·쓰기 요청마다 기한(read_expire, write_expire)을 두어 시작 시간을 지키려 하고, 읽기를 우선하되 쓰기가 무한정 밀리지 않게 한다고 설명합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>BFQ</strong> — 커널 문서는 BFQ가 프로세스별 예산(budget)으로 I/O 대역폭을 나누는 스케줄러라고 설명합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/file-system}">파일 시스템</a> — 디스크 요청이 만들어지는 위쪽 계층을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/virtual-memory-os}">가상 메모리</a> — 페이지 폴트가 디스크 I/O로 이어지는 과정을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/cpu-scheduling}">CPU 스케줄링</a> — FCFS, 기아 같은 개념을 CPU에서 비교합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/greedy}">그리디</a> — SSTF가 그리디 선택인 이유를 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>I/O 스케줄러 전환</strong> — <a href="https://docs.kernel.org/block/switching-sched.html" target="_blank" rel="noopener">Switching Scheduler — The Linux Kernel documentation</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>mq-deadline</strong> — <a href="https://docs.kernel.org/block/deadline-iosched.html" target="_blank" rel="noopener">Deadline IO scheduler tunables — The Linux Kernel documentation</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>BFQ</strong> — <a href="https://docs.kernel.org/block/bfq-iosched.html" target="_blank" rel="noopener">BFQ (Budget Fair Queueing) — The Linux Kernel documentation</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>교재</strong> — Silberschatz, Galvin, Gagne, "Operating System Concepts", 10th Edition, Chapter 11 "Mass-Storage Structure"</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 

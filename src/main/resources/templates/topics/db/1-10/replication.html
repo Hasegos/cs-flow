@@ -125,7 +125,7 @@
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>복제 지연이 실무에서 문제되는 순간</strong> — "방금 쓴 데이터를 바로 조회했는데 안 보인다"는 문의는 대부분 Replica가 아직 Primary를 못 따라잡아서 생깁니다(read-your-writes 문제).</span>
+                            <span><strong>복제 지연이 문제되는 순간</strong> — "방금 쓴 데이터를 바로 조회했는데 안 보인다"는 현상은 Replica가 아직 Primary를 따라잡지 못했을 때 생길 수 있습니다(read-your-writes 문제).</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
@@ -137,6 +137,119 @@
                         </div>
                     </div>
 
+
+                    <h2 class="overview-heading">복제는 어떻게 이루어지나요</h2>
+                    <p class="overview-lead">
+                        많은 관계형 DB는 Primary에서 일어난 변경을 <strong>로그</strong>로 기록하고, Replica가 그 로그를 받아 같은 순서로 적용하는 방식으로 복제합니다. PostgreSQL은 WAL(Write-Ahead Log)을 스트리밍으로 전달하고, MySQL은 바이너리 로그를 씁니다. 복제 모델은 쓰기를 받는 곳이 하나인 <strong>단일 리더</strong>, 여러 곳인 <strong>다중 리더</strong>, 정해진 리더가 없는 <strong>리더리스</strong>로 나눕니다. 이 토픽은 단일 리더(Primary-Replica)를 다룹니다.
+                    </p>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>복제를 해 두었으니 백업은 필요 없다</strong> — 복제는 변경을 그대로 따라 하므로 실수로 지운 데이터나 잘못된 UPDATE도 Replica에 똑같이 반영됩니다. 복제는 장애 대비이고 백업은 과거 시점으로 되돌리는 별도의 수단입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Replica를 늘리면 쓰기도 빨라진다</strong> — 단일 리더 구성에서는 쓰기를 모두 Primary가 받으므로 Replica는 읽기 부하만 나눕니다. 쓰기를 늘리려면 샤딩 같은 다른 방법이 필요합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>동기 복제면 아무 문제가 없다</strong> — PostgreSQL처럼 동기 복제를 쓰는 DB에서는 동기 Replica가 응답하지 않으면 Primary의 커밋이 기다리게 되어 쓰기가 멈출 수 있습니다(읽기는 영향이 없습니다). 가용성과 유실 방지 사이의 선택입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>비동기 Replica도 항상 최신이다</strong> — 복제 지연 때문에 Replica는 Primary보다 과거의 상태일 수 있습니다. 방금 쓴 값을 Replica에서 바로 읽으면 안 보일 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>자동 장애 조치는 켜 두면 안전하다</strong> — 네트워크 문제로 Primary가 죽었다고 오판하면 Primary가 두 개가 되는 스플릿 브레인(split-brain)이 생길 수 있어, 장애 판단 방식을 신중히 설계해야 합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">복제 지연이 있을 때 사용자가 방금 쓴 글이 안 보이는 문제는 어떻게 해결하나요?</h3>
+                            <p class="overview-card__desc">자신이 쓴 데이터를 읽을 때만 Primary에서 읽게 하거나(read-your-writes), 쓴 직후 일정 시간은 Primary로 읽기를 보냅니다. 같은 사용자의 읽기를 항상 같은 Replica로 보내면 시간이 거꾸로 흐르는 것처럼 보이는 문제도 줄일 수 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">동기, 비동기, 반동기 복제를 비교해 보세요.</h3>
+                            <p class="overview-card__desc">동기는 Replica 확인까지 기다려 유실 위험이 낮지만 느리고, 비동기는 기다리지 않아 빠르지만 장애 시 최근 데이터를 잃을 수 있습니다. 반동기는 Replica 한 곳이 받았다는 확인만 기다리는 절충안으로 일부 DB가 지원합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">스플릿 브레인이란 무엇인가요?</h3>
+                            <p class="overview-card__desc">네트워크 단절 등으로 둘 이상의 노드가 자신이 Primary라고 믿어 서로 다른 쓰기를 받는 상황입니다. 데이터가 갈라지므로, 과반수 투표나 이전 Primary 격리(펜싱) 같은 방법으로 막습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">복제와 샤딩은 무엇이 다른가요?</h3>
+                            <p class="overview-card__desc">복제는 같은 데이터를 여러 서버에 복사해 읽기 확장과 장애 대비를 얻고, 샤딩은 데이터를 나눠서 서버마다 일부만 저장해 용량과 쓰기를 확장합니다. 두 가지를 함께 쓰는 구성도 있습니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>PostgreSQL</strong> — 스트리밍 복제를 지원하고, 동기 복제는 synchronous_standby_names로 지정합니다. Primary에서 pg_stat_replication 뷰로 Replica의 상태와 복제 지연을 볼 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>MongoDB</strong> — 데이터가 복제된 노드 묶음을 레플리카 셋이라 하고, Primary가 장애가 나면 나머지 노드 중 선거 자격이 있는 노드가 선거를 열고, 과반수 표를 얻은 노드가 새 Primary가 됩니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Spring</strong> — AbstractRoutingDataSource로 쓰기용과 읽기용 DataSource 중 하나를 고르도록 구성하고, LazyConnectionDataSourceProxy를 함께 쓰면 읽기 전용 트랜잭션 여부를 기준으로 읽기용(예: Replica) DataSource로 보내는 구성도 만들 수 있습니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/sharding}">샤딩</a> — 데이터를 나눠 쓰기까지 확장하는 방법을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/transaction}">트랜잭션</a> — 커밋이 언제 확정되는지와 복제 확인의 관계를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/nosql}">NoSQL</a> — 최종 일관성을 택하는 저장소가 많은 NoSQL을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/rdbms-basic}">RDBMS 기초</a> — 복제의 대상이 되는 관계형 DB의 기본을 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>PostgreSQL 고가용성</strong> — <a href="https://www.postgresql.org/docs/current/high-availability.html" target="_blank" rel="noopener">High Availability, Load Balancing, and Replication — PostgreSQL Documentation</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>PostgreSQL 대기 서버</strong> — <a href="https://www.postgresql.org/docs/current/warm-standby.html" target="_blank" rel="noopener">Log-Shipping Standby Servers — PostgreSQL Documentation</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>MongoDB 복제</strong> — <a href="https://www.mongodb.com/docs/manual/replication/" target="_blank" rel="noopener">Replication — MongoDB Docs</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Spring 라우팅</strong> — <a href="https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/jdbc/datasource/lookup/AbstractRoutingDataSource.html" target="_blank" rel="noopener">AbstractRoutingDataSource — Spring Framework API</a>, <a href="https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/jdbc/datasource/LazyConnectionDataSourceProxy.html" target="_blank" rel="noopener">LazyConnectionDataSourceProxy — Spring Framework API</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>교재</strong> — Kleppmann, "Designing Data-Intensive Applications" (O'Reilly, 1판) 5장 "Replication"</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 

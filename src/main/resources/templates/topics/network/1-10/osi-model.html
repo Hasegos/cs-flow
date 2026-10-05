@@ -94,7 +94,7 @@
                         <div class="overview-card">
                             <p class="overview-card__label">6계층 — Presentation</p>
                             <h3 class="overview-card__title">표현 계층</h3>
-                            <p class="overview-card__desc">데이터의 형식 변환·암호화·압축을 담당합니다. 송신 측의 데이터 형식을 수신 측이 이해할 수 있는 형식으로 변환합니다. SSL/TLS 암호화, JPEG·MP3 포맷 변환, ASCII·UTF-8 인코딩 변환이 이 계층의 역할입니다. 현대 TCP/IP에서는 응용 계층에 통합되는 경우가 많습니다.</p>
+                            <p class="overview-card__desc">데이터의 형식 변환·암호화·압축을 담당합니다. 송신 측의 데이터 형식을 수신 측이 이해할 수 있는 형식으로 변환합니다. SSL/TLS 암호화, JPEG·MP3 포맷 변환, ASCII·UTF-8 인코딩 변환이 이 계층의 역할로 설명됩니다(실제 프로토콜이 계층에 정확히 대응하지는 않습니다). 현대 TCP/IP에서는 응용 계층에 통합되는 경우가 많습니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">5계층 — Session</p>
@@ -109,7 +109,7 @@
                         <div class="overview-card">
                             <p class="overview-card__label">3계층 — Network</p>
                             <h3 class="overview-card__title">네트워크 계층</h3>
-                            <p class="overview-card__desc">서로 다른 네트워크 간의 경로를 결정(라우팅)합니다. IP 주소를 사용해 논리적 주소를 지정하며, 라우터가 이 계층에서 동작합니다. IPv4·IPv6·ICMP·ARP가 대표 프로토콜이며, 데이터 단위는 패킷(Packet)입니다.</p>
+                            <p class="overview-card__desc">서로 다른 네트워크 간의 경로를 결정(라우팅)합니다. IP 주소를 사용해 논리적 주소를 지정하며, 라우터가 이 계층에서 동작합니다. IPv4·IPv6·ICMP가 대표 프로토콜이며(ARP는 2계층과 3계층 사이로 설명하기도 합니다), 데이터 단위는 패킷(Packet)입니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">2계층 — Data Link</p>
@@ -121,7 +121,7 @@
                     <div class="overview-points">
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>1계층 — Physical (물리 계층)</strong> — 비트를 전기·광·무선 신호로 변환해 전송합니다. 케이블의 전압 레벨, 핀 배치, 신호 타이밍을 정의합니다. 허브·리피터·케이블·NIC가 이 계층의 장치입니다. 데이터 단위는 비트(Bit)입니다.</span>
+                            <span><strong>1계층 — Physical (물리 계층)</strong> — 비트를 전기·광·무선 신호로 변환해 전송합니다. 케이블의 전압 레벨, 핀 배치, 신호 타이밍을 정의합니다. 허브·리피터·케이블이 이 계층의 장치이고, NIC는 1계층과 2계층에 걸칩니다. 데이터 단위는 비트(Bit)입니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
@@ -133,10 +133,139 @@
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>계층별 장비</strong> — Physical: 허브·리피터, Data Link: 스위치·브리지, Network: 라우터, Transport 이상: 게이트웨이·L7 로드 밸런서. 각 장비는 해당 계층까지의 헤더만 읽고 처리하며, 상위 계층 내용은 관여하지 않습니다.</span>
+                            <span><strong>계층별 장비</strong> — Physical: 허브·리피터, Data Link: 스위치·브리지, Network: 라우터, Transport 이상: 게이트웨이·L7 로드 밸런서. 각 장비는 기본적으로 해당 계층까지의 헤더를 읽고 처리하며 상위 계층 내용에는 관여하지 않습니다(여러 계층을 함께 처리하는 장비도 있습니다).</span>
                         </div>
                     </div>
 
+
+                    <h2 class="overview-heading">OSI 모델이 나온 배경</h2>
+                    <p class="overview-lead">
+                        OSI 참조 모델은 서로 다른 제조사의 장비와 소프트웨어가 통신할 수 있도록 통신 기능을 7개 계층으로 나눈 모델입니다. ISO가 표준(ISO/IEC 7498-1)으로 정했고 ITU-T도 같은 내용을 X.200으로 권고합니다. 실제 인터넷은 이 모델이 아니라 TCP/IP 구조로 만들어졌지만, 문제를 계층별로 나눠 말하는 공통 언어로 널리 쓰입니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>캡슐화로 늘어나는 헤더</strong> — 이더넷 프레임의 데이터 필드는 최대 1,500바이트입니다(IP 입장에서는 MTU 1,500). IPv4 헤더는 옵션이 없으면 20바이트이고 TCP 헤더도 옵션이 없으면 20바이트라서, 옵션이 없을 때 TCP 한 세그먼트가 실을 수 있는 데이터는 1,500 − 20 − 20 = 1,460바이트입니다(IP·TCP 옵션이 붙으면 줄어듭니다).</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이더넷 프레임 전체 크기</strong> — 이더넷 헤더 14바이트와 끝의 FCS 4바이트가 더해져 데이터 1,500바이트일 때 프레임은 1,518바이트입니다(802.3 기본 프레임, VLAN 태그 등은 제외).</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>OSI와 TCP/IP</strong> — OSI는 7계층이고 TCP/IP는 4계층(RFC 1122 기준 링크, 인터넷, 전송, 응용)으로 설명됩니다. 교재에 따라 TCP/IP를 5계층으로 나눠 부르기도 합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>인터넷은 OSI 7계층 위에서 돌아간다</strong> — 실제 프로토콜은 TCP/IP 구조를 따릅니다. OSI는 참조 모델이어서 프로토콜을 설명하는 틀로 쓰입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>모든 프로토콜은 정확히 한 계층에 속한다</strong> — 구분이 애매한 것이 많습니다. TLS는 표현 계층의 기능(암호화)으로 설명되지만 OSI의 어느 계층에 정확히 대응하는지는 자료마다 다르고, ARP도 2계층과 3계층 사이에 놓입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>스위치는 2계층 장비이므로 IP를 절대 보지 않는다</strong> — 2계층 스위치는 MAC 주소로 전달하지만, 3계층 기능을 가진 스위치도 있습니다. 장비 이름보다 어떤 헤더까지 보고 처리하는지가 중요합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>계층을 나누면 항상 효율적이다</strong> — 계층화는 이해와 교체를 쉽게 하지만 계층 사이에 불필요한 처리가 생길 수 있습니다. RFC 3439에는 계층화가 해로울 수 있다는 논의가 따로 있습니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">OSI 7계층을 설명해 주세요.</h3>
+                            <p class="overview-card__desc">물리, 데이터 링크, 네트워크, 전송, 세션, 표현, 응용 순서입니다. 아래 계층일수록 신호와 프레임에 가깝고 위 계층일수록 사용자와 가까운 데이터를 다룹니다. 계층마다 데이터 단위(비트, 프레임, 패킷, 세그먼트)와 대표 장비가 다릅니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">TCP/IP 4계층과 OSI 7계층의 차이는 무엇인가요?</h3>
+                            <p class="overview-card__desc">OSI는 이론적 참조 모델이고 TCP/IP는 실제로 쓰이는 구조입니다. OSI의 5·6·7계층 기능이 TCP/IP의 응용 계층에 합쳐지고 1·2계층이 링크 계층으로 묶입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">브라우저에서 주소를 입력하면 각 계층에서 무슨 일이 일어나나요?</h3>
+                            <p class="overview-card__desc">응용 계층에서 HTTP 요청을 만들고, 전송 계층에서 TCP 헤더를 붙이고, 네트워크 계층에서 IP 헤더를, 데이터 링크 계층에서 이더넷 헤더와 트레일러를 붙인 뒤 물리 계층으로 비트를 내보냅니다. 수신 측은 반대 순서로 헤더를 벗깁니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">L4 로드 밸런서와 L7 로드 밸런서의 차이는 무엇인가요?</h3>
+                            <p class="overview-card__desc">L4는 IP와 포트 같은 전송 계층 정보로, L7은 HTTP 요청의 경로와 헤더 같은 응용 계층 내용으로 분산합니다. L7은 더 세밀하게 나눌 수 있지만 요청을 해석하는 비용이 듭니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>AWS 로드 밸런서</strong> — AWS 문서는 Application Load Balancer가 OSI 모델의 7번째 계층(응용 계층)에서, Network Load Balancer가 4번째 계층(전송 계층)에서 동작한다고 설명합니다. <a th:href="@{/network/load-balancer}">로드 밸런서</a> 토픽에서 이어서 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>패킷 분석 도구</strong> — Wireshark의 패킷 상세 창은 프로토콜별로 접고 펼 수 있는 트리를 보여 줍니다. 맨 위 Frame은 캡처 정보를 담은 항목이고 그 아래에 이더넷, IP, TCP 같은 헤더가 쌓여 있어서 캡슐화를 눈으로 확인할 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>TCP/IP의 정의</strong> — RFC 1122는 호스트가 구현해야 하는 링크, 인터넷, 전송, 응용 계층에 대한 요구 사항을 정의합니다. <a th:href="@{/network/tcp-ip}">TCP/IP</a> 토픽에서 이어서 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/tcp-ip}">TCP/IP</a> — 실제로 쓰이는 4계층 구조와 핸드셰이크를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/http}">HTTP</a> — 응용 계층 프로토콜의 대표를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/https-tls}">HTTPS / TLS</a> — 표현 계층 기능으로 설명되는 암호화를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/routing}">라우팅</a> — 네트워크 계층의 경로 결정을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/load-balancer}">로드 밸런서</a> — L4와 L7 분산의 차이를 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>RFC 1122</strong> — <a href="https://www.rfc-editor.org/rfc/rfc1122" target="_blank" rel="noopener">RFC 1122 — Requirements for Internet Hosts — Communication Layers</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>RFC 3439</strong> — <a href="https://www.rfc-editor.org/rfc/rfc3439" target="_blank" rel="noopener">RFC 3439 — Some Internet Architectural Guidelines and Philosophy</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>AWS ALB / NLB</strong> — <a href="https://docs.aws.amazon.com/elasticloadbalancing/latest/application/introduction.html" target="_blank" rel="noopener">What is an Application Load Balancer? — AWS Documentation</a>, <a href="https://docs.aws.amazon.com/elasticloadbalancing/latest/network/introduction.html" target="_blank" rel="noopener">What is a Network Load Balancer? — AWS Documentation</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Wireshark</strong> — <a href="https://wiki.wireshark.org/Protocols/frame" target="_blank" rel="noopener">Frame — Wireshark Wiki</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>표준</strong> — ISO/IEC 7498-1, ITU-T Recommendation X.200 (OSI 기본 참조 모델)</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 

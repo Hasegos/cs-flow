@@ -90,12 +90,12 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">공유락 (Shared Lock, S)</h3>
-                            <p class="overview-card__desc">읽기(SELECT)용 락입니다. 여러 트랜잭션이 같은 데이터에 동시에 걸 수 있습니다 — 읽기끼리는 서로 방해가 안 됩니다.</p>
+                            <p class="overview-card__desc">읽기용 락입니다. 여러 트랜잭션이 같은 데이터에 동시에 걸 수 있습니다 — 읽기끼리는 서로 방해가 안 됩니다. MVCC를 쓰는 DB(PostgreSQL, Oracle, MySQL InnoDB)의 일반 SELECT는 기본 격리 수준에서 행 읽기 락을 걸지 않습니다. 락 기반으로 읽는 DB는 다르고, InnoDB SERIALIZABLE 같은 예외도 있습니다(아래 오해 참고).</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">배타락 (Exclusive Lock, X)</h3>
-                            <p class="overview-card__desc">쓰기(UPDATE/DELETE)용 락입니다. 한 번에 하나의 트랜잭션만 가질 수 있고, 다른 락과 전혀 호환되지 않습니다.</p>
+                            <p class="overview-card__desc">쓰기(INSERT/UPDATE/DELETE)용 락입니다. 한 번에 하나의 트랜잭션만 가질 수 있고, 같은 데이터에 대한 다른 S·X 락과 호환되지 않습니다(MVCC의 일반 SELECT는 행 락을 요청하지 않아 행 쓰기에 막히지 않습니다).</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
@@ -110,7 +110,7 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">데드락 감지와 희생자(Victim)</h3>
-                            <p class="overview-card__desc">DB는 대기-그래프(wait-for graph)에서 순환을 찾아내면, 그중 한 트랜잭션을 강제로 롤백시켜 순환을 끊습니다.</p>
+                            <p class="overview-card__desc">많은 DB는 대기-그래프(wait-for graph)에서 순환을 찾아내면, 그중 한 트랜잭션(또는 문장)을 롤백시켜 순환을 끊습니다. 방식과 롤백 범위는 DB마다 다릅니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
@@ -130,7 +130,7 @@
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>희생자는 누가 될까</strong> — 보통 작업량이 적은 트랜잭션(롤백 비용이 적은 쪽)이 희생자로 선택됩니다. 이 시각화에서는 B가 선택되어 롤백되고, A는 계속 진행합니다.</span>
+                            <span><strong>희생자는 누가 될까</strong> — 어느 트랜잭션을 희생시킬지는 DB마다 다릅니다. 예를 들어 MySQL InnoDB는 변경한 행이 적은 작은 트랜잭션을 고르려고 합니다. 이 시각화에서는 B가 선택되어 롤백되고, A는 계속 진행합니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
@@ -138,6 +138,122 @@
                         </div>
                     </div>
 
+
+                    <h2 class="overview-heading">락의 단위와 종류 더 보기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>락 단위(granularity)</strong> — 락은 행, 페이지, 테이블 같은 단위로 걸 수 있습니다. 단위가 작을수록 동시에 처리할 수 있는 일이 많지만 락을 관리하는 비용이 늘어납니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>의도 락</strong> — 행에 락을 걸기 전에 테이블 같은 상위 단위에 "아래에서 락을 걸 예정"이라는 표시를 해 두는 방식입니다. 상위 단위 락과 충돌하는지를 빠르게 판단하게 해 줍니다. 이름과 구현은 DB마다 다릅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>비관적 락 vs 낙관적 락</strong> — 비관적 락은 충돌이 날 것으로 보고 읽을 때부터 락을 겁니다(SELECT ... FOR UPDATE). 낙관적 락은 DB 락을 미리 잡지 않고 진행하다가 저장할 때 버전 값이 바뀌었는지 확인해 충돌하면 실패시킵니다(JPA의 @Version).</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>SELECT는 항상 공유락을 건다</strong> — PostgreSQL, Oracle, MySQL InnoDB처럼 MVCC를 쓰는 DB는 기본 격리 수준에서 일반 SELECT가 행 읽기 락 없이 스냅샷을 읽습니다(autocommit을 끈 InnoDB SERIALIZABLE처럼 예외가 있습니다). 읽기에 락을 거는 것은 SELECT ... FOR SHARE(PostgreSQL, MySQL)나 FOR UPDATE처럼 명시했을 때나, 락 기반으로 격리를 구현하는 DB에서입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>데드락은 DB의 버그다</strong> — 락을 서로 다른 순서로 요청하는 정상적인 코드에서도 생길 수 있고, DB가 이를 감지해 한쪽을 중단시키는 것이 설계된 동작입니다. 중단된 트랜잭션은 애플리케이션이 다시 시도해야 합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>데드락이 나면 DB가 둘 다 알아서 풀어 준다</strong> — DB는 한쪽 트랜잭션(DB에 따라 문장)을 에러로 롤백시켜 순환을 끊고 다른 한쪽을 계속 진행시킵니다. 롤백된 쪽은 오류를 받으므로 재시도 처리가 없으면 요청이 실패합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>락이 없는 편이 더 안전하다</strong> — 락 없이 동시에 같은 데이터를 고치면 값이 꼬입니다. 락 대신 낙관적 방식을 쓰더라도 충돌을 감지하는 장치는 필요합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>트랜잭션을 길게 열어 두어도 문제없다</strong> — 쓰기 락은 보통 커밋이나 롤백까지 유지되므로 트랜잭션이 길수록 다른 트랜잭션이 오래 기다리고 데드락 가능성도 커집니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">데드락이 생기는 조건은 무엇인가요?</h3>
+                            <p class="overview-card__desc">상호 배제(락을 한 번에 하나만 가짐), 점유와 대기(락을 쥔 채 다른 락을 기다림), 비선점(락을 강제로 뺏을 수 없음), 순환 대기(서로의 락을 기다림)의 네 가지가 모두 성립할 때 생길 수 있습니다. 이 중 하나를 깨면 예방할 수 있습니다. 운영체제의 데드락과 같은 조건입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">데이터베이스에서 데드락을 줄이는 방법은 무엇인가요?</h3>
+                            <p class="overview-card__desc">여러 행이나 테이블을 항상 같은 순서로 잠그고, 트랜잭션을 짧게 유지하며, 인덱스를 써서 필요 이상으로 많은 행에 락이 걸리지 않게 합니다. 그래도 생길 수 있으므로 데드락 오류에 대한 재시도 로직을 둡니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">비관적 락과 낙관적 락은 언제 각각 쓰나요?</h3>
+                            <p class="overview-card__desc">일반적으로 충돌이 드물고 읽기가 많으면 낙관적 락이 락 대기를 줄여 줍니다. 충돌이 잦으면 재시도 비용이 커지므로 비관적 락을 고려합니다. 충돌 빈도에 따라 고릅니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">DB는 데드락을 어떻게 알아내나요?</h3>
+                            <p class="overview-card__desc">트랜잭션 사이의 기다림 관계를 그래프(wait-for graph)로 그려 순환이 있는지 확인합니다. PostgreSQL은 락을 일정 시간 기다린 뒤에 이 검사를 시작하고, MySQL InnoDB는 감지를 끄고 락 대기 시간 초과(innodb_lock_wait_timeout)로 롤백하게 설정할 수도 있습니다. 순환이 있으면 한 트랜잭션을 골라 중단시킵니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>PostgreSQL</strong> — 락을 기다린 시간이 deadlock_timeout(기본 1초)을 넘으면 데드락 검사를 시작하고, 데드락이면 한 트랜잭션에 "deadlock detected" 오류를 냅니다. pg_locks 뷰로 현재 락 상태를 볼 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>MySQL InnoDB</strong> — SHOW ENGINE INNODB STATUS 출력의 "LATEST DETECTED DEADLOCK" 부분에 마지막 데드락의 관련 트랜잭션과 쿼리가 나옵니다. 희생자를 고를 때는 변경한 행이 적은 작은 트랜잭션을 우선하려고 합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>JPA와 Spring Data JPA</strong> — 엔티티에 @Version 필드를 두면 낙관적 락이, 조회에 @Lock(PESSIMISTIC_WRITE)를 주면 비관적 락이 적용됩니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/transaction}">트랜잭션</a> — 락이 격리 수준과 어떻게 이어지는지 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/deadlock}">교착 상태(운영체제)</a> — 같은 현상을 프로세스와 자원 관점에서 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/index}">인덱스</a> — 인덱스가 락이 걸리는 범위에 영향을 주는 이유를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/nosql}">NoSQL</a> — NoSQL 저장소가 동시성을 다루는 방식을 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>PostgreSQL 명시적 락</strong> — <a href="https://www.postgresql.org/docs/current/explicit-locking.html" target="_blank" rel="noopener">Explicit Locking — PostgreSQL Documentation</a>, <a href="https://www.postgresql.org/docs/current/runtime-config-locks.html" target="_blank" rel="noopener">Lock Management (deadlock_timeout)</a>, <a href="https://www.postgresql.org/docs/current/mvcc-intro.html" target="_blank" rel="noopener">Concurrency Control — Introduction (MVCC)</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Spring Data JPA 락</strong> — <a href="https://docs.spring.io/spring-data/jpa/reference/jpa/locking.html" target="_blank" rel="noopener">Locking — Spring Data JPA Reference</a>, <a href="https://jakarta.ee/specifications/persistence/3.2/jakarta-persistence-spec-3.2.html" target="_blank" rel="noopener">Jakarta Persistence 3.2 Specification</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>교재</strong> — Silberschatz, Korth, Sudarshan, "Database System Concepts" 7판, "Concurrency Control" 장</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 

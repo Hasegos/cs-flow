@@ -152,6 +152,135 @@
                         </div>
                     </div>
 
+
+                    <h2 class="overview-heading">비순차 실행의 역사</h2>
+                    <p class="overview-lead">
+                        비순차 실행의 핵심 아이디어는 1967년 IBM System/360 Model 91의 부동소수점 장치에서 로버트 토마술로(Robert Tomasulo)가 쓴 알고리즘에서 나온 것으로 알려져 있습니다. 순서대로 확정하는 구조(리오더 버퍼)는 스미스(Smith)와 플레스쿤(Pleszkun)이 정밀 예외(논문 용어로 precise interrupt)를 위한 여러 해법 중 하나로 다룬 연구(1985년 ISCA)로 소개됩니다. 이후 일반 프로세서의 표준 기법이 되었습니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화의 5개 명령어</strong> — 순차 실행은 12사이클, 비순차 실행은 7사이클에 끝납니다. I1(LOAD)이 6사이클 걸리는 동안 I3(MUL, 3사이클)과 I5(ADD)가 먼저 실행되고, 발행 순서는 I1 → I3 → I5 → I4 → I2입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>확정은 순서대로</strong> — 같은 예에서 확정(commit)은 I1이 사이클 7, I2와 I3이 사이클 8, I4와 I5가 사이클 9입니다. 한 사이클에 2개까지 확정하는 설정입니다. 실행 순서가 뒤섞여도 결과가 반영되는 순서는 프로그램 순서 그대로입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>창 크기의 한계(가정한 예)</strong> — ROB가 200개이고 한 사이클에 4개씩 처리한다고 가정하면 창이 채워지기까지 약 50사이클입니다. 메모리 지연이 300사이클이면 그 뒤로는 앞당길 명령어가 없어 멈춥니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>비순차 실행이면 프로그램 결과가 달라질 수 있다</strong> — 한 스레드가 보기에는 프로그램 순서대로 실행한 것과 같은 결과를 내도록 확정이 순서대로 이뤄집니다. 달라지는 것은 내부 실행 순서입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>비순차 실행이면 항상 빠르다</strong> — 모든 명령어가 앞 결과를 기다리는 의존성 사슬(연결 리스트 따라가기)에서는 앞당길 명령어가 없습니다. 이득은 독립 명령어가 있을 때 생깁니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>다른 코어도 내 코드를 프로그램 순서로 본다</strong> — 한 코어 안의 결과는 순서대로 보이지만 멀티스레드에서 다른 코어가 메모리 쓰기를 관찰하는 순서는 아키텍처의 메모리 모델에 달려 있습니다. 그래서 동기화나 메모리 배리어가 필요합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>가짜 의존성은 컴파일러가 모두 해결한다</strong> — 컴파일러도 줄이지만 레지스터 개수가 정해져 있어서, CPU가 물리 레지스터로 이름을 바꿔 주는 리네이밍을 따로 둡니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">비순차 실행은 어떤 문제를 푸나요?</h3>
+                            <p class="overview-card__desc">캐시 미스 같은 긴 지연 동안 뒤에 있는 독립 명령어를 먼저 실행해 파이프라인이 멈추는 시간을 줄입니다. 의존성이 없는 명령어의 순서를 바꿔도 결과가 같다는 점을 이용합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">리오더 버퍼(ROB)는 왜 필요한가요?</h3>
+                            <p class="overview-card__desc">실행은 뒤섞여도 결과는 프로그램 순서대로 확정해야 합니다. ROB는 실행이 끝난 결과를 보관하다 맨 앞부터 순서대로 반영해 정밀 예외와 분기 예측 실패 복구를 가능하게 합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">레지스터 리네이밍이 없으면 어떻게 되나요?</h3>
+                            <p class="overview-card__desc">WAR와 WAW 같은 가짜 의존성 때문에 독립적인 명령어도 같은 레지스터 이름을 쓰면 순서를 지켜야 해서 병렬성이 줄어듭니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">슈퍼스칼라와 비순차 실행은 같은 말인가요?</h3>
+                            <p class="overview-card__desc">다릅니다. 슈퍼스칼라는 한 사이클에 여러 명령어를 발행하는 폭에 대한 개념이고, 비순차 실행은 발행 순서를 프로그램 순서와 다르게 하는 개념입니다. 순차 실행하는 이중 발행 코어(예: Arm Cortex-A53)도 있습니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>메모리 모델</strong> — 인텔 64 및 IA-32 개발자 매뉴얼(Vol.3A)의 Memory Ordering 절은 메모리 접근 순서에 대한 규칙(메모리 순서 모델)을 따로 정의하고, 로드와 저장이 어떤 경우에 다른 프로세서에서 다른 순서로 관찰될 수 있는지 설명합니다. 자바 언어 명세는 이를 언어 수준의 happens-before 규칙으로 감쌉니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>추측 실행 취약점</strong> — Spectre와 Meltdown은 확정되지 못한 추측 실행이 남긴 캐시 흔적을 이용한 공격입니다. 리눅스 커널 문서는 Spectre에 대한 완화 방법을, 별도 문서에서 Meltdown에 대한 대응(커널 페이지 테이블 격리)을 설명합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>캐시와의 관계</strong> — 비순차 실행이 숨기려는 지연의 대표가 캐시 미스입니다. <a th:href="@{/arch/cache-memory}">캐시 메모리</a> 토픽에서 미스가 왜 비싼지 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/arch/pipelining}">파이프라이닝</a> — 비순차 실행의 바탕이 되는 파이프라인과 해저드를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/arch/branch-prediction}">분기 예측</a> — 추측 실행과 예측 실패 복구를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/arch/cache-memory}">캐시 메모리</a> — 비순차 실행이 숨기는 메모리 지연을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/arch/instruction-cycle}">명령어 사이클</a> — 한 명령어가 처리되는 기본 단계를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/process-sync}">프로세스 동기화</a> — 메모리 순서가 동기화에서 중요한 이유를 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Linux Spectre</strong> — <a href="https://docs.kernel.org/admin-guide/hw-vuln/spectre.html" target="_blank" rel="noopener">Spectre Side Channels — The Linux Kernel documentation</a>, <a href="https://docs.kernel.org/arch/x86/pti.html" target="_blank" rel="noopener">Page Table Isolation (PTI) — The Linux Kernel documentation</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>자바 메모리 모델</strong> — <a href="https://docs.oracle.com/javase/specs/jls/se21/html/jls-17.html" target="_blank" rel="noopener">Java Language Specification — Chapter 17. Threads and Locks</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>원 논문</strong> — Tomasulo, "An Efficient Algorithm for Exploiting Multiple Arithmetic Units", IBM Journal of Research and Development 11(1), 1967</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>논문</strong> — Kocher 외, "Spectre Attacks: Exploiting Speculative Execution", 2018 / Lipp 외, "Meltdown: Reading Kernel Memory from User Space", USENIX Security Symposium, 2018</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>교재</strong> — Hennessy, Patterson, "Computer Architecture: A Quantitative Approach", "Instruction-Level Parallelism and Its Exploitation" 장</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 

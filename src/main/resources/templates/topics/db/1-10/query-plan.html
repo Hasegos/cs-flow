@@ -95,7 +95,7 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">선택도 (Selectivity)</h3>
-                            <p class="overview-card__desc">조건에 맞는 행이 전체에서 차지하는 비율입니다. 선택도가 낮을수록(희귀한 값일수록) 인덱스가 유리합니다.</p>
+                            <p class="overview-card__desc">조건에 맞는 행이 전체에서 차지하는 비율입니다. 선택도가 낮을수록(희귀한 값일수록) 인덱스가 유리합니다. 자료에 따라 '선택도가 높다'를 반대 뜻으로 쓰기도 하므로 정의를 확인해야 합니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
@@ -105,7 +105,7 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">EXPLAIN의 type</h3>
-                            <p class="overview-card__desc">ALL(풀 스캔), const·ref·range(인덱스 사용) 등으로 어떤 방식이 선택됐는지 보여줍니다.</p>
+                            <p class="overview-card__desc">MySQL EXPLAIN 기준으로 ALL(풀 스캔), const·ref·range(인덱스 사용) 등으로 어떤 방식이 선택됐는지 보여줍니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
@@ -130,7 +130,7 @@
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>왜 이게 실무에서 중요한가</strong> — "인덱스를 걸었는데 왜 안 타지?"라는 질문의 답이 대부분 여기 있습니다. 컬럼 값의 분포(카디널리티)를 모르고 무작정 인덱스를 걸면 기대한 효과가 안 나올 수 있습니다.</span>
+                            <span><strong>왜 이게 실무에서 중요한가</strong> — "인덱스를 걸었는데 왜 안 타지?"라는 질문의 답 중 하나가 여기 있습니다. 컬럼 값의 분포(카디널리티)를 모르고 무작정 인덱스를 걸면 기대한 효과가 안 나올 수 있습니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
@@ -138,6 +138,119 @@
                         </div>
                     </div>
 
+
+                    <h2 class="overview-heading">비용 기반 옵티마이저</h2>
+                    <p class="overview-lead">
+                        관계형 DB는 쿼리를 어떻게 실행할지 사용자가 아니라 옵티마이저가 정합니다. 가능한 실행 계획마다 예상 비용을 계산해 가장 싼 계획을 고르는 비용 기반 방식은 IBM System R 연구의 접근 경로 선택 논문(Selinger 등, 1979)에서 널리 알려졌습니다. 비용 계산에는 테이블 행 수와 값의 분포 같은 통계가 쓰이므로, 통계가 실제와 다르면 계획이 어긋날 수 있습니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>PostgreSQL의 기본 비용 가정</strong> — 순차 페이지 읽기 비용을 1.0, 임의 페이지 읽기 비용을 4.0으로 두는 것이 기본 설정(<code>seq_page_cost</code>, <code>random_page_cost</code>)입니다. 임의 접근이 순차 접근의 4배라는 가정이라, 일치하는 행이 많으면 인덱스 스캔이 불리해집니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>선택도 예시(설명용)</strong> — 100만 행 테이블에서 조건에 맞는 행이 0.1%면 1,000행이어서 인덱스로 찾는 쪽이 유리합니다. 90%면 90만 행을 흩어진 위치에서 하나씩 읽게 되어 순서대로 읽는 풀 스캔이 유리해질 수 있습니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>EXPLAIN은 쿼리를 실행해서 결과를 보여 준다</strong> — 그냥 EXPLAIN은 실행 계획만 보여 주고 쿼리를 실행하지 않습니다. PostgreSQL의 <code>EXPLAIN ANALYZE</code>는 실제로 실행하므로, INSERT·UPDATE·DELETE에 쓰면 데이터가 바뀝니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>cost 숫자는 밀리초다</strong> — PostgreSQL 문서에 따르면 비용은 임의의 단위이고, 보통 순차 페이지 읽기 비용을 1로 두고 상대적으로 매깁니다. 시간으로 바꿀 수 있는 값이 아닙니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>rows는 정확한 행 수다</strong> — rows는 통계로 계산한 예상 값입니다. 실제 행 수와 크게 다르면 통계가 오래되었을 수 있고, <code>EXPLAIN ANALYZE</code>로 실제 값을 비교할 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>풀 스캔은 항상 나쁘다</strong> — 테이블이 작거나 조건에 맞는 행이 많을 때는 풀 스캔이 더 빠를 수 있어서 옵티마이저가 일부러 고릅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">인덱스를 만들었는데 쿼리가 인덱스를 안 타는 이유는 무엇인가요?</h3>
+                            <p class="overview-card__desc">조건에 맞는 행이 많아 풀 스캔이 더 싸다고 판단했거나, 컬럼에 함수를 씌우는 등 조건 형태가 인덱스와 맞지 않거나, 통계가 오래되어 비용을 잘못 추정했을 수 있습니다. EXPLAIN으로 선택된 계획을 먼저 확인합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">EXPLAIN과 EXPLAIN ANALYZE의 차이는 무엇인가요?</h3>
+                            <p class="overview-card__desc">EXPLAIN은 예상 계획과 예상 비용만 보여 주고, ANALYZE를 붙이면 실제로 실행해 실제 시간과 행 수를 함께 보여 줍니다. 쓰기 쿼리에 붙이면 실제로 실행된다는 점을 조심해야 합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">옵티마이저는 통계를 어떻게 얻나요?</h3>
+                            <p class="overview-card__desc">테이블의 행 수와 컬럼 값의 분포 같은 통계를 수집해 두고 비용을 추정합니다. PostgreSQL은 <code>ANALYZE</code> 명령으로 통계를 갱신하고, 자동 청소(autovacuum) 데몬이 이를 자동으로 실행하기도 합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">조인에는 어떤 알고리즘이 있나요?</h3>
+                            <p class="overview-card__desc">PostgreSQL 문서는 중첩 루프 조인, 해시 조인, 병합 조인 세 가지를 설명합니다. 옵티마이저가 테이블 크기와 정렬 여부 등을 보고 비용이 낮은 쪽을 고릅니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>PostgreSQL</strong> — <code>EXPLAIN (ANALYZE, BUFFERS)</code>로 실제 실행 시간과 읽은 버퍼 수까지 볼 수 있습니다. 계획에는 Seq Scan, Index Scan 같은 노드 이름이 나옵니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>MySQL</strong> — <code>EXPLAIN</code> 출력의 type, key, rows 열로 접근 방식과 사용된 인덱스, 예상 행 수를 확인합니다. 이 토픽 시각화의 EXPLAIN 설명도 이 형식을 따릅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>통계 갱신</strong> — 대량 적재나 삭제 뒤에는 통계가 실제와 달라질 수 있으므로 PostgreSQL에서는 <code>ANALYZE</code>로 갱신한 뒤 계획을 다시 확인합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/index}">인덱스</a> — B-Tree가 값을 찾는 방식과 쓰기 비용을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/sql-join}">SQL JOIN</a> — 조인 알고리즘이 계획에 어떻게 나타나는지 이어서 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/rdbms-basic}">RDBMS 기초</a> — 테이블, 키, 제약 조건의 기본 개념을 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>EXPLAIN 사용</strong> — <a href="https://www.postgresql.org/docs/current/using-explain.html" target="_blank" rel="noopener">Using EXPLAIN — PostgreSQL Documentation</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>플래너 통계</strong> — <a href="https://www.postgresql.org/docs/current/planner-stats.html" target="_blank" rel="noopener">Statistics Used by the Planner — PostgreSQL Documentation</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>비용 상수</strong> — <a href="https://www.postgresql.org/docs/current/runtime-config-query.html" target="_blank" rel="noopener">Query Planning — PostgreSQL Documentation</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>원 논문</strong> — Selinger, Astrahan, Chamberlin, Lorie, Price, "Access Path Selection in a Relational Database Management System", ACM SIGMOD, 1979</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 

@@ -39,3 +39,6 @@ CLAUDE.md
 docs/
 architecture/
 .serena
+.claude
+.keel-backup/
+.claude-designlog-hooks.log

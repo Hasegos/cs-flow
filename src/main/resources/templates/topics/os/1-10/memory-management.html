@@ -113,22 +113,22 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">세그멘테이션 (Segmentation)</h3>
-                            <p class="overview-card__desc">프로그램을 코드·스택·힙 등 논리적 단위(세그먼트)로 나눠 각각을 독립적으로 관리합니다. 페이징과 달리 각 세그먼트 크기가 다릅니다. Linux는 세그멘테이션을 거의 사용하지 않고 페이징 중심입니다.</p>
+                            <p class="overview-card__desc">프로그램을 코드·스택·힙 등 논리적 단위(세그먼트)로 나눠 각각을 독립적으로 관리합니다. 페이징과 달리 각 세그먼트 크기가 다릅니다. 현대 운영체제는 대부분 페이징을 중심으로 메모리를 관리합니다.</p>
                         </div>
                     </div>
 
                     <div class="overview-points">
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>First Fit / Best Fit / Worst Fit</strong> — 연속 할당에서 빈 공간 선택 전략. First Fit은 첫 번째 맞는 공간, Best Fit은 가장 작게 남는 공간, Worst Fit은 가장 크게 남는 공간을 선택합니다. First Fit이 가장 빠르며, First Fit과 Best Fit은 모두 Worst Fit보다 속도·메모리 이용률 면에서 우수합니다. 보통 속도 때문에 First Fit이 선호됩니다.</span>
+                            <span><strong>First Fit / Best Fit / Worst Fit</strong> — 연속 할당에서 빈 공간 선택 전략. First Fit은 첫 번째 맞는 공간, Best Fit은 가장 작게 남는 공간, Worst Fit은 가장 크게 남는 공간을 선택합니다. First Fit은 탐색이 짧아 빠릅니다. 전략마다 장단이 있고 요청 순서에 따라 결과가 달라집니다(아래 숫자로 확인하기 참고).</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>TLB (Translation Lookaside Buffer)</strong> — 페이지 테이블 접근 비용을 줄이는 하드웨어 캐시. 최근 변환 결과를 저장해 TLB Hit 시 메모리 접근 없이 주소를 변환합니다. Intel CPU에서 L1 TLB 지연은 약 1사이클입니다.</span>
+                            <span><strong>TLB (Translation Lookaside Buffer)</strong> — 페이지 테이블 접근 비용을 줄이는 하드웨어 캐시. 최근 변환 결과를 저장해 TLB Hit 시 메모리 접근 없이 주소를 변환합니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>다단계 페이지 테이블</strong> — 페이지 테이블 자체가 너무 커지는 문제를 해결합니다. 64비트 시스템은 보통 4단계 페이지 테이블을 사용하며 실제 사용하는 항목만 메모리에 올립니다(Sparse).</span>
+                            <span><strong>다단계 페이지 테이블</strong> — 페이지 테이블 자체가 너무 커지는 문제를 해결합니다. x86-64 리눅스는 보통 4단계 페이지 테이블을 사용하며(5단계도 지원) 실제 사용하는 항목만 메모리에 올립니다(Sparse).</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
@@ -136,6 +136,143 @@
                         </div>
                     </div>
 
+
+                    <h2 class="overview-heading">메모리 관리가 풀어야 하는 문제</h2>
+                    <p class="overview-lead">
+                        여러 프로세스가 한정된 물리 메모리를 나눠 쓰면서 서로의 영역을 침범하지 않게 하고, 프로그램이 메모리의 어디에 놓이든 같은 주소로 동작하게 해야 합니다. 이를 위해 하드웨어의 MMU가 논리 주소를 물리 주소로 바꿔 주고 운영체제가 그 매핑을 관리합니다. 현대 시스템은 대부분 페이징을 기본으로 씁니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>주소 변환 계산</strong> — 페이지 크기가 4KB(4,096바이트)일 때 논리 주소 20,000은 20,000 ÷ 4,096 = 4 나머지 3,616이라서 페이지 번호 4, 오프셋 3,616입니다. 페이지 테이블에서 페이지 4가 프레임 7이라면 물리 주소는 7 × 4,096 + 3,616 = 32,288입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>내부 단편화</strong> — 프로세스가 10,000바이트이고 페이지가 4,096바이트이면 3페이지(12,288바이트)가 필요해 마지막 페이지에서 2,288바이트가 낭비됩니다. 프로세스 크기가 페이지 크기의 배수가 아니면 마지막 페이지에서 항상 일부가 낭비됩니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>페이지 테이블의 크기</strong> — 32비트 주소와 4KB 페이지에서는 페이지 번호가 20비트라 항목이 2²⁰ = 1,048,576개이고, 항목이 4바이트이면 프로세스마다 4MB가 됩니다. 이렇게 큰 테이블을 줄이려고 다단계 페이지 테이블을 씁니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>x86-64의 4단계 구조</strong> — 리눅스 커널 문서는 x86-64가 4단계 페이지 테이블로 48비트 가상 주소를 쓴다고 설명합니다. 4KB 페이지의 오프셋 12비트를 빼면 36비트이고 4단계로 나누면 한 단계가 9비트(항목 512개)입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>TLB가 접근 시간에 미치는 영향(가정)</strong> — TLB 접근 10ns, 메모리 접근 100ns로 가정합니다. 히트율 80%이면 평균 0.8 × 110 + 0.2 × 210 = 130ns이고, 히트율 99%이면 0.99 × 110 + 0.01 × 210 = 111ns입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>First, Best, Worst Fit 비교</strong> — 빈 공간이 100K, 500K, 200K, 300K, 600K이고 212K, 417K, 112K, 426K를 차례로 요청하면 First Fit과 Worst Fit은 426K를 배치하지 못하고, Best Fit은 네 요청을 모두 배치합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>페이징은 단편화가 전혀 없다</strong> — 외부 단편화는 없애지만 마지막 페이지가 남아 내부 단편화는 생깁니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>논리 주소와 물리 주소는 같다</strong> — 프로세스가 보는 것은 논리 주소이고 MMU가 페이지 테이블로 물리 주소로 바꿉니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>TLB 미스는 페이지 폴트다</strong> — TLB 미스는 변환 결과가 TLB에 없어서 페이지 테이블을 찾아보는 것이고, 페이지 폴트는 해당 페이지가 메모리에 없을 때 운영체제가 개입하는 것입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>free()를 호출하면 메모리가 바로 운영체제에 반환된다</strong> — 할당자는 해제된 메모리를 재사용하려고 들고 있다가 조건에 따라 반환합니다. glibc의 동작은 mallopt(3) 매뉴얼의 trim 관련 설명에서 볼 수 있습니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">내부 단편화와 외부 단편화의 차이는 무엇인가요?</h3>
+                            <p class="overview-card__desc">내부 단편화는 할당 단위 안에서 남는 공간이고, 외부 단편화는 전체 여유는 충분한데 연속된 공간이 없어 할당하지 못하는 것입니다. 페이징은 후자를 없애고 전자를 남깁니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">페이징과 세그멘테이션의 차이는 무엇인가요?</h3>
+                            <p class="overview-card__desc">페이징은 고정 크기로 나누고 사용자에게는 보이지 않으며, 세그멘테이션은 코드, 스택, 힙처럼 논리적 단위의 가변 크기로 나눕니다. 현대 시스템은 대부분 페이징을 중심으로 씁니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">페이지 테이블이 너무 커지는 문제는 어떻게 해결하나요?</h3>
+                            <p class="overview-card__desc">페이지 테이블을 여러 단계로 나누어 실제로 쓰는 영역의 하위 테이블만 만듭니다. 주소 공간이 넓은 64비트 시스템에서 필수입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">TLB는 무엇이고 왜 필요한가요?</h3>
+                            <p class="overview-card__desc">최근의 주소 변환 결과를 저장하는 하드웨어 캐시입니다. 변환마다 메모리의 페이지 테이블을 읽으면 접근이 몇 배로 느려지므로, TLB 히트일 때 그 접근을 줄입니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>페이지 크기 확인</strong> — <code>sysconf(_SC_PAGESIZE)</code>로 시스템의 페이지 크기를 확인할 수 있고, x86에서는 보통 4KB입니다. 커널 hugetlbpage 문서는 2MB 같은 큰 페이지도 지원한다고 설명합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>프로세스 메모리 보기</strong> — <code>/proc/PID/status</code>의 <code>VmRSS</code>는 실제 메모리에 올라온 크기를(매뉴얼은 이 값이 부정확할 수 있다고 설명합니다), <code>/proc/PID/smaps</code>는 영역별 사용량을 보여 줍니다(proc_pid_status(5), proc_pid_smaps(5) 매뉴얼).</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Linux의 주소 공간 배치</strong> — x86-64 리눅스의 가상 주소 공간 배치는 커널 문서 x86_64 mm가 정리합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/virtual-memory-os}">가상 메모리</a> — 메모리보다 큰 주소 공간을 쓰는 방법을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/process}">프로세스</a> — 프로세스의 메모리 구조를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/thread}">스레드</a> — 주소 공간을 공유하는 실행 단위를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/system-call}">시스템 콜</a> — 메모리 할당이 커널로 들어가는 방식을 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>x86-64 메모리 배치</strong> — <a href="https://docs.kernel.org/arch/x86/x86_64/mm.html" target="_blank" rel="noopener">Complete virtual memory map with 4-level page tables — The Linux Kernel documentation</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>sysconf(3)</strong> — <a href="https://man7.org/linux/man-pages/man3/sysconf.3.html" target="_blank" rel="noopener">sysconf(3) — Linux manual page</a>, <a href="https://docs.kernel.org/admin-guide/mm/hugetlbpage.html" target="_blank" rel="noopener">HugeTLB Pages — The Linux Kernel documentation</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>proc_pid_smaps(5)</strong> — <a href="https://man7.org/linux/man-pages/man5/proc_pid_smaps.5.html" target="_blank" rel="noopener">proc_pid_smaps(5) — Linux manual page</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>mallopt(3)</strong> — <a href="https://man7.org/linux/man-pages/man3/mallopt.3.html" target="_blank" rel="noopener">mallopt(3) — Linux manual page</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>교재</strong> — Silberschatz, Galvin, Gagne, "Operating System Concepts", 10th Edition, "Main Memory" 장 / Intel, "Intel 64 and IA-32 Architectures Software Developer's Manual", Volume 3, "Paging" 장</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 

@@ -94,12 +94,12 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">레벨과 높이</h3>
-                            <p class="overview-card__desc">레벨(Level)은 루트로부터의 거리로, 루트는 레벨 0입니다. 높이(Height)는 루트에서 가장 깊은 리프까지의 레벨입니다. 루트에서 특정 노드로 가는 경로는 항상 유일하게 하나만 존재합니다.</p>
+                            <p class="overview-card__desc">레벨(Level)은 루트로부터의 거리로, 루트는 레벨 0입니다. 높이(Height)는 이 설명에서 루트에서 가장 깊은 리프까지의 레벨입니다(교재에 따라 노드 수로 세기도 합니다). 루트에서 특정 노드로 가는 경로는 하나만 존재합니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">이진 트리 (Binary Tree)</h3>
-                            <p class="overview-card__desc">각 노드가 최대 2개의 자식(왼쪽 자식, 오른쪽 자식)만 가질 수 있는 트리입니다. 모든 레벨이 노드로 가득 찬 트리를 포화 이진 트리, 마지막 레벨을 제외하고 왼쪽부터 채워진 트리를 완전 이진 트리라 합니다.</p>
+                            <p class="overview-card__desc">각 노드가 최대 2개의 자식(왼쪽 자식, 오른쪽 자식)만 가질 수 있는 트리입니다. 모든 레벨이 노드로 가득 찬 트리를 포화 이진 트리(교재에 따라 용어가 다릅니다), 마지막 레벨을 제외하고 왼쪽부터 채워진 트리를 완전 이진 트리라 합니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
@@ -137,6 +137,131 @@
                         </div>
                     </div>
 
+
+                    <h2 class="overview-heading">트리가 필요한 이유</h2>
+                    <p class="overview-lead">
+                        배열이나 연결 리스트는 데이터를 한 줄로 늘어놓기 때문에 계층 관계를 표현하기 어렵습니다. 트리는 한 노드에서 여러 자식으로 갈라지는 구조라서 폴더와 파일, 조직도, 문서의 태그 구조처럼 '포함 관계'가 있는 데이터를 그대로 담습니다. 데이터 크기가 커져도 루트에서 목적지까지의 거리(높이)가 천천히 늘어난다는 점도 중요한 성질입니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>노드 수와 높이</strong> — 높이가 h인 이진 트리(루트만 있으면 h = 0)가 가질 수 있는 노드는 최대 2^(h+1) − 1개입니다. h = 2이면 7개, h = 19이면 1,048,575개입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>균형 트리의 높이</strong> — 노드가 10억 개(10⁹)여도 완전 이진 트리처럼 균형이 잡혀 있으면 높이는 약 29입니다. 한쪽으로만 이어진 편향 트리는 같은 노드 수에서 높이가 n − 1이 됩니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>간선 수</strong> — 노드가 N개인 트리의 간선은 N − 1개입니다. 노드 1,000개면 간선 999개입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>순회의 호출 깊이</strong> — 재귀로 순회하면 호출 스택이 트리 높이만큼 쌓입니다. 높이가 100,000인 편향 트리를 재귀로 돌면 호출 깊이가 100,000에 이릅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이진 트리는 값이 정렬되어 있다</strong> — 이진 트리는 자식이 최대 2개라는 모양에 대한 정의일 뿐입니다. 왼쪽이 작고 오른쪽이 크다는 규칙이 있는 것은 이진 탐색 트리입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>트리와 그래프는 다른 자료구조다</strong> — 트리는 사이클이 없고 연결된 그래프의 특수한 경우입니다. 그래서 그래프 탐색 알고리즘을 그대로 쓸 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>높이와 깊이와 레벨의 정의는 하나다</strong> — 루트를 0으로 세는지 1로 세는지, 간선 수로 세는지 노드 수로 세는지는 교재마다 다릅니다. 문제를 풀 때는 정의를 먼저 확인해야 합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>순회를 바꾸면 트리 자체가 바뀐다</strong> — 순회는 방문 순서일 뿐 트리를 바꾸지 않습니다. 같은 트리를 전위, 중위, 후위로 읽으면 서로 다른 나열이 나옵니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">전위, 중위, 후위 순회는 언제 쓰나요?</h3>
+                            <p class="overview-card__desc">트리를 복사하거나 구조를 출력할 때는 전위, 이진 탐색 트리에서 정렬된 순서로 읽을 때는 중위, 자식의 결과를 모아 부모를 처리할 때(삭제, 용량 합산)는 후위를 주로 씁니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">전위 순회와 중위 순회 결과로 트리를 복원할 수 있나요?</h3>
+                            <p class="overview-card__desc">노드 값이 모두 다르면 전위의 첫 값이 루트이고, 그 값을 중위 결과에서 찾으면 왼쪽과 오른쪽 서브트리가 나뉘어 하나로 복원됩니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">완전 이진 트리와 포화 이진 트리의 차이는 무엇인가요?</h3>
+                            <p class="overview-card__desc">많이 쓰는 정의로는 포화 이진 트리는 모든 레벨이 가득 찬 트리이고, 완전 이진 트리는 마지막 레벨만 비어 있을 수 있으며 왼쪽부터 채워진 트리입니다(교재에 따라 용어가 다릅니다). 완전 이진 트리는 배열로 빈틈 없이 표현할 수 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">레벨 순회는 어떻게 구현하나요?</h3>
+                            <p class="overview-card__desc">큐에 루트를 넣고, 하나 꺼낼 때마다 그 자식을 큐에 넣는 BFS 방식입니다. 층 단위로 방문하려면 한 층의 크기만큼 반복해서 꺼냅니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>HTML 문서</strong> — WHATWG DOM 표준은 문서를 부모와 자식을 가진 노드로 이루어진 트리로 모델링합니다. 브라우저는 HTML을 이 트리로 만들어 다룹니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>파일 시스템</strong> — 디렉터리는 파일과 하위 디렉터리를 담는 트리 구조입니다. Java의 <code>Files.walkFileTree</code>는 이 트리를 깊이 우선으로 순회합니다. 자세한 구조는 <a th:href="@{/os/file-system}">파일 시스템</a> 토픽에서 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>데이터베이스 인덱스</strong> — 많은 데이터베이스가 B-Tree 계열 트리로 인덱스를 만듭니다. <a th:href="@{/db/index}">인덱스</a> 토픽에서 이어서 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/ds/bst}">이진 탐색 트리</a> — 트리에 정렬 규칙을 더한 구조를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/ds/heap}">힙</a> — 완전 이진 트리를 배열로 표현하는 구조를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/ds/graph}">그래프</a> — 트리가 그래프의 특수한 경우라는 점을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/bfs-dfs}">BFS / DFS</a> — 트리 순회가 DFS와 BFS와 같은 원리임을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/ds/trie}">트라이</a> — 문자열을 다루는 트리 구조를 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>DOM 표준</strong> — <a href="https://dom.spec.whatwg.org/#trees" target="_blank" rel="noopener">DOM Standard — Trees — WHATWG</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Java Files</strong> — <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/nio/file/Files.html" target="_blank" rel="noopener">Files — Java SE 21 API</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>교재</strong> — Cormen, Leiserson, Rivest, Stein, "Introduction to Algorithms" 4판, "Elementary Data Structures" 장(트리), "Elementary Graph Algorithms" 장</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 

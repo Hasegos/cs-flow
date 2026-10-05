@@ -93,7 +93,7 @@
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
                             <h3 class="overview-card__title">삽입 (Insert)</h3>
-                            <p class="overview-card__desc">루트부터 시작해 삽입 값과 현재 노드를 비교합니다. 작으면 왼쪽, 크면 오른쪽으로 이동하며, null을 만나는 위치에 새 노드를 추가합니다. 비교는 트리 높이만큼만 수행하므로 평균 O(log n)입니다.</p>
+                            <p class="overview-card__desc">루트부터 시작해 삽입 값과 현재 노드를 비교합니다. 작으면 왼쪽, 크면 오른쪽으로 이동하며, null을 만나는 위치에 새 노드를 추가합니다. 비교는 트리 높이만큼만 수행하므로 키가 고르게 들어오는 평균적인 경우 O(log n)입니다.</p>
                         </div>
                         <div class="overview-card">
                             <p class="overview-card__label">핵심 개념</p>
@@ -120,7 +120,7 @@
                     <div class="overview-points">
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>시간복잡도</strong> — 평균 O(log n) 탐색·삽입·삭제. 균형 잡힌 트리에서는 높이 h = log n이므로 각 연산이 O(log n)입니다. 최악(편향 트리)은 O(n). Java의 TreeMap은 내부적으로 Red-Black Tree를 사용해 항상 O(log n)을 보장합니다.</span>
+                            <span><strong>시간복잡도</strong> — 평균 O(log n) 탐색·삽입·삭제. 균형 잡힌 트리에서는 높이 h = log n이므로 각 연산이 O(log n)입니다. 최악(편향 트리)은 O(n). Java의 TreeMap은 내부적으로 Red-Black Tree를 사용하고 문서가 log(n) 시간을 보장한다고 설명합니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
@@ -128,14 +128,143 @@
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>자가 균형 BST</strong> — AVL 트리는 모든 노드에서 왼쪽/오른쪽 서브트리 높이 차이가 1 이하로 엄격하게 균형을 유지합니다. Red-Black 트리는 색 규칙으로 높이를 2log(n+1) 이하로 제한합니다. Java TreeMap/TreeSet, C++ std::set/std::map이 Red-Black Tree를 사용합니다.</span>
+                            <span><strong>자가 균형 BST</strong> — AVL 트리는 모든 노드에서 왼쪽/오른쪽 서브트리 높이 차이가 1 이하로 엄격하게 균형을 유지합니다. Red-Black 트리는 색 규칙으로 높이를 2log(n+1) 이하로 제한합니다. Java TreeMap/TreeSet과, libstdc++ 같은 대표적인 C++ 구현의 std::set/std::map이 보통 Red-Black Tree를 사용합니다(C++ 표준이 구조를 정한 것은 아닙니다).</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>언제 BST를 쓰나</strong> — 정렬 순서 유지가 필요하면서도 삽입·삭제가 빈번한 경우. 범위 탐색(예: 100~200 사이의 모든 키), 전임자/후임자 조회가 필요한 경우. Java의 TreeMap/TreeSet, C++의 std::map/std::set이 대표적인 BST 기반 컬렉션입니다.</span>
+                            <span><strong>언제 BST를 쓰나</strong> — 정렬 순서 유지가 필요하면서도 삽입·삭제가 빈번한 경우. 범위 탐색(예: 100~200 사이의 모든 키), 전임자/후임자 조회가 필요한 경우. Java의 TreeMap/TreeSet, C++의 std::map/std::set이 대표적인 정렬 컬렉션이고 주로 BST로 구현됩니다.</span>
                         </div>
                     </div>
 
+
+                    <h2 class="overview-heading">이진 탐색 트리가 푸는 문제</h2>
+                    <p class="overview-lead">
+                        이진 탐색 트리(BST)는 '정렬된 상태를 유지하면서 삽입과 삭제도 빠르게' 하려는 자료구조입니다. 정렬된 배열은 이진 탐색으로 빨리 찾지만 중간에 끼워 넣기 어렵고, 연결 리스트는 끼워 넣기는 쉽지만 찾기가 느립니다. BST는 트리 모양으로 둘의 장점을 노립니다. 다만 트리가 한쪽으로 치우치면 이점이 사라지므로 균형이 중요합니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>균형이 잡혔을 때</strong> — 키가 1,000,000개일 때 이상적으로 균형 잡힌 BST의 높이(간선 기준)는 약 19이고 비교는 최대 20번 안팎입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>편향되었을 때</strong> — 같은 키를 1, 2, 3, … 순서로 넣으면 한쪽으로만 이어져 높이가 999,999가 되고, 마지막 키를 찾는 데 1,000,000번 비교합니다. 이렇게 n개를 모두 넣는 비용의 합은 1 + 2 + … + n = n(n + 1) / 2로 10⁶개일 때 약 5×10¹¹입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Red-Black 트리의 높이 상한</strong> — 노드가 n개이면 높이가 2 log₂(n + 1) 이하입니다. n = 10⁶이면 최대 약 40입니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>BST는 항상 O(log n)이다</strong> — 높이에 비례하므로 균형이 깨지면 O(n)입니다. 정렬된 순서로 넣으면 연결 리스트처럼 됩니다. 평균 O(log n)은 키가 무작위로 들어올 때 이야기입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>각 노드를 자식과만 비교하면 BST인지 알 수 있다</strong> — 왼쪽 서브트리의 모든 값이 현재 노드보다 작아야 합니다. 자식과만 비교하면 손자 이하에서 위반된 경우를 놓칩니다. 검증할 때는 허용 범위(최솟값과 최댓값)를 내려보내야 합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>삭제 때는 후계자만 쓸 수 있다</strong> — 자식이 둘이면 오른쪽 서브트리의 최솟값(중위 후계자)이나 왼쪽 서브트리의 최댓값(중위 전임자) 둘 중 하나로 대체할 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>C++ std::map은 해시 테이블이다</strong> — std::map과 std::set은 정렬된 컨테이너이고, 해시 기반 컨테이너는 std::unordered_map과 std::unordered_set입니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">주어진 트리가 BST인지 어떻게 확인하나요?</h3>
+                            <p class="overview-card__desc">중위 순회 결과가 오름차순인지 보거나, 재귀로 내려가며 각 노드가 허용 범위 안에 있는지 확인합니다. 자식과만 비교하면 안 됩니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">BST와 해시 테이블은 언제 각각 쓰나요?</h3>
+                            <p class="overview-card__desc">단순한 키 조회가 많으면 평균 O(1)인 해시 테이블이 유리합니다. 정렬된 순서 순회, 범위 조회, 최솟값·최댓값, 전임자·후임자가 필요하면 BST가 맞습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">자가 균형 BST는 왜 필요한가요?</h3>
+                            <p class="overview-card__desc">삽입과 삭제 때 회전 같은 연산으로 높이를 로그 수준으로 유지해서, 입력 순서와 상관없이 최악의 경우에도 O(log n)을 보장하려는 것입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">AVL과 Red-Black 트리의 차이는 무엇인가요?</h3>
+                            <p class="overview-card__desc">AVL은 모든 노드에서 두 서브트리 높이 차이를 1 이하로 엄격하게 유지해 탐색에 유리하고, Red-Black은 색 규칙으로 느슨하게 균형을 맞춰 삭제 때 재균형(회전) 횟수의 상한이 작습니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Java</strong> — <code>TreeMap</code> 문서는 Red-Black 트리 기반의 NavigableMap 구현이며 containsKey, get, put, remove에 log(n) 시간을 보장한다고 설명합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>C++</strong> — 표준은 std::map의 주요 연산을 로그 시간으로 요구하고, libstdc++ 같은 대표적인 구현은 보통 Red-Black 트리를 씁니다(표준이 구조를 정한 것은 아닙니다).</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Linux 커널</strong> — 커널 문서는 Red-Black 트리(rbtree)를 정렬 가능한 키/값 쌍을 저장하는 자체 균형 이진 탐색 트리로 설명하며 커널 곳곳에서 쓰인다고 합니다. 스케줄러 문서는 CFS가 실행 시각 순의 rbtree로 작업의 타임라인을 만든다고 설명하는데, 최근 커널은 EEVDF로 전환 중이라고 덧붙입니다. <a th:href="@{/os/cpu-scheduling}">CPU 스케줄링</a> 토픽에서 스케줄링을 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/ds/tree}">트리</a> — 이진 트리와 순회를 먼저 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/ds/hash-table}">해시 테이블</a> — 순서가 없는 대신 평균 O(1)인 대안을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/ds/heap}">힙</a> — 트리 기반이지만 규칙이 다른 구조를 비교합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/binary-search}">이진 탐색</a> — BST 탐색의 바탕 원리를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/index}">인덱스</a> — 디스크 기반 균형 트리인 B-Tree 인덱스를 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Java TreeMap</strong> — <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/TreeMap.html" target="_blank" rel="noopener">TreeMap — Java SE 21 API</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Linux rbtree</strong> — <a href="https://docs.kernel.org/core-api/rbtree.html" target="_blank" rel="noopener">Red-black Trees (rbtree) in Linux — The Linux Kernel documentation</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Linux CFS</strong> — <a href="https://docs.kernel.org/scheduler/sched-design-CFS.html" target="_blank" rel="noopener">CFS Scheduler — The Linux Kernel documentation</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>C++ std::map</strong> — <a href="https://en.cppreference.com/w/cpp/container/map" target="_blank" rel="noopener">std::map — cppreference.com</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>교재</strong> — Cormen, Leiserson, Rivest, Stein, "Introduction to Algorithms" 4판, "Binary Search Trees", "Red-Black Trees" 장</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
