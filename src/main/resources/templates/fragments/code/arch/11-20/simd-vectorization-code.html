@@ -1,0 +1,68 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">스칼라 루프와 SSE 인트린식 — 원소 4개씩 더하기</p>
+            <div class="code-block">
+<pre><span class="cm">// 스칼라: 덧셈 명령 하나가 원소 한 쌍을 처리</span>
+<span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">0</span>; i &lt; n; i++) c[i] = a[i] + b[i];
+
+<span class="cm">// SSE: 128비트 레지스터에 float 4개를 담아 한 번에 더함</span>
+<span class="kw">int</span> i = <span class="num">0</span>;
+<span class="kw">for</span> (; i + <span class="num">4</span> &lt;= n; i += <span class="num">4</span>) {
+    <span class="fn">__m128</span> va = <span class="fn">_mm_loadu_ps</span>(a + i);
+    <span class="fn">__m128</span> vb = <span class="fn">_mm_loadu_ps</span>(b + i);
+    <span class="fn">_mm_storeu_ps</span>(c + i, <span class="fn">_mm_add_ps</span>(va, vb));
+}
+<span class="kw">for</span> (; i &lt; n; i++) c[i] = a[i] + b[i]; <span class="cm">// 4로 나누어떨어지지 않는 나머지</span></pre>
+            </div>
+            <p class="code-desc">
+                <span class="st">__m128</span>은 float 4개를 담는 128비트 벡터 타입이고, <span class="st">_mm_add_ps</span> 한 번이 네 쌍의 덧셈을 함께 수행합니다.
+                반복 횟수가 4분의 1로 줄어서 덧셈 명령도 그만큼 줄어듭니다. 배열 길이가 4의 배수가 아니면 끝에 남는 원소가 있으므로 마지막 스칼라 반복으로 따로 처리합니다.
+                <span class="st">_mm_loadu_ps</span>는 주소가 16바이트로 정렬돼 있지 않아도 읽을 수 있는 로드입니다. 정렬된 주소가 보장될 때 쓰는 <span class="st">_mm_load_ps</span>는 정렬되지 않은 주소에 쓰면 안 됩니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">벡터화되는 루프와 안 되는 루프</p>
+            <div class="code-block">
+<pre><span class="cm">// 원소끼리 독립: 컴파일러가 벡터화할 수 있음</span>
+<span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">0</span>; i &lt; n; i++) a[i] = a[i] * <span class="num">2</span> + b[i];
+
+<span class="cm">// 앞 반복의 결과를 읽음: a[i]를 계산하려면 a[i - 1]이 먼저 필요함</span>
+<span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">1</span>; i &lt; n; i++) a[i] = a[i - <span class="num">1</span>] + b[i];
+
+<span class="cm">// 확인: 벡터화된 루프를 컴파일러가 알려 줌 (GCC)</span>
+gcc -O3 -fopt-info-vec -c sum.c</pre>
+            </div>
+            <p class="code-desc">
+                첫 루프는 i번째 계산이 다른 원소의 결과를 쓰지 않으므로 레인 4개를 동시에 계산해도 결과가 같습니다.
+                둘째 루프는 <span class="st">a[i]</span>가 방금 계산한 <span class="st">a[i - 1]</span>을 읽기 때문에 원소를 동시에 계산할 수 없고, 컴파일러도 벡터화하지 못합니다.
+                어떤 루프가 벡터화됐는지는 <span class="st">-fopt-info-vec</span> 같은 보고 옵션으로 확인하는 것이 확실합니다.
+                함수가 포인터를 여럿 받을 때는, 한 포인터로 접근하는 객체를 다른 포인터로 접근하지 않겠다고 컴파일러에 약속하는 C의 restrict 한정자를 쓰면 별칭 때문에 막히던 벡터화가 가능해질 수 있습니다. 약속을 어기면 동작이 정의되지 않습니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">조건문을 마스크로 — a가 양수면 a, 아니면 0</p>
+            <div class="code-block">
+<pre><span class="cm">// 스칼라: 원소마다 분기</span>
+<span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">0</span>; i &lt; n; i++) r[i] = a[i] &gt; <span class="num">0</span> ? a[i] : <span class="num">0</span>;
+
+<span class="cm">// SSE: 분기 없이 마스크로 선택 (4레인)</span>
+<span class="fn">__m128</span> zero = <span class="fn">_mm_setzero_ps</span>();
+<span class="fn">__m128</span> va   = <span class="fn">_mm_loadu_ps</span>(a + i);
+<span class="fn">__m128</span> mask = <span class="fn">_mm_cmpgt_ps</span>(va, zero);   <span class="cm">// a &gt; 0 인 레인은 모든 비트가 1</span>
+<span class="fn">__m128</span> res  = <span class="fn">_mm_and_ps</span>(mask, va);       <span class="cm">// 마스크가 1인 레인만 a를 남김</span>
+<span class="fn">_mm_storeu_ps</span>(r + i, res);</pre>
+            </div>
+            <p class="code-desc">
+                <span class="st">_mm_cmpgt_ps</span>는 레인마다 a &gt; 0을 비교해 참이면 모든 비트가 1, 거짓이면 0인 마스크를 만듭니다.
+                이 마스크와 a를 <span class="st">_mm_and_ps</span>로 비트 AND하면 양수인 레인은 값이 그대로 남고 나머지는 0이 되어 스칼라의 삼항 연산자와 같은 결과를 얻습니다.
+                모든 레인이 같은 명령을 실행하고 선택만 달라지므로 분기하지 않는 대신, 쓰지 않는 레인의 계산도 함께 실행됩니다.
+                작동 원리 탭의 "나머지와 조건문"에서 같은 예(3, -2, 5, -1)를 단계별로 볼 수 있습니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
