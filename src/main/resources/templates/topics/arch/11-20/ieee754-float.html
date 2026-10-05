@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">IEEE 754 부동소수점 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/arch/11-20/ieee754-float.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/arch}" class="topic-breadcrumb__link">컴퓨터 구조</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">IEEE 754 부동소수점</span>
+                </nav>
+
+                <span class="topic-hero__slug">arch · 17</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">IEEE 754 부동소수점</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+                <button type="button" class="topic-like" th:classappend="${liked} ? ' topic-like--active' : ''" th:attr="data-topic-slug=${topic.slug}">
+                    <svg class="topic-like__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <span class="topic-like__count" th:text="${likeCount}">0</span>
+                </button>
+                <div class="topic-share">
+                    <button type="button" class="topic-share__btn topic-share__btn--copy" aria-label="링크 복사">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="topic-share__btn topic-share__btn--kakao" aria-label="카카오톡 공유">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                        </svg>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+                <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        컴퓨터는 0.1이나 3.14 같은 실수를 어떻게 저장할까요? 대부분의 컴퓨터는 <strong>IEEE 754</strong> 표준의 부동소수점 형식을 씁니다.
+                        수를 과학 표기법처럼 <strong>부호, 지수, 가수</strong> 세 부분으로 나눠 저장하고, 소수점의 위치를 지수로 옮긴다는 뜻에서 부동(floating)소수점이라 부릅니다.
+                        32비트 단정밀도(float)는 부호 1비트, 지수 8비트, 가수 23비트이고, 64비트 배정밀도(double)는 부호 1비트, 지수 11비트, 가수 52비트입니다.
+                        비트 수가 정해져 있으므로 모든 실수를 정확히 담을 수는 없고, 가장 가까운 값으로 반올림해 저장합니다.
+                    </p>
+                    <p class="overview-lead">
+                        그래서 여러 언어에서 0.1 + 0.2 == 0.3이 거짓이 되는 일이 생깁니다. 계산이 틀린 것이 아니라 10진수 0.1, 0.2, 0.3이 2진수로는 무한히 반복되는 소수라서 각각 가까운 근사값으로 저장되고,
+                        그 근사값끼리 계산하면 0.3의 근사값과 아주 조금 다른 결과가 나오기 때문입니다. 이 토픽에서는 값이 비트로 어떻게 저장되는지, 오차가 어디서 생기는지,
+                        실수를 비교하고 더할 때 무엇을 조심해야 하는지 봅니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">부동소수점 표현</h3>
+                            <p class="overview-card__desc">수를 (−1)^부호 × 1.가수 × 2^지수 꼴로 저장합니다. 지수가 소수점의 위치를 정하고, 가수가 유효 숫자를 정합니다. 같은 비트 수로 아주 작은 수부터 아주 큰 수까지 표현하는 대신 정밀도에 한계가 생깁니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">부호 · 지수 · 가수</h3>
+                            <p class="overview-card__desc">float은 1 + 8 + 23비트, double은 1 + 11 + 52비트입니다. 부호 비트는 양수와 음수, 지수 필드는 크기, 가수(소수부) 필드는 유효 숫자를 담습니다. 가수 비트가 많을수록 더 촘촘하게 표현합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">바이어스와 정규화</h3>
+                            <p class="overview-card__desc">지수는 음수도 표현해야 하므로 바이어스(float 127, double 1023)를 더해 저장합니다. 정규화된 수(지수 필드가 0과 모두 1이 아닌 경우)는 가수의 맨 앞이 항상 1이어서 그 1을 저장하지 않고 생략하며, 읽을 때 1을 붙여 해석합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">특수한 값</h3>
+                            <p class="overview-card__desc">지수 필드가 모두 1이면 가수가 0일 때 ±무한대, 아닐 때 NaN(숫자가 아님)입니다. 지수 필드가 모두 0이면 가수가 0일 때 ±0, 아닐 때 정규화되지 않은 비정규수(subnormal)로 0 근처를 더 촘촘히 표현합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">반올림 오차와 머신 엡실론</h3>
+                            <p class="overview-card__desc">표현할 수 없는 값은 가장 가까운 값으로 반올림됩니다. 1과 그다음으로 큰 표현 가능한 수의 간격을 보통 머신 엡실론이라 하며 double은 2^-52, float은 2^-23입니다(교재에 따라 반올림 오차 상한인 그 절반을 부르기도 합니다). 수가 커질수록 이웃한 수 사이의 간격도 커집니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">float과 double</h3>
+                            <p class="overview-card__desc">double은 가수가 52비트라 float(23비트)보다 촘촘하게 표현하고, 지수가 11비트라 표현 범위도 훨씬 넓습니다. 자바의 float과 double, 자바스크립트의 Number가 이 형식을 쓰고, 파이썬의 float은 보통 C의 double, 즉 거의 모든 플랫폼에서 이 형식으로 구현됩니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>유한한 이진 소수이고 유효숫자가 가수 비트에 들어가는 수만 정확히 저장됩니다</strong> — 0.5, 0.25, 0.125는 정확하지만 0.1, 0.2, 0.3은 2진수로 무한히 반복되어 근사값이 됩니다. 10진수로 보기에 짧은 소수라도 2진수에서는 아닐 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>상대 오차는 비슷하고 절대 오차는 수와 함께 커집니다</strong> — 간격이 지수에 비례하므로 큰 수 근처에서는 작은 값을 더해도 변하지 않을 수 있습니다. 1,000,000에 0.0000001을 더하는 일 같은 연산을 조심해야 합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>실수는 허용 오차로 비교합니다</strong> — 두 값의 차이의 절댓값이 허용 오차보다 작은지 확인합니다. 값의 크기에 따라 절대 오차와 상대 오차 중 알맞은 쪽을 고릅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>더하는 순서에 따라 결과가 달라질 수 있습니다</strong> — 반올림이 연산마다 일어나므로 덧셈의 결합법칙이 성립하지 않습니다. 같은 값을 다른 순서로 합하면 마지막 자리가 달라질 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "비트 구성" 탭에서 6.5가 부호·지수·가수로 나뉘는 과정을, "0.1 + 0.2" 탭에서 저장된 실제 값과 비교 결과를, "정밀도와 범위" 탭에서 수가 커질수록 간격이 벌어지는 모습을 STEP으로 확인하세요.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">부동소수점의 배경</h2>
+                    <p class="overview-lead">
+                        컴퓨터마다 부동소수점 형식이 달라 같은 프로그램이 기계마다 다른 결과를 내던 시기가 있었고, 이를 통일하려는 표준이 IEEE 754입니다. 이 표준은 값의 형식뿐 아니라 반올림 규칙, 무한대와 NaN 같은 특수한 값의 처리, 예외 상황까지 정해 두어서 표준을 따르는 하드웨어와 언어는 같은 계산에 같은 결과를 내도록 했습니다. 표준은 여러 번 개정되었습니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>6.5를 float으로</strong> — 6.5 = 1.625 × 2^2입니다. 지수는 2 + 127 = 129(이진수 10000001), 가수는 0.625 × 2^23 = 5,242,880이고 부호는 0입니다. 값은 +1 × 1.625 × 4 = 6.5입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>0.1 + 0.2</strong> — double로 계산하면 0.30000000000000004가 나오고 0.3과의 차이는 약 5.55 × 10^-17입니다. 이 차이는 double의 머신 엡실론 2^-52 ≈ 2.22 × 10^-16보다 작아 허용 오차 비교에서는 같다고 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>정수가 건너뛰어지는 구간</strong> — float은 가수가 24비트(생략된 1 포함)라서 2^24 = 16,777,216까지의 정수는 모두 정확히 표현하지만 그다음 정수 16,777,217부터는 표현하지 못하는 정수가 생깁니다. double은 2^53 = 9,007,199,254,740,992까지가 정확하고 2^53 + 1부터 같은 일이 생깁니다(자바스크립트의 Number.MAX_SAFE_INTEGER는 2^53 − 1입니다).</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>순서에 따른 차이</strong> — 자바스크립트로 (0.1 + 0.2) + 0.3은 0.6000000000000001이고 0.1 + (0.2 + 0.3)은 0.6입니다. 같은 세 수를 더해도 묶는 순서에 따라 결과가 달라집니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>부동소수점 연산은 버그가 있어서 부정확하다</strong> — 표준이 정한 반올림 규칙에 따른 결과이고, 같은 입력에는 같은 결과가 나옵니다. 오차는 값을 유한한 비트로 저장하는 데서 생깁니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>double이면 오차를 걱정하지 않아도 된다</strong> — 정밀도가 높아질 뿐 오차가 없어지지는 않습니다. 0.1은 double로도 정확히 저장되지 않습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>NaN은 NaN과 같다</strong> — NaN은 자기 자신과도 같지 않은 것으로 비교됩니다. NaN인지 확인하려면 전용 함수(예: 자바의 Double.isNaN)를 씁니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>정수는 double에서도 항상 정확하다</strong> — 2^53을 넘으면 연속된 정수를 모두 표현하지 못합니다. 큰 정수는 long이나 BigInteger 같은 정수 타입을 씁니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">0.1 + 0.2가 0.3과 다른 이유는?</h3>
+                            <p class="overview-card__desc">0.1, 0.2, 0.3이 2진수로 무한히 반복되는 소수라 각각 가장 가까운 근사값으로 저장되고, 그 근사값들을 더한 결과가 0.3의 근사값과 마지막 자리에서 다르기 때문입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">float과 double의 비트 구성은?</h3>
+                            <p class="overview-card__desc">float은 부호 1, 지수 8, 가수 23비트로 32비트이고 double은 부호 1, 지수 11, 가수 52비트로 64비트입니다. 지수 바이어스는 각각 127과 1023입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">실수는 어떻게 비교해야 하나요?</h3>
+                            <p class="overview-card__desc">== 대신 두 값의 차이의 절댓값이 허용 오차보다 작은지 확인합니다. 값이 크거나 작을 때는 절대 오차 대신 상대 오차를 쓰고, 언어가 제공하는 비교 함수(예: 파이썬의 math.isclose)가 있으면 활용합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">돈 계산에 double을 써도 되나요?</h3>
+                            <p class="overview-card__desc">이진 부동소수점은 0.1 같은 십진 소수를 정확히 저장하지 못하므로, 정확한 십진 계산이 필요하면 십진 타입(자바의 BigDecimal, 파이썬의 decimal)이나 최소 단위의 정수로 계산합니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>파이썬</strong> — 파이썬 공식 튜토리얼은 0.1이 2진 분수로 정확히 표현되지 않는 이유와 decimal 모듈, math.isclose를 설명합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>자바</strong> — 자바 언어 명세는 float과 double이 IEEE 754 형식의 32비트와 64비트 값이라고 정의합니다. 정확한 십진 계산에는 BigDecimal을 씁니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>자바스크립트</strong> — ECMAScript 명세는 Number 타입을 IEEE 754 배정밀도 64비트 값으로 정의하고 Number.EPSILON을 1과 그다음으로 큰 수의 차이(2^-52)로 둡니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/arch/cpu-components}">CPU 구성 요소</a> — 연산을 수행하는 연산 장치와 레지스터를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/arch/instruction-cycle}">명령어 사이클</a> — 연산 명령이 실행되는 기본 단계를 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>파이썬과 자바스크립트</strong> — <a href="https://docs.python.org/3/tutorial/floatingpoint.html" target="_blank" rel="noopener">Floating-Point Arithmetic: Issues and Limitations — Python documentation</a>, <a href="https://docs.oracle.com/cd/E19957-01/806-3568/ncg_goldberg.html" target="_blank" rel="noopener">What Every Computer Scientist Should Know About Floating-Point Arithmetic (Oracle 재수록)</a>, <a href="https://tc39.es/ecma262/#sec-ecmascript-language-types-number-type" target="_blank" rel="noopener">The Number Type — ECMAScript Language Specification</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>자바</strong> — <a href="https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html#jls-4.2.3" target="_blank" rel="noopener">Java Language Specification — 4.2.3 Floating-Point Types, Formats, and Values</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>논문</strong> — Goldberg, "What Every Computer Scientist Should Know About Floating-Point Arithmetic", ACM Computing Surveys 23(1), 1991</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>표준</strong> — IEEE Std 754 — IEEE Standard for Floating-Point Arithmetic</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/arch/11-20/ieee754-float-code :: code}"></th:block>
+            </div>
+
+            <!-- 탭 4: 퀴즈 -->
+            <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
+                <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+    <script th:src="@{/js/quiz.js}"></script>
+    <script th:src="@{/js/like.js}"></script>
+    <script th:src="@{/js/share.js}"></script>
+</body>
+</html>
