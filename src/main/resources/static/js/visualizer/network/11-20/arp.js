@@ -129,7 +129,7 @@
         st('A가 먼저 자기 ARP 캐시에서 ' + H('B').ip + '를 찾지만 항목이 없습니다.', { hl: { A: ['캐시 확인', 'orange'] } }),
         st('ARP 요청 — A가 "' + H('B').ip + '를 가진 장치는 MAC 주소를 알려 달라"는 메시지를 브로드캐스트합니다(목적지 MAC ' + BCAST + '). 상대의 MAC을 모르니 같은 네트워크 모두에게 보냅니다.',
             { send: 'A', to: ALL_B, kind: 'bc', label: 'ARP 요청 (브로드캐스트)', pkt: arpReq('A', H('B').ip), hl: { A: ['요청 보냄', 'orange'] } }),
-        st('요청은 같은 LAN의 모든 호스트가 받지만 대상 IP가 자기 것이 아닌 C와 라우터는 무시하고, 자기 IP인 B만 반응합니다. RFC 826의 절차에서는 B가 요청의 송신자 정보로 A의 IP-MAC 대응도 자기 캐시에 기록합니다.',
+        st('요청은 같은 LAN의 모든 호스트가 받지만 대상 IP가 자기 것이 아닌 C와 라우터는 응답하지 않고(새 항목도 추가하지 않고), 자기 IP인 B만 반응합니다. RFC 826의 절차에서는 B가 요청의 송신자 정보로 A의 IP-MAC 대응도 자기 캐시에 기록합니다.',
             { send: 'A', to: ALL_B, kind: 'bc', label: 'ARP 요청 (브로드캐스트)', pkt: arpReq('A', H('B').ip), hl: { A: ['요청 보냄', 'orange'], B: ['IP 일치', 'teal'], C: ['무시', 'muted'], R: ['무시', 'muted'] } }),
         st('ARP 응답 — B가 자기 MAC 주소를 A에게만 유니캐스트로 알려 줍니다. 요청에 A의 MAC이 들어 있어 B는 A를 직접 찾아 답할 수 있습니다.',
             { send: 'B', to: ['A'], kind: 'uc', label: 'ARP 응답 (유니캐스트)', pkt: arpRep('B', 'A'), hl: { A: ['응답 받음', 'orange'], B: ['응답 보냄', 'teal'] } }),
