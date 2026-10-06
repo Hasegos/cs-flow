@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">MVCC | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/db/11-20/mvcc.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/db}" class="topic-breadcrumb__link">데이터베이스</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">MVCC</span>
+                </nav>
+
+                <span class="topic-hero__slug">db · 12</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">MVCC</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+                <button type="button" class="topic-like" th:classappend="${liked} ? ' topic-like--active' : ''" th:attr="data-topic-slug=${topic.slug}">
+                    <svg class="topic-like__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <span class="topic-like__count" th:text="${likeCount}">0</span>
+                </button>
+                <div class="topic-share">
+                    <button type="button" class="topic-share__btn topic-share__btn--copy" aria-label="링크 복사">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="topic-share__btn topic-share__btn--kakao" aria-label="카카오톡 공유">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                        </svg>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+                <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        MVCC(Multi-Version Concurrency Control, 다중 버전 동시성 제어)는 한 행의 여러 버전을 함께 유지해서 읽기와 쓰기가 서로 기다리지 않게 하는 동시성 제어 방식입니다. 수정이 일어나면 기존 값을 바로 덮어쓰지 않고 새 버전을 만들고, 읽는 트랜잭션은 자기 스냅샷 시점에 맞는 버전을 읽습니다.
+                    </p>
+                    <p class="overview-lead">
+                        PostgreSQL 문서는 MVCC의 장점을 "읽기가 쓰기를 막지 않고 쓰기가 읽기를 막지 않는다"는 말로 설명합니다. 대신 이전 버전이 남기 때문에 쓸모없어진 버전을 치우는 정리 작업(PostgreSQL의 VACUUM)이 필요합니다. 이 토픽에서는 버전이 만들어지는 과정, 스냅샷 읽기, 정리 작업을 시각화로 확인합니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">다중 버전</h3>
+                            <p class="overview-card__desc">한 행의 수정마다 새 버전이 생기고 이전 버전은 한동안 남습니다. 서로 다른 시점의 트랜잭션이 서로 다른 버전을 볼 수 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">xmin과 xmax</h3>
+                            <p class="overview-card__desc">PostgreSQL의 모든 행 버전에는 만든 트랜잭션 ID(xmin)와 지운 트랜잭션 ID(xmax, 지운 적이 없으면 보통 0)가 기록됩니다. 트랜잭션 ID는 32비트 값입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">스냅샷</h3>
+                            <p class="overview-card__desc">읽는 시점에 어떤 트랜잭션의 변경이 커밋되어 있는지를 기록한 기준입니다. 이 기준으로 어느 버전이 보이는지가 정해집니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">읽기와 쓰기의 분리</h3>
+                            <p class="overview-card__desc">읽기는 쓰기와 충돌하는 잠금을 잡지 않고 자기 스냅샷의 버전을 읽으므로 쓰기를 기다리지 않고, 쓰기도 읽기를 기다리지 않습니다. 잠금 읽기(SELECT FOR UPDATE)는 예외입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">dead tuple과 VACUUM</h3>
+                            <p class="overview-card__desc">수정으로 남은 이전 버전은 어떤 트랜잭션도 볼 필요가 없어지면 dead tuple(회수 대상)이 되고, VACUUM이 테이블과 인덱스에서 이를 회수합니다. autovacuum이 기본으로 켜져 있어 주기적으로 점검하고 필요한 테이블에 자동 실행합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">쓰기 충돌은 따로 처리</h3>
+                            <p class="overview-card__desc">MVCC가 읽기와 쓰기의 충돌을 없애도 같은 행을 동시에 수정하는 두 쓰기는 서로 기다리거나 한쪽이 중단됩니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>동시성이 좋아집니다</strong> — 조회가 많은 서비스에서 긴 읽기 작업이 쓰기를 막지 않습니다. 읽는 쪽은 읽는 동안 일관된 값을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>대가는 이전 버전의 저장과 정리입니다</strong> — 수정이 많은 테이블에는 dead tuple이 쌓이고, 정리가 밀리면 테이블이 불어납니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>오래 열린 트랜잭션이 정리를 막습니다</strong> — 스냅샷이나 트랜잭션 ID를 쥔 채 오래 열려 있는 트랜잭션보다 나중에 지워진 버전은 회수할 수 없어, 긴 트랜잭션이 테이블 비대화의 원인이 될 수 있습니다. 읽기 전용 트랜잭션도 해당합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>구현 방식은 데이터베이스마다 다릅니다</strong> — PostgreSQL은 이전 버전을 테이블 안에 두고, MySQL InnoDB는 클러스터드 인덱스 레코드를 제자리에서 수정하고 이전 값을 언두 로그에 보관해 필요할 때 복원합니다. InnoDB에서도 오래 열린 트랜잭션이 언두 로그 정리를 막습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "버전 만들기" 탭에서 UPDATE마다 xmax가 찍히고 새 버전이 늘어나는 모습을, "스냅샷 읽기" 탭에서 세 읽기가 같은 행에서 서로 다른 값을 쓰기를 기다리지 않고 읽는 모습을, "VACUUM" 탭에서 열린 읽기가 회수를 막다가 끝나자 버전 3개가 회수되는 모습을 STEP으로 확인하세요.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">MVCC의 배경</h2>
+                    <p class="overview-lead">
+                        번스타인(Bernstein)과 굿먼(Goodman)이 1983년 논문에서 알고 있는 가장 이른 다중 버전 동시성 제어 알고리즘으로 든 것은 1970년대 말 데이비드 리드(David P. Reed)의 다중 버전 타임스탬프 알고리즘입니다. 두 사람은 같은 논문 "Multiversion Concurrency Control — Theory and Algorithms"에서 다중 버전 데이터베이스의 정확성(직렬 가능성)을 분석하는 이론을 제시했습니다.
+                    </p>
+                    <p class="overview-lead">
+                        오늘날 PostgreSQL, MySQL InnoDB, Oracle 같은 주요 관계형 데이터베이스가 같은 계열의 다중 버전 방식을 사용합니다(Oracle 문서의 용어는 multiversion read consistency). 잠금 기반 방식에서 읽기와 쓰기가 서로 기다리는 문제를 줄이는 것이 목적이며, 격리 수준의 Repeatable Read와 Read Committed가 보는 스냅샷도 MVCC 위에서 구현됩니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>버전 4개</strong> — 값 1000인 행을 삽입하고 500, 300, 100으로 세 번 수정하면 같은 행의 버전이 4개가 됩니다. 이전 버전 3개의 xmax는 수정한 트랜잭션 ID로 표시됩니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>스냅샷별 값</strong> — 시각 2, 4, 8의 스냅샷으로 읽으면 각각 1000, 500, 100입니다. 읽기 세 개가 같은 행에서 서로 다른 값을 읽는 동안 쓰기는 한 번도 기다리지 않습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>VACUUM의 기준</strong> — 가장 오래된 스냅샷이 시각 2에 묶여 있을 때 회수 가능한 버전은 0개이고, 기준이 8로 올라오면 v1, v2, v3 세 개가 회수되어 v4만 남습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>코드 확인</strong> — 파이썬과 자바 모델 모두 시각 2, 4, 8에서 1000, 500, 100을 읽고, 기준 2에서는 0개, 기준 8에서는 3개를 지워 현재 버전 하나만 남깁니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>UPDATE는 행을 제자리에서 고친다</strong> — PostgreSQL에서 UPDATE는 새 행 버전을 만들고 기존 버전에 xmax를 표시합니다. 제자리 수정 방식(InnoDB)과 구현이 다릅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>MVCC가 있으면 잠금이 필요 없다</strong> — 읽기와 쓰기가 서로 막지 않을 뿐이고, 같은 행을 동시에 수정하는 두 쓰기는 서로 기다리거나 충돌로 중단됩니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이전 버전은 커밋하면 바로 사라진다</strong> — 이전 버전은 다른 트랜잭션이 볼 수 있는 동안 남고, VACUUM이 나중에 회수합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>VACUUM이 디스크를 바로 줄여 준다</strong> — 일반 VACUUM은 회수한 공간을 같은 테이블이 다시 쓰게 할 뿐, 테이블 끝쪽 페이지가 완전히 빈 경우를 빼고는 운영체제에 돌려주지 않습니다. 파일을 줄이려면 VACUUM FULL처럼 테이블을 다시 쓰는 방법이 필요하고, 이는 테이블을 배타적으로 잠급니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>VACUUM은 공간 회수만 한다</strong> — 트랜잭션 ID가 32비트라 약 20억 트랜잭션 안에 오래된 행을 freeze하는 정리가 필요하고, 그러지 않으면 과거 행이 보이지 않게 됩니다. VACUUM과 autovacuum이 이 일도 맡습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>읽기는 항상 최신 값을 본다</strong> — 읽기는 자기 스냅샷의 값을 봅니다. 읽는 도중 다른 트랜잭션이 커밋해도 Repeatable Read 이상에서는 그 변경이 보이지 않습니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">MVCC란 무엇이고 왜 쓰나요?</h3>
+                            <p class="overview-card__desc">행의 여러 버전을 유지해 읽기와 쓰기가 서로 막지 않게 하는 방식입니다. 읽는 쪽은 자기 스냅샷의 버전을 보므로 읽는 중에도 일관된 결과를 얻습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">VACUUM은 무엇을 하나요?</h3>
+                            <p class="overview-card__desc">더 이상 어떤 트랜잭션도 볼 필요가 없는 이전 버전(dead tuple)을 회수해 공간을 재사용할 수 있게 합니다. autovacuum이 기본으로 켜져 있어 필요한 테이블에 자동 수행합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">오래 열린 트랜잭션이 왜 문제인가요?</h3>
+                            <p class="overview-card__desc">그 트랜잭션의 스냅샷 이후에 지워진 버전을 회수할 수 없어서 dead tuple이 쌓이고 테이블이 불어날 수 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">PostgreSQL과 InnoDB의 MVCC는 어떻게 다른가요?</h3>
+                            <p class="overview-card__desc">PostgreSQL은 이전 버전을 테이블 안에 새 행으로 남기고, InnoDB는 클러스터드 인덱스 레코드를 제자리에서 고치고 이전 값을 언두 로그에 두어 필요할 때 복원합니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">활용 분야</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>읽기가 많은 웹 서비스</strong> — 읽기가 쓰기와 서로 기다리지 않으므로 같은 데이터에 읽기와 쓰기가 섞여도 잠금 대기가 줄어듭니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>일관된 스냅샷이 필요한 긴 읽기</strong> — 보고서나 백업처럼 시작 시점의 데이터를 일관되게 읽어야 하는 작업이 쓰기(DML)를 막지 않고 실행됩니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>운영 점검</strong> — 오래 열린 트랜잭션과 dead tuple 수, autovacuum 동작을 감시해 테이블 비대화를 줄입니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/isolation-levels}">트랜잭션 격리 수준</a> — MVCC 스냅샷 위에서 이상 현상을 막는 방식을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/transaction}">트랜잭션</a> — 커밋과 롤백, ACID를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/lock}">락</a> — MVCC에서도 필요한 쓰기 충돌 제어를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/index}">인덱스</a> — 행 버전이 늘어날 때 인덱스가 받는 영향과 이어집니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://www.postgresql.org/docs/current/mvcc-intro.html" target="_blank" rel="noopener">PostgreSQL: Concurrency Control, Introduction</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://www.postgresql.org/docs/current/routine-vacuuming.html" target="_blank" rel="noopener">PostgreSQL: Routine Vacuuming</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://www.postgresql.org/docs/current/ddl-system-columns.html" target="_blank" rel="noopener">PostgreSQL: System Columns</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://dev.mysql.com/doc/refman/8.4/en/innodb-multi-versioning.html" target="_blank" rel="noopener">MySQL InnoDB Multi-Versioning</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>논문</strong> — Bernstein, P. A., Goodman, N., "Multiversion Concurrency Control — Theory and Algorithms", ACM Transactions on Database Systems 8(4), 1983</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/db/11-20/mvcc-code :: code}"></th:block>
+            </div>
+
+            <!-- 탭 4: 퀴즈 -->
+            <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
+                <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+    <script th:src="@{/js/quiz.js}"></script>
+    <script th:src="@{/js/like.js}"></script>
+    <script th:src="@{/js/share.js}"></script>
+</body>
+</html>
