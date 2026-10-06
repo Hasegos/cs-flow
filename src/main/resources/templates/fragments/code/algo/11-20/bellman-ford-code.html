@@ -1,0 +1,100 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — 벨만-포드와 음수 사이클 탐지</p>
+            <div class="code-block">
+<pre>INF = <span class="fn">float</span>(<span class="st">'inf'</span>)
+
+<span class="kw">def</span> <span class="fn">bellman_ford</span>(n, edges, src):
+    dist = &#91;INF&#93; * n
+    dist&#91;src&#93; = <span class="num">0</span>
+    <span class="kw">for</span> _ <span class="kw">in</span> <span class="fn">range</span>(n - <span class="num">1</span>):                       <span class="cm"># V-1번 반복</span>
+        <span class="kw">for</span> u, v, w <span class="kw">in</span> edges:
+            <span class="kw">if</span> dist&#91;u&#93; != INF <span class="kw">and</span> dist&#91;u&#93; + w &lt; dist&#91;v&#93;:
+                dist&#91;v&#93; = dist&#91;u&#93; + w              <span class="cm"># 완화(relax)</span>
+    <span class="kw">for</span> u, v, w <span class="kw">in</span> edges:                          <span class="cm"># 한 번 더 확인</span>
+        <span class="kw">if</span> dist&#91;u&#93; != INF <span class="kw">and</span> dist&#91;u&#93; + w &lt; dist&#91;v&#93;:
+            <span class="kw">return None</span>                           <span class="cm"># 음수 사이클</span>
+    <span class="kw">return</span> dist
+
+<span class="cm"># S=0, A=1, B=2, C=3, D=4 · (출발, 도착, 가중치)</span>
+E = &#91;(<span class="num">3</span>, <span class="num">4</span>, <span class="num">2</span>), (<span class="num">2</span>, <span class="num">3</span>, <span class="num">4</span>), (<span class="num">1</span>, <span class="num">2</span>, -<span class="num">3</span>), (<span class="num">0</span>, <span class="num">1</span>, <span class="num">4</span>),
+     (<span class="num">0</span>, <span class="num">2</span>, <span class="num">5</span>), (<span class="num">1</span>, <span class="num">3</span>, <span class="num">8</span>), (<span class="num">2</span>, <span class="num">4</span>, <span class="num">7</span>)&#93;
+<span class="fn">print</span>(<span class="fn">bellman_ford</span>(<span class="num">5</span>, E, <span class="num">0</span>))                       <span class="cm"># &#91;0, 4, 1, 5, 7&#93;</span>
+<span class="fn">print</span>(<span class="fn">bellman_ford</span>(<span class="num">5</span>, E + &#91;(<span class="num">2</span>, <span class="num">1</span>, <span class="num">1</span>)&#93;, <span class="num">0</span>))         <span class="cm"># None  (A → B → A 합 -2)</span></pre>
+            </div>
+            <p class="code-desc">
+                벨만-포드는 모든 간선을 한 번씩 완화하는 일을 V-1번 반복합니다. 완화는 출발 쪽 거리에 가중치를 더한 값이 도착 쪽의 현재 거리보다 작으면 도착 쪽 거리를 그 값으로 줄이는 연산입니다. 음수 가중치 간선 A → B(-3)이 있어도 정답 &#91;0, 4, 1, 5, 7&#93;이 나옵니다. 다익스트라는 거리를 한 번 확정하면 고치지 않기 때문에 이런 그래프에서 틀릴 수 있습니다.
+                음수 사이클이 없으면 최단 경로는 간선을 많아야 V-1개 지나므로 V-1번이면 거리가 확정됩니다. 그 뒤 한 번 더 확인했을 때도 줄어드는 간선이 있으면 출발 정점에서 닿을 수 있는 음수 사이클이 있다는 뜻이고, 함수는 None을 돌려줍니다. 간선 B → A(1)을 더하면 A → B → A의 합이 -3 + 1 = -2라 음수 사이클이 생겨 None이 나옵니다. 시각화의 라운드 반복 탭과 음수 사이클 탭이 보여 주는 과정과 같고, 간선 E개를 V번 훑으므로 O(VE)입니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — 일찍 끝내기와 간선 순서의 영향</p>
+            <div class="code-block">
+<pre><span class="kw">def</span> <span class="fn">bellman_ford</span>(n, edges, src):
+    dist = &#91;INF&#93; * n
+    dist&#91;src&#93; = <span class="num">0</span>
+    rounds = <span class="num">0</span>
+    <span class="kw">for</span> _ <span class="kw">in</span> <span class="fn">range</span>(n - <span class="num">1</span>):
+        rounds += <span class="num">1</span>
+        changed = <span class="kw">False</span>
+        <span class="kw">for</span> u, v, w <span class="kw">in</span> edges:
+            <span class="kw">if</span> dist&#91;u&#93; != INF <span class="kw">and</span> dist&#91;u&#93; + w &lt; dist&#91;v&#93;:
+                dist&#91;v&#93; = dist&#91;u&#93; + w
+                changed = <span class="kw">True</span>
+        <span class="kw">if not</span> changed:                              <span class="cm"># 한 라운드 동안 갱신이 없으면 끝</span>
+            <span class="kw">break</span>
+    <span class="kw">for</span> u, v, w <span class="kw">in</span> edges:
+        <span class="kw">if</span> dist&#91;u&#93; != INF <span class="kw">and</span> dist&#91;u&#93; + w &lt; dist&#91;v&#93;:
+            <span class="kw">return None</span>, rounds
+    <span class="kw">return</span> dist, rounds
+
+<span class="fn">print</span>(<span class="fn">bellman_ford</span>(<span class="num">5</span>, E, <span class="num">0</span>))                       <span class="cm"># (&#91;0, 4, 1, 5, 7&#93;, 4)</span>
+good = &#91;(<span class="num">0</span>, <span class="num">1</span>, <span class="num">4</span>), (<span class="num">1</span>, <span class="num">2</span>, -<span class="num">3</span>), (<span class="num">0</span>, <span class="num">2</span>, <span class="num">5</span>), (<span class="num">2</span>, <span class="num">3</span>, <span class="num">4</span>),
+        (<span class="num">1</span>, <span class="num">3</span>, <span class="num">8</span>), (<span class="num">2</span>, <span class="num">4</span>, <span class="num">7</span>), (<span class="num">3</span>, <span class="num">4</span>, <span class="num">2</span>)&#93;
+<span class="fn">print</span>(<span class="fn">bellman_ford</span>(<span class="num">5</span>, good, <span class="num">0</span>))                    <span class="cm"># (&#91;0, 4, 1, 5, 7&#93;, 2)</span></pre>
+            </div>
+            <p class="code-desc">
+                한 라운드 동안 갱신이 하나도 없으면 이후 라운드에서도 거리가 변하지 않으므로 V-1번을 채우지 않고 끝낼 수 있습니다. 이 조기 종료를 넣으면 간선을 확인하는 순서가 라운드 수에 영향을 줍니다.
+                같은 그래프에서 간선을 앞쪽 정점에서 뒤쪽 정점 쪽으로 가는 순서(S → A, A → B, …)로 놓으면 라운드 1에서 모든 거리가 확정되고 라운드 2에서 갱신이 없음을 확인하며 끝납니다. 시각화처럼 불리한 순서로 놓으면 4라운드가 모두 필요합니다. 최악의 경우는 순서와 상관없이 V-1번이라 시간 복잡도는 그대로 O(VE)입니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 벨만-포드</p>
+            <div class="code-block">
+<pre><span class="kw">record</span> Edge(<span class="kw">int</span> from, <span class="kw">int</span> to, <span class="kw">int</span> w) {}
+
+<span class="kw">static final int</span> INF = Integer.MAX_VALUE;
+
+<span class="kw">static int</span>&#91;&#93; <span class="fn">bellmanFord</span>(<span class="kw">int</span> n, List&lt;Edge&gt; edges, <span class="kw">int</span> src) {
+    <span class="kw">int</span>&#91;&#93; dist = <span class="kw">new int</span>&#91;n&#93;;
+    Arrays.<span class="fn">fill</span>(dist, INF);
+    dist&#91;src&#93; = <span class="num">0</span>;
+    <span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">0</span>; i &lt; n - <span class="num">1</span>; i++) {
+        <span class="kw">for</span> (Edge e : edges) {
+            <span class="kw">if</span> (dist&#91;e.<span class="fn">from</span>()&#93; != INF &amp;&amp; dist&#91;e.<span class="fn">from</span>()&#93; + e.<span class="fn">w</span>() &lt; dist&#91;e.<span class="fn">to</span>()&#93;) {
+                dist&#91;e.<span class="fn">to</span>()&#93; = dist&#91;e.<span class="fn">from</span>()&#93; + e.<span class="fn">w</span>();
+            }
+        }
+    }
+    <span class="kw">for</span> (Edge e : edges) {                          <span class="cm">// 음수 사이클 확인</span>
+        <span class="kw">if</span> (dist&#91;e.<span class="fn">from</span>()&#93; != INF &amp;&amp; dist&#91;e.<span class="fn">from</span>()&#93; + e.<span class="fn">w</span>() &lt; dist&#91;e.<span class="fn">to</span>()&#93;) {
+            <span class="kw">return null</span>;
+        }
+    }
+    <span class="kw">return</span> dist;
+}
+
+<span class="cm">// 같은 그래프: &#91;0, 4, 1, 5, 7&#93;, B → A(1)을 더하면 null</span></pre>
+            </div>
+            <p class="code-desc">
+                자바 버전도 구조가 같습니다. INF를 Integer.MAX_VALUE로 두면 INF에 양의 가중치를 더할 때 넘쳐 음수가 되고, 음의 가중치를 더하면 INF보다 작아져 닿지 못한 정점이 갱신된 것처럼 됩니다. 그래서 출발 쪽 거리가 INF가 아닐 때만 더하도록 검사합니다. 위의 파이썬 예와 같은 그래프에서 결과는 &#91;0, 4, 1, 5, 7&#93;이고, B → A(1) 간선을 더하면 확인 단계에서 null을 돌려줍니다.
+                실무에서는 음수 가중치가 없다면 보통 다익스트라가 더 빠르지만, 환율이나 비용처럼 음수 간선이 생길 수 있는 문제나 음수 사이클 자체를 찾고 싶은 문제에는 벨만-포드를 씁니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
