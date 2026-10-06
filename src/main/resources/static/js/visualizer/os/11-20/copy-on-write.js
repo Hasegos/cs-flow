@@ -260,9 +260,9 @@
             }
         }
         var cy = yC + ch + 28;
-        tx('사용 프레임 ' + framesUsed(s) + '개   복사한 페이지 ' + s.copied + '개', x0, cy, fs + 0.5, P.text + 'ee', 'left', true);
+        tx(mob ? '프레임 ' + framesUsed(s) + '개 · 복사 ' + s.copied + '개' : '사용 프레임 ' + framesUsed(s) + '개   복사한 페이지 ' + s.copied + '개', x0, cy, fs + 0.5, P.text + 'ee', 'left', true);
         if (cmpOn) tx('모두 복사: 프레임 ' + framesUsed(S_EAGER) + '개 · 복사 ' + S_EAGER.copied + '개', x0, cy + 22, fs - 0.5, P.red + 'ee', 'left', true);
-        if (hl && hl.k === 'fault') tx('페이지 폴트 → 커널 개입', x0 + w, cy, fs - 0.5, P.red + 'ee', 'right', true);
+        if (hl && hl.k === 'fault') tx(mob ? '폴트 → 커널 개입' : '페이지 폴트 → 커널 개입', x0 + w, cy, fs - 0.5, P.red + 'ee', 'right', true);
     }
 
     /* ===================== 모드: fork 뒤 exec ===================== */
@@ -312,8 +312,16 @@
         if (!step) {
             var hint = '아래 STEP으로 COW 동작을 확인하세요.';
             ctx.font = '500 ' + (mob ? 11 : 12.5) + 'px "JetBrains Mono",monospace';
-            var hs = (mob ? 11 : 12.5) * Math.min(1, (W - 16) / ctx.measureText(hint).width);
-            tx(hint, W / 2, GH() - (mob ? 12 : 14), hs, P.muted + 'aa', 'center', false);
+            var hs = mob ? 11 : 12.5;
+            var hl = [hint];
+            if (ctx.measureText(hint).width > W - 16) {
+                var cut = hint.indexOf(' ', Math.floor(hint.length / 2));
+                if (cut < 0) cut = hint.lastIndexOf(' ');
+                hl = [hint.slice(0, cut), hint.slice(cut + 1)];
+            }
+            hl.forEach(function (line, li) {
+                tx(line, W / 2, GH() - (mob ? 12 : 14) - (hl.length - 1 - li) * (hs + 4), hs, P.muted + 'aa', 'center', false);
+            });
         }
     }
 

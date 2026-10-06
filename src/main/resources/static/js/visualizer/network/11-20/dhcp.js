@@ -272,7 +272,7 @@
         });
         [[0, '0'], [T1_H, 'T1 ' + T1_H + '시간'], [T2_H, 'T2 ' + T2_H + '시간'], [LEASE_H, '만료 ' + LEASE_H + '시간']].forEach(function (m, i) {
             var al = i === 0 ? 'left' : (i === 3 ? 'right' : 'center');
-            tx(m[1], xAt(m[0]), barY + bh + 14, fs - 3, P.muted + 'ee', al, false);
+            tx(m[1], xAt(m[0]), barY + bh + 14 + (mob && i === 2 ? 14 : 0), fs - 3, P.muted + 'ee', al, false);
         });
         if (s) {
             var px = xAt(s.t);
@@ -283,7 +283,7 @@
             ctx.lineWidth = 2;
             ctx.stroke();
             var sc = s.state === 'INIT' ? P.red : (s.state === 'BOUND' ? P.green : (s.state === 'RENEWING' ? P.yellow : P.orange));
-            tx('상태: ' + s.state, x0, barY + bh + 40, fs, sc + 'ff', 'left', true);
+            tx('상태: ' + s.state, x0, barY + bh + (mob ? 46 : 40), fs, sc + 'ff', 'left', true);
         }
         var py = barY + bh + 56;
         var lh = mob ? 14 : 16;
@@ -337,8 +337,16 @@
         if (!step) {
             var hint = '아래 STEP으로 IP 주소를 받는 과정을 확인하세요.';
             ctx.font = '500 ' + (mob ? 11 : 12.5) + 'px "JetBrains Mono",monospace';
-            var hs = (mob ? 11 : 12.5) * Math.min(1, (W - 16) / ctx.measureText(hint).width);
-            tx(hint, W / 2, GH() - (mob ? 12 : 14), hs, P.muted + 'aa', 'center', false);
+            var hs = mob ? 11 : 12.5;
+            var hl = [hint];
+            if (ctx.measureText(hint).width > W - 16) {
+                var cut = hint.indexOf(' ', Math.floor(hint.length / 2));
+                if (cut < 0) cut = hint.lastIndexOf(' ');
+                hl = [hint.slice(0, cut), hint.slice(cut + 1)];
+            }
+            hl.forEach(function (line, li) {
+                tx(line, W / 2, GH() - (mob ? 12 : 14) - (hl.length - 1 - li) * (hs + 4), hs, P.muted + 'aa', 'center', false);
+            });
         }
     }
 

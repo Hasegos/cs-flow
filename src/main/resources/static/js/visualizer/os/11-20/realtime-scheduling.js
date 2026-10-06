@@ -227,7 +227,7 @@
         var lw = mob ? 30 : 44;
         var cw = (w - lw) / HORIZON;
         var rh = mob ? 30 : 36;
-        var gap = 26;
+        var gap = mob ? 34 : 36;
         var colOf = [P.orange, P.teal];
         var info = pol === 'edf' ? '우선순위: 마감이 가까운 작업이 높음 (동적)' : '우선순위: 주기가 짧은 작업이 높음 (고정, T1 > T2)';
         tx(info, x0, top + 6, fs - 0.5, P.text + 'ee', 'left', true);
@@ -251,22 +251,27 @@
             }
             for (var k = 0; k * tk.P <= HORIZON; k++) {
                 var rx = x0 + lw + k * tk.P * cw;
-                if (k * tk.P < HORIZON) tx('▲', rx, y + rh + 8, fs - 1.5, P.green + 'ff', 'center', true);
+                if (k * tk.P < HORIZON) tx('▲', rx, y + rh + 9, fs - 1.5, P.green + 'ff', 'center', true);
                 var dx = x0 + lw + (k + 1) * tk.P * cw;
                 if ((k + 1) * tk.P <= HORIZON) {
                     var missed = sim.misses.some(function (j) { return TASKS[j.ti].id === tk.id && j.n === k; });
                     var shown = upTo >= (k + 1) * tk.P - 1;
-                    tx('▼', dx, y - 8, fs - 1.5, (missed && shown ? P.red : P.yellow) + 'ff', 'center', true);
+                    tx('▼', dx, y - 9, fs - 1.5, (missed && shown ? P.red : P.yellow) + 'ff', 'center', true);
                 }
             }
         });
-        var ay = y0 + 2 * (rh + gap) - gap + 14;
+        var ay = y0 + 2 * (rh + gap) - gap + 26;
         for (var t2 = 0; t2 <= HORIZON; t2 += 1) {
             if (mob && t2 % 2 === 1) continue;
             tx(String(t2), x0 + lw + t2 * cw, ay, fs - 1.5, P.muted + 'cc', 'center', false);
         }
-        tx('▲ 도착   ▼ 마감 (빨강 = 마감 실패)', x0, ay + 22, fs - 0.5, P.muted + 'ee', 'left', false);
-        tx('채움 = 실행(숫자는 몇 번째 작업), 회색 테두리 = CPU 대기', x0, ay + 40, fs - 0.5, P.muted + 'ee', 'left', false);
+        tx('▲ 도착   ▼ 마감 (빨강 = 마감 실패)', x0, ay + 24, fs - 0.5, P.muted + 'ee', 'left', false);
+        if (mob) {
+            tx('채움 = 실행(숫자는 몇 번째 작업)', x0, ay + 42, fs - 0.5, P.muted + 'ee', 'left', false);
+            tx('회색 테두리 = CPU 대기', x0, ay + 58, fs - 0.5, P.muted + 'ee', 'left', false);
+        } else {
+            tx('채움 = 실행(숫자는 몇 번째 작업), 회색 테두리 = CPU 대기', x0, ay + 42, fs - 0.5, P.muted + 'ee', 'left', false);
+        }
     }
 
     /* ===================== 모드: 이용률 한계 ===================== */
@@ -327,8 +332,16 @@
         if (!step) {
             var hint = '아래 STEP으로 RM과 EDF의 차이를 확인하세요.';
             ctx.font = '500 ' + (mob ? 11 : 12.5) + 'px "JetBrains Mono",monospace';
-            var hs = (mob ? 11 : 12.5) * Math.min(1, (W - 16) / ctx.measureText(hint).width);
-            tx(hint, W / 2, GH() - (mob ? 12 : 14), hs, P.muted + 'aa', 'center', false);
+            var hs = mob ? 11 : 12.5;
+            var hl = [hint];
+            if (ctx.measureText(hint).width > W - 16) {
+                var cut = hint.indexOf(' ', Math.floor(hint.length / 2));
+                if (cut < 0) cut = hint.lastIndexOf(' ');
+                hl = [hint.slice(0, cut), hint.slice(cut + 1)];
+            }
+            hl.forEach(function (line, li) {
+                tx(line, W / 2, GH() - (mob ? 12 : 14) - (hl.length - 1 - li) * (hs + 4), hs, P.muted + 'aa', 'center', false);
+            });
         }
     }
 

@@ -85,6 +85,11 @@
     var GW_PUB = '198.51.100.1';
     var INNER_TXT = '내부 패킷: ' + VPN_CLIENT + ' → ' + INNER_DST + ' (사설 주소)';
     var OUTER_TXT = '외부 패킷: ' + CLIENT_PUB + ' → ' + GW_PUB + ' (공인 주소)';
+    var INNER_S = '내부: ' + VPN_CLIENT + ' → ' + INNER_DST;
+    var OUTER_S = '외부: ' + CLIENT_PUB + ' → ' + GW_PUB;
+    function shortTxt(s, mob) {
+        return mob ? s.replace(INNER_TXT, INNER_S).replace(OUTER_TXT, OUTER_S) : s;
+    }
 
     var TUNNEL_STEPS = [
         { k: 0, log: '원격 근무자의 노트북이 인터넷을 거쳐 회사 내부 서버 ' + INNER_DST + '에 접속합니다. 이 주소는 사설 주소라 인터넷에서는 보낼 수 없고, 평문으로 보내면 중간에서 내용이 보입니다. VPN은 패킷을 다른 패킷 안에 넣어(캡슐화) 암호화해서 보냅니다.' },
@@ -170,14 +175,14 @@
         var fs = mob ? 10 : 11.5;
         var k = step ? step.k : 0;
         var bh = 34;
-        var rowGap = 62;
+        var rowGap = mob ? 74 : 62;
         var y = top + 4;
         var spy = k >= 4;
         if (k >= 1) {
             tx('원래 패킷 (내부 패킷)', x0, y + 6, fs - 1, P.sub + 'ee', 'left', true);
             block(x0, y + 14, w * 0.36, bh, '내부 IP 헤더', P.teal, fs - 1, false);
             block(x0 + w * 0.36 + 4, y + 14, w * 0.64 - 4, bh, '데이터', P.teal, fs - 1, false);
-            tx(INNER_TXT, x0, y + 14 + bh + 11, fs - 2, P.sub + 'ee', 'left', false);
+            tx(mob ? INNER_S : INNER_TXT, x0, y + 14 + bh + 11, fs - 2, P.sub + 'ee', 'left', false);
         }
         y += rowGap + 8;
         if (k >= 2) {
@@ -190,7 +195,7 @@
             block(x0, y + 14, w * 0.3, bh, '외부 IP 헤더', P.orange, fs - 1, spy);
             block(x0 + w * 0.3 + 4, y + 14, w * 0.14 - 4, bh, 'VPN', P.purple, fs - 1, false);
             block(x0 + w * 0.44 + 4, y + 14, w * 0.56 - 4, bh, '암호문', P.red, fs - 1, spy);
-            tx(OUTER_TXT, x0, y + 14 + bh + 11, fs - 2, P.sub + 'ee', 'left', false);
+            tx(mob ? OUTER_S : OUTER_TXT, x0, y + 14 + bh + 11, fs - 2, P.sub + 'ee', 'left', false);
         }
         y += rowGap;
         if (k >= 4) {
@@ -198,7 +203,7 @@
             tx('읽을 수 없는 것: 암호문(빨강)', x0, y + 22, fs - 1, P.yellow + 'ee', 'left', true);
         }
         if (k >= 5) {
-            tx('게이트웨이: 외부 헤더 제거 → 복호화 → 내부 패킷 복원', x0, y + 44, fs - 1, P.green + 'ff', 'left', true);
+            tx(mob ? '게이트웨이: 헤더 제거 → 복호화 → 복원' : '게이트웨이: 외부 헤더 제거 → 복호화 → 내부 패킷 복원', x0, y + 44, fs - 1, P.green + 'ff', 'left', true);
         }
     }
 
@@ -247,8 +252,8 @@
         ctx.strokeStyle = P.purple + 'cc';
         ctx.lineWidth = 6;
         ctx.stroke();
-        tx('암호화된 터널 (노트북 ↔ 게이트웨이)', (tubeX1 + tubeX2) / 2, ty + 16, fs - 1.5, P.purple + 'ff', 'center', true);
-        tx('사내망 (VPN 보호 밖)', x0 + 3 * (bw + gap) + bw / 2, ty + 16, fs - 1.5, P.teal + 'ee', 'center', true);
+        tx(mob ? '암호화된 터널' : '암호화된 터널 (노트북 ↔ 게이트웨이)', (tubeX1 + tubeX2) / 2, ty + 16, fs - 1.5, P.purple + 'ff', 'center', true);
+        tx(mob ? '사내망(보호 밖)' : '사내망 (VPN 보호 밖)', x0 + 3 * (bw + gap) + bw / 2, ty + 16, fs - 1.5, P.teal + 'ee', 'center', true);
 
         var py = ty + 34;
         var lh = mob ? 15 : 17;
@@ -257,7 +262,7 @@
         tx('이 구간의 패킷', x0 + 10, py + 11, fs - 2, P.muted + 'ee', 'left', true);
         if (s.pkt.length) {
             s.pkt.forEach(function (ln, i) {
-                tx(ln, x0 + 10, py + 11 + lh * (i + 1), fs - 1.5, (i === 0 ? P.text : P.yellow) + 'ee', 'left', false);
+                tx(shortTxt(ln, mob), x0 + 10, py + 11 + lh * (i + 1), fs - 1.5, (i === 0 ? P.text : P.yellow) + 'ee', 'left', false);
             });
         } else {
             tx('(아직 보낸 패킷이 없습니다)', x0 + 10, py + 11 + lh, fs - 1.5, P.muted + 'cc', 'left', false);
@@ -329,8 +334,16 @@
         if (!step) {
             var hint = '아래 STEP으로 패킷이 터널을 지나는 과정을 확인하세요.';
             ctx.font = '500 ' + (mob ? 11 : 12.5) + 'px "JetBrains Mono",monospace';
-            var hs = (mob ? 11 : 12.5) * Math.min(1, (W - 16) / ctx.measureText(hint).width);
-            tx(hint, W / 2, GH() - (mob ? 12 : 14), hs, P.muted + 'aa', 'center', false);
+            var hs = mob ? 11 : 12.5;
+            var hl = [hint];
+            if (ctx.measureText(hint).width > W - 16) {
+                var cut = hint.indexOf(' ', Math.floor(hint.length / 2));
+                if (cut < 0) cut = hint.lastIndexOf(' ');
+                hl = [hint.slice(0, cut), hint.slice(cut + 1)];
+            }
+            hl.forEach(function (line, li) {
+                tx(line, W / 2, GH() - (mob ? 12 : 14) - (hl.length - 1 - li) * (hs + 4), hs, P.muted + 'aa', 'center', false);
+            });
         }
     }
 
@@ -341,7 +354,7 @@
         var neededH;
         if (mode === 'path') neededH = mob ? 270 : 280;
         else if (mode === 'kinds') neededH = mob ? 340 : 340;
-        else neededH = mob ? 330 : 330;
+        else neededH = mob ? 366 : 330;
         canvasWrap.style.height    = 'auto';
         canvasWrap.style.minHeight = neededH + 'px';
         var actualH = canvasWrap.offsetHeight || neededH;
