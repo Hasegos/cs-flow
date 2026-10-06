@@ -300,7 +300,7 @@
     function getLayout(mob) {
         return {
             top:      mob ? 16 : 22,
-            coinH:    mob ? 190 : 210,
+            coinH:    mob ? 226 : 210,
             actRowH:  mob ? 34 : 40,
             actTopPad: mob ? 44 : 50,
         };

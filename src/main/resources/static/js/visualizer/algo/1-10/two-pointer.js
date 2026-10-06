@@ -238,9 +238,11 @@
         var lanes = [];
         if (step.left != null) lanes.push({ idx: step.left, label: 'left', col: P.teal });
         if (step.right != null) lanes.push({ idx: step.right, label: 'right', col: P.purple });
-        lanes.forEach(function (ln) {
+        var sameIdx = lanes.length === 2 && lanes[0].idx === lanes[1].idx;
+        lanes.forEach(function (ln, li) {
             var cx = idxCenterX(BL, ln.idx);
-            tx(ln.label, cx, pointerTop + laneH / 2, mob ? 11 : 12.5, ln.col + 'ee', 'center', true);
+            if (sameIdx) tx(ln.label, cx + (li === 0 ? -2 : 2), pointerTop + laneH / 2, mob ? 11 : 12.5, ln.col + 'ee', li === 0 ? 'right' : 'left', true);
+            else tx(ln.label, cx, pointerTop + laneH / 2, mob ? 11 : 12.5, ln.col + 'ee', 'center', true);
             line(cx, pointerTop + laneH - (mob ? 2 : 3), cx, boxTop - 2, ln.col + '88', 1.4);
         });
 
@@ -267,10 +269,10 @@
             }
         }
 
-        var revealExtra = revealPair ? (mob ? 22 : 26) : 0;
+        var revealExtra = revealPair ? (mob ? 26 : 28) : 0;
         if (revealPair) {
             var midX = (idxCenterX(BL, revealPair[0]) + idxCenterX(BL, revealPair[1])) / 2;
-            tx('놓친 정답이 여기 있었어요!', midX, boxTop + boxH + (mob ? 15 : 17), mob ? 9.5 : 10.5, P.orange + 'ee', 'center', true);
+            tx('놓친 정답이 여기 있었어요!', midX, boxTop + boxH + (mob ? 30 : 34), mob ? 11 : 11.5, P.orange + 'ee', 'center', true);
         }
 
         var statusTop = boxTop + boxH + (mob ? 26 : 30) + revealExtra;

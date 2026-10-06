@@ -346,8 +346,16 @@
         if (!step) {
             var hint = '아래 STEP으로 QUIC의 동작을 확인하세요.';
             ctx.font = '500 ' + (mob ? 11 : 12.5) + 'px "JetBrains Mono",monospace';
-            var hs = (mob ? 11 : 12.5) * Math.min(1, (W - 16) / ctx.measureText(hint).width);
-            tx(hint, W / 2, GH() - (mob ? 12 : 14), hs, P.muted + 'aa', 'center', false);
+            var hs = mob ? 11 : 12.5;
+            var hl = [hint];
+            if (ctx.measureText(hint).width > W - 16) {
+                var cut = hint.indexOf(' ', Math.floor(hint.length / 2));
+                if (cut < 0) cut = hint.lastIndexOf(' ');
+                hl = [hint.slice(0, cut), hint.slice(cut + 1)];
+            }
+            hl.forEach(function (line, li) {
+                tx(line, W / 2, GH() - (mob ? 12 : 14) - (hl.length - 1 - li) * (hs + 4), hs, P.muted + 'aa', 'center', false);
+            });
         }
     }
 
@@ -356,7 +364,7 @@
         var w = canvasWrap.offsetWidth || 320;
         var mob = w < 600;
         var neededH;
-        if (mode === 'loss') neededH = mob ? 290 : 300;
+        if (mode === 'loss') neededH = mob ? 310 : 300;
         else if (mode === 'mig') neededH = mob ? 290 : 300;
         else neededH = mob ? 240 : 250;
         canvasWrap.style.height    = 'auto';

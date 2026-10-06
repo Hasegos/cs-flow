@@ -75,6 +75,7 @@
         const cacheMinH = 36 + 4 * 60 + 3 * 7 + vpad * 2;
         const memMinH   = 36 + 8 * 38 + 7 * 6  + vpad * 2;
         const minH = Math.max(cacheMinH, memMinH) + 40;
+        canvasWrap.style.minHeight = minH + 'px';
         const h    = Math.max(canvasWrap.offsetHeight, minH);
         canvas.width  = w * dpr;
         canvas.height = h * dpr;

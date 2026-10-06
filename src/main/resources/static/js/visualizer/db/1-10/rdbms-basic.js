@@ -529,7 +529,8 @@
                     var stubY = fromBad.y - G.rowH * 1.4;
                     seg(fromBad.x, fromBad.y - G.rowH / 2 + 2, fromBad.x, stubY, P.orange + 'cc', 1.6);
                     tx('✕', fromBad.x, stubY - (mob ? 10 : 12), mob ? 13 : 15, P.orange + 'ee', 'center', true);
-                    tx('(대상 없음)', fromBad.x, stubY - (mob ? 22 : 26), mob ? 10 : 11, P.orange + 'aa', 'center', false);
+                    var leftSide = fromBad.x > GW() / 2;
+                    tx('(대상 없음)', fromBad.x + (leftSide ? -12 : 12), stubY - (mob ? 10 : 12), mob ? 11 : 11.5, P.orange + 'cc', leftSide ? 'right' : 'left', false);
                 }
             }
         }

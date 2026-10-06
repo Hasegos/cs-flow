@@ -205,7 +205,11 @@
             tx(String(v), x, padT + gH + (mob ? 10 : 12), F_AXIS, P.muted + 'aa', 'center', false);
         });
 
-        tx('cwnd (MSS)', mob ? 10 : 12, padT + gH / 2, F_AXIS + 1, P.muted + 'cc', 'center', false);
+        ctx.save();
+        ctx.translate(mob ? 10 : 12, padT + gH / 2);
+        ctx.rotate(-Math.PI / 2);
+        tx('cwnd (MSS)', 0, 0, F_AXIS + 1, P.muted + 'cc', 'center', false);
+        ctx.restore();
         tx('RTT', padL + gW / 2, padT + gH + (mob ? 24 : 28), F_AXIS + 1, P.muted + 'cc', 'center', false);
     }
 

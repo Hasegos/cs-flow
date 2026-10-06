@@ -249,7 +249,12 @@
             var y = top + 36 + i * (mob ? 46 : 40);
             var on = k > i;
             rr(x0, y, w - 2, mob ? 38 : 32, 5, on ? P.muted + '14' : 'none', on ? P.muted + '55' : P.muted + '30', 1);
-            tx(it.name, x0 + 10, y + (mob ? 19 : 16), fs - (mob ? 1.5 : 0.5), on ? P.text + 'ee' : P.muted + '88', 'left', true);
+            var nfs = fs - (mob ? 1.5 : 0.5);
+            ctx.font = '700 ' + nfs + 'px "JetBrains Mono",monospace';
+            var nls = window.CsFlow.wrapText(ctx, it.name, nameW - 16);
+            nls.forEach(function (ln, li) {
+                tx(ln, x0 + 10, y + (mob ? 19 : 16) + (li - (nls.length - 1) / 2) * (nfs + 4), nfs, on ? P.text + 'ee' : P.muted + '88', 'left', true);
+            });
             if (on) {
                 tx(it.proc ? '필요' : '-', cx[0], y + (mob ? 19 : 16), fs, it.proc ? P.orange + 'ee' : P.muted + '88', 'center', true);
                 tx(it.thr ? '필요' : '필요 없음', cx[1], y + (mob ? 19 : 16), fs - (it.thr ? 0 : 1.5), it.thr ? P.teal + 'ee' : P.green + 'ee', 'center', true);
@@ -287,8 +292,16 @@
         if (!step) {
             var hint = '아래 STEP을 눌러 컨텍스트 스위칭의 과정을 확인하세요.';
             ctx.font = '500 ' + (mob ? 11 : 12.5) + 'px "JetBrains Mono",monospace';
-            var hs = (mob ? 11 : 12.5) * Math.min(1, (W - 16) / ctx.measureText(hint).width);
-            tx(hint, W / 2, GH() - (mob ? 12 : 14), hs, P.muted + 'aa', 'center', false);
+            var hs = mob ? 11 : 12.5;
+            var hl = [hint];
+            if (ctx.measureText(hint).width > W - 16) {
+                var cut = hint.indexOf(' ', Math.floor(hint.length / 2));
+                if (cut < 0) cut = hint.lastIndexOf(' ');
+                hl = [hint.slice(0, cut), hint.slice(cut + 1)];
+            }
+            hl.forEach(function (line, li) {
+                tx(line, W / 2, GH() - (mob ? 12 : 14) - (hl.length - 1 - li) * (hs + 4), hs, P.muted + 'aa', 'center', false);
+            });
         }
     }
 

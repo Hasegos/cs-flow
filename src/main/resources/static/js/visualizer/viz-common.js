@@ -28,6 +28,92 @@
          : window.CsFlow.PALETTE.dark;
  };
 
+/* ===================== 캔버스 글씨 최소 크기 ===================== */
+(function () {
+    const desc = Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype, 'font');
+    if (!desc || !desc.set) return;
+    const MIN_DESKTOP = 12;
+    const MIN_MOBILE  = 11;
+
+    Object.defineProperty(CanvasRenderingContext2D.prototype, 'font', {
+        configurable: true,
+        enumerable: true,
+        get: desc.get,
+        set: function (value) {
+            const m = /(\d+(?:\.\d+)?)px/.exec(value);
+            if (m) {
+                const dpr   = window.devicePixelRatio || 1;
+                const scale = this.getTransform().a / dpr || 1;
+                const min   = (this.canvas.clientWidth || this.canvas.width / dpr) < 600 ? MIN_MOBILE : MIN_DESKTOP;
+                if (parseFloat(m[1]) * scale < min) {
+                    value = value.replace(m[0], (min / scale) + 'px');
+                }
+            }
+            desc.set.call(this, value);
+        }
+    });
+})();
+
+/* ===================== 캔버스 줄바꿈 ===================== */
+window.CsFlow.wrapText = function (ctx, str, maxW) {
+    const lines = [];
+    let cur = '';
+    String(str).split(' ').forEach(function (word) {
+        const next = cur ? cur + ' ' + word : word;
+        if (ctx.measureText(next).width <= maxW) { cur = next; return; }
+        if (cur) lines.push(cur);
+        cur = '';
+        Array.from(word).forEach(function (ch) {
+            if (cur && ctx.measureText(cur + ch).width > maxW) { lines.push(cur); cur = ''; }
+            cur += ch;
+        });
+    });
+    if (cur) lines.push(cur);
+    return lines;
+};
+
+/* ===================== 캔버스 밖으로 나간 글씨 보정 ===================== */
+(function () {
+    const rawFill = CanvasRenderingContext2D.prototype.fillText;
+    const MARGIN  = 4;
+
+    CanvasRenderingContext2D.prototype.fillText = function (str, x, y, maxW) {
+        if (maxW !== undefined) return rawFill.apply(this, arguments);
+        const T = this.getTransform();
+        if (Math.abs(T.b) > 1e-6 || Math.abs(T.c) > 1e-6) return rawFill.apply(this, arguments);
+        const cw = this.canvas.clientWidth;
+        if (!cw) return rawFill.apply(this, arguments);
+
+        const dpr  = window.devicePixelRatio || 1;
+        const sc   = T.a / dpr || 1;
+        const text = String(str);
+        const w    = this.measureText(text).width * sc;
+        const X    = x * sc + T.e / dpr;
+        const al   = this.textAlign;
+        const l    = al === 'center' ? X - w / 2 : (al === 'right' || al === 'end') ? X - w : X;
+        if (l >= -1 && l + w <= cw + 1) return rawFill.apply(this, arguments);
+
+        const place = function (ctx, s, lw, yy) {
+            let ll = al === 'center' ? X - lw / 2 : (al === 'right' || al === 'end') ? X - lw : X;
+            ll = Math.max(MARGIN, Math.min(ll, cw - MARGIN - lw));
+            const nx = (al === 'center' ? ll + lw / 2 : (al === 'right' || al === 'end') ? ll + lw : ll);
+            rawFill.call(ctx, s, (nx - T.e / dpr) / sc, yy);
+        };
+        if (w <= cw - MARGIN * 2) { place(this, text, w, y); return; }
+
+        const avail = (cw - MARGIN * 2) / sc;
+        const lines = window.CsFlow.wrapText(this, text, avail);
+        const fpx   = parseFloat((/(\d+(?:\.\d+)?)px/.exec(this.font) || [0, 12])[1]);
+        const lh    = fpx * 1.35;
+        const up    = this.textBaseline !== 'top' && this.textBaseline !== 'hanging'
+            && (y * sc + T.f / dpr) > this.canvas.clientHeight / 2;
+        for (let i = 0; i < lines.length; i++) {
+            const yy = up ? y - (lines.length - 1 - i) * lh : y + i * lh;
+            place(this, lines[i], this.measureText(lines[i]).width * sc, yy);
+        }
+    };
+})();
+
 /* ===================== 시각화 공통 라이프사이클 ===================== */
 window.CsFlow.createVizLifecycle = function (options) {
     const canvas     = options.canvas;

@@ -185,7 +185,7 @@
         var fs = mob ? 10.5 : 12;
         var big = step ? step.big : false;
         var little = step ? step.little : false;
-        var lw = mob ? 78 : 118;
+        var lw = mob ? 92 : 118;
         var cw = Math.min(72, (w - lw) / 4);
         var ch = mob ? 34 : 40;
         var bx = x0 + lw;
@@ -295,8 +295,16 @@
         if (!step) {
             var hint = '아래 STEP으로 두 방식의 차이를 확인하세요.';
             ctx.font = '500 ' + (mob ? 11 : 12.5) + 'px "JetBrains Mono",monospace';
-            var hs = (mob ? 11 : 12.5) * Math.min(1, (W - 16) / ctx.measureText(hint).width);
-            tx(hint, W / 2, GH() - (mob ? 12 : 14), hs, P.muted + 'aa', 'center', false);
+            var hs = mob ? 11 : 12.5;
+            var hl = [hint];
+            if (ctx.measureText(hint).width > W - 16) {
+                var cut = hint.indexOf(' ', Math.floor(hint.length / 2));
+                if (cut < 0) cut = hint.lastIndexOf(' ');
+                hl = [hint.slice(0, cut), hint.slice(cut + 1)];
+            }
+            hl.forEach(function (line, li) {
+                tx(line, W / 2, GH() - (mob ? 12 : 14) - (hl.length - 1 - li) * (hs + 4), hs, P.muted + 'aa', 'center', false);
+            });
         }
     }
 
@@ -307,7 +315,7 @@
         var neededH;
         if (mode === 'net') neededH = mob ? 330 : 340;
         else if (mode === 'read') neededH = mob ? 270 : 280;
-        else neededH = mob ? 290 : 300;
+        else neededH = mob ? 322 : 332;
         canvasWrap.style.height    = 'auto';
         canvasWrap.style.minHeight = neededH + 'px';
         var actualH = canvasWrap.offsetHeight || neededH;

@@ -423,7 +423,18 @@
         else drawPipe(padX, top, fullW, mob, step);
 
         if (!step) {
-            tx('아래 STEP을 눌러 분기 예측이 어떻게 동작하는지 확인하세요.', W / 2, GH() - (mob ? 12 : 14), mob ? 11 : 12.5, P.muted + 'aa', 'center', false);
+            var hint = '아래 STEP을 눌러 분기 예측이 어떻게 동작하는지 확인하세요.';
+            var hs = mob ? 11 : 12.5;
+            var hl = [hint];
+            ctx.font = '500 ' + hs + 'px "JetBrains Mono",monospace';
+            if (ctx.measureText(hint).width > W - 16) {
+                var cut = hint.indexOf(' ', Math.floor(hint.length / 2));
+                if (cut < 0) cut = hint.lastIndexOf(' ');
+                hl = [hint.slice(0, cut), hint.slice(cut + 1)];
+            }
+            hl.forEach(function (line, li) {
+                tx(line, W / 2, GH() - (mob ? 12 : 14) - (hl.length - 1 - li) * (hs + 4), hs, P.muted + 'aa', 'center', false);
+            });
         }
     }
 
@@ -433,7 +444,7 @@
         var mob = w < 600;
         var neededH;
         if (mode === 'bits') neededH = mob ? 340 : 372;
-        else if (mode === 'acc') neededH = mob ? 330 : 380;
+        else if (mode === 'acc') neededH = mob ? 360 : 380;
         else neededH = mob ? 340 : 392;
         canvasWrap.style.height    = 'auto';
         canvasWrap.style.minHeight = neededH + 'px';

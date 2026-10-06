@@ -225,9 +225,9 @@
             rr(x0, y, w, rh, 5, hit ? c + '30' : 'none', hit ? c + 'ff' : (examined ? P.sub + '99' : P.muted + '55'), hit ? 2 : 1.2);
             tx((i + 1) + '', x0 + 12, y + rh / 2, fs, (skipped ? P.sub : P.text) + 'ee', 'center', true);
             tx(r.action === 'allow' ? '허용' : '차단', x0 + 34, y + rh / 2, fs - 0.5, c + (skipped ? '88' : 'ff'), 'left', true);
-            tx(r.text, x0 + 70, y + rh / 2, fs - 1.5, (skipped ? P.sub : P.text) + 'ee', 'left', false);
-            if (examined) tx(hit ? '✓ 일치' : '✗', x0 + w - 10, y + rh / 2, fs - 1, (hit ? c : P.sub) + 'ff', 'right', true);
-            else if (skipped) tx('건너뜀', x0 + w - 10, y + rh / 2, fs - 2, P.sub + 'dd', 'right', false);
+            tx(mob ? r.text.replace(/\s+/g, ' ') : r.text, x0 + (mob ? 60 : 70), y + rh / 2, fs - 1.5, (skipped ? P.sub : P.text) + 'ee', 'left', false);
+            if (examined) tx(hit ? (mob ? '✓' : '✓ 일치') : '✗', x0 + w - 10, y + rh / 2, fs - 1, (hit ? c : P.sub) + 'ff', 'right', true);
+            else if (skipped) tx(mob ? '–' : '건너뜀', x0 + w - 10, y + rh / 2, fs - 2, P.sub + 'dd', 'right', false);
         });
         var ry = y0 + RULES.length * (rh + 5) + 12;
         if (res) {
@@ -298,7 +298,7 @@
         tx('패킷과 판단', x0 + 10, py + 11, fs - 2, P.sub + 'ee', 'left', true);
         if (lines.length) {
             lines.forEach(function (ln, i) {
-                tx(ln, x0 + 10, py + 11 + lh * (i + 1), fs - 1.5, (i === 0 ? P.text : P.yellow) + 'ee', 'left', false);
+                tx(mob ? ln.replace('들어오는 패킷: ', '수신: ') : ln, x0 + 10, py + 11 + lh * (i + 1), fs - 1.5, (i === 0 ? P.text : P.yellow) + 'ee', 'left', false);
             });
         } else {
             tx('(아직 패킷이 없습니다)', x0 + 10, py + 11 + lh, fs - 1.5, P.sub + 'ee', 'left', false);
@@ -371,8 +371,16 @@
         if (!step) {
             var hint = '아래 STEP으로 방화벽의 판단을 확인하세요.';
             ctx.font = '500 ' + (mob ? 11 : 12.5) + 'px "JetBrains Mono",monospace';
-            var hs = (mob ? 11 : 12.5) * Math.min(1, (W - 16) / ctx.measureText(hint).width);
-            tx(hint, W / 2, GH() - (mob ? 12 : 14), hs, P.muted + 'aa', 'center', false);
+            var hs = mob ? 11 : 12.5;
+            var hl = [hint];
+            if (ctx.measureText(hint).width > W - 16) {
+                var cut = hint.indexOf(' ', Math.floor(hint.length / 2));
+                if (cut < 0) cut = hint.lastIndexOf(' ');
+                hl = [hint.slice(0, cut), hint.slice(cut + 1)];
+            }
+            hl.forEach(function (line, li) {
+                tx(line, W / 2, GH() - (mob ? 12 : 14) - (hl.length - 1 - li) * (hs + 4), hs, P.muted + 'aa', 'center', false);
+            });
         }
     }
 

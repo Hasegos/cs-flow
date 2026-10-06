@@ -279,6 +279,13 @@
         return headerH + spec.rows.length * rowH;
     }
 
+    function isStacked(specs, mob, availW) {
+        if (specs.length < 2) return false;
+        var total = mob ? 30 * (specs.length - 1) : 48 * (specs.length - 1);
+        specs.forEach(function (s) { total += tableWidth(s, mob); });
+        return total > availW;
+    }
+
     /* ===================== 레이아웃 ===================== */
     function getGeom(mob) {
         return { padX: mob ? 16 : 26, titleGap: mob ? 18 : 22 };
@@ -299,7 +306,11 @@
             }
             if (hasAfter) {
                 var afterH = 0;
-                s.after.forEach(function (spec) { afterH = Math.max(afterH, tableHeight(spec, mob)); });
+                if (isStacked(s.after, mob, w - G.padX * 2)) {
+                    s.after.forEach(function (spec, si) { afterH += tableHeight(spec, mob) + (si ? 36 : 0); });
+                } else {
+                    s.after.forEach(function (spec) { afterH = Math.max(afterH, tableHeight(spec, mob)); });
+                }
                 h += afterH;
             }
             if (h > maxH) maxH = h;
@@ -364,6 +375,13 @@
                 var aw = tableWidth(spec, mob);
                 var ax = x0 + Math.max(0, (GW() - G.padX * 2 - aw) / 2);
                 drawSchemaTable(ax, afterY, spec, mob, []);
+            } else if (isStacked(step.after, mob, GW() - G.padX * 2)) {
+                var sy = afterY;
+                step.after.forEach(function (s) {
+                    var sw = tableWidth(s, mob);
+                    drawSchemaTable(x0 + Math.max(0, (GW() - G.padX * 2 - sw) / 2), sy, s, mob, []);
+                    sy += tableHeight(s, mob) + 36;
+                });
             } else {
                 var totalW = 0; var gap = mob ? 30 : 48;
                 step.after.forEach(function (s) { totalW += tableWidth(s, mob); });

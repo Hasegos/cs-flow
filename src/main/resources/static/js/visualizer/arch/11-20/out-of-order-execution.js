@@ -435,6 +435,7 @@
         INSTR.forEach(function (it, i) {
             var committed = c && stateAt(i, c, true) === 'commit' && !(exc && i > 0);
             var lbl = committed ? it.dst + ' = ' + it.id + (mob ? '' : ' 결과') : it.dst + (mob ? ' = old' : ' = 이전 값');
+            if (cx + textW(lbl, mob ? 9.5 : 11, true) + 12 > x0 + w && cx > x0) { cx = x0; cy += mob ? 28 : 34; }
             cx += chip(lbl, cx, cy, mob ? 22 : 26, mob ? 9.5 : 11, committed ? P.green : P.muted, committed) + (mob ? 5 : 8);
         });
     }
@@ -456,7 +457,18 @@
         else drawSeq(padX, top, fullW, mob, step);
 
         if (!step) {
-            tx('아래 STEP을 눌러 비순차 실행이 어떻게 동작하는지 확인하세요.', W / 2, GH() - (mob ? 12 : 14), mob ? 11 : 12.5, P.muted + 'aa', 'center', false);
+            var hint = '아래 STEP을 눌러 비순차 실행이 어떻게 동작하는지 확인하세요.';
+            var hs = mob ? 11 : 12.5;
+            var hl = [hint];
+            ctx.font = '500 ' + hs + 'px "JetBrains Mono",monospace';
+            if (ctx.measureText(hint).width > W - 16) {
+                var cut = hint.indexOf(' ', Math.floor(hint.length / 2));
+                if (cut < 0) cut = hint.lastIndexOf(' ');
+                hl = [hint.slice(0, cut), hint.slice(cut + 1)];
+            }
+            hl.forEach(function (line, li) {
+                tx(line, W / 2, GH() - (mob ? 12 : 14) - (hl.length - 1 - li) * (hs + 4), hs, P.muted + 'aa', 'center', false);
+            });
         }
     }
 
@@ -466,7 +478,7 @@
         var mob = w < 600;
         var neededH;
         if (mode === 'issue') neededH = mob ? 300 : 350;
-        else if (mode === 'rob') neededH = mob ? 290 : 320;
+        else if (mode === 'rob') neededH = mob ? 330 : 320;
         else neededH = mob ? 400 : 450;
         canvasWrap.style.height    = 'auto';
         canvasWrap.style.minHeight = neededH + 'px';
