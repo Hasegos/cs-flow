@@ -1,0 +1,102 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — 경로 압축과 크기 기준 합치기</p>
+            <div class="code-block">
+<pre><span class="kw">class</span> <span class="fn">UnionFind</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, n):
+        self.parent = <span class="fn">list</span>(<span class="fn">range</span>(n))      <span class="cm"># 처음에는 모두 자기가 루트</span>
+        self.size = &#91;<span class="num">1</span>&#93; * n
+        self.count = n                        <span class="cm"># 집합의 개수</span>
+
+    <span class="kw">def</span> <span class="fn">find</span>(self, x):
+        root = x
+        <span class="kw">while</span> self.parent&#91;root&#93; != root:
+            root = self.parent&#91;root&#93;
+        <span class="kw">while</span> self.parent&#91;x&#93; != root:        <span class="cm"># 경로 압축: 지나온 노드를 루트에 직접 연결</span>
+            self.parent&#91;x&#93;, x = root, self.parent&#91;x&#93;
+        <span class="kw">return</span> root
+
+    <span class="kw">def</span> <span class="fn">union</span>(self, a, b):
+        ra, rb = self.<span class="fn">find</span>(a), self.<span class="fn">find</span>(b)
+        <span class="kw">if</span> ra == rb:
+            <span class="kw">return</span> <span class="kw">False</span>                   <span class="cm"># 이미 같은 집합</span>
+        <span class="kw">if</span> self.size&#91;ra&#93; &lt; self.size&#91;rb&#93;:
+            ra, rb = rb, ra                   <span class="cm"># 큰 쪽이 루트가 되도록</span>
+        self.parent&#91;rb&#93; = ra
+        self.size&#91;ra&#93; += self.size&#91;rb&#93;
+        self.count -= <span class="num">1</span>
+        <span class="kw">return</span> <span class="kw">True</span>
+
+uf = <span class="fn">UnionFind</span>(<span class="num">6</span>)
+<span class="fn">print</span>(uf.<span class="fn">union</span>(<span class="num">0</span>, <span class="num">1</span>), uf.<span class="fn">union</span>(<span class="num">1</span>, <span class="num">2</span>), uf.<span class="fn">union</span>(<span class="num">0</span>, <span class="num">2</span>))   <span class="cm"># True True False</span>
+<span class="fn">print</span>(uf.<span class="fn">find</span>(<span class="num">2</span>) == uf.<span class="fn">find</span>(<span class="num">0</span>), uf.<span class="fn">find</span>(<span class="num">3</span>) == uf.<span class="fn">find</span>(<span class="num">0</span>), uf.count)   <span class="cm"># True False 4</span></pre>
+            </div>
+            <p class="code-desc">
+                parent 배열이 숲을 표현합니다. parent[i] == i이면 i가 루트이고, 아니면 i의 부모가 parent[i]입니다. find는 루트까지 올라간 뒤, 한 번 더 올라가며 지나온 노드의 부모를 루트로 바꿔 경로 압축을 합니다.
+                union은 두 원소의 루트를 찾아, 이미 같으면 아무것도 하지 않고 False를 돌려줍니다. 다르면 크기가 작은 쪽 루트를 큰 쪽 루트 밑에 붙이고 크기를 더합니다. 이 반환값이 크루스칼 알고리즘에서 사이클 판별에 그대로 쓰입니다.
+                0, 1, 2를 합치면 세 번째 union(0, 2)는 이미 같은 집합이라 False입니다. 원소 6개에서 두 번 합쳤으므로 집합은 4개가 남고, 3은 아직 0과 다른 집합입니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — 합치기 방식에 따른 트리 높이</p>
+            <div class="code-block">
+<pre><span class="kw">def</span> <span class="fn">height</span>(parent):
+    <span class="kw">def</span> <span class="fn">depth</span>(x):
+        d = <span class="num">0</span>
+        <span class="kw">while</span> parent&#91;x&#93; != x:
+            x = parent&#91;x&#93;; d += <span class="num">1</span>
+        <span class="kw">return</span> d
+    <span class="kw">return</span> <span class="fn">max</span>(<span class="fn">depth</span>(i) <span class="kw">for</span> i <span class="kw">in</span> <span class="fn">range</span>(<span class="fn">len</span>(parent)))
+
+<span class="kw">def</span> <span class="fn">build</span>(n, by_size):
+    parent = <span class="fn">list</span>(<span class="fn">range</span>(n)); size = &#91;<span class="num">1</span>&#93; * n
+    <span class="kw">def</span> <span class="fn">root</span>(x):                          <span class="cm"># 경로 압축 없는 find</span>
+        <span class="kw">while</span> parent&#91;x&#93; != x: x = parent&#91;x&#93;
+        <span class="kw">return</span> x
+    <span class="kw">for</span> i <span class="kw">in</span> <span class="fn">range</span>(n - <span class="num">1</span>):                <span class="cm"># union(0,1), union(1,2), ... 순서</span>
+        ra, rb = <span class="fn">root</span>(i), <span class="fn">root</span>(i + <span class="num">1</span>)
+        <span class="kw">if</span> by_size:
+            <span class="kw">if</span> size&#91;ra&#93; &lt; size&#91;rb&#93;: ra, rb = rb, ra
+            parent&#91;rb&#93; = ra; size&#91;ra&#93; += size&#91;rb&#93;
+        <span class="kw">else</span>:
+            parent&#91;ra&#93; = rb                <span class="cm"># 첫 루트를 둘째 루트 밑에</span>
+    <span class="kw">return</span> <span class="fn">height</span>(parent)
+
+<span class="fn">print</span>(<span class="fn">build</span>(<span class="num">6</span>, <span class="kw">False</span>), <span class="fn">build</span>(<span class="num">6</span>, <span class="kw">True</span>))         <span class="cm"># 5 1</span>
+<span class="fn">print</span>(<span class="fn">build</span>(<span class="num">1000</span>, <span class="kw">False</span>), <span class="fn">build</span>(<span class="num">1000</span>, <span class="kw">True</span>))   <span class="cm"># 999 1</span></pre>
+            </div>
+            <p class="code-desc">
+                같은 순서의 union을 두 방식으로 실행해 트리 높이를 비교합니다. 첫 루트를 둘째 루트 밑에 붙이는 기본 방식은 한 줄로 이어져 원소 n개에서 높이가 n - 1까지 자랍니다. 시각화의 기본 합치기 탭이 보여 주는 높이 5와 같습니다.
+                크기 기준은 이 순서에서 큰 트리에 작은 트리를 계속 붙이므로 높이가 1에 머뭅니다. 원소가 1000개여도 999와 1의 차이가 납니다.
+                이 순서는 기본 방식에 가장 불리한 입력이어서 차이가 큽니다. 크기 기준의 높이는 어떤 순서에서도 log2(n) 이하라는 점이 보장입니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — 크루스칼 최소 신장 트리</p>
+            <div class="code-block">
+<pre><span class="kw">def</span> <span class="fn">kruskal</span>(n, edges):
+    uf = <span class="fn">UnionFind</span>(n)
+    total, used = <span class="num">0</span>, &#91;&#93;
+    <span class="kw">for</span> w, a, b <span class="kw">in</span> <span class="fn">sorted</span>(edges):         <span class="cm"># 가중치가 작은 간선부터</span>
+        <span class="kw">if</span> uf.<span class="fn">union</span>(a, b):             <span class="cm"># 서로 다른 집합일 때만 채택</span>
+            total += w
+            used.<span class="fn">append</span>((a, b, w))
+    <span class="kw">return</span> total, used
+
+<span class="cm"># (가중치, 정점, 정점)</span>
+edges = &#91;(<span class="num">4</span>, <span class="num">0</span>, <span class="num">1</span>), (<span class="num">8</span>, <span class="num">0</span>, <span class="num">2</span>), (<span class="num">2</span>, <span class="num">1</span>, <span class="num">2</span>), (<span class="num">6</span>, <span class="num">1</span>, <span class="num">3</span>), (<span class="num">3</span>, <span class="num">2</span>, <span class="num">3</span>), (<span class="num">5</span>, <span class="num">2</span>, <span class="num">4</span>), (<span class="num">7</span>, <span class="num">3</span>, <span class="num">4</span>)&#93;
+<span class="fn">print</span>(<span class="fn">kruskal</span>(<span class="num">5</span>, edges))   <span class="cm"># (14, &#91;(1, 2, 2), (2, 3, 3), (0, 1, 4), (2, 4, 5)&#93;)</span></pre>
+            </div>
+            <p class="code-desc">
+                크루스칼 알고리즘은 간선을 가중치 순으로 훑으며, 두 끝점이 서로 다른 집합일 때만 간선을 고르고 두 집합을 합칩니다. 같은 집합이면 이미 연결된 두 정점을 또 잇는 것이어서 사이클이 생기므로 건너뜁니다. 이 판별과 합치기를 union 한 번이 모두 해 줍니다.
+                예에서 가중치 2, 3, 4, 5인 간선 4개가 채택되어 합이 14입니다. 가중치 6, 7, 8인 간선은 끝점이 이미 같은 집합이라 버려집니다. 연결 그래프이면 정점 V개에서 간선 V - 1개를 채택하고 끝납니다.
+                간선 정렬이 O(E log E)이고 union은 거의 상수 시간이어서 전체 시간은 정렬이 좌우합니다. 최소 신장 트리 자체는 알고리즘 과목의 MST 토픽에서 자세히 다룹니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
