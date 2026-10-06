@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">뷰 / 구체화 뷰 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/db/11-20/view-materialized-view.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/db}" class="topic-breadcrumb__link">데이터베이스</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">뷰 / 구체화 뷰</span>
+                </nav>
+
+                <span class="topic-hero__slug">db · 16</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">뷰 / 구체화 뷰</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+                <button type="button" class="topic-like" th:classappend="${liked} ? ' topic-like--active' : ''" th:attr="data-topic-slug=${topic.slug}">
+                    <svg class="topic-like__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <span class="topic-like__count" th:text="${likeCount}">0</span>
+                </button>
+                <div class="topic-share">
+                    <button type="button" class="topic-share__btn topic-share__btn--copy" aria-label="링크 복사">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="topic-share__btn topic-share__btn--kakao" aria-label="카카오톡 공유">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                        </svg>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+                <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        뷰(View)는 SELECT 문에 이름을 붙여 저장해 두고 테이블처럼 조회하는 객체입니다. 일반 뷰는 쿼리 정의만 저장하므로 조회할 때마다 그 쿼리를 원본 테이블에 실행하고, 항상 현재 원본의 데이터를 보여 줍니다.
+                    </p>
+                    <p class="overview-lead">
+                        구체화 뷰(Materialized View)는 쿼리를 한 번 실행해 그 결과를 실제 데이터로 저장해 두는 객체입니다. 조회는 저장된 결과를 읽으므로 가볍지만, 원본이 바뀌어도 자동으로 반영되지 않아 REFRESH로 갱신해야 합니다. 이 토픽에서는 일반 뷰와 구체화 뷰의 차이, 저장된 결과가 오래되는 과정, REFRESH 방식을 시각화로 확인합니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">일반 뷰</h3>
+                            <p class="overview-card__desc">이름을 붙여 저장한 쿼리입니다. 데이터는 저장하지 않고 조회할 때마다 원본에 쿼리가 실행됩니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">구체화 뷰</h3>
+                            <p class="overview-card__desc">쿼리 결과를 실제 데이터로 저장해 둔 뷰입니다. 조회는 저장된 결과를 읽으므로 무거운 쿼리도 가볍게 조회합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">REFRESH</h3>
+                            <p class="overview-card__desc">구체화 뷰의 저장된 결과를 원본 기준으로 다시 만드는 명령입니다. PostgreSQL에서는 REFRESH MATERIALIZED VIEW를 직접 실행해야 갱신됩니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">신선도</h3>
+                            <p class="overview-card__desc">구체화 뷰는 갱신하기 전까지 원본보다 오래된 데이터를 보여 줄 수 있습니다. 허용할 수 있는 지연을 정해 갱신 주기를 잡습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">CONCURRENTLY</h3>
+                            <p class="overview-card__desc">PostgreSQL에서 갱신하는 동안 조회를 막지 않는 REFRESH 옵션입니다. 표현식과 WHERE 없이 컬럼으로만 만든 UNIQUE 인덱스가 필요합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">추상화와 보안</h3>
+                            <p class="overview-card__desc">뷰로 복잡한 쿼리를 감싸 단순하게 쓰고, 보여 줄 열을 제한할 수 있습니다. 행 제한을 믿고 쓰려면 PostgreSQL에서는 security_barrier를 함께 써야 합니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>일반 뷰는 항상 최신입니다</strong> — 조회할 때 원본에 쿼리를 실행하므로 원본의 변경이 다음 조회에 바로 보입니다. 대신 무거운 쿼리는 조회마다 계산 비용이 듭니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>구체화 뷰는 조회가 빠르고 오래될 수 있습니다</strong> — 저장된 결과를 읽을 뿐이라 가볍지만, REFRESH 전까지는 원본과 차이가 날 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>저장 공간을 씁니다</strong> — 구체화 뷰는 결과를 실제 데이터로 저장하므로 저장 공간이 들고, 일반 뷰는 쿼리 정의만 저장합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>갱신 방식에 따라 조회가 막힐 수 있습니다</strong> — PostgreSQL의 옵션 없는 REFRESH는 갱신 동안 조회를 막을 수 있고, CONCURRENTLY는 막지 않는 대신 컬럼만으로 만든 UNIQUE 인덱스가 필요하고 이미 채워진 구체화 뷰에만 쓸 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "일반 뷰" 탭에서 조회마다 원본 행을 읽어 최신 합계를 돌려주는 모습을, "구체화 뷰" 탭에서 저장된 결과를 읽다가 원본에 행이 늘어도 오래된 값이 나오고 REFRESH로 바뀌는 모습을, "REFRESH" 탭에서 일반 갱신 동안 조회가 기다리고 CONCURRENTLY에서는 조회가 이어지는 모습을 STEP으로 확인하세요.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">뷰와 구체화 뷰의 배경</h2>
+                    <p class="overview-lead">
+                        뷰는 SQL 표준에 있는 기능으로, 복잡한 쿼리를 이름 하나로 재사용하고 사용자에게 보이는 데이터를 제한하는 데 쓰입니다. PostgreSQL 튜토리얼은 뷰를 폭넓게 쓰는 것을 좋은 SQL 데이터베이스 설계의 핵심 요소 중 하나로 설명합니다.
+                    </p>
+                    <p class="overview-lead">
+                        구체화 뷰는 무거운 집계나 조인 결과를 미리 계산해 두는 용도로 쓰입니다. PostgreSQL은 9.3 버전부터 구체화 뷰를 지원하고 Oracle에도 있으며, 문법과 동작은 제품마다 다릅니다. MySQL 서버는 구체화 뷰를 제공하지 않아 요약 테이블을 직접 갱신하는 방식을 쓰기도 합니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>원본 6행, 결과 3행</strong> — orders 6행을 지역별로 합산하면 KR 350, US 450, JP 80의 3행이 됩니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>행 추가 뒤 조회</strong> — KR 150 행을 추가한 뒤 이 장난감 모델에서 일반 뷰는 원본 7행을 읽어 KR 500을 돌려주고, 구체화 뷰는 저장된 3행을 읽어 KR 350을 돌려줍니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>REFRESH 뒤</strong> — 쿼리가 원본 7행을 다시 읽어 KR 합계가 500으로 바뀌고, 코드 모델의 읽은 행 누적은 뷰 조회 7행과 REFRESH 7행을 합쳐 14행입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>코드 확인</strong> — 파이썬과 자바 모델 모두 뷰 500(읽은 행 7), 구체화 뷰 350(읽은 행 7), REFRESH 뒤 500(읽은 행 14)을 출력합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>일반 뷰는 결과를 저장해 빠르다</strong> — 일반 뷰는 쿼리만 저장하고 조회마다 실행하므로, 원본 쿼리보다 빨라지지 않습니다. 빠르게 하려면 구체화 뷰나 인덱스가 필요합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>구체화 뷰는 원본과 자동으로 동기화된다</strong> — PostgreSQL에서는 REFRESH를 실행해야 갱신됩니다. 데이터베이스마다 자동 갱신 지원이 다릅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>구체화 뷰가 항상 일반 뷰보다 빠르다</strong> — 저장된 결과를 읽는 조회는 가볍지만, 갱신할 때 쿼리를 다시 실행하는 비용이 들고 자주 갱신하면 이점이 줄어듭니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>뷰는 데이터를 복사해 둔 것이다</strong> — 일반 뷰는 데이터를 복사하지 않습니다. 복사해 저장하는 것은 구체화 뷰입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>구체화 뷰는 테이블처럼 수정할 수 있다</strong> — PostgreSQL의 구체화 뷰는 INSERT나 UPDATE로 직접 수정할 수 없고 REFRESH로만 내용이 바뀝니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>뷰로 접근을 제한하면 완전히 안전하다</strong> — 뷰는 보여 줄 열과 행을 줄이는 수단이지만, 권한 설정과 함께 써야 하며 쿼리 조건을 통해 정보가 새지 않도록 보안 옵션을 확인해야 합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">일반 뷰의 특징은?</h3>
+                            <p class="overview-card__desc">쿼리 정의만 저장하고 조회할 때마다 원본 테이블에 실행합니다. 항상 최신 데이터를 보여 주지만 복잡한 쿼리는 매번 계산 비용이 듭니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">구체화 뷰의 특징은?</h3>
+                            <p class="overview-card__desc">쿼리 결과를 실제로 저장해 두고 REFRESH로 갱신합니다. 조회가 빠르지만 원본이 바뀌어도 자동으로 반영되지 않습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">구체화 뷰를 쓸 때 주의할 점은?</h3>
+                            <p class="overview-card__desc">갱신 전까지 오래된 데이터를 볼 수 있으므로 허용할 지연을 정해 갱신 주기를 잡아야 합니다. 저장 공간과 갱신 비용도 고려합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">REFRESH CONCURRENTLY는 무엇이 다른가요?</h3>
+                            <p class="overview-card__desc">갱신하는 동안 조회를 막지 않습니다. 대신 컬럼으로만 만든 UNIQUE 인덱스가 필요하고 변경이 많으면 일반 REFRESH보다 오래 걸릴 수 있습니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">활용 분야</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>복잡한 쿼리의 재사용</strong> — 여러 테이블을 조인하는 쿼리에 이름을 붙여 애플리케이션과 분석 쿼리가 같은 정의를 쓰게 합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>집계 리포트와 대시보드</strong> — 일별, 지역별 합계처럼 무거운 집계를 구체화 뷰로 미리 계산해 두고 정해진 주기로 갱신합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>접근 제어</strong> — 민감한 열을 뺀 뷰를 만들어 일부 사용자에게만 뷰에 대한 권한을 줍니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/index}">인덱스</a> — 구체화 뷰에도 인덱스를 만들어 조회를 더 빠르게 합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/query-plan}">쿼리 실행 계획</a> — 뷰를 조회할 때 실제로 어떻게 실행되는지 확인합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/sql-join}">SQL 조인</a> — 뷰에 자주 담기는 조인 쿼리의 종류를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/lock}">락</a> — REFRESH가 잡는 잠금과 조회의 관계를 이어서 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://www.postgresql.org/docs/current/tutorial-views.html" target="_blank" rel="noopener">PostgreSQL: Views (Tutorial)</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://www.postgresql.org/docs/current/rules-materializedviews.html" target="_blank" rel="noopener">PostgreSQL: Materialized Views</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://www.postgresql.org/docs/current/sql-creatematerializedview.html" target="_blank" rel="noopener">PostgreSQL: CREATE MATERIALIZED VIEW</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://www.postgresql.org/docs/current/sql-refreshmaterializedview.html" target="_blank" rel="noopener">PostgreSQL: REFRESH MATERIALIZED VIEW</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://www.postgresql.org/docs/current/sql-createview.html" target="_blank" rel="noopener">PostgreSQL: CREATE VIEW</a></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/db/11-20/view-materialized-view-code :: code}"></th:block>
+            </div>
+
+            <!-- 탭 4: 퀴즈 -->
+            <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
+                <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+    <script th:src="@{/js/quiz.js}"></script>
+    <script th:src="@{/js/like.js}"></script>
+    <script th:src="@{/js/share.js}"></script>
+</body>
+</html>
