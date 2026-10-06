@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">분할정복 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/algo/11-20/divide-and-conquer.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/algo}" class="topic-breadcrumb__link">알고리즘</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">분할정복</span>
+                </nav>
+
+                <span class="topic-hero__slug">algo · 16</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">분할정복</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+                <button type="button" class="topic-like" th:classappend="${liked} ? ' topic-like--active' : ''" th:attr="data-topic-slug=${topic.slug}">
+                    <svg class="topic-like__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <span class="topic-like__count" th:text="${likeCount}">0</span>
+                </button>
+                <div class="topic-share">
+                    <button type="button" class="topic-share__btn topic-share__btn--copy" aria-label="링크 복사">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="topic-share__btn topic-share__btn--kakao" aria-label="카카오톡 공유">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                        </svg>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+                <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        분할정복(divide and conquer)은 큰 문제를 같은 종류의 더 작은 문제로 <strong>나누고(분할)</strong>, 작은 문제를 <strong>풀고(정복)</strong>, 그 답을 <strong>합쳐서(결합)</strong> 원래 문제의 답을 만드는 알고리즘 설계 방식입니다. 작은 문제는 같은 방법을 재귀적으로 적용해 풀고, 더 나눌 수 없을 만큼 작아지면 바로 답을 내는 기저 사례에서 멈춥니다.
+                    </p>
+                    <p class="overview-lead">
+                        병합 정렬, 이진 탐색, 거듭제곱의 빠른 계산이 모두 이 방식입니다. 분할정복의 효율은 얼마나 잘 나누고 얼마나 싸게 합치느냐에 달려 있고, 시간은 <strong>점화식</strong>으로 계산합니다. 이 토픽에서는 병합 정렬이 쪼개졌다가 합쳐지는 과정, 지수를 절반씩 줄이는 거듭제곱, 점화식을 재귀 트리로 펼쳐 비용을 더하는 방법을 봅니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">분할 · 정복 · 결합</h3>
+                            <p class="overview-card__desc">문제를 작게 나누고, 각 부분 문제를 재귀로 풀고, 부분 해를 합쳐 전체 해를 만듭니다. 세 단계 중 무엇이 어려운지는 문제마다 다릅니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">기저 사례</h3>
+                            <p class="overview-card__desc">더 나눌 수 없을 만큼 작은 문제는 바로 답을 냅니다. 병합 정렬에서는 원소가 하나뿐인 조각이 이미 정렬된 상태라는 점이 기저 사례입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">병합 정렬</h3>
+                            <p class="overview-card__desc">배열을 절반으로 나누어 각각 정렬한 뒤, 정렬된 두 조각을 앞에서부터 비교하며 하나로 합칩니다. 나누기는 쉽고 합치기에 일이 몰려 있는 형태입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">점화식</h3>
+                            <p class="overview-card__desc">T(n) = 2T(n/2) + n처럼 문제 크기 n의 시간을 더 작은 크기의 시간과 나누고 합치는 비용으로 적은 식입니다. 병합 정렬의 시간이 이 식에서 나옵니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">재귀 트리</h3>
+                            <p class="overview-card__desc">점화식을 호출 구조로 펼친 트리입니다. 단계마다 비용을 구해 모두 더하면 전체 시간이 나옵니다. 병합 정렬은 단계마다 n이고 단계가 log n개입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">마스터 정리</h3>
+                            <p class="overview-card__desc">T(n) = aT(n/b) + f(n) 꼴의 점화식을 풀어 (a ≥ 1, b > 1이고 f(n)이 세 경우 중 하나에 맞으면) 시간을 바로 알려 주는 정리입니다. 병합 정렬은 a = 2, b = 2, f(n) = n이라 Θ(n log n)이 됩니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>병합 정렬은 O(n log n)입니다</strong> — 배열을 절반씩 나누면 단계가 log n개이고, 단계마다 전체 원소를 한 번씩 합치므로 n입니다. 기본 병합 정렬은 입력과 상관없이 소요 시간의 차수가 같아서 최선·평균·최악이 모두 O(n log n)입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>추가 공간이 필요합니다</strong> — 배열 병합 정렬은 합칠 때 임시 공간 O(n)이 필요합니다. 재귀 깊이는 log n입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>거듭제곱은 O(log n)입니다</strong> — 지수를 절반으로 줄이면 부분 문제가 하나뿐이라 T(n) = T(n/2) + O(1)이 되고, 호출이 log n 단계만 쌓입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>나누는 것이 어려운지 합치는 것이 어려운지가 갈립니다</strong> — 병합 정렬은 나누기가 쉽고 합치기가 일이고, 퀵 정렬은 나누기(분할)에 일이 몰려 있고 합치기가 필요 없습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "병합 정렬" 탭에서 배열이 한 개씩 쪼개졌다가 정렬된 조각으로 합쳐지는 모습을, "거듭제곱" 탭에서 지수가 절반씩 줄며 호출이 쌓이고 결과가 돌아오는 모습을, "비용 트리" 탭에서 단계마다 비용이 n으로 같아지는 모습을 STEP으로 확인하세요.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">분할정복의 배경</h2>
+                    <p class="overview-lead">
+                        병합 정렬은 1945년 존 폰 노이만(John von Neumann)이 고안한 것으로 알려져 있고, 컴퓨터를 위해 만들어진 초기의 정렬 알고리즘 중 하나입니다. 분할정복 방식은 이후 빠른 곱셈과 행렬 곱셈 같은 문제에서도 점근적 개선을 이끌었습니다. 1962년 카라추바(Karatsuba)는 큰 수의 곱셈을 세 번의 절반 크기 곱셈으로 줄여 n^(log2 3) ≈ n^1.585 시간에 하는 방법을 보였고, 1969년 슈트라센(Strassen)은 행렬 곱셈을 n^(log2 7) ≈ n^2.81 시간에 하는 방법을 보였습니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>분할</strong> — 배열 &#91;38, 27, 43, 3, 9, 82, 10, 5&#93;를 크기 4, 2, 1로 세 번 절반씩 나누면 한 개짜리 조각 8개가 됩니다. log2 8 = 3단계입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>결합</strong> — 한 개짜리 8개를 합치면 &#91;27, 38&#93;, &#91;3, 43&#93;, &#91;9, 82&#93;, &#91;5, 10&#93;이 되고(비교 4번), 다음에 &#91;3, 27, 38, 43&#93;과 &#91;5, 9, 10, 82&#93;가 되며(비교 6번), 마지막에 &#91;3, 5, 9, 10, 27, 38, 43, 82&#93;가 됩니다(비교 7번). 비교는 모두 17번입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>거듭제곱</strong> — 2^13은 지수가 13, 6, 3, 1, 0으로 줄며 호출이 5단계 쌓이고 곱셈 7번으로 8192가 됩니다. 단순하게 곱하면 12번입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>비용 트리</strong> — n = 8, T(1) = 1이고 합치는 비용을 n으로 두면 합치기 단계 3개가 각각 8이라 24이고 기저 사례 8을 더해 T(8) = 32입니다. 이는 n log2 n + n = 8 × 3 + 8과 같고, 실제 비교는 한쪽이 먼저 비면 n보다 적어 17번이었습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>코드 확인</strong> — 파이썬과 자바 병합 정렬이 같은 결과와 같은 비교 횟수 17번을 냅니다. 파이썬 거듭제곱은 2^13 = 8192, 3^5 = 243, 2^0 = 1을 돌려줍니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>나누기만 하면 빨라진다</strong> — 나누고 합치는 비용이 있고, 합치기가 비싸면 이득이 줄어듭니다. 예를 들어 합치는 비용이 n²이면 병합 정렬의 이점이 없습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>분할정복은 반드시 재귀로 구현한다</strong> — 재귀가 자연스럽지만 반복문으로도 구현합니다. 작은 조각부터 크기를 두 배씩 키워 합치는 상향식 병합 정렬이 그 예입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>병합 정렬은 제자리 정렬이다</strong> — 배열 병합 정렬은 합치는 동안 임시 공간 O(n)이 필요합니다. 제자리로 만드는 방법은 있지만 복잡해서 일반 구현은 임시 공간을 씁니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>병합 정렬도 입력에 따라 최악이 느려진다</strong> — 퀵 정렬은 분할이 한쪽으로 치우치면 최악에 O(n²)이 되지만, 병합 정렬은 항상 거의 절반(크기 차이 1 이내)으로 나누므로 모든 입력에서 O(n log n)입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>분할정복과 동적 계획법은 같다</strong> — 둘 다 부분 문제로 나누지만, 분할정복은 부분 문제가 서로 겹치지 않고 동적 계획법은 겹치는 부분 문제의 결과를 저장해 재사용합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">분할정복의 세 단계는?</h3>
+                            <p class="overview-card__desc">분할(문제를 작게 나눔), 정복(부분 문제를 재귀로 풂), 결합(부분 해를 합침)입니다. 더 나눌 수 없으면 기저 사례로 바로 답을 냅니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">병합 정렬의 시간·공간 복잡도는?</h3>
+                            <p class="overview-card__desc">시간은 기본 병합 정렬에서 모든 경우에 O(n log n)이고 공간은 임시 배열 때문에 O(n)입니다. 절반씩 나누는 단계가 log n개이고 단계마다 합치는 비용이 n이기 때문입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">분할정복과 동적 계획법의 차이는?</h3>
+                            <p class="overview-card__desc">분할정복은 겹치지 않는 부분 문제를 풀어 합치고, 동적 계획법은 겹치는 부분 문제의 결과를 저장해 같은 계산을 반복하지 않습니다. 부분 문제가 겹치는지가 기준입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">x^n을 어떻게 빠르게 계산하나요?</h3>
+                            <p class="overview-card__desc">x^n = x^⌊n/2⌋ × x^⌊n/2⌋로 지수를 절반씩 줄이고, n이 홀수이면 x를 한 번 더 곱합니다. 곱셈이 O(log n)번 필요합니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>표준 라이브러리 정렬</strong> — 파이썬의 sort는 병합 정렬에 삽입 정렬을 섞은 Timsort를 쓰고, 자바의 객체 배열 정렬도 병합 정렬 계열의 안정 정렬을 씁니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이진 탐색</strong> — 정렬된 범위를 절반으로 줄여 한쪽만 푸는 분할정복이라 T(n) = T(n/2) + 1, 곧 O(log n)입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>빠른 푸리에 변환</strong> — 쿨리(Cooley)와 튜키(Tukey)가 1965년 발표한 FFT는 크기 n의 변환을 더 작은 변환들로 나누어 푸는 분할정복이고, 기수-2(n이 2의 거듭제곱)에서는 짝수·홀수 번째 입력으로 나누어 O(n log n)에 계산합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/sort-compare}">정렬 알고리즘 비교</a> — 병합 정렬과 퀵 정렬 등의 성능과 특징을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/binary-search}">이진 탐색</a> — 한쪽만 푸는 분할정복의 대표 예를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/dp-basic}">DP 기초</a> — 겹치는 부분 문제를 저장해 푸는 방식과 비교합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/complexity}">시간 복잡도</a> — O(n log n)과 O(log n)의 의미를 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>교재</strong> — Cormen, Leiserson, Rivest, Stein, "Introduction to Algorithms", 3rd ed., Chapter 2.3 Designing algorithms, Chapter 4 Divide-and-Conquer</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>교재</strong> — Knuth, D. E., "The Art of Computer Programming, Volume 3: Sorting and Searching", 2nd ed., Section 5.2.4</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>논문</strong> — Cooley, J. W. and Tukey, J. W., "An algorithm for the machine calculation of complex Fourier series", Mathematics of Computation 19(90), 1965</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>논문</strong> — Strassen, V., "Gaussian elimination is not optimal", Numerische Mathematik 13, 1969</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>논문</strong> — Knuth, D. E., "Von Neumann's first computer program", ACM Computing Surveys 2(4), 1970</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://docs.python.org/3/howto/sorting.html" target="_blank" rel="noopener">Python Sorting Techniques</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>소스 문서</strong> — <a href="https://github.com/python/cpython/blob/main/Objects/listsort.txt" target="_blank" rel="noopener">CPython listsort.txt (Timsort 설명)</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Arrays.html" target="_blank" rel="noopener">Java Arrays</a></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/algo/11-20/divide-and-conquer-code :: code}"></th:block>
+            </div>
+
+            <!-- 탭 4: 퀴즈 -->
+            <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
+                <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+    <script th:src="@{/js/quiz.js}"></script>
+    <script th:src="@{/js/like.js}"></script>
+    <script th:src="@{/js/share.js}"></script>
+</body>
+</html>
