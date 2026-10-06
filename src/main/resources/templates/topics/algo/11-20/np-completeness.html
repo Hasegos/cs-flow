@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">P vs NP / NP-완전 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/algo/11-20/np-completeness.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/algo}" class="topic-breadcrumb__link">알고리즘</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">P vs NP / NP-완전</span>
+                </nav>
+
+                <span class="topic-hero__slug">algo · 20</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">P vs NP / NP-완전</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+                <button type="button" class="topic-like" th:classappend="${liked} ? ' topic-like--active' : ''" th:attr="data-topic-slug=${topic.slug}">
+                    <svg class="topic-like__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <span class="topic-like__count" th:text="${likeCount}">0</span>
+                </button>
+                <div class="topic-share">
+                    <button type="button" class="topic-share__btn topic-share__btn--copy" aria-label="링크 복사">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="topic-share__btn topic-share__btn--kakao" aria-label="카카오톡 공유">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                        </svg>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+                <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        P와 NP는 결정 문제(예/아니오로 답하는 문제)를 풀거나 검증하는 데 드는 시간으로 문제를 나눈 복잡도 클래스입니다. P는 다항 시간에 풀 수 있는 문제의 집합이고, NP는 답이 주어졌을 때 그 답이 맞는지 <strong>다항 시간에 검증</strong>할 수 있는 문제의 집합입니다. 풀 수 있으면 검증도 할 수 있으므로 P는 NP에 들어갑니다.
+                    </p>
+                    <p class="overview-lead">
+                        NP-완전(NP-complete)은 NP에 속하면서 NP의 모든 문제가 다항 시간에 환원되는, NP에서 가장 어려운 문제들입니다. 하나라도 다항 시간에 풀면 NP 전체가 풀려 P = NP가 되는데, 이 둘이 같은지는 아직 증명되지 않았습니다. 이 토픽에서는 찾기와 검증의 비용 차이, 환원이 문제들을 잇는 모습, 클래스 사이의 포함 관계를 확인합니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">P</h3>
+                            <p class="overview-card__desc">입력 크기 n의 다항식 시간 안에 풀 수 있는 결정 문제의 집합입니다. "배열이 정렬되어 있는가", "거리가 k 이하인 경로가 있는가(음수 사이클이 없는 그래프)" 같은 결정 문제가 속합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">NP</h3>
+                            <p class="overview-card__desc">답(인증서)이 주어졌을 때 다항 시간에 맞는지 확인할 수 있는 결정 문제의 집합입니다. 답을 찾는 일이 어렵더라도 확인이 쉬우면 NP입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">인증서와 검증</h3>
+                            <p class="overview-card__desc">인증서는 "예"라는 답이 맞다는 증거입니다. 부분집합 합에서는 합이 목표가 되는 부분집합 자체가 인증서이고, 더해 보면 검증됩니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">다항 시간 환원</h3>
+                            <p class="overview-card__desc">A ≤p B는 A의 입력을 다항 시간에 B의 입력으로 바꿔 B의 답이 A의 답이 되게 하는 변환입니다. B가 쉬우면 A도 쉽습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">NP-난해와 NP-완전</h3>
+                            <p class="overview-card__desc">NP-난해는 NP의 모든 문제가 환원되는 문제이고, NP에도 속하면 NP-완전입니다. NP-난해 문제는 NP 밖에 있을 수도 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">P = NP 문제</h3>
+                            <p class="overview-card__desc">P와 NP가 같은 집합인지를 묻는 문제입니다. 증명되지 않은 열린 문제이며 NP-완전 문제 하나가 다항 시간에 풀리면 P = NP가 됩니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>NP는 "비다항"이 아닙니다</strong> — NP는 비결정적 다항 시간(Nondeterministic Polynomial time)의 약자입니다. 다항 시간에 풀리지 않는다는 뜻이 아니라 검증이 다항 시간이라는 뜻입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>NP-완전은 가장 어려운 NP입니다</strong> — 어떤 NP 문제든 다항 시간에 NP-완전 문제로 바꿀 수 있어서, NP-완전 문제는 NP 안에서 가장 어려운 쪽에 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>환원은 방향이 중요합니다</strong> — 새 문제 B가 NP-완전임을 보이려면 이미 NP-완전인 A를 B로 환원하고 B가 NP에 속함을 보입니다. 거꾸로 환원하면 증명이 되지 않습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>NP-완전이라고 포기하지는 않습니다</strong> — 정확한 다항 시간 알고리즘을 기대하기 어렵다는 뜻이므로, 입력이 작을 때의 완전 탐색, 다항 시간에 풀리는 특수한 경우, 근사 알고리즘을 씁니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "찾기와 검증" 탭에서 부분집합을 21개 확인한 끝에 {4, 5}를 찾는 일과 덧셈 한 번으로 검증하는 일의 차이를, "환원" 탭에서 CIRCUIT-SAT에서 시작해 NP-완전이 퍼지는 화살표를, "P · NP · NP-완전" 탭에서 P ≠ NP일 때와 P = NP일 때 영역이 어떻게 달라지는지를 STEP으로 확인하세요.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">NP-완전 이론의 배경</h2>
+                    <p class="overview-lead">
+                        1971년 스티븐 쿡(Stephen Cook)은 "The Complexity of Theorem-Proving Procedures"에서 논리식의 만족 가능성 문제(SAT)가 NP의 모든 문제가 환원되는 문제임을 보였습니다. 레오니드 레빈(Leonid Levin)도 독립적으로 비슷한 결과를 얻었습니다. 이듬해 리처드 카프(Richard Karp)는 "Reducibility Among Combinatorial Problems"에서 환원으로 SAT를 포함한 21개의 조합 문제가 NP-완전임을 보였습니다.
+                    </p>
+                    <p class="overview-lead">
+                        P = NP 문제는 클레이 수학연구소(Clay Mathematics Institute)가 2000년에 발표한 밀레니엄 문제 7개 중 하나이고, 해결에는 100만 달러의 상금이 걸려 있습니다. 가렛(Garey)과 존슨(Johnson)의 책 "Computers and Intractability"는 NP-완전 문제를 모아 정리한 대표적인 참고서입니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>부분집합 합 찾기</strong> — 집합 {3, 34, 4, 12, 5, 2}에서 합 9를 만드는 부분집합은 {4, 5}와 {3, 4, 2}입니다. 비트마스크 순서로 확인하면 21번째에서 {4, 5}가 나옵니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>검증은 덧셈 한 번</strong> — 인증서 {4, 5}는 4 + 5 = 9로 덧셈 한 번에 확인되고, {3, 34}는 37이라 거짓입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>"없음"은 모두 확인</strong> — 합이 13인 부분집합은 없어서 부분집합 64개를 모두 확인해야 없다는 결론이 납니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>2의 거듭제곱</strong> — 원소가 6개이면 부분집합 64개, 20개이면 1,048,576개, 40개이면 1,099,511,627,776개입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>환원 사슬</strong> — 교재의 환원 순서는 CIRCUIT-SAT에서 SAT, 3-CNF-SAT를 거쳐 CLIQUE, VERTEX-COVER, HAM-CYCLE, TSP로 이어지고 3-CNF-SAT에서 SUBSET-SUM으로 갈라집니다. 시각화는 이 8개 문제를 차례로 보여 줍니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>코드 확인</strong> — 파이썬과 자바가 같은 입력에서 [4, 5]를 21번째 확인에 찾고 합 13에서는 64개를 모두 확인합니다. 파이썬의 환원 예에서는 클리크 {0, 1, 2}에 대응하는 {3, 4}가 보완 그래프의 정점 덮개로 확인됩니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>NP는 Non-Polynomial의 약자다</strong> — 비결정적 다항 시간의 약자입니다. P도 NP에 포함되므로 NP 문제가 모두 어렵다는 뜻이 아닙니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>NP-난해와 NP-완전은 같다</strong> — NP-완전은 NP에 속하는 NP-난해 문제입니다. NP-난해 문제 중에는 NP에 속하지 않는 것도 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>NP-완전 문제는 풀 수 없다</strong> — 풀 수는 있습니다. 모든 부분집합을 확인하는 방법으로도 정답은 나오며, 다만 입력이 커지면 시간이 지수적으로 늘어납니다. 다항 시간 알고리즘이 있는지가 열린 문제입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>P ≠ NP가 증명되었다</strong> — 아직 어느 쪽도 증명되지 않았습니다. 많은 연구자가 P ≠ NP를 예상할 뿐입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>검증이 쉬우니 풀기도 쉽다</strong> — 검증이 다항 시간이어도 답을 찾는 데는 부분집합을 모두 확인하는 지수 시간밖에 모르는 문제가 많습니다. 이 차이가 P와 NP를 가르는 질문입니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">P와 NP의 차이는?</h3>
+                            <p class="overview-card__desc">P는 다항 시간에 풀 수 있는 결정 문제, NP는 답이 주어지면 다항 시간에 검증할 수 있는 결정 문제입니다. P는 NP에 포함됩니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">NP-완전이란?</h3>
+                            <p class="overview-card__desc">NP에 속하면서 NP의 모든 문제가 다항 시간에 환원되는 문제입니다. NP에서 가장 어려운 문제들입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">NP-완전 문제 하나를 다항 시간에 풀면?</h3>
+                            <p class="overview-card__desc">NP의 모든 문제가 환원을 통해 다항 시간에 풀리므로 P = NP가 됩니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">NP-완전 문제를 만나면 어떻게 하나요?</h3>
+                            <p class="overview-card__desc">정확한 다항 시간 해법을 기대하기 어려우므로 입력이 작으면 완전 탐색, 다항 시간에 풀리는 특수한 경우의 활용, 근사 알고리즘을 고려합니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">활용 분야</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>문제의 어려움 판단</strong> — 알려진 NP-완전 문제를 새 문제로 환원할 수 있음을 보이면 새 문제도 NP-난해이므로, 다항 시간 알고리즘을 찾아 헤매기보다 근사나 작은 입력용 알고리즘으로 방향을 바꿀 근거가 됩니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>최적화 문제의 모델</strong> — 외판원 문제(TSP), 색 3가지 이상의 그래프 색칠, 0-1 배낭 문제의 결정 버전이 NP-완전이며, 스케줄링이나 경로 계획에 나오는 많은 문제가 이런 문제와 닮은 구조를 가집니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>SAT 풀이기</strong> — SAT는 NP-완전이지만, 소프트웨어 검증 같은 많은 실제 응용 입력에서는 효율적인 SAT 풀이기가 개발되어 있어 문제를 SAT로 바꿔 푸는 접근도 쓰입니다. 효율은 입력의 성격에 따라 다릅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/complexity}">시간 복잡도</a> — 다항 시간과 지수 시간의 차이를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/backtracking}">백트래킹</a> — 지수 탐색 공간을 가지치기로 줄이는 방법을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/ds/graph-coloring}">그래프 색칠</a> — 대표적인 NP-난해 문제를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/greedy}">그리디</a> — 최적을 보장하지 못해도 빠르게 근사해를 얻는 방법을 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>논문</strong> — Cook, S. A., "The Complexity of Theorem-Proving Procedures", Proceedings of the 3rd ACM Symposium on Theory of Computing (STOC), 1971</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>논문</strong> — Karp, R. M., "Reducibility Among Combinatorial Problems", in Complexity of Computer Computations, 1972</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>교재</strong> — Cormen, Leiserson, Rivest, Stein, "Introduction to Algorithms", 3rd ed., Chapter 34 NP-Completeness</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>교재</strong> — Garey, M. R., Johnson, D. S., "Computers and Intractability: A Guide to the Theory of NP-Completeness", 1979</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://www.claymath.org/millennium-problems/" target="_blank" rel="noopener">Clay Mathematics Institute: Millennium Problems</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://www.claymath.org/wp-content/uploads/2022/06/pvsnp.pdf" target="_blank" rel="noopener">Clay Mathematics Institute: P vs NP (Stephen Cook)</a></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/algo/11-20/np-completeness-code :: code}"></th:block>
+            </div>
+
+            <!-- 탭 4: 퀴즈 -->
+            <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
+                <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+    <script th:src="@{/js/quiz.js}"></script>
+    <script th:src="@{/js/like.js}"></script>
+    <script th:src="@{/js/share.js}"></script>
+</body>
+</html>
