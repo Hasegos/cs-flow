@@ -1,0 +1,110 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — 스킵 리스트 탐색과 삽입</p>
+            <div class="code-block">
+<pre><span class="kw">import</span> random
+
+<span class="kw">class</span> <span class="fn">Node</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, key, level):
+        self.key = key
+        self.next = &#91;<span class="kw">None</span>&#93; * level          <span class="cm"># next&#91;i&#93;는 레벨 i의 다음 노드</span>
+
+<span class="kw">class</span> <span class="fn">SkipList</span>:
+    MAX_LEVEL = <span class="num">16</span>
+
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, seed=<span class="kw">None</span>):
+        self.head = <span class="fn">Node</span>(<span class="kw">None</span>, self.MAX_LEVEL)
+        self.level = <span class="num">1</span>                       <span class="cm"># 지금 쓰는 최대 레벨</span>
+        self.rng = random.<span class="fn">Random</span>(seed)
+
+    <span class="kw">def</span> <span class="fn">_random_level</span>(self):
+        lv = <span class="num">1</span>
+        <span class="kw">while</span> lv &lt; self.MAX_LEVEL <span class="kw">and</span> self.rng.<span class="fn">random</span>() &lt; <span class="num">0.5</span>:
+            lv += <span class="num">1</span>                          <span class="cm"># 앞면이면 한 레벨 올린다</span>
+        <span class="kw">return</span> lv
+
+    <span class="kw">def</span> <span class="fn">search</span>(self, key):
+        node = self.head
+        <span class="kw">for</span> i <span class="kw">in</span> <span class="fn">range</span>(self.level - <span class="num">1</span>, -<span class="num">1</span>, -<span class="num">1</span>):
+            <span class="kw">while</span> node.next&#91;i&#93; <span class="kw">and</span> node.next&#91;i&#93;.key &lt; key:
+                node = node.next&#91;i&#93;            <span class="cm"># 오른쪽으로 이동</span>
+        node = node.next&#91;<span class="num">0</span>&#93;                     <span class="cm"># 맨 아래층에서 확인</span>
+        <span class="kw">return</span> node <span class="kw">is not</span> <span class="kw">None</span> <span class="kw">and</span> node.key == key
+
+    <span class="kw">def</span> <span class="fn">insert</span>(self, key):
+        update = &#91;self.head&#93; * self.MAX_LEVEL
+        node = self.head
+        <span class="kw">for</span> i <span class="kw">in</span> <span class="fn">range</span>(self.level - <span class="num">1</span>, -<span class="num">1</span>, -<span class="num">1</span>):
+            <span class="kw">while</span> node.next&#91;i&#93; <span class="kw">and</span> node.next&#91;i&#93;.key &lt; key:
+                node = node.next&#91;i&#93;
+            update&#91;i&#93; = node                 <span class="cm"># 레벨 i에서 key 바로 앞 노드</span>
+        lv = self.<span class="fn">_random_level</span>()
+        self.level = <span class="fn">max</span>(self.level, lv)
+        new = <span class="fn">Node</span>(key, lv)
+        <span class="kw">for</span> i <span class="kw">in</span> <span class="fn">range</span>(lv):
+            new.next&#91;i&#93; = update&#91;i&#93;.next&#91;i&#93;
+            update&#91;i&#93;.next&#91;i&#93; = new
+
+sl = <span class="fn">SkipList</span>(seed=<span class="num">7</span>)
+<span class="kw">for</span> k <span class="kw">in</span> &#91;<span class="num">3</span>, <span class="num">6</span>, <span class="num">7</span>, <span class="num">9</span>, <span class="num">12</span>, <span class="num">17</span>, <span class="num">19</span>, <span class="num">21</span>, <span class="num">25</span>, <span class="num">26</span>&#93;:
+    sl.<span class="fn">insert</span>(k)
+<span class="fn">print</span>(sl.<span class="fn">search</span>(<span class="num">21</span>), sl.<span class="fn">search</span>(<span class="num">14</span>))   <span class="cm"># True False</span>
+sl.<span class="fn">insert</span>(<span class="num">14</span>)
+<span class="fn">print</span>(sl.<span class="fn">search</span>(<span class="num">14</span>))                    <span class="cm"># True</span></pre>
+            </div>
+            <p class="code-desc">
+                각 노드는 레벨 수만큼의 next 포인터 배열을 가지고, 머리 노드는 모든 레벨에 걸쳐 있습니다. search는 맨 위 레벨에서 시작해 오른쪽 다음 노드의 키가 찾는 키보다 작으면 오른쪽으로 가고, 아니면 한 레벨 내려갑니다. 맨 아래 레벨에서 다음 노드가 찾는 키인지 확인하면 끝납니다. 시각화의 탐색 탭이 그리는 경로와 같은 알고리즘입니다(노드의 높이는 시각화의 고정값과 다릅니다).
+                insert는 같은 방식으로 내려가며 레벨마다 key 바로 앞 노드를 update 배열에 기록합니다. 동전 던지기로 새 노드의 레벨을 정하고, 그 레벨들에서만 앞 노드와 새 노드의 포인터를 이어 붙입니다. 연결 리스트의 삽입과 같은 포인터 두 개 수정이어서 회전이 없습니다.
+                21은 있고 14는 넣기 전에는 없으므로 True False이고, 14를 넣은 뒤에는 True입니다. 시드를 7로 고정해서 실행할 때마다 같은 구조가 만들어집니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — 레벨 분포 확인</p>
+            <div class="code-block">
+<pre><span class="kw">import</span> random
+
+rng = random.<span class="fn">Random</span>(<span class="num">1</span>)
+N = <span class="num">100000</span>
+counts = &#91;<span class="num">0</span>&#93; * <span class="num">20</span>
+<span class="kw">for</span> _ <span class="kw">in</span> <span class="fn">range</span>(N):
+    lv = <span class="num">1</span>
+    <span class="kw">while</span> rng.<span class="fn">random</span>() &lt; <span class="num">0.5</span>:         <span class="cm"># 앞면이면 한 레벨 올린다</span>
+        lv += <span class="num">1</span>
+    <span class="kw">for</span> i <span class="kw">in</span> <span class="fn">range</span>(lv):
+        counts&#91;i&#93; += <span class="num">1</span>                <span class="cm"># 레벨 i 이하에 노드가 있다</span>
+
+<span class="fn">print</span>(counts&#91;:<span class="num">6</span>&#93;)                 <span class="cm"># &#91;100000, 50171, 24929, 12464, 6127, 3071&#93;</span>
+<span class="fn">print</span>(<span class="fn">round</span>(<span class="fn">sum</span>(counts) / N, <span class="num">2</span>))   <span class="cm"># 2.0 (노드당 평균 포인터 수)</span></pre>
+            </div>
+            <p class="code-desc">
+                노드 10만 개에 동전 던지기로 높이를 정하면 레벨 1에는 10만 개, 레벨 2에는 약 절반인 5만 개, 레벨 3에는 약 2만 5천 개가 남습니다. 위 레벨로 갈수록 노드 수가 대략 절반씩 줄어드는 것이 시각화의 레벨 구성 탭에서 본 모양입니다.
+                레벨 수는 대략 log2(n)이고, 노드당 평균 포인터 수는 1 + 1/2 + 1/4 + ... = 2에 가깝습니다. 그래서 포인터 수는 연결 리스트의 두 배 정도이고, 탐색은 층마다 평균 두 번쯤(오른쪽 약 1번, 아래 1번)만 움직입니다.
+                확률이 1/2 대신 1/4이면 평균 포인터 수가 약 1.33으로 줄고, 레벨당 이동은 늘지만 레벨 수가 줄어 기대 탐색 비용은 비슷합니다. 논문은 1/4를 권장합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — ConcurrentSkipListMap 사용</p>
+            <div class="code-block">
+<pre><span class="kw">import</span> java.util.concurrent.ConcurrentSkipListMap;
+
+ConcurrentSkipListMap&lt;Integer, String&gt; map = <span class="kw">new</span> ConcurrentSkipListMap&lt;&gt;();
+map.<span class="fn">put</span>(<span class="num">30</span>, <span class="st">"c"</span>); map.<span class="fn">put</span>(<span class="num">10</span>, <span class="st">"a"</span>); map.<span class="fn">put</span>(<span class="num">20</span>, <span class="st">"b"</span>); map.<span class="fn">put</span>(<span class="num">40</span>, <span class="st">"d"</span>);
+
+System.out.<span class="fn">println</span>(map.<span class="fn">firstKey</span>());          <span class="cm">// 10</span>
+System.out.<span class="fn">println</span>(map.<span class="fn">floorKey</span>(<span class="num">25</span>));        <span class="cm">// 20  (25 이하 중 가장 큰 키)</span>
+System.out.<span class="fn">println</span>(map.<span class="fn">ceilingKey</span>(<span class="num">25</span>));      <span class="cm">// 30  (25 이상 중 가장 작은 키)</span>
+System.out.<span class="fn">println</span>(map.<span class="fn">subMap</span>(<span class="num">10</span>, <span class="num">30</span>));        <span class="cm">// {10=a, 20=b}  (10 이상 30 미만)</span></pre>
+            </div>
+            <p class="code-desc">
+                자바의 ConcurrentSkipListMap은 스킵 리스트를 바탕으로 한 정렬된 맵으로, 여러 스레드가 동시에 읽고 써도 안전하도록 설계되어 있습니다. 키를 정렬된 순서로 유지하므로 firstKey, floorKey, ceilingKey, subMap 같은 범위 질의를 쓸 수 있습니다.
+                TreeMap과 인터페이스가 비슷하지만 TreeMap은 동기화가 없어서 여러 스레드가 함께 쓰려면 바깥에서 잠금을 걸어야 합니다. 스킵 리스트는 삽입이 포인터 몇 개를 바꾸는 국소적인 일이라, 락 없이 비교 후 교체(CAS) 방식으로 동시성을 다루기 쉬운 구조입니다.
+                정렬이 필요 없고 단일 스레드라면 해시 맵이 평균 O(1)로 더 빠르므로, 정렬된 순서와 동시 접근이 함께 필요한 곳에 고르는 것이 일반적입니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
