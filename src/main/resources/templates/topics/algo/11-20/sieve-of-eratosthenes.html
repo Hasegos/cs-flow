@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">에라토스테네스의 체 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/algo/11-20/sieve-of-eratosthenes.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/algo}" class="topic-breadcrumb__link">알고리즘</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">에라토스테네스의 체</span>
+                </nav>
+
+                <span class="topic-hero__slug">algo · 18</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">에라토스테네스의 체</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+                <button type="button" class="topic-like" th:classappend="${liked} ? ' topic-like--active' : ''" th:attr="data-topic-slug=${topic.slug}">
+                    <svg class="topic-like__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <span class="topic-like__count" th:text="${likeCount}">0</span>
+                </button>
+                <div class="topic-share">
+                    <button type="button" class="topic-share__btn topic-share__btn--copy" aria-label="링크 복사">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="topic-share__btn topic-share__btn--kakao" aria-label="카카오톡 공유">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                        </svg>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+                <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        에라토스테네스의 체(sieve of Eratosthenes)는 2부터 시작해 소수의 배수를 차례로 지워 나가며 n 이하의 소수를 한꺼번에 찾는 알고리즘입니다. 지워지지 않고 끝까지 남은 수가 소수입니다. 수 하나하나를 나눠 보지 않고 배수만 건너뛰며 지우므로 나눗셈이 필요 없습니다.
+                    </p>
+                    <p class="overview-lead">
+                        시간은 <strong>O(n log log n)</strong>으로 선형에 매우 가깝고, 공간은 n 크기의 배열 O(n)입니다. 이 토픽에서는 50 이하의 수로 체가 걸러내는 과정과 p² 부터 지우는 이유, 그리고 n을 키울 때 지우는 횟수가 얼마나 늘어나는지를 직접 확인합니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">배수 지우기</h3>
+                            <p class="overview-card__desc">2부터 지워지지 않은 가장 작은 수를 소수로 확정하고, 그 수의 배수를 모두 지웁니다. 이를 반복하면 남은 수가 소수입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">p²부터 시작</h3>
+                            <p class="overview-card__desc">p × k에서 k가 p보다 작으면 k의 소인수가 이미 그 배수를 지웠습니다. 그래서 p의 배수는 p × p부터 지우면 충분합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">√n까지만</h3>
+                            <p class="overview-card__desc">합성수는 자신의 제곱근 이하의 소인수를 가집니다. 그래서 p × p가 n 이하인 소수 p까지만 처리하면 n 이하의 합성수가 모두 지워집니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">소수 표 한 번에</h3>
+                            <p class="overview-card__desc">한 수의 소수 여부가 아니라 n 이하 모든 수의 소수 여부를 배열로 얻습니다. 이후 판정은 배열을 읽는 O(1)입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">O(n log log n)</h3>
+                            <p class="overview-card__desc">소수 p마다 약 n/p칸을 지우고, 소수의 역수의 합이 log log n처럼 아주 천천히 자라므로 전체가 n log log n에 가깝습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">공간 O(n)</h3>
+                            <p class="overview-card__desc">n + 1칸의 배열이 필요합니다. n이 매우 크면 비트 하나에 수 하나를 담거나 구간을 나눠 처리해 메모리를 줄입니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>시간은 O(n log log n)입니다</strong> — 지우는 횟수의 합이 n × (1/2 + 1/3 + 1/5 + ...)에 가깝고, √n 이하의 소수만 다루므로 실제로는 n에 조금 더 곱해진 정도입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공간은 O(n)입니다</strong> — 각 수가 지워졌는지를 기록하는 배열이 필요합니다. 한 칸이 바이트 하나이면 n = 10,000,000일 때 약 10MB입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>한 수만 판정할 때는 알맞지 않습니다</strong> — 큰 수 하나의 소수 여부는 √n까지 나눠 보는 시험 나눗셈이 훨씬 가볍습니다. 체는 범위 전체의 표가 필요할 때 씁니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>같은 칸을 여러 번 지웁니다</strong> — 12는 2와 3이 모두 접근합니다. 앞선 소수가 이미 지운 칸도 접근 횟수에 포함되며, 이 중복이 로그 로그 항으로 이어집니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "체 걸러내기" 탭에서 p = 2, 3, 5, 7이 차례로 배수를 지우고 남은 15개가 소수로 확정되는 모습을, "p²부터 지우는 이유" 탭에서 5의 배수 10, 15, 20이 이미 지워져 있어 25부터 지우는 모습을, "n이 커지면" 탭에서 n당 지우는 횟수가 천천히만 늘어나는 모습을 STEP으로 확인하세요.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">에라토스테네스의 체의 배경</h2>
+                    <p class="overview-lead">
+                        이 방법은 고대 그리스의 수학자 키레네의 에라토스테네스(Eratosthenes of Cyrene)에게서 이름을 얻었습니다. 그의 저작 대부분은 전해지지 않고, 체는 이후 니코마코스(Nicomachus of Gerasa)의 『산술 입문』에서 그의 방법으로 소개됩니다. 소수의 배수를 지워 가는 방식 자체는 오늘날에도 같은 구조로 쓰입니다.
+                    </p>
+                    <p class="overview-lead">
+                        시간 복잡도에 나오는 log log n은 소수의 역수의 합과 관련이 있습니다. 메르텐스의 정리(Mertens' theorems)에 따르면 x 이하의 소수 p에 대한 1/p의 합은 ln ln x에 상수를 더한 값에 가깝게 자랍니다. 체를 개선한 알고리즘도 있습니다. 1978년 Gries와 Misra는 정수 곱셈을 단위 시간으로 볼 때 n에 비례하는 시간에 동작하는 선형 체를 발표했습니다. 이 방식은 합성수를 한 번씩만 지우는 구조로 알려져 있습니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>50 이하의 소수</strong> — 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47로 모두 15개입니다. 처리한 소수는 2, 3, 5, 7뿐이고 다음 소수 11의 제곱 121이 50보다 커서 멈춥니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>소수별 지우기</strong> — p = 2는 4부터 24칸, p = 3은 9부터 14칸, p = 5는 25부터 6칸, p = 7은 49 한 칸에 접근해 모두 45번입니다. 새로 지운 수는 24개, 7개, 2개, 1개로 34개이며 2 이상 50 이하의 합성수 개수와 같습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>p²부터 지우는 이유</strong> — 5의 배수 10, 15, 20은 각각 2, 3, 2가 이미 지웠고 25가 처음입니다. 5가 새로 지운 수는 25와 35 두 개입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>n을 키웠을 때</strong> — n = 100, 1,000, 10,000, 100,000, 1,000,000에서 접근 횟수는 104, 1,411, 16,981, 193,078, 2,122,048번이고 n당 1.04, 1.41, 1.70, 1.93, 2.12입니다. 소수는 25, 168, 1,229, 9,592, 78,498개입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>코드 확인</strong> — 파이썬과 자바가 50 이하에서 같은 15개 소수를 내고, 두 언어 모두 n = 1,000,000 이하의 소수를 78,498개로 셉니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>모든 수의 배수를 지워야 한다</strong> — 소수의 배수만 지우면 됩니다. 합성수의 배수는 그 합성수의 소인수가 이미 지웠습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>p × 2부터 지워야 한다</strong> — p × k에서 k가 p보다 작으면 k의 소인수가 이미 지웠으므로 p × p부터 시작해도 결과가 같고 접근 횟수만 줄어듭니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>바깥 반복을 n까지 돌려야 한다</strong> — p × p가 n을 넘으면 지울 것이 없으므로 √n까지만 돌면 됩니다. 이후 남은 수는 확인 없이 소수입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>시간이 O(n²)이다</strong> — 겉으로는 이중 반복이지만 소수 p마다 n/p칸만 지우므로 합이 n log log n 정도입니다. n = 1,000,000에서도 접근은 약 212만 번입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>수 하나의 소수 판정에도 좋다</strong> — 한 수의 소수 여부만 알면 되면 √n까지 나눠 보는 쪽이 메모리도 시간도 적게 듭니다. 체는 범위 전체가 필요할 때 이득입니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">에라토스테네스의 체의 원리는?</h3>
+                            <p class="overview-card__desc">2부터 지워지지 않은 가장 작은 수를 소수로 확정하고 그 배수를 지우는 일을 반복합니다. 끝까지 남은 수가 소수입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">왜 √n까지만 확인하면 되나요?</h3>
+                            <p class="overview-card__desc">n 이하의 합성수는 √n 이하의 소인수를 반드시 가집니다. 따라서 √n 이하 소수의 배수를 지우면 모든 합성수가 지워집니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">시간 복잡도가 O(n log log n)인 이유는?</h3>
+                            <p class="overview-card__desc">소수 p마다 약 n/p칸을 지우고, 소수 역수의 합이 log log n처럼 느리게 자라기 때문입니다. n × (1/2 + 1/3 + 1/5 + ...)에 해당합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">큰 n에서 메모리를 줄이려면?</h3>
+                            <p class="overview-card__desc">홀수만 저장해 칸 수를 절반으로 줄이거나, 비트 하나에 수 하나를 담거나, 구간을 나눠 처리하는 구간 체가 있습니다. 비트 배열과 구간 체는 접근 횟수가 같고 메모리만 줄어들며, 구간 체는 공간이 O(√n)입니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">활용 분야</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>소수 표 전처리</strong> — 여러 수의 소수 여부를 반복해서 물어야 할 때 한 번 만든 표로 판정을 O(1)에 합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>소인수 분해</strong> — 지울 때 각 수를 처음 지운 소수를 기록하면 최소 소인수 표가 되어, 이후 인수분해를 소인수 개수만큼의 나눗셈으로 끝냅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>소수 개수와 합</strong> — n 이하 소수의 개수나 합처럼 범위 전체에 대한 질의를 표 한 번으로 계산합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/complexity}">시간 복잡도</a> — O(n log log n)이 어떤 위치에 있는지 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/bit-manipulation}">비트 조작 트릭</a> — 비트 하나로 한 수를 표현해 메모리를 줄이는 방법과 이어집니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/dp-basic}">동적 계획법</a> — 앞선 결과를 표로 저장해 재사용하는 같은 발상을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/ds/array-linkedlist}">배열 vs 연결 리스트</a> — 연속된 칸을 인덱스로 읽는 배열의 특성을 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>논문</strong> — Gries, D., Misra, J., "A linear sieve algorithm for finding prime numbers", Communications of the ACM 21(12), 1978</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>교재</strong> — Hardy, G. H., Wright, E. M., "An Introduction to the Theory of Numbers" (소수의 역수의 합에 관한 장)</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>교재</strong> — Nicomachus of Gerasa, "Introduction to Arithmetic" (체에 대한 고대의 서술)</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://docs.python.org/3/library/stdtypes.html#bytearray" target="_blank" rel="noopener">Python bytearray</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/BitSet.html" target="_blank" rel="noopener">Java BitSet</a></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/algo/11-20/sieve-of-eratosthenes-code :: code}"></th:block>
+            </div>
+
+            <!-- 탭 4: 퀴즈 -->
+            <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
+                <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+    <script th:src="@{/js/quiz.js}"></script>
+    <script th:src="@{/js/like.js}"></script>
+    <script th:src="@{/js/share.js}"></script>
+</body>
+</html>
