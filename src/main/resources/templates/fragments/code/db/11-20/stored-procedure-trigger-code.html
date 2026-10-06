@@ -1,0 +1,123 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">SQL — PostgreSQL의 프로시저와 트리거</p>
+            <div class="code-block">
+<pre><span class="kw">CREATE PROCEDURE</span> transfer(src <span class="kw">int</span>, dst <span class="kw">int</span>, amt <span class="kw">int</span>)
+<span class="kw">LANGUAGE</span> plpgsql
+<span class="kw">AS</span> $$
+<span class="kw">BEGIN</span>
+    <span class="kw">IF</span> (<span class="kw">SELECT</span> balance <span class="kw">FROM</span> account <span class="kw">WHERE</span> id = src) &lt; amt <span class="kw">THEN</span>
+        <span class="kw">RAISE EXCEPTION</span> <span class="st">'잔액 부족'</span>;
+    <span class="kw">END IF</span>;
+    <span class="kw">UPDATE</span> account <span class="kw">SET</span> balance = balance - amt <span class="kw">WHERE</span> id = src;
+    <span class="kw">UPDATE</span> account <span class="kw">SET</span> balance = balance + amt <span class="kw">WHERE</span> id = dst;
+<span class="kw">END</span>;
+$$;
+
+<span class="kw">CALL</span> transfer(<span class="num">1</span>, <span class="num">2</span>, <span class="num">100</span>);                          <span class="cm">-- 앱은 한 번만 호출</span>
+
+<span class="kw">CREATE FUNCTION</span> log_balance() <span class="kw">RETURNS</span> trigger
+<span class="kw">LANGUAGE</span> plpgsql
+<span class="kw">AS</span> $$
+<span class="kw">BEGIN</span>
+    <span class="kw">INSERT INTO</span> audit_log(account_id, old_balance, new_balance)
+    <span class="kw">VALUES</span> (OLD.id, OLD.balance, NEW.balance);   <span class="cm">-- OLD = 변경 전 행, NEW = 변경 후 행</span>
+    <span class="kw">RETURN</span> NEW;
+<span class="kw">END</span>;
+$$;
+
+<span class="kw">CREATE TRIGGER</span> trg_balance_audit
+<span class="kw">AFTER UPDATE OF</span> balance <span class="kw">ON</span> account
+<span class="kw">FOR EACH ROW EXECUTE FUNCTION</span> log_balance();</pre>
+            </div>
+            <p class="code-desc">
+                PostgreSQL 11부터 CREATE PROCEDURE로 프로시저를 만들고 CALL로 호출합니다. transfer는 잔액을 확인하고 두 계좌를 수정하는 문장을 프로시저 안에 모아 두어, 앱은 CALL 한 번으로 이체를 실행합니다. 시각화의 저장 프로시저 탭이 보여 주는 동작입니다.
+                트리거는 트리거 함수를 만들고 CREATE TRIGGER로 테이블의 이벤트에 연결합니다. 여기서는 account의 UPDATE가 balance를 SET 목록에 포함하면(값이 같아도) 각 행마다 log_balance가 자동으로 실행되어 변경 전후 값을 audit_log에 남깁니다. 앱이 audit_log를 호출하는 코드는 없습니다. 프로시저 언어와 문법은 DB마다 다르며, 위 예는 PostgreSQL의 PL/pgSQL입니다. AFTER 행 단위 트리거의 반환 값은 무시되며 RETURN NEW는 관례입니다(BEFORE 트리거에서는 반환 값이 저장될 행을 정합니다). account와 audit_log 테이블이 이미 있다고 가정한 조각이고, transfer는 동시 이체를 막는 잠금을 넣지 않은 예시입니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — 왕복 횟수와 트리거 흉내</p>
+            <div class="code-block">
+<pre><span class="kw">class</span> <span class="fn">Db</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self):
+        self.bal = {<span class="num">1</span>: <span class="num">1000</span>, <span class="num">2</span>: <span class="num">500</span>}
+        self.audit = &#91;&#93;
+        self.trips = <span class="num">0</span>
+        self.triggers = &#91;&#93;
+
+    <span class="kw">def</span> <span class="fn">_update</span>(self, acc, delta):
+        old = self.bal&#91;acc&#93;
+        self.bal&#91;acc&#93; += delta
+        <span class="kw">for</span> t <span class="kw">in</span> self.triggers:                   <span class="cm"># 이벤트가 나면 트리거가 자동 실행</span>
+            <span class="fn">t</span>(acc, old, self.bal&#91;acc&#93;)
+
+    <span class="kw">def</span> <span class="fn">run</span>(self, sql, *args):                    <span class="cm"># 앱이 보내는 문장 하나 = 왕복 1번</span>
+        self.trips += <span class="num">1</span>
+        <span class="kw">if</span> sql == <span class="st">'select'</span>:
+            <span class="kw">return</span> self.bal&#91;args&#91;<span class="num">0</span>&#93;&#93;
+        self.<span class="fn">_update</span>(*args)
+
+    <span class="kw">def</span> <span class="fn">call_transfer</span>(self, src, dst, amt):       <span class="cm"># 프로시저 호출 = 왕복 1번</span>
+        self.trips += <span class="num">1</span>
+        <span class="kw">if</span> self.bal&#91;src&#93; &lt; amt:
+            <span class="kw">raise</span> <span class="fn">ValueError</span>(<span class="st">'잔액 부족'</span>)
+        self.<span class="fn">_update</span>(src, -amt)                   <span class="cm"># 나머지는 DB 안에서 처리</span>
+        self.<span class="fn">_update</span>(dst, amt)
+
+db = <span class="fn">Db</span>()
+db.triggers.<span class="fn">append</span>(<span class="kw">lambda</span> acc, old, new: db.audit.<span class="fn">append</span>((acc, old, new)))
+
+<span class="kw">if</span> db.<span class="fn">run</span>(<span class="st">'select'</span>, <span class="num">1</span>) &gt;= <span class="num">100</span>:                    <span class="cm"># 프로시저 없이: 문장마다 왕복</span>
+    db.<span class="fn">run</span>(<span class="st">'update'</span>, <span class="num">1</span>, -<span class="num">100</span>)
+    db.<span class="fn">run</span>(<span class="st">'update'</span>, <span class="num">2</span>, <span class="num">100</span>)
+<span class="fn">print</span>(<span class="st">'앱이 하나씩:'</span>, db.trips, db.bal)
+
+db.trips = <span class="num">0</span>
+db.<span class="fn">call_transfer</span>(<span class="num">1</span>, <span class="num">2</span>, <span class="num">100</span>)                       <span class="cm"># 프로시저: 한 번 호출</span>
+<span class="fn">print</span>(<span class="st">'프로시저:'</span>, db.trips, db.bal)
+<span class="fn">print</span>(<span class="st">'트리거가 남긴 이력:'</span>, <span class="fn">len</span>(db.audit), db.audit&#91;<span class="num">0</span>&#93;)
+<span class="cm"># 앱이 하나씩: 3 {1: 900, 2: 600}</span>
+<span class="cm"># 프로시저: 1 {1: 800, 2: 700}</span>
+<span class="cm"># 트리거가 남긴 이력: 4 (1, 1000, 900)</span></pre>
+            </div>
+            <p class="code-desc">
+                앱이 문장을 하나씩 보내면 SELECT 1번과 UPDATE 2번으로 왕복이 3번이고, 프로시저를 호출하면 왕복이 1번입니다. 시각화의 저장 프로시저 탭과 같은 결과입니다. 두 번 모두 잔액이 100씩 옮겨져 최종 {1: 800, 2: 700}이 됩니다.
+                _update는 값이 바뀔 때마다 등록된 트리거 함수를 자동으로 호출해 (계좌, 변경 전, 변경 후)를 audit에 남깁니다. 이체 두 번에 UPDATE가 모두 4번 일어났으므로 이력도 4건이고, 앱 코드 어디에도 audit에 쓰는 호출은 없습니다. 시각화의 트리거 탭과 같은 동작입니다. 장난감 모델이고 실제 DB의 트랜잭션과 오류 처리는 훨씬 복잡합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — JDBC로 프로시저 호출</p>
+            <div class="code-block">
+<pre><span class="cm">// 프로시저 없이: 문장마다 서버와 주고받는다</span>
+<span class="kw">try</span> (Connection conn = ds.<span class="fn">getConnection</span>()) {
+    conn.<span class="fn">setAutoCommit</span>(<span class="kw">false</span>);
+    <span class="kw">int</span> bal;
+    <span class="kw">try</span> (PreparedStatement ps = conn.<span class="fn">prepareStatement</span>(<span class="st">"SELECT balance FROM account WHERE id = ?"</span>)) {
+        ps.<span class="fn">setInt</span>(<span class="num">1</span>, <span class="num">1</span>);
+        <span class="kw">try</span> (ResultSet rs = ps.<span class="fn">executeQuery</span>()) { rs.<span class="fn">next</span>(); bal = rs.<span class="fn">getInt</span>(<span class="num">1</span>); }
+    }
+    <span class="kw">if</span> (bal &gt;= <span class="num">100</span>) { <span class="cm">/* UPDATE 두 번 */</span> }
+    conn.<span class="fn">commit</span>();
+}
+
+<span class="cm">// 프로시저: 한 번 호출 (PostgreSQL 11 이상의 CALL 문)</span>
+<span class="kw">try</span> (Connection conn = ds.<span class="fn">getConnection</span>();
+     PreparedStatement ps = conn.<span class="fn">prepareStatement</span>(<span class="st">"CALL transfer(?, ?, ?)"</span>)) {
+    ps.<span class="fn">setInt</span>(<span class="num">1</span>, <span class="num">1</span>);
+    ps.<span class="fn">setInt</span>(<span class="num">2</span>, <span class="num">2</span>);
+    ps.<span class="fn">setInt</span>(<span class="num">3</span>, <span class="num">100</span>);
+    ps.<span class="fn">execute</span>();                                   <span class="cm">// 잔액 부족이면 SQLException</span>
+}</pre>
+            </div>
+            <p class="code-desc">
+                위쪽은 앱이 SELECT와 UPDATE를 하나씩 보내며 잔액 판단을 자바 코드에서 합니다. 아래쪽은 CALL transfer 한 번으로 모든 처리를 DB에 맡기고, 프로시저가 RAISE EXCEPTION을 내면 JDBC에서는 SQLException으로 받습니다. 표준 JDBC에는 CallableStatement의 {call ...} 문법도 있지만 pgJDBC는 기본 설정에서 이를 함수 호출로 바꾸므로 프로시저에는 escapeSyntaxCallMode 설정이 필요합니다. 아래 prepareStatement 방식은 서버가 CALL 문을 받는다는 점에 기댄 예시이므로 사용하는 드라이버 문서를 확인하세요.
+                프로시저 안에 업무 규칙이 들어가면 그 규칙은 자바 코드가 아니라 DB에서 바뀌고 배포됩니다. 규칙을 한곳에 두는 장점이 있습니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
