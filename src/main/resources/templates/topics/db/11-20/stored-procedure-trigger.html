@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">저장 프로시저 / 트리거 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/db/11-20/stored-procedure-trigger.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/db}" class="topic-breadcrumb__link">데이터베이스</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">저장 프로시저 / 트리거</span>
+                </nav>
+
+                <span class="topic-hero__slug">db · 17</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">저장 프로시저 / 트리거</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+                <button type="button" class="topic-like" th:classappend="${liked} ? ' topic-like--active' : ''" th:attr="data-topic-slug=${topic.slug}">
+                    <svg class="topic-like__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <span class="topic-like__count" th:text="${likeCount}">0</span>
+                </button>
+                <div class="topic-share">
+                    <button type="button" class="topic-share__btn topic-share__btn--copy" aria-label="링크 복사">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="topic-share__btn topic-share__btn--kakao" aria-label="카카오톡 공유">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                        </svg>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+                <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        저장 프로시저(Stored Procedure)는 여러 SQL 문과 제어 흐름을 데이터베이스 서버에 저장해 두고 이름으로 호출해 실행하는 기능입니다. 앱이 문장을 하나씩 보내는 대신 호출 한 번으로 묶음을 실행하므로 네트워크 왕복을 줄이고 업무 로직을 DB에 모아 둘 수 있습니다.
+                    </p>
+                    <p class="overview-lead">
+                        트리거(Trigger)는 테이블에서 INSERT, UPDATE, DELETE 같은 이벤트가 일어나면 자동으로 실행되는 코드입니다. PostgreSQL에서는 트리거 함수를 CREATE TRIGGER로 이벤트에 연결합니다. 호출하지 않아도 실행되어 변경 이력 기록이나 값 검증에 쓰이지만, 코드에 보이지 않는 동작이라 남용하면 문제가 됩니다. 이 토픽에서는 프로시저의 왕복 감소, 트리거의 자동 실행, 트리거가 쌓일 때의 부작용을 시각화로 확인합니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">저장 프로시저</h3>
+                            <p class="overview-card__desc">DB 안에 저장해 두고 이름으로 호출하는 SQL과 제어 흐름의 묶음입니다. 호출은 CALL 같은 문장으로 합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">왕복 감소</h3>
+                            <p class="overview-card__desc">여러 문장을 하나씩 보내면 문장마다 앱과 서버가 주고받지만, 프로시저는 호출 한 번으로 서버 안에서 처리합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">트리거</h3>
+                            <p class="overview-card__desc">지정한 테이블의 이벤트가 일어나면 자동으로 실행되는 DB 객체입니다. 사용자가 직접 호출하지 않습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">BEFORE와 AFTER</h3>
+                            <p class="overview-card__desc">PostgreSQL 같은 DB에서는 BEFORE 트리거가 변경 전에 값을 검증하거나 바꿀 수 있고, AFTER 트리거는 변경 후에 이력을 남깁니다. SQL Server는 BEFORE 대신 INSTEAD OF를 씁니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">OLD와 NEW</h3>
+                            <p class="overview-card__desc">PostgreSQL의 행 단위 트리거는 UPDATE에서 변경 전 행(OLD)과 변경 후 행(NEW)을 모두 읽습니다. INSERT에는 OLD가, DELETE에는 NEW가 없습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">숨은 동작</h3>
+                            <p class="overview-card__desc">트리거는 앱 코드에 보이지 않은 채 실행됩니다. 추적과 디버깅이 어렵고 쓰기 성능에도 영향을 줍니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>프로시저는 왕복을 줄입니다</strong> — 서버와 주고받는 횟수가 줄고, 업무 규칙을 한곳에 모아 여러 앱이 같은 규칙을 쓰게 할 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>대신 DB 안 코드를 관리해야 합니다</strong> — 프로시저 언어와 문법이 DB마다 달라 다른 DB로 옮기기 어렵고, DB 안의 코드를 팀의 배포와 테스트 흐름에 맞춰 관리해야 합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>트리거는 규칙이 빠질 가능성을 줄입니다</strong> — 지정한 이벤트에서는 어느 앱이 데이터를 바꾸든 같은 이력 기록과 검증이 실행됩니다. TRUNCATE나 트리거 비활성화처럼 예외도 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>트리거 남용이 문제입니다</strong> — 보이지 않는 동작이 쌓이면 원인 추적이 어렵고, 데이터를 바꿀 때마다 추가 작업이 들어가 쓰기 성능이 떨어질 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "저장 프로시저" 탭에서 이체 문장을 하나씩 보내면 왕복 3번, 프로시저를 호출하면 1번인 모습을, "트리거" 탭에서 UPDATE 하나에 audit_log INSERT가 자동으로 따라오는 모습을, "트리거의 부작용" 탭에서 쿼리 1개가 숨은 쓰기까지 합쳐 4번이 되는 모습을 STEP으로 확인하세요.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">프로시저와 트리거의 배경</h2>
+                    <p class="overview-lead">
+                        저장 프로시저는 DB마다 고유한 언어를 씁니다. Oracle의 PL/SQL, SQL Server의 T-SQL, PostgreSQL의 PL/pgSQL이 그 예이고, PL/pgSQL은 SQL에 제어 구조를 더한 언어입니다. 어떤 DB에서는 프로시저와 함수를 구분하며, PostgreSQL에서는 11 버전부터 CREATE PROCEDURE와 CALL을 지원합니다.
+                    </p>
+                    <p class="overview-lead">
+                        트리거는 SQL 표준에도 포함된 기능이고 PostgreSQL, Oracle, SQL Server, SQLite 같은 주요 데이터베이스가 지원합니다. 변경 이력 기록, 값 검증, 파생 값 갱신 같은 규칙을 데이터베이스 안에서 강제하는 용도로 쓰입니다. 구체적인 문법과 실행 시점의 종류는 DB마다 다릅니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>왕복 3번 대 1번</strong> — 이체를 SELECT 1번과 UPDATE 2번으로 하나씩 보내면 왕복이 3번이고, 프로시저를 호출하면 1번입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>트리거 이력</strong> — 이체 한 번은 UPDATE 2번이고 트리거가 각각 이력을 남기므로 audit_log에 2행이 쌓입니다. 코드에서 이체 두 번을 실행하면 이력은 4건입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>쿼리 1개, 쓰기 4번</strong> — 가상의 예로 주문 INSERT 하나에 재고, 이력, 요약 테이블을 갱신하는 트리거 3개가 붙으면 앱이 보낸 쿼리는 1개인데 쓰기는 4번입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>코드 확인</strong> — 파이썬 모델은 앱이 하나씩 보낼 때 왕복 3, 프로시저를 호출할 때 왕복 1을 출력하고 두 번 모두 잔액이 100씩 옮겨져 최종 {1: 800, 2: 700}이 됩니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>프로시저는 항상 더 빠르다</strong> — 왕복이 줄어 이점이 있을 수 있지만, 쿼리 자체가 하는 일은 같고 줄어드는 것은 왕복 비용입니다. 문장이 하나뿐이거나 왕복 비용이 작으면 차이가 거의 없습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>업무 로직은 모두 DB에 두는 것이 좋다</strong> — 프로시저 문법은 DB마다 달라 옮기기 어렵고, 어디에 둘지는 요구에 따라 정합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>트리거는 호출해야 실행된다</strong> — 트리거는 이벤트가 일어나면 자동으로 실행되며 사용자가 직접 호출하지 않습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>트리거는 공짜다</strong> — 데이터를 바꿀 때마다 트리거가 추가 작업을 하므로 쓰기 지연이 늘고, 트리거가 다른 트리거를 부르면 비용이 쌓입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>프로시저와 함수는 같다</strong> — 둘은 비슷하지만 DB에 따라 호출 방식과 반환 값, 트랜잭션 제어 가능 여부가 다릅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">저장 프로시저란?</h3>
+                            <p class="overview-card__desc">여러 SQL 문과 제어 흐름을 DB 서버에 저장해 두고 이름으로 호출해 실행하는 기능입니다. 네트워크 왕복을 줄이고 로직을 DB에 모아 둘 수 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">트리거란?</h3>
+                            <p class="overview-card__desc">INSERT, UPDATE, DELETE 같은 이벤트가 일어나면 자동으로 실행되는 DB 객체입니다. 변경 이력 기록이나 값 검증에 씁니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">트리거를 남용하면 어떤 문제가 생기나요?</h3>
+                            <p class="overview-card__desc">코드에서 보이지 않는 숨은 동작이 생겨 추적과 디버깅이 어렵고, 데이터 변경마다 추가 작업이 들어가 쓰기 성능에 영향을 줄 수 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">프로시저와 애플리케이션 로직 중 어디에 규칙을 두나요?</h3>
+                            <p class="overview-card__desc">정해진 답은 없습니다. 여러 앱이 같은 규칙을 써야 하거나 왕복을 줄여야 하면 DB, 다른 DB로 옮길 가능성이 있으면 애플리케이션에 두는 쪽이 유리할 수 있습니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">활용 분야</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>변경 이력과 감사 기록</strong> — 트리거로 누가 무엇을 바꿨는지 자동으로 감사 테이블에 남깁니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>여러 문장으로 된 업무 처리</strong> — 이체나 정산처럼 여러 테이블을 정해진 순서로 바꾸는 작업을 프로시저로 묶어 일관되게 실행합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>배치와 데이터 정리</strong> — 주기적으로 실행하는 집계나 정리 작업을 프로시저로 두고 스케줄러가 호출합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/transaction}">트랜잭션</a> — 프로시저 안의 여러 문장이 하나의 단위로 실행되는 방식을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/lock}">락</a> — 트리거가 추가로 바꾸는 행에 걸리는 잠금과의 관계를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/query-plan}">쿼리 실행 계획</a> — 쓰기 지연을 만드는 쿼리의 실행 방식을 확인합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/normalization}">정규화</a> — 파생 값을 트리거로 유지하는 설계와 정규화의 관계를 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://www.postgresql.org/docs/current/sql-createprocedure.html" target="_blank" rel="noopener">PostgreSQL: CREATE PROCEDURE</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://www.postgresql.org/docs/release/11.0/" target="_blank" rel="noopener">PostgreSQL 11 릴리스 노트 (프로시저 도입)</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://www.postgresql.org/docs/current/sql-call.html" target="_blank" rel="noopener">PostgreSQL: CALL</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://www.postgresql.org/docs/current/triggers.html" target="_blank" rel="noopener">PostgreSQL: Triggers</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://www.postgresql.org/docs/current/sql-createtrigger.html" target="_blank" rel="noopener">PostgreSQL: CREATE TRIGGER</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://www.postgresql.org/docs/current/plpgsql.html" target="_blank" rel="noopener">PostgreSQL: PL/pgSQL</a></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/db/11-20/stored-procedure-trigger-code :: code}"></th:block>
+            </div>
+
+            <!-- 탭 4: 퀴즈 -->
+            <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
+                <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+    <script th:src="@{/js/quiz.js}"></script>
+    <script th:src="@{/js/like.js}"></script>
+    <script th:src="@{/js/share.js}"></script>
+</body>
+</html>
