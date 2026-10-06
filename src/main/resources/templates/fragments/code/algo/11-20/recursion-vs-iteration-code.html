@@ -1,0 +1,102 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — 재귀와 반복 팩토리얼, 호출 횟수 세기</p>
+            <div class="code-block">
+<pre><span class="kw">def</span> <span class="fn">fact</span>(n):
+    <span class="kw">return</span> <span class="num">1</span> <span class="kw">if</span> n &lt;= <span class="num">1</span> <span class="kw">else</span> n * <span class="fn">fact</span>(n - <span class="num">1</span>)     <span class="cm"># 재귀: 호출마다 프레임이 쌓인다</span>
+
+<span class="kw">def</span> <span class="fn">fact_iter</span>(n):
+    result = <span class="num">1</span>                                    <span class="cm"># 반복: 깊이에 따라 늘어나는 프레임이 없다</span>
+    <span class="kw">for</span> i <span class="kw">in</span> <span class="fn">range</span>(<span class="num">2</span>, n + <span class="num">1</span>):
+        result *= i
+    <span class="kw">return</span> result
+
+<span class="fn">print</span>(<span class="fn">fact</span>(<span class="num">5</span>), <span class="fn">fact_iter</span>(<span class="num">5</span>))                 <span class="cm"># 120 120</span>
+
+calls = <span class="num">0</span>
+<span class="kw">def</span> <span class="fn">fib</span>(n):
+    <span class="kw">global</span> calls
+    calls += <span class="num">1</span>
+    <span class="kw">return</span> n <span class="kw">if</span> n &lt; <span class="num">2</span> <span class="kw">else</span> <span class="fn">fib</span>(n - <span class="num">1</span>) + <span class="fn">fib</span>(n - <span class="num">2</span>)
+
+<span class="fn">print</span>(<span class="fn">fib</span>(<span class="num">5</span>), calls)                         <span class="cm"># 5 15</span>
+calls = <span class="num">0</span>
+<span class="fn">print</span>(<span class="fn">fib</span>(<span class="num">25</span>), calls)                        <span class="cm"># 75025 242785</span></pre>
+            </div>
+            <p class="code-desc">
+                같은 팩토리얼을 재귀와 반복으로 쓴 예입니다. 재귀 fact(n)은 n × fact(n - 1)을 계산하려고 fact(n - 1)을 호출하고, 그 결과가 돌아올 때까지 현재 호출의 n을 스택 프레임에 들고 기다립니다. fact(5)는 fact(1)에서 멈출 때까지 프레임이 5개 쌓이고, 반환하며 하나씩 꺼내집니다. 반복 버전은 result와 i 두 변수만 갱신하므로 입력이 커져도 추가 공간이 O(1)입니다. 시각화의 호출 스택 탭이 보여 주는 과정과 같습니다.
+                아래쪽은 메모이제이션 없는 재귀 피보나치에서 호출 횟수를 센 결과입니다. fib(5)에서 15번, fib(25)에서 242,785번 호출됩니다. fib(n)이 fib(n - 1)과 fib(n - 2)를 각각 호출하므로 같은 값을 여러 번 다시 계산하고, n이 1 늘 때 호출 수가 대략 1.6배씩 늘어나 지수적으로 커집니다. 시각화의 중복 계산 탭이 보여 주는 호출 트리와 같습니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — 메모이제이션, 반복, 재귀 한도</p>
+            <div class="code-block">
+<pre><span class="kw">import</span> sys
+<span class="kw">from</span> functools <span class="kw">import</span> lru_cache
+
+<span class="cm">@lru_cache</span>(maxsize=<span class="kw">None</span>)
+<span class="kw">def</span> <span class="fn">fib_memo</span>(n):
+    <span class="kw">return</span> n <span class="kw">if</span> n &lt; <span class="num">2</span> <span class="kw">else</span> <span class="fn">fib_memo</span>(n - <span class="num">1</span>) + <span class="fn">fib_memo</span>(n - <span class="num">2</span>)
+
+<span class="fn">print</span>(<span class="fn">fib_memo</span>(<span class="num">50</span>), <span class="fn">fib_memo</span>.<span class="fn">cache_info</span>().misses)   <span class="cm"># 12586269025 51</span>
+
+<span class="kw">def</span> <span class="fn">fib_iter</span>(n):
+    a, b = <span class="num">0</span>, <span class="num">1</span>
+    <span class="kw">for</span> _ <span class="kw">in</span> <span class="fn">range</span>(n):
+        a, b = b, a + b
+    <span class="kw">return</span> a
+
+<span class="fn">print</span>(<span class="fn">fib_iter</span>(<span class="num">50</span>))                       <span class="cm"># 12586269025</span>
+
+<span class="fn">print</span>(sys.<span class="fn">getrecursionlimit</span>())                <span class="cm"># 1000</span>
+
+<span class="kw">def</span> <span class="fn">fact_tail</span>(n, acc=<span class="num">1</span>):                  <span class="cm"># 꼬리 재귀: 곱셈을 호출 전에 끝낸다</span>
+    <span class="kw">return</span> acc <span class="kw">if</span> n &lt;= <span class="num">1</span> <span class="kw">else</span> <span class="fn">fact_tail</span>(n - <span class="num">1</span>, acc * n)
+
+<span class="fn">print</span>(<span class="fn">fact_tail</span>(<span class="num">5</span>))                      <span class="cm"># 120</span>
+<span class="kw">try</span>:
+    <span class="fn">fact_tail</span>(<span class="num">5000</span>)
+<span class="kw">except</span> RecursionError:
+    <span class="fn">print</span>(<span class="st">"RecursionError"</span>)               <span class="cm"># 꼬리 재귀여도 파이썬은 깊이가 자란다</span>
+<span class="fn">print</span>(<span class="fn">fact_iter</span>(<span class="num">5000</span>) &gt; <span class="num">0</span>)                <span class="cm"># True: 반복은 한도가 없다</span></pre>
+            </div>
+            <p class="code-desc">
+                중복 계산은 두 가지 방법으로 없앱니다. lru_cache는 계산한 인수와 결과를 저장해 fib_memo(50)에서 0부터 50까지 서로 다른 값 51개를 한 번씩만 계산합니다(cache_info의 misses가 51). 반복 버전 fib_iter는 이전 두 값만 들고 앞으로 나아가 변수 두 개로 같은 값을 얻습니다.
+                CPython에는 재귀 깊이의 기본 한도가 있어 sys.getrecursionlimit()이 1000을 돌려줍니다. 깊이가 한도를 넘으면 RecursionError가 납니다. fact_tail은 곱셈을 호출 전에 acc에 끝내 둔 꼬리 재귀이지만, CPython은 꼬리 호출 최적화를 하지 않아 fact_tail(5000)에서도 같은 오류가 납니다. 반복문 fact_iter는 스택 깊이가 늘지 않으므로 5000에서도 계산됩니다. 시각화의 꼬리 호출 탭이 보여 주는 비교와 같습니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 재귀, 반복, 메모이제이션과 스택 오버플로우</p>
+            <div class="code-block">
+<pre><span class="kw">static long</span> <span class="fn">fact</span>(<span class="kw">int</span> n) { <span class="kw">return</span> n &lt;= <span class="num">1</span> ? <span class="num">1</span> : n * <span class="fn">fact</span>(n - <span class="num">1</span>); }
+
+<span class="kw">static long</span> <span class="fn">factIter</span>(<span class="kw">int</span> n) {
+    <span class="kw">long</span> r = <span class="num">1</span>;
+    <span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">2</span>; i &lt;= n; i++) r *= i;
+    <span class="kw">return</span> r;
+}
+
+<span class="kw">static long</span>&#91;&#93; memo = <span class="kw">new long</span>&#91;<span class="num">91</span>&#93;;
+<span class="kw">static long</span> <span class="fn">fibMemo</span>(<span class="kw">int</span> n) {
+    <span class="kw">if</span> (n &lt; <span class="num">2</span>) <span class="kw">return</span> n;
+    <span class="kw">if</span> (memo&#91;n&#93; != <span class="num">0</span>) <span class="kw">return</span> memo&#91;n&#93;;                 <span class="cm">// 이미 계산한 값</span>
+    <span class="kw">return</span> memo&#91;n&#93; = <span class="fn">fibMemo</span>(n - <span class="num">1</span>) + <span class="fn">fibMemo</span>(n - <span class="num">2</span>);
+}
+
+<span class="kw">static long</span> <span class="fn">depth</span>(<span class="kw">int</span> n) { <span class="kw">return</span> <span class="fn">depth</span>(n + <span class="num">1</span>); }   <span class="cm">// 기저 사례가 없는 재귀</span>
+
+<span class="cm">// fact(5) = factIter(5) = 120, fibMemo(50) = 12586269025</span>
+<span class="cm">// try { depth(0); } catch (StackOverflowError e) { ... }  → StackOverflowError</span></pre>
+            </div>
+            <p class="code-desc">
+                자바에서도 구조는 같습니다. 재귀 fact와 반복 factIter는 같은 값을 내고, fibMemo는 배열 memo에 계산한 값을 저장해 같은 n을 두 번 계산하지 않습니다. 이 저장 배열이 곧 메모이제이션입니다.
+                기저 사례가 없거나 깊이가 너무 깊은 재귀는 호출 스택이 가득 차 StackOverflowError를 던집니다. 스택 크기는 JVM 설정에 따라 다르므로 정확한 깊이는 실행 환경마다 다릅니다. 자바는 꼬리 호출 최적화를 하지 않으므로 꼬리 재귀로 고쳐도 깊이가 줄지 않고, 깊은 입력은 반복문이나 명시적 스택으로 바꿔야 합니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
