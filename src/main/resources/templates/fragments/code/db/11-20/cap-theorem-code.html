@@ -1,0 +1,95 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">SQL — PostgreSQL 동기 복제와 커밋 대기</p>
+            <div class="code-block">
+<pre><span class="cm">-- 동기 복제: 대기 서버의 확인을 받아야 커밋이 끝난다 (내구성 쪽)</span>
+<span class="kw">ALTER SYSTEM SET</span> synchronous_standby_names = <span class="st">'FIRST 1 (standby1, standby2)'</span>;
+<span class="kw">ALTER SYSTEM SET</span> synchronous_commit = <span class="st">'on'</span>;
+<span class="kw">SELECT</span> pg_reload_conf();
+
+<span class="kw">SELECT</span> application_name, state, sync_state
+<span class="kw">FROM</span> pg_stat_replication;                         <span class="cm">-- sync_state: sync, potential, async, quorum</span>
+
+<span class="cm">-- 이 트랜잭션만 대기 서버를 기다리지 않는다 (응답 속도 쪽)</span>
+<span class="kw">BEGIN</span>;
+<span class="kw">SET LOCAL</span> synchronous_commit = <span class="st">'local'</span>;
+<span class="kw">UPDATE</span> account <span class="kw">SET</span> balance = balance - <span class="num">100</span> <span class="kw">WHERE</span> id = <span class="num">1</span>;
+<span class="kw">COMMIT</span>;</pre>
+            </div>
+            <p class="code-desc">
+                PostgreSQL에서 synchronous_standby_names를 비워 두지 않고 synchronous_commit이 on이면, 커밋은 동기 대기 서버가 커밋 기록을 받아 디스크에 flush했다는 확인을 받을 때까지 기다립니다. 필요한 수만큼 동기 대기 서버를 채울 수 없으면 커밋이 계속 기다리게 되므로, 데이터를 잃을 가능성을 크게 줄이는 대신 쓰기 요청이 멈출 수 있습니다. 이는 CAP이 말하는 분할 상황과는 다릅니다. 분할이 없어도 대기 서버를 기다릴지에 따라 내구성과 응답 속도가 갈리는 평상시의 균형에 가깝고, 대기 서버에 닿지 못해 쓰기가 멈추는 경우는 분할 중에 일관성을 우선하는 모습과 닮았습니다.
+                SET LOCAL synchronous_commit = 'local'로 바꾸면 그 트랜잭션은 대기 서버를 기다리지 않고 로컬 디스크에 기록된 뒤 끝납니다. 응답은 빨라지고 대기 서버가 죽거나 끊겨도 쓰기가 계속되지만, 장애가 나면 대기 서버에 아직 없는 변경이 생길 수 있습니다. 서버 이름과 설정값은 환경마다 다릅니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — 분할 중 CP와 AP의 읽기 차이</p>
+            <div class="code-block">
+<pre><span class="kw">class</span> <span class="fn">Node</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self):
+        self.x = <span class="num">1</span>
+
+<span class="kw">class</span> <span class="fn">Cluster</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, mode):
+        self.a, self.b, self.link, self.mode = <span class="fn">Node</span>(), <span class="fn">Node</span>(), <span class="kw">True</span>, mode
+
+    <span class="kw">def</span> <span class="fn">write_a</span>(self, v):
+        self.a.x = v
+        <span class="kw">if</span> self.link:
+            self.b.x = v                      <span class="cm"># 연결이 있으면 B로 복제</span>
+
+    <span class="kw">def</span> <span class="fn">read_b</span>(self):
+        <span class="kw">if</span> self.link <span class="kw">or</span> self.mode == <span class="st">'AP'</span>:
+            <span class="kw">return</span> self.b.x                   <span class="cm"># AP는 가진 값으로 응답</span>
+        <span class="kw">raise</span> <span class="fn">TimeoutError</span>(<span class="st">'최신값 확인 불가'</span>)   <span class="cm"># CP는 응답을 거절</span>
+
+<span class="kw">for</span> mode <span class="kw">in</span> (<span class="st">'CP'</span>, <span class="st">'AP'</span>):
+    c = <span class="fn">Cluster</span>(mode)
+    c.<span class="fn">write_a</span>(<span class="num">2</span>)
+    c.link = <span class="kw">False</span>                            <span class="cm"># 네트워크 분할</span>
+    c.<span class="fn">write_a</span>(<span class="num">3</span>)
+    <span class="kw">try</span>:
+        <span class="fn">print</span>(mode, <span class="st">'분할 중 읽기:'</span>, c.<span class="fn">read_b</span>())
+    <span class="kw">except</span> TimeoutError <span class="kw">as</span> e:
+        <span class="fn">print</span>(mode, <span class="st">'분할 중 읽기:'</span>, e)
+    c.link = <span class="kw">True</span>                             <span class="cm"># 복구 후 B가 따라잡음</span>
+    c.b.x = c.a.x
+    <span class="fn">print</span>(mode, <span class="st">'복구 후 읽기:'</span>, c.<span class="fn">read_b</span>())
+
+writes = &#91;(<span class="num">1</span>, <span class="st">'A'</span>, <span class="num">3</span>), (<span class="num">2</span>, <span class="st">'B'</span>, <span class="num">5</span>)&#93;           <span class="cm"># (시각, 노드, 값)</span>
+<span class="fn">print</span>(<span class="st">'LWW 결과:'</span>, <span class="fn">max</span>(writes)&#91;<span class="num">2</span>&#93;)
+<span class="cm"># CP 분할 중 읽기: 최신값 확인 불가 / CP 복구 후 읽기: 3</span>
+<span class="cm"># AP 분할 중 읽기: 2 / AP 복구 후 읽기: 3 / LWW 결과: 5</span></pre>
+            </div>
+            <p class="code-desc">
+                같은 상황에서 두 방식의 읽기를 비교하는 장난감 모델입니다. 이 예시에서 A는 쓰기를 받는 쪽(리더에 해당)이라고 가정하며, 실제 CP 시스템은 복제를 확인하지 못하는 쪽의 쓰기도 거절하는 경우가 많습니다. A에 x = 2를 쓰고 연결을 끊은 뒤 x = 3을 쓰면 B는 2에 머뭅니다. 이때 CP 모드의 B는 최신값을 확인할 수 없다며 읽기를 거절하고, AP 모드의 B는 오래된 값 2를 돌려줍니다. 복구 후에는 B가 3으로 따라잡아 두 모드 모두 3을 읽습니다. 시각화의 CP 선택, AP 선택 탭과 같은 결과입니다.
+                마지막 줄은 분할 중 양쪽에서 쓴 값을 시각으로 비교하는 마지막 쓰기 우선(LWW) 규칙으로, 시각 2의 x = 5가 남고 x = 3 쓰기는 사라집니다. 실제 시스템은 노드 사이 시계가 어긋날 수 있어 시각만으로 순서를 정하기가 훨씬 까다롭습니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 쿼럼 크기와 읽기 가능 여부</p>
+            <div class="code-block">
+<pre><span class="kw">static boolean</span> <span class="fn">overlaps</span>(<span class="kw">int</span> n, <span class="kw">int</span> w, <span class="kw">int</span> r) { <span class="kw">return</span> w + r &gt; n; }          <span class="cm">// 쓰기와 읽기 쿼럼이 겹치는가</span>
+<span class="kw">static boolean</span> <span class="fn">canServe</span>(<span class="kw">int</span> reachable, <span class="kw">int</span> need) { <span class="kw">return</span> reachable &gt;= need; }
+
+<span class="kw">int</span> n = <span class="num">3</span>;
+<span class="kw">for</span> (<span class="kw">int</span>&#91;&#93; q : <span class="kw">new int</span>&#91;&#93;&#91;&#93;{{<span class="num">2</span>, <span class="num">2</span>}, {<span class="num">1</span>, <span class="num">1</span>}, {<span class="num">3</span>, <span class="num">1</span>}}) {
+    <span class="kw">int</span> w = q&#91;<span class="num">0</span>&#93;, r = q&#91;<span class="num">1</span>&#93;;
+    System.out.<span class="fn">println</span>(<span class="st">"W="</span> + w + <span class="st">" R="</span> + r + <span class="st">" overlap="</span> + <span class="fn">overlaps</span>(n, w, r)
+        + <span class="st">" 소수쪽(1대) 읽기="</span> + <span class="fn">canServe</span>(<span class="num">1</span>, r) + <span class="st">" 다수쪽(2대) 읽기="</span> + <span class="fn">canServe</span>(<span class="num">2</span>, r));
+}
+<span class="cm">// W=2 R=2 overlap=true  소수쪽(1대) 읽기=false 다수쪽(2대) 읽기=true</span>
+<span class="cm">// W=1 R=1 overlap=false 소수쪽(1대) 읽기=true  다수쪽(2대) 읽기=true</span>
+<span class="cm">// W=3 R=1 overlap=true  소수쪽(1대) 읽기=true  다수쪽(2대) 읽기=true</span></pre>
+            </div>
+            <p class="code-desc">
+                복제본이 N개일 때 쓰기에 W개, 읽기에 R개의 응답을 받는 쿼럼 방식에서 W + R이 N보다 크면 읽기 쿼럼과 쓰기 쿼럼이 반드시 겹쳐 읽기가 최근 쓰기를 볼 수 있습니다(겹침 조건일 뿐 선형화를 보장하는 것은 아닙니다). N = 3에서 W = 2, R = 2는 이 조건을 만족하고, W = 1, R = 1은 만족하지 못합니다. 이 조건은 시각화의 CP와 AP 사이의 선택을 숫자로 보여 주는 한 가지 방법입니다.
+                복제본 3대가 2대와 1대로 갈라졌을 때, R = 2이면 1대쪽은 읽기 쿼럼을 채우지 못해 읽기를 거절하고(CP 성향), R = 1이면 어느 쪽이든 읽지만 오래된 값을 읽을 수 있습니다(AP 성향). W = 3, R = 1은 읽기가 항상 가능하지만 쓰기는 3대가 모두 응답해야 하므로 분할 중에는 쓰기를 받지 못합니다. 개념 설명용 계산이며 실제 시스템은 쿼럼 외에도 여러 장치를 함께 씁니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>

@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">CAP 이론 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/db/11-20/cap-theorem.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/db}" class="topic-breadcrumb__link">데이터베이스</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">CAP 이론</span>
+                </nav>
+
+                <span class="topic-hero__slug">db · 14</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">CAP 이론</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+                <button type="button" class="topic-like" th:classappend="${liked} ? ' topic-like--active' : ''" th:attr="data-topic-slug=${topic.slug}">
+                    <svg class="topic-like__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <span class="topic-like__count" th:text="${likeCount}">0</span>
+                </button>
+                <div class="topic-share">
+                    <button type="button" class="topic-share__btn topic-share__btn--copy" aria-label="링크 복사">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="topic-share__btn topic-share__btn--kakao" aria-label="카카오톡 공유">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                        </svg>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+                <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        CAP 이론은 분산 데이터 저장소가 일관성(Consistency), 가용성(Availability), 분할 내성(Partition tolerance)을 모두 동시에 보장할 수는 없다는 이론입니다. 네트워크 분할이 일어나는 동안에는 일관성과 가용성 가운데 하나를 골라야 한다는 뜻으로 많이 설명합니다.
+                    </p>
+                    <p class="overview-lead">
+                        에릭 브루어(Eric Brewer)가 2000년 PODC 기조 강연에서 발표한 추측을 세스 길버트(Seth Gilbert)와 낸시 린치(Nancy Lynch)가 2002년에 증명했습니다. 이 토픽에서는 두 노드 사이의 네트워크가 끊겼을 때 무슨 일이 일어나는지, CP와 AP가 각각 무엇을 포기하는지를 시각화로 확인합니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">일관성 (C)</h3>
+                            <p class="overview-card__desc">쓰기가 끝난 뒤 시작한 읽기가 그 쓰기의 값(또는 이후 쓰기의 값)을 돌려주는 성질입니다. 길버트와 린치의 증명에서는 단일 복사본처럼 보이는 원자적(선형화 가능) 일관성을 뜻합니다. ACID의 일관성과는 다른 뜻입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">가용성 (A)</h3>
+                            <p class="overview-card__desc">장애가 나지 않은 노드가 받은 모든 요청에 응답하는 성질입니다. 형식 정의에는 응답 시간 제한이 없지만 실무에서는 타임아웃을 넘기면 가용성을 잃은 것으로 봅니다. 응답이 최신값이라는 보장은 포함하지 않습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">분할 내성 (P)</h3>
+                            <p class="overview-card__desc">노드 사이 메시지가 유실되거나 지연되어 네트워크가 갈라져도 시스템이 계속 동작하는 성질입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">CP 시스템</h3>
+                            <p class="overview-card__desc">분할 중에 일관성을 지키려고 일부 요청을 거절하거나 지연시킵니다. 응답할 때는 최신값만 돌려줍니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">AP 시스템</h3>
+                            <p class="overview-card__desc">분할 중에도 모든 요청에 응답합니다. 오래된 값을 줄 수 있고, 복구 뒤에 갈라진 값을 합쳐야 합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">최종적 일관성</h3>
+                            <p class="overview-card__desc">더 이상 쓰기가 없으면 시간이 지나 모든 복제본이 같은 값으로 수렴한다는 성질입니다. AP 시스템이 보통 제공하는 보장입니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>분할이 없으면 둘 다 가능합니다</strong> — 네트워크가 정상일 때는 일관성과 가용성을 함께 지킬 수 있습니다. CAP이 말하는 선택은 분할이 일어난 동안의 이야기입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>P는 사실상 고르는 것이 아닙니다</strong> — 여러 노드를 네트워크로 연결한 분산 저장소, 특히 광역망에서는 분할을 피할 수 없으므로 실제 선택은 분할이 났을 때 C와 A 가운데 무엇을 우선하느냐입니다. 단일 노드나 분할이 없다고 가정한 환경은 이 논의의 대상이 아닙니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>선택은 데이터에 따라 다릅니다</strong> — 잔액이나 재고처럼 틀린 값의 피해가 큰 데이터는 일관성을 우선하는 경우가 많고, 좋아요 수처럼 잠시 틀려도 되는 데이터는 가용성을 우선하는 경우가 많습니다. 다만 브루어는 ATM이 가용성을 택하되 인출 한도로 위험을 줄이는 예를 들었습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이분법이 아니라 정도의 문제입니다</strong> — 브루어는 2012년 글에서 "3개 중 2개 고르기"가 오해를 부른다고 정리했고, 분할이면 가용성과 일관성 중, 분할이 아니면(Else) 지연(Latency)과 일관성 중 무엇을 택하는지를 함께 보는 PACELC 같은 확장 논의가 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "네트워크 분할" 탭에서 연결이 끊긴 동안 A에만 쓰기가 반영되는 모습을, "CP 선택" 탭에서 B가 읽기를 거절하고 복구 뒤 최신값으로 응답하는 모습을, "AP 선택" 탭에서 B가 오래된 값을 돌려주고 양쪽 쓰기가 갈라졌다가 합쳐지는 모습을 STEP으로 확인하세요.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">CAP 이론의 배경</h2>
+                    <p class="overview-lead">
+                        브루어는 2000년 분산 컴퓨팅 학회(PODC)의 기조 강연에서 웹 서비스처럼 확장되는 분산 시스템이 일관성, 가용성, 분할 내성 가운데 두 가지만 가질 수 있다는 추측을 내놓았습니다. 브루어 본인의 설명으로는 이 생각이 1998년 가을에 처음 나왔습니다. 길버트와 린치는 2002년 논문에서 이 추측을 비동기 네트워크 모델에서 형식적으로 증명해 이론이 되었습니다.
+                    </p>
+                    <p class="overview-lead">
+                        이후 NoSQL 데이터베이스를 설명하는 틀로 널리 쓰였지만 정의가 엄밀하지 않게 쓰이는 일이 많았습니다. 브루어 본인도 2012년 글에서 규칙이 어떻게 달라졌는지 다시 설명하며, 분할 중에도 일관성과 가용성을 상황에 따라 세밀하게 조절할 수 있다고 말했습니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>분할 중 상태</strong> — A에 x = 2를 쓰고 연결을 끊은 뒤 x = 3을 쓰면 A는 3, B는 2로 값이 다릅니다. B의 2가 오래된 값입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>CP와 AP의 읽기</strong> — 같은 상황에서 B에 읽기를 보내면 CP는 오류로 응답을 거절하고, AP는 오래된 값 2를 돌려줍니다. 복구 뒤에는 둘 다 3을 읽습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>갈라진 쓰기</strong> — AP에서 분할 중 B가 x = 5를 받으면 A는 3, B는 5로 갈라지고, 마지막 쓰기 우선이면 복구 뒤 5로 수렴하며 x = 3 쓰기는 사라집니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>쿼럼 조건</strong> — 복제본 3대에서 W + R이 3보다 크면 쓰기 쿼럼과 읽기 쿼럼이 반드시 겹쳐 읽기가 최근 쓰기를 볼 수 있습니다(엄격한 쿼럼 가정). W = 2, R = 2는 만족하고 W = 1, R = 1은 만족하지 못합니다. 2대와 1대로 갈라지면 R = 2일 때 1대쪽은 읽기를 거절합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>세 가지 중 두 가지를 고르면 된다</strong> — 여러 노드를 네트워크로 연결한 분산 저장소, 특히 광역망에서는 분할을 피할 수 없어 P를 포기한 설계는 현실적이지 않습니다. 정확한 선택은 분할이 났을 때 C와 A 가운데 무엇을 우선하느냐입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>평소에도 일관성과 가용성을 하나만 가질 수 있다</strong> — 분할이 없을 때는 둘 다 가질 수 있습니다. 이론이 제약하는 것은 분할 중의 동작입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>CAP의 C는 ACID의 C와 같다</strong> — CAP의 일관성은 복제본 사이에서 읽기가 최신 쓰기를 보는 성질이고, ACID의 일관성은 트랜잭션이 제약 조건을 지키는 성질입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>AP는 일관성이 전혀 없다</strong> — AP도 보통 최종적 일관성을 제공해 시간이 지나면 값이 수렴합니다. 분할 중에 순간적으로 다를 뿐입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>데이터베이스 제품은 CP 또는 AP로 딱 나뉜다</strong> — 많은 시스템이 설정으로 일관성 수준을 고르게 하므로 제품 하나를 하나의 칸에 넣기 어렵습니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">CAP 이론의 세 요소는 무엇인가요?</h3>
+                            <p class="overview-card__desc">일관성(C), 가용성(A), 분할 내성(P)입니다. 분산 저장소는 이 셋을 모두 동시에 보장할 수 없습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">네트워크 분할이 일어나면 어떤 선택을 하나요?</h3>
+                            <p class="overview-card__desc">일관성을 지킬지(CP) 가용성을 지킬지(AP) 고릅니다. CP는 일부 요청을 거절하거나 지연시키고, AP는 오래된 값으로 응답할 수 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">CP와 AP는 각각 어떤 데이터에 맞나요?</h3>
+                            <p class="overview-card__desc">잔액과 재고처럼 틀린 값의 피해가 큰 데이터는 일관성을 우선(CP)하는 경우가 많고, 좋아요 수나 장바구니처럼 잠시 틀려도 되고 항상 응답하는 것이 중요한 데이터는 가용성을 우선(AP)하는 경우가 많습니다. 정해진 답은 아니고 서비스 요구에 따라 다릅니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">최종적 일관성이란 무엇인가요?</h3>
+                            <p class="overview-card__desc">새 쓰기가 없다면 시간이 지나 모든 복제본이 같은 값으로 수렴한다는 보장입니다. 그 사이에는 복제본마다 다른 값을 읽을 수 있습니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">활용 분야</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>저장소 선택</strong> — 서비스가 분할 중에 일부 실패를 감수할지, 오래된 값을 감수할지 정해 데이터베이스와 복제 설정을 고릅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>복제 설계</strong> — 동기 복제와 비동기 복제, 쿼럼 크기를 정할 때 일관성과 응답성의 균형을 따집니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>장애 대응 설계</strong> — 분할이 났을 때 재시도, 타임아웃, 충돌 해결 규칙을 어떻게 둘지 미리 정합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/replication}">복제</a> — 데이터를 여러 노드에 복사하는 방식과 동기, 비동기 복제를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/sharding}">샤딩</a> — 데이터를 여러 서버에 나눌 때 생기는 일관성 문제를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/nosql}">NoSQL</a> — 가용성과 확장성을 우선하는 저장소의 설계를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/transaction}">트랜잭션</a> — ACID의 일관성과 CAP의 일관성이 어떻게 다른지 이어서 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>논문</strong> — Gilbert, S., Lynch, N., "Brewer's conjecture and the feasibility of consistent, available, partition-tolerant web services", ACM SIGACT News 33(2), 2002</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>논문</strong> — Brewer, E., "CAP twelve years later: How the 'rules' have changed", IEEE Computer 45(2), 2012</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>논문</strong> — Abadi, D., "Consistency tradeoffs in modern distributed database system design: CAP is only part of the story", IEEE Computer 45(2), 2012</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://www.postgresql.org/docs/current/warm-standby.html" target="_blank" rel="noopener">PostgreSQL: Log-Shipping Standby Servers</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://www.postgresql.org/docs/current/runtime-config-wal.html" target="_blank" rel="noopener">PostgreSQL: Write Ahead Log 설정 (synchronous_commit)</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://www.postgresql.org/docs/current/runtime-config-replication.html" target="_blank" rel="noopener">PostgreSQL: Replication 설정 (synchronous_standby_names)</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://www.postgresql.org/docs/current/monitoring-stats.html" target="_blank" rel="noopener">PostgreSQL: pg_stat_replication</a></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/db/11-20/cap-theorem-code :: code}"></th:block>
+            </div>
+
+            <!-- 탭 4: 퀴즈 -->
+            <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
+                <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+    <script th:src="@{/js/quiz.js}"></script>
+    <script th:src="@{/js/like.js}"></script>
+    <script th:src="@{/js/share.js}"></script>
+</body>
+</html>
