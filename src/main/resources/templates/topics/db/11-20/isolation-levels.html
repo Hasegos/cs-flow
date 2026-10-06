@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">트랜잭션 격리 수준 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/db/11-20/isolation-levels.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/db}" class="topic-breadcrumb__link">데이터베이스</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">트랜잭션 격리 수준</span>
+                </nav>
+
+                <span class="topic-hero__slug">db · 11</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">트랜잭션 격리 수준</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+                <button type="button" class="topic-like" th:classappend="${liked} ? ' topic-like--active' : ''" th:attr="data-topic-slug=${topic.slug}">
+                    <svg class="topic-like__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <span class="topic-like__count" th:text="${likeCount}">0</span>
+                </button>
+                <div class="topic-share">
+                    <button type="button" class="topic-share__btn topic-share__btn--copy" aria-label="링크 복사">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="topic-share__btn topic-share__btn--kakao" aria-label="카카오톡 공유">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                        </svg>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+                <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        트랜잭션 격리 수준(isolation level)은 동시에 실행되는 트랜잭션들이 서로의 변경을 얼마나 볼 수 있는지를 정하는 설정입니다. ACID의 I(Isolation)를 얼마나 엄격하게 지킬지 고르는 손잡이이며, 엄격할수록 이상 현상은 줄지만 충돌을 다루는 비용이 늘 수 있습니다.
+                    </p>
+                    <p class="overview-lead">
+                        SQL 표준은 Dirty Read, Non-repeatable Read, Phantom Read 세 가지 이상 현상을 기준으로 Read Uncommitted, Read Committed, Repeatable Read, Serializable 네 단계를 정의합니다. 이 토픽에서는 각 이상 현상이 두 트랜잭션의 어떤 순서에서 생기는지와, 격리 수준이 이를 어떻게 막는지를 타임라인으로 확인합니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">Dirty Read</h3>
+                            <p class="overview-card__desc">다른 트랜잭션이 아직 커밋하지 않은 변경을 읽는 현상입니다. 그 트랜잭션이 롤백되면 읽은 값은 존재한 적 없는 값이 됩니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">Non-repeatable Read</h3>
+                            <p class="overview-card__desc">한 트랜잭션이 같은 행을 두 번 읽는 사이 다른 트랜잭션이 그 행을 수정하고 커밋해서 두 번째 값이 달라지는 현상입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">Phantom Read</h3>
+                            <p class="overview-card__desc">같은 조건으로 두 번 조회하는 사이 다른 트랜잭션이 조건에 맞는 행을 추가하거나 삭제해 결과의 행 집합이 달라지는 현상입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">Read Committed</h3>
+                            <p class="overview-card__desc">커밋된 데이터만 읽고, 각 문장이 실행되는 시점의 최신 커밋 상태를 봅니다. PostgreSQL의 기본 격리 수준입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">Repeatable Read</h3>
+                            <p class="overview-card__desc">트랜잭션의 첫 쿼리 시점에 잡은 스냅샷을 트랜잭션 내내 봅니다. 같은 행을 다시 읽어도 값이 같고, 충돌하는 수정은 직렬화 실패로 중단될 수 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">Serializable</h3>
+                            <p class="overview-card__desc">트랜잭션들을 한 번에 하나씩 순서대로 실행한 것과 같은 결과를 보장하는 가장 높은 수준입니다. PostgreSQL에서는 충돌이 감지되면 재시도가 필요합니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>수준이 높을수록 이상 현상을 더 막습니다</strong> — 표준 기준으로 Read Uncommitted는 세 현상이 모두 가능하고, Read Committed는 Dirty Read를, Repeatable Read는 Non-repeatable Read까지, Serializable은 Phantom Read까지 막습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>데이터베이스마다 구현이 다릅니다</strong> — PostgreSQL은 Read Uncommitted를 Read Committed처럼 처리하고 Repeatable Read에서도 팬텀을 막습니다. MySQL InnoDB의 기본 격리 수준은 Repeatable Read입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>비용은 충돌 처리에서 나옵니다</strong> — 높은 수준에서는 대기가 늘거나, PostgreSQL처럼 직렬화 실패(SQLSTATE 40001)가 나서 트랜잭션을 처음부터 재시도해야 합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>표에 없는 이상 현상도 있습니다</strong> — 갱신 손실(lost update)이나 쓰기 비대칭(write skew)처럼 세 가지 이상 현상만으로는 설명되지 않는 문제가 있어, 필요하면 행 잠금이나 Serializable을 함께 고려합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "Dirty Read", "Non-repeatable Read", "Phantom Read" 탭에서 T1과 T2의 순서에 따라 T1의 읽기 결과가 격리 수준별로 어떻게 갈리는지를, "격리 수준 표" 탭에서 네 단계와 PostgreSQL의 동작을 STEP으로 확인하세요.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">격리 수준의 배경</h2>
+                    <p class="overview-lead">
+                        동시성 제어 이론에서 트랜잭션이 하나씩 순서대로 실행된 것과 같은 결과를 내는 성질을 직렬 가능성(serializability)이라 합니다. 이를 항상 지키면 동시성이 떨어지기 때문에 SQL 표준은 더 약한 격리 수준을 두고 어떤 이상 현상을 허용할지로 단계를 나눴습니다.
+                    </p>
+                    <p class="overview-lead">
+                        1995년 Berenson 등은 "A Critique of ANSI SQL Isolation Levels"에서 표준의 이상 현상 정의가 모호하다고 지적하고, 스냅샷 격리(snapshot isolation)라는 수준과 쓰기 비대칭 같은 현상을 설명했습니다. PostgreSQL의 Repeatable Read가 스냅샷 격리에 해당하며, 9.1부터는 직렬화 스냅샷 격리(SSI)로 Serializable을 구현합니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Dirty Read</strong> — 잔액 1000을 T2가 500으로 바꾸고 커밋 전에 T1이 읽으면 표준 기준 Read Uncommitted에서는 500, Read Committed 이상에서는 1000입니다(PostgreSQL은 Read Uncommitted도 1000). T2가 롤백하면 500은 확정된 적 없는 값입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Non-repeatable Read</strong> — T1이 잔액을 두 번 읽는 사이 T2가 500으로 바꾸고 커밋하면 Read Committed에서는 (1000, 500), Repeatable Read 이상에서는 (1000, 1000)입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Phantom Read</strong> — 금액이 100을 넘는 행이 2개일 때 T2가 200인 행을 추가하고 커밋하면 Read Committed의 두 번째 조회는 3, PostgreSQL의 Repeatable Read는 2입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>표준 표</strong> — 4단계 × 3현상 12칸 중 발생 가능한 칸은 Read Uncommitted 3개, Read Committed 2개, Repeatable Read 1개, Serializable 0개로 모두 6개입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>JDBC 상수</strong> — Connection.TRANSACTION_READ_UNCOMMITTED, READ_COMMITTED, REPEATABLE_READ, SERIALIZABLE의 값은 1, 2, 4, 8입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>코드 확인</strong> — 파이썬 장난감 모델이 RU 500 (1000, 500), RC 1000 (1000, 500), RR 1000 (1000, 1000)을 출력하고, 이는 시각화의 Dirty Read와 Non-repeatable Read 결과와 같습니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>PostgreSQL에서 Read Uncommitted를 쓰면 Dirty Read가 난다</strong> — PostgreSQL은 Read Uncommitted를 Read Committed처럼 처리하므로 Dirty Read가 일어나지 않습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Repeatable Read는 팬텀을 항상 허용한다</strong> — SQL 표준에서는 허용될 수 있다는 것이고, PostgreSQL의 Repeatable Read는 스냅샷을 쓰므로 팬텀도 보이지 않습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Serializable은 트랜잭션을 한 줄로 세워 실행한다</strong> — 동시에 실행하되 결과가 순서대로 실행한 것과 같도록 보장하는 것이고, PostgreSQL은 충돌을 감지해 일부 트랜잭션을 중단시키는 방식으로 구현합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>높은 격리 수준이 항상 낫다</strong> — 이상 현상은 줄지만 재시도와 대기 비용이 늘고, 업무가 견딜 수 있는 현상까지 막을 필요는 없을 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Dirty Read만 막으면 안전하다</strong> — 갱신 손실이나 쓰기 비대칭 같은 현상은 Read Committed에서 남을 수 있어, 읽은 값을 근거로 쓰는 로직에는 행 잠금(SELECT ... FOR UPDATE)이나 더 높은 수준이 필요할 수 있습니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">세 가지 이상 현상을 설명해 보세요.</h3>
+                            <p class="overview-card__desc">Dirty Read는 미커밋 값을 읽는 것, Non-repeatable Read는 같은 행을 두 번 읽었는데 값이 바뀌는 것, Phantom Read는 같은 조건으로 조회했는데 행이 늘거나 줄어드는 것입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">Read Committed와 Repeatable Read의 차이는?</h3>
+                            <p class="overview-card__desc">PostgreSQL에서 Read Committed는 문장마다 새 스냅샷을 봐서 같은 행을 다시 읽으면 값이 달라질 수 있고, Repeatable Read는 트랜잭션 동안 같은 스냅샷을 봅니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">PostgreSQL의 기본 격리 수준은?</h3>
+                            <p class="overview-card__desc">Read Committed입니다. 커밋된 데이터만 읽고 문장마다 그 시점의 최신 커밋 상태를 봅니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">직렬화 실패가 나면 어떻게 하나요?</h3>
+                            <p class="overview-card__desc">데이터가 깨진 것이 아니라 동시 실행 순서를 맞추기 위해 한 트랜잭션이 되돌려진 것이므로, 트랜잭션 전체를 새로 시작해 재시도합니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">활용 분야</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>일반 웹 업무 처리</strong> — PostgreSQL 문서는 Read Committed가 많은 애플리케이션에 충분하지만 모든 경우에 충분하지는 않다고 설명합니다. 이체나 재고 차감처럼 읽은 값을 근거로 쓰는 구간에는 행 잠금이나 높은 수준이 필요할 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>긴 읽기 작업</strong> — 여러 쿼리가 같은 시점의 데이터를 봐야 하면 Repeatable Read 이상의 일관된 스냅샷이 필요합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>충돌이 잦은 쓰기</strong> — 높은 수준을 쓸 때는 직렬화 실패를 잡아 재시도하는 로직이 애플리케이션에 필요합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/transaction}">트랜잭션</a> — ACID와 커밋, 롤백을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/lock}">락</a> — 잠금으로 동시 접근을 제어하는 방법을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/mvcc}">MVCC</a> — 스냅샷 읽기를 가능하게 하는 다중 버전 관리를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/replication}">복제</a> — 여러 노드가 같은 데이터를 유지할 때의 일관성 문제와 이어집니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://www.postgresql.org/docs/current/transaction-iso.html" target="_blank" rel="noopener">PostgreSQL: Transaction Isolation</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://dev.mysql.com/doc/refman/8.4/en/innodb-transaction-isolation-levels.html" target="_blank" rel="noopener">MySQL InnoDB: Transaction Isolation Levels</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.sql/java/sql/Connection.html" target="_blank" rel="noopener">Java Connection</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>논문</strong> — Berenson, H., Bernstein, P., Gray, J., Melton, J., O'Neil, E., O'Neil, P., "A Critique of ANSI SQL Isolation Levels", ACM SIGMOD, 1995</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>논문</strong> — Ports, D. R. K., Grittner, K., "Serializable Snapshot Isolation in PostgreSQL", Proceedings of the VLDB Endowment 5(12), 2012</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/db/11-20/isolation-levels-code :: code}"></th:block>
+            </div>
+
+            <!-- 탭 4: 퀴즈 -->
+            <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
+                <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+    <script th:src="@{/js/quiz.js}"></script>
+    <script th:src="@{/js/like.js}"></script>
+    <script th:src="@{/js/share.js}"></script>
+</body>
+</html>
