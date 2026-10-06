@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">위상 정렬 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/algo/11-20/topological-sort.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/algo}" class="topic-breadcrumb__link">알고리즘</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">위상 정렬</span>
+                </nav>
+
+                <span class="topic-hero__slug">algo · 11</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">위상 정렬</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+                <button type="button" class="topic-like" th:classappend="${liked} ? ' topic-like--active' : ''" th:attr="data-topic-slug=${topic.slug}">
+                    <svg class="topic-like__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <span class="topic-like__count" th:text="${likeCount}">0</span>
+                </button>
+                <div class="topic-share">
+                    <button type="button" class="topic-share__btn topic-share__btn--copy" aria-label="링크 복사">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="topic-share__btn topic-share__btn--kakao" aria-label="카카오톡 공유">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                        </svg>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+                <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        위상 정렬(topological sort)은 방향 그래프의 정점을 <strong>모든 간선이 앞쪽 정점에서 뒤쪽 정점으로 향하도록</strong> 한 줄로 세우는 일입니다. 간선 u → v를 "u를 v보다 먼저 해야 한다"는 뜻으로 읽으면, 위상 정렬의 결과는 선후 관계를 모두 지키는 작업 순서가 됩니다. 수강 신청의 선수 과목, 빌드 도구의 작업 의존 관계, 데이터 파이프라인의 단계 순서가 모두 이 문제입니다.
+                    </p>
+                    <p class="overview-lead">
+                        선후 관계가 서로를 기다리며 돌고 있으면 순서를 정할 수 없습니다. 그래서 위상 정렬은 <strong>사이클이 없는 방향 그래프(DAG)</strong>에서만 가능합니다. 대표적인 방법은 진입 차수가 0인 정점부터 꺼내는 Kahn 알고리즘과 깊이 우선 탐색이 끝나는 순서를 뒤집는 DFS 방식입니다. 두 방법 모두 사이클 여부를 함께 알려 줍니다. 이 토픽에서는 같은 그래프에 두 방법을 적용하고, 사이클이 있는 그래프에서 어떻게 멈추는지도 봅니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">위상 순서</h3>
+                            <p class="overview-card__desc">모든 간선 u → v에서 u가 v보다 앞에 오는 정점의 나열입니다. 선후 관계가 없는 정점 쌍은 어느 쪽이 먼저 와도 되므로 올바른 순서가 여러 개일 수 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">DAG</h3>
+                            <p class="overview-card__desc">방향이 있고 사이클이 없는 그래프(Directed Acyclic Graph)입니다. 위상 순서가 존재하는 것과 DAG라는 것은 서로 필요충분조건입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">진입 차수</h3>
+                            <p class="overview-card__desc">정점으로 들어오는 간선의 수입니다. 진입 차수가 0이면 먼저 끝내야 할 선행 정점이 없다는 뜻이라 지금 바로 처리할 수 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">Kahn 알고리즘</h3>
+                            <p class="overview-card__desc">진입 차수가 0인 정점을 큐에서 꺼내 결과에 넣고, 나가는 간선을 지워 이웃의 진입 차수를 줄입니다. 0이 된 이웃을 큐에 넣는 일을 큐가 빌 때까지 반복합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">DFS 방식</h3>
+                            <p class="overview-card__desc">깊이 우선 탐색에서 정점의 탐색이 끝나는 순서를 기록하고 마지막에 뒤집습니다. DAG에서는 간선 u → v에서 v가 u보다 먼저 끝나기 때문에 뒤집으면 u가 앞에 옵니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">사이클 탐지</h3>
+                            <p class="overview-card__desc">Kahn 알고리즘은 결과의 정점 수가 전체보다 적으면, DFS 방식은 탐색 중인 정점으로 되돌아오는 간선을 만나면 사이클이 있다고 판단합니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>시간은 O(V + E)입니다</strong> — 두 방법 모두 정점마다 한 번, 간선마다 한 번씩만 처리합니다. 인접 리스트로 그래프를 저장했을 때의 값입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공간은 O(V)입니다</strong> — Kahn 알고리즘은 진입 차수 배열과 큐, DFS 방식은 방문 상태와 종료 목록이 필요합니다. 그래프 자체를 저장하는 공간은 별도입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>결과가 하나로 정해지지 않습니다</strong> — 큐에서 꺼내는 순서, DFS에서 이웃을 보는 순서가 달라지면 다른 올바른 순서가 나옵니다. 모든 정점을 한 번씩 지나는 방향 경로가 있는 경우에만 순서가 하나뿐입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>같은 시점에 큐에 있는 정점은 서로 독립입니다</strong> — 선행 조건이 모두 끝난 상태이므로 병렬로 처리할 수 있습니다. 병렬로 실행할 수 있는 작업을 찾는 데 쓸 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "Kahn 알고리즘" 탭에서 진입 차수가 줄어들며 큐가 채워지는 모습을, "DFS 방식" 탭에서 정점이 끝나는 순서를 뒤집는 과정을, "사이클 탐지" 탭에서 사이클 정점이 끝내 처리되지 못하고 남는 모습을 STEP으로 확인하세요.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">위상 정렬의 배경</h2>
+                    <p class="overview-lead">
+                        Kahn 알고리즘은 1962년 A. B. Kahn의 논문 "Topological sorting of large networks"에서 소개되었습니다. 이 논문은 대규모 네트워크의 정점을 선후 관계에 맞춰 늘어놓는 절차를 제시합니다.
+                    </p>
+                    <p class="overview-lead">
+                        깊이 우선 탐색으로 위상 정렬을 하는 방법은 알고리즘 교재의 표준 내용입니다. 방향 그래프가 DAG일 필요충분조건이 깊이 우선 탐색에서 되돌아오는 간선(back edge)이 없는 것이라는 사실이 이 방법의 바탕입니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>예시 그래프</strong> — 정점 A부터 F까지 6개와 간선 6개(A → C, B → C, B → D, C → E, D → E, D → F)입니다. 진입 차수는 A 0, B 0, C 2, D 1, E 2, F 1입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Kahn 알고리즘</strong> — 진입 차수 0인 A, B를 큐에 넣고 시작합니다. A를 꺼내면 C가 2에서 1이 되고, B를 꺼내면 C와 D가 0이 되어 큐에 들어갑니다. 이렇게 A, B, C, D, E, F 순서가 나옵니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>DFS 방식</strong> — A에서 시작하면 A, C, E 순으로 깊이 들어가 E, C, A 순서로 끝납니다. 이어 B에서 D, F로 들어가 F, D, B 순서로 끝납니다. 끝난 순서 E, C, A, F, D, B를 뒤집으면 B, D, F, A, C, E입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>순서는 여러 개</strong> — 두 방법의 결과가 서로 다르지만 모든 간선이 앞에서 뒤로 향하므로 둘 다 올바릅니다. 이 그래프의 올바른 위상 순서는 모두 14가지입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>사이클 탐지</strong> — E에서 A로 가는 간선을 더하면 A, C, E가 사이클이 됩니다. Kahn 알고리즘은 B, D, F 3개만 처리하고 멈추며 3은 전체 6보다 작습니다. 남은 A, C, E의 진입 차수는 끝내 0이 되지 않습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>파이썬 확인</strong> — graphlib.TopologicalSorter로 같은 의존 관계를 정렬하면 A, B, C, D, E, F가 나오고(문서상 순서는 입력을 넣은 순서에 따라 달라질 수 있습니다), A가 E를 기다리게 하면 CycleError가 발생합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>위상 순서는 하나뿐이다</strong> — 선후 관계가 없는 정점 쌍이 있으면 순서가 여러 개입니다. 간선이 하나도 없는 정점 3개는 3! = 6가지 순서가 모두 올바릅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>무방향 그래프에도 쓸 수 있다</strong> — 위상 정렬은 간선의 방향이 선후를 뜻하는 방향 그래프에서 정의됩니다. 무방향 간선은 어느 쪽이 먼저인지 알려 주지 않습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>사이클이 있어도 일부는 정렬된다</strong> — Kahn 알고리즘이 사이클 밖의 정점 일부를 처리하긴 하지만, 그 결과는 전체의 위상 순서가 아닙니다. 사이클이 있으면 위상 순서는 존재하지 않습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>DFS 방식은 종료 순서 그대로 쓰면 된다</strong> — 끝나는 순서는 선행 정점이 뒤에 오는 역순입니다. 반드시 뒤집어야 모든 간선이 앞에서 뒤로 향합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Kahn 알고리즘의 큐는 FIFO여야 한다</strong> — 진입 차수가 0인 정점은 어느 것을 먼저 꺼내도 결과가 올바릅니다. 스택이나 우선순위 큐를 써도 되고, 올바름은 그대로이고 결과 순서(힙이면 시간 복잡도도)가 달라집니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">위상 정렬이 가능한 조건은?</h3>
+                            <p class="overview-card__desc">방향이 있고 사이클이 없는 그래프(DAG)여야 합니다. 사이클이 있으면 정점들이 서로를 먼저라고 요구해 순서를 정할 수 없습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">Kahn 알고리즘으로 사이클을 어떻게 찾나요?</h3>
+                            <p class="overview-card__desc">큐가 빌 때까지 처리한 정점의 수가 전체 정점 수보다 적으면 사이클이 있습니다. 사이클 안의 정점은 서로를 기다려 진입 차수가 0이 되지 않기 때문입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">사전순으로 가장 앞선 위상 순서를 구하려면?</h3>
+                            <p class="overview-card__desc">Kahn 알고리즘의 큐를 최소 힙(우선순위 큐)으로 바꿔 진입 차수가 0인 정점 중 가장 작은 것을 먼저 꺼냅니다. 이진 힙 기준으로 O(V log V + E)이고, O((V + E) log V)로 써도 상한은 맞습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">Kahn 방식과 DFS 방식은 어떻게 다른가요?</h3>
+                            <p class="overview-card__desc">둘 다 O(V + E)입니다. Kahn 방식은 반복문과 큐로 구현하고 앞쪽 정점부터 결과를 만들며, DFS 방식은 재귀(또는 스택)로 탐색하고 끝나는 순서를 뒤집어 결과를 만듭니다. 깊은 그래프에서는 재귀 깊이에 주의해야 합니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>빌드 도구</strong> — Gradle은 태스크 사이의 의존 관계로 방향 비순환 그래프를 만들고, 그 그래프에 따라 실행 순서를 정합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>워크플로 스케줄러</strong> — Apache Airflow는 작업과 그 의존 관계를 DAG로 정의하며, 기본적으로 선행 작업이 성공한 뒤에 실행합니다(trigger rule로 바꿀 수 있습니다).</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>선수 과목과 패키지 의존</strong> — 과목의 선수 관계나 라이브러리의 의존 관계를 간선으로 보면 수강·설치 순서가 위상 순서입니다. 의존 관계가 순환하면 위상 순서가 존재하지 않습니다. 이를 오류로 알리는지, 허용하고 끊는지는 도구마다 다릅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>언어 표준 라이브러리</strong> — 파이썬 3.9부터 graphlib.TopologicalSorter가 위상 정렬을 제공하고 사이클이 있으면 CycleError를 일으킵니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/ds/graph}">그래프</a> — 방향 그래프와 진입 차수, 인접 리스트를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/bfs-dfs}">BFS와 DFS</a> — DFS 방식의 바탕인 깊이 우선 탐색과, 큐를 쓰는 너비 우선 탐색을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/ds/stack-queue}">스택과 큐</a> — Kahn 알고리즘의 큐와 DFS의 스택을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/deadlock}">교착 상태</a> — 서로를 기다리는 사이클이 만드는 문제를 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>논문</strong> — Kahn, A. B., "Topological sorting of large networks", Communications of the ACM 5(11), 1962</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>교재</strong> — Cormen, Leiserson, Rivest, Stein, "Introduction to Algorithms", 3rd ed., Section 22.4 Topological sort</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://docs.python.org/3/library/graphlib.html" target="_blank" rel="noopener">Python graphlib</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://docs.gradle.org/current/userguide/build_lifecycle.html" target="_blank" rel="noopener">Gradle Build Lifecycle</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://airflow.apache.org/docs/apache-airflow/stable/core-concepts/dags.html" target="_blank" rel="noopener">Apache Airflow DAGs</a></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/algo/11-20/topological-sort-code :: code}"></th:block>
+            </div>
+
+            <!-- 탭 4: 퀴즈 -->
+            <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
+                <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+    <script th:src="@{/js/quiz.js}"></script>
+    <script th:src="@{/js/like.js}"></script>
+    <script th:src="@{/js/share.js}"></script>
+</body>
+</html>
