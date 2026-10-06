@@ -196,10 +196,11 @@
         ctx.fillStyle = P.bg;
         ctx.fillRect(0, 0, W, H);
 
-        const pad  = 20;
+        const nar  = W < 500;
+        const pad  = nar ? 10 : 20;
         const gap  = 18;
         const cpuW = Math.min(230, W * 0.33);
-        const memW = Math.min(230, W * 0.34);
+        const memW = Math.min(230, W * (nar ? 0.41 : 0.34));
         const boxH = Math.min(H - 32, 340);
         const boxY = (H - boxH) / 2;
         const cpuX = pad;
@@ -268,7 +269,9 @@
         ctx.fill();
         tx('CPU', x + w / 2, y + 16, 11, '#0f0f1a', 'center', true);
 
-        const rp = 12, rh = 28, rg = 5;
+        const nar = GW() < 500;
+        const rp = nar ? 8 : 12, rh = 28, rg = 5;
+        const nw = nar ? 30 : 36;
         const rt = y + 44;
 
         const regs = [
@@ -285,17 +288,17 @@
             const c  = r.hi ? phCol(curPh) : isHov ? P.purple : P.border;
             rr(x + rp, ry, w - rp * 2, rh, 5,
                 r.hi ? phCol(curPh) + '1a' : isHov ? P.purple + '18' : P.surf2, c, r.hi ? 2 : isHov ? 2 : 1);
-            rr(x + rp, ry, 36, rh, 5, r.hi ? phCol(curPh) + '33' : isHov ? P.purple + '28' : P.bg, null);
-            tx(r.n, x + rp + 18, ry + rh / 2, 8, r.hi ? phCol(curPh) : isHov ? P.purple : P.muted, 'center', true);
+            rr(x + rp, ry, nw, rh, 5, r.hi ? phCol(curPh) + '33' : isHov ? P.purple + '28' : P.bg, null);
+            tx(r.n, x + rp + nw / 2, ry + rh / 2, 8, r.hi ? phCol(curPh) : isHov ? P.purple : P.muted, 'center', true);
 
             ctx.beginPath();
-            ctx.moveTo(x + rp + 36, ry + 5);
-            ctx.lineTo(x + rp + 36, ry + rh - 5);
+            ctx.moveTo(x + rp + nw, ry + 5);
+            ctx.lineTo(x + rp + nw, ry + rh - 5);
             ctx.strokeStyle = c;
             ctx.lineWidth = 1;
             ctx.stroke();
 
-            tx(r.v, x + rp + 36 + (w - rp * 2 - 36) / 2, ry + rh / 2, 9,
+            tx(r.v, x + rp + nw + (w - rp * 2 - nw - (nar ? 18 : 0)) / 2, ry + rh / 2, 9,
                 r.hi ? phCol(curPh) : P.text, 'center', r.hi);
 
             const qx = x + w - rp - 10, qy = ry + rh - 8;
@@ -355,7 +358,9 @@
         ctx.fill();
         tx('MEMORY', x + w / 2, y + 16, 11, P.teal, 'center', true);
 
-        const rp = 10;
+        const nar = GW() < 500;
+        const rp = nar ? 6 : 10;
+        const ac = nar ? 38 : 44;
         const rh = Math.min(28, (h - 46) / mem.length - 3);
         const rg = 3;
 
@@ -368,18 +373,18 @@
             rr(x + rp, ry, w - rp * 2, rh, 4,
                 hl ? hc + '1a' : P.surf2,
                 hl ? hc : P.border, hl ? 2 : 1);
-            rr(x + rp, ry, 44, rh, 4, hl ? hc + '28' : P.bg, null);
-            tx(m.addr, x + rp + 22, ry + rh / 2, 8, isD ? P.teal : P.orange, 'center', true);
+            rr(x + rp, ry, ac, rh, 4, hl ? hc + '28' : P.bg, null);
+            tx(m.addr, x + rp + ac / 2, ry + rh / 2, 8, isD ? P.teal : P.orange, 'center', true);
 
             ctx.beginPath();
-            ctx.moveTo(x + rp + 44, ry + 5);
-            ctx.lineTo(x + rp + 44, ry + rh - 5);
+            ctx.moveTo(x + rp + ac, ry + 5);
+            ctx.lineTo(x + rp + ac, ry + rh - 5);
             ctx.strokeStyle = hl ? hc + '88' : P.border;
             ctx.lineWidth = 1;
             ctx.stroke();
 
-            const label = (i === 7 && stepIdx >= 14) ? '30' : m.label;
-            tx(label, x + rp + 44 + (w - rp * 2 - 44) / 2, ry + rh / 2, 9,
+            const label = (i === 7 && stepIdx >= 14) ? '30' : nar ? m.label.replace(/\s+/g, ' ') : m.label;
+            tx(label, x + rp + ac + (w - rp * 2 - ac) / 2, ry + rh / 2, 9,
                 hl ? P.text : P.sub, 'center', hl);
         });
     }

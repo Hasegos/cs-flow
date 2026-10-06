@@ -241,22 +241,41 @@
         }
         if (n >= 5) {
             var ok = Math.abs(DIFF) < Number.EPSILON;
-            tx('|차이| = ' + String(Math.abs(DIFF)) + ' < ' + String(Number.EPSILON) + '  →  ' + ok, x0, ry + 26, fs + 1, ok ? P.green + 'ee' : P.red + 'ee', 'left', true);
+            var dtxt = '|차이| = ' + String(Math.abs(DIFF)) + ' < ' + String(Number.EPSILON) + '  →  ' + ok;
+            ctx.font = '700 ' + (fs + 1) + 'px "JetBrains Mono",monospace';
+            window.CsFlow.wrapText(ctx, dtxt, w).forEach(function (ln, li) {
+                tx(ln, x0, ry + 26 + li * (fs + 8), fs + 1, ok ? P.green + 'ee' : P.red + 'ee', 'left', true);
+            });
         }
     }
 
     /* ===================== 모드: 정밀도와 범위 ===================== */
+    function rangeLayout(w, mob) {
+        var fs = mob ? 10 : 12;
+        var lh = mob ? 16 : 17;
+        ctx.font = '500 ' + (fs - 0.5) + 'px "JetBrains Mono",monospace';
+        var y = mob ? 18 : 26;
+        var cards = RANGE_CARDS.map(function (card) {
+            var ls = [];
+            card.lines.forEach(function (ln) { window.CsFlow.wrapText(ctx, ln, w - 24).forEach(function (l) { ls.push(l); }); });
+            var h = 40 + ls.length * lh;
+            var c = { y: y, h: h, ls: ls, title: card.title };
+            y += h + 8;
+            return c;
+        });
+        return { cards: cards, bottom: y + 10 };
+    }
+
     function drawRange(x0, top, w, mob, step) {
         var fs = mob ? 10 : 12;
+        var lh = mob ? 16 : 17;
         var c  = step ? step.c : 0;
-        var ch = mob ? 62 : 64;
-        RANGE_CARDS.forEach(function (card, i) {
-            var y  = top + i * (ch + 8);
+        rangeLayout(w, mob).cards.forEach(function (card, i) {
             var on = c > i;
-            rr(x0, y, w, ch, 6, on ? P.purple + '14' : 'none', on ? P.purple + 'aa' : P.muted + '44', 1.4);
-            tx(card.title, x0 + 12, y + 16, fs + 1, on ? P.text + 'ee' : P.muted + '77', 'left', true);
-            card.lines.forEach(function (ln, li) {
-                tx(on ? ln : '', x0 + 12, y + 34 + li * (mob ? 15 : 17), fs - 0.5, P.teal + 'ee', 'left', false);
+            rr(x0, card.y, w, card.h - 6, 6, on ? P.purple + '14' : 'none', on ? P.purple + 'aa' : P.muted + '44', 1.4);
+            tx(card.title, x0 + 12, card.y + 16, fs + 1, on ? P.text + 'ee' : P.muted + '77', 'left', true);
+            card.ls.forEach(function (ln, li) {
+                tx(on ? ln : '', x0 + 12, card.y + 34 + li * lh, fs - 0.5, P.teal + 'ee', 'left', false);
             });
         });
     }
@@ -280,8 +299,16 @@
         if (!step) {
             var hint = '아래 STEP을 눌러 부동소수점이 어떻게 저장되는지 확인하세요.';
             ctx.font = '500 ' + (mob ? 11 : 12.5) + 'px "JetBrains Mono",monospace';
-            var hs = (mob ? 11 : 12.5) * Math.min(1, (W - 16) / ctx.measureText(hint).width);
-            tx(hint, W / 2, GH() - (mob ? 12 : 14), hs, P.muted + 'aa', 'center', false);
+            var hs = mob ? 11 : 12.5;
+            var hl = [hint];
+            if (ctx.measureText(hint).width > W - 16) {
+                var cut = hint.indexOf(' ', Math.floor(hint.length / 2));
+                if (cut < 0) cut = hint.lastIndexOf(' ');
+                hl = [hint.slice(0, cut), hint.slice(cut + 1)];
+            }
+            hl.forEach(function (line, li) {
+                tx(line, W / 2, GH() - (mob ? 12 : 14) - (hl.length - 1 - li) * (hs + 4), hs, P.muted + 'aa', 'center', false);
+            });
         }
     }
 
@@ -291,7 +318,7 @@
         var mob = w < 600;
         var neededH;
         if (mode === 'sum') neededH = mob ? 360 : 370;
-        else if (mode === 'range') neededH = mob ? 360 : 360;
+        else if (mode === 'range') neededH = Math.max(360, rangeLayout(w - (mob ? 32 : 52), mob).bottom);
         else neededH = mob ? 300 : 320;
         canvasWrap.style.height    = 'auto';
         canvasWrap.style.minHeight = neededH + 'px';

@@ -327,7 +327,18 @@
         else drawTime(padX, top, fullW, mob, step);
 
         if (!step) {
-            tx('아래 STEP을 눌러 병렬 처리의 이득이 어떻게 변하는지 확인하세요.', W / 2, GH() - (mob ? 12 : 14), mob ? 11 : 12.5, P.muted + 'aa', 'center', false);
+            var hint = '아래 STEP을 눌러 병렬 처리의 이득이 어떻게 변하는지 확인하세요.';
+            var hs = mob ? 11 : 12.5;
+            var hl = [hint];
+            ctx.font = '500 ' + hs + 'px "JetBrains Mono",monospace';
+            if (ctx.measureText(hint).width > W - 16) {
+                var cut = hint.indexOf(' ', Math.floor(hint.length / 2));
+                if (cut < 0) cut = hint.lastIndexOf(' ');
+                hl = [hint.slice(0, cut), hint.slice(cut + 1)];
+            }
+            hl.forEach(function (line, li) {
+                tx(line, W / 2, GH() - (mob ? 12 : 14) - (hl.length - 1 - li) * (hs + 4), hs, P.muted + 'aa', 'center', false);
+            });
         }
     }
 
