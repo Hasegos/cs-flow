@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">KMP 문자열 검색 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/algo/11-20/kmp-string-matching.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/algo}" class="topic-breadcrumb__link">알고리즘</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">KMP 문자열 검색</span>
+                </nav>
+
+                <span class="topic-hero__slug">algo · 14</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">KMP 문자열 검색</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+                <button type="button" class="topic-like" th:classappend="${liked} ? ' topic-like--active' : ''" th:attr="data-topic-slug=${topic.slug}">
+                    <svg class="topic-like__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <span class="topic-like__count" th:text="${likeCount}">0</span>
+                </button>
+                <div class="topic-share">
+                    <button type="button" class="topic-share__btn topic-share__btn--copy" aria-label="링크 복사">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="topic-share__btn topic-share__btn--kakao" aria-label="카카오톡 공유">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                        </svg>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+                <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        KMP 알고리즘은 긴 텍스트에서 패턴이 나타나는 모든 위치를 찾는 문자열 검색 알고리즘입니다. 이름은 만든 사람인 크누스(Knuth), 모리스(Morris), 프랫(Pratt)의 첫 글자에서 왔습니다. 핵심은 <strong>이미 맞춰 본 글자를 다시 비교하지 않는 것</strong>이고, 그 덕분에 텍스트 길이 n, 패턴 길이 m에 대해 O(n + m) 시간에 검색합니다.
+                    </p>
+                    <p class="overview-lead">
+                        단순한 방법은 텍스트의 모든 위치에서 패턴을 처음부터 비교하다가 불일치가 나면 한 칸 밀고 처음부터 다시 비교합니다. 앞에서 맞춘 글자 정보를 버리기 때문에 최악에는 O(n × m)이 걸립니다. KMP는 패턴을 미리 분석해 "불일치가 났을 때 패턴을 어디까지 밀어도 안전한가"를 <strong>실패 함수</strong>라는 표로 만들어 두고, 텍스트 위치를 뒤로 되돌리지 않은 채 패턴만 이동합니다. 이 토픽에서는 실패 함수를 만드는 과정, 그것을 쓰는 검색 과정, 단순 검색과의 비교를 봅니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">문자열 검색</h3>
+                            <p class="overview-card__desc">텍스트 안에서 패턴과 같은 부분 문자열의 시작 위치를 찾는 문제입니다. 모든 일치 위치를 구하거나 처음 하나만 구하기도 합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">접두사와 접미사</h3>
+                            <p class="overview-card__desc">문자열의 앞쪽 일부가 접두사, 뒤쪽 일부가 접미사입니다. ABAB의 접두사 AB와 접미사 AB는 같고, 이 겹침이 KMP가 재사용하는 정보입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">실패 함수 π</h3>
+                            <p class="overview-card__desc">π[i]는 패턴의 앞 i+1글자에서, 자기 자신을 제외하고 접두사이면서 접미사이기도 한 가장 긴 문자열의 길이입니다. 접두사 함수라고도 부릅니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">두 포인터 i와 j</h3>
+                            <p class="overview-card__desc">i는 텍스트 위치, j는 지금까지 맞춘 패턴 글자 수입니다. 글자가 같으면 둘 다 전진하고, 다르면 j가 0보다 클 때 i는 두고 j만 π[j-1]로 줄이며 j가 0이면 i가 한 칸 전진합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">텍스트를 되돌리지 않음</h3>
+                            <p class="overview-card__desc">텍스트 위치 i는 한 번도 뒤로 가지 않습니다. 이미 맞춘 글자의 정보는 j에 담겨 있어서 같은 글자를 처음부터 다시 확인하지 않습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">겹치는 일치</h3>
+                            <p class="overview-card__desc">패턴을 모두 맞추면 j를 π[m-1]로 줄여 이어갑니다. 그러면 AAA 안의 AA처럼 서로 겹치는 일치도 놓치지 않고 찾습니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>시간은 O(n + m)입니다</strong> — 실패 함수를 만드는 데 O(m), 검색에 O(n)입니다. i는 앞으로만 가고 j는 늘어난 만큼만 줄어들기 때문에 총 이동 횟수가 선형으로 묶입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>추가 공간은 O(m)입니다</strong> — 패턴 길이만큼의 π 배열 하나가 필요합니다(일치 위치 출력은 제외). 텍스트는 읽기만 하므로 추가 공간이 없습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>같은 패턴은 한 번만 분석합니다</strong> — π 배열을 한 번 만들어 두면 같은 패턴으로 여러 텍스트를 검색할 때 다시 계산하지 않아도 됩니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>입력 순서대로 읽을 수 있습니다</strong> — 텍스트를 되돌리지 않으므로 한 글자씩 들어오는 스트림에서도 j 하나와 미리 만든 π 배열만 있으면 텍스트를 저장하지 않고 검색할 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "실패 함수 만들기" 탭에서 패턴을 자기 자신 위에 밀며 π가 채워지는 모습을, "KMP 검색" 탭에서 불일치 때 i를 두고 j만 줄이는 모습을, "단순 검색과 비교" 탭에서 같은 입력의 비교 횟수 차이를 STEP으로 확인하세요.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">KMP의 배경</h2>
+                    <p class="overview-lead">
+                        KMP 알고리즘은 1977년 크누스, 모리스, 프랫이 "Fast pattern matching in strings"라는 논문으로 함께 발표했고, SIAM Journal on Computing에 실렸습니다. 같은 해 보이어(Boyer)와 무어(Moore)도 평균적으로 아주 빠른 다른 검색 알고리즘을 발표했습니다. KMP의 실패 함수 아이디어는 1975년 아호-코라식(Aho-Corasick) 알고리즘이 여러 패턴을 한꺼번에 찾도록 확장하는 데 쓰였고, KMP는 그보다 앞선 1974년 기술 보고서로 먼저 알려졌습니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>실패 함수</strong> — 패턴 ABABC의 π는 &#91;0, 0, 1, 2, 0&#93;입니다. ABAB의 끝 AB가 앞 AB와 같아 π[3] = 2이고, C에서는 겹치는 부분이 사라져 π[4] = 0입니다. 같은 글자만 이어지는 AAAA는 &#91;0, 1, 2, 3&#93;입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>검색</strong> — 텍스트 ABABABCABABC에서 ABABC를 찾으면 위치 2와 7에서 일치합니다. 텍스트 위치 4의 A가 패턴의 C와 달라도 j를 4에서 π[3] = 2로 줄이고 i는 그대로 두어, 이미 맞춘 AB는 다시 비교하지 않고 이어서 맞춥니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>비교 횟수</strong> — 이 입력에서 글자 비교는 단순 검색이 22번, KMP가 13번입니다. 입력이 짧아 차이가 작습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>반복이 많은 입력</strong> — A가 100개 뒤에 B가 하나 있는 텍스트에서 A 20개와 B로 이루어진 패턴을 찾으면 단순 검색은 1701번, KMP는 181번 비교합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>문자열의 주기</strong> — ABABAB의 π는 &#91;0, 0, 1, 2, 3, 4&#93;이고 길이 6에서 마지막 π 값 4를 뺀 2가 가장 짧은 반복 단위의 길이이며, 6이 2로 나누어떨어지므로 AB가 세 번 반복된 문자열입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>코드 확인</strong> — 파이썬과 자바 구현이 같은 π와 일치 위치 &#91;2, 7&#93;을 돌려줍니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>접두사와 접미사에 자기 자신도 포함한다</strong> — 자기 자신은 제외합니다. 포함하면 모든 π[i]가 i+1이 되어 아무 정보도 주지 못합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>텍스트 글자를 한 번만 비교한다</strong> — 텍스트 위치 i는 되돌아가지 않지만, 한 글자가 불일치 때문에 j가 줄어든 패턴 글자와 여러 번 비교될 수 있습니다. 전체 비교 횟수가 선형으로 묶일 뿐입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>실패하면 j를 0으로 되돌린다</strong> — 그러면 단순 검색과 다를 바 없습니다. 불일치가 나면 π[j-1]로 줄여 접두사의 일부를 그대로 이어 갑니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>KMP가 언제나 가장 빠르다</strong> — KMP는 최악에도 선형을 보장하는 점이 강점입니다. 평균적으로는 글자를 건너뛰는 보이어-무어 같은 방법이 더 빠른 경우가 많습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>일치를 찾으면 j를 0으로 되돌려 다시 시작한다</strong> — 그러면 서로 겹치는 일치를 놓칩니다. j를 π[m-1]로 줄여 이어야 합니다. 예를 들어 AAAA에서 AA를 찾을 때 위치 0, 1, 2 세 곳이 모두 나옵니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">KMP 알고리즘의 핵심 아이디어는?</h3>
+                            <p class="overview-card__desc">불일치가 났을 때 이미 맞춘 글자의 정보를 실패 함수로 재사용해, 텍스트 위치를 되돌리지 않고 패턴만 이동하는 것입니다. 그래서 같은 글자를 처음부터 다시 비교하지 않습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">실패 함수(π 배열)는 무엇인가요?</h3>
+                            <p class="overview-card__desc">π[i]는 패턴의 앞 i+1글자에서 접두사이면서 접미사인 가장 긴 (자기 자신을 제외한) 문자열의 길이입니다. 불일치 때 패턴을 얼마나 되돌려 이어 비교할 수 있는지를 알려 줍니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">시간 복잡도가 O(n + m)인 이유는?</h3>
+                            <p class="overview-card__desc">텍스트 위치 i는 앞으로만 가고, j는 한 칸씩 늘어나며 줄어드는 양이 늘어난 양을 넘을 수 없습니다. 그래서 검색의 총 이동이 O(n)이고, 같은 논리로 실패 함수 계산은 O(m)입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">문자열이 어떤 단위의 반복인지 알아내려면?</h3>
+                            <p class="overview-card__desc">길이 n인 문자열의 마지막 π 값을 뺀 n − π[n-1]이 후보 단위의 길이이고, n이 그 값으로 나누어떨어지고 그 값이 n보다 작으면 그 단위가 반복된 문자열입니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">활용 분야와 확장</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>다중 패턴 검색</strong> — 아호-코라식 알고리즘은 KMP의 실패 함수 아이디어를 패턴 여러 개를 담은 트라이로 확장해, 사전의 모든 단어를 텍스트에서 한 번에 찾습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>스트림 처리</strong> — 텍스트를 되돌리지 않고 j와 π 배열로 상태를 유지하므로, 한 글자씩 들어오는 입력에서 패턴이 나타나는 순간을 찾는 데 알맞습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>문자열 문제</strong> — 반복 단위 찾기, 접두사와 접미사가 겹치는 가장 긴 길이 구하기 같은 문제에서 π 배열이 그대로 쓰입니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/ds/trie}">트라이</a> — 여러 문자열을 한 번에 다루는 자료구조와 아호-코라식의 바탕을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/ds/suffix-array}">접미사 배열</a> — 접미사를 정렬해 부분 문자열을 검색하는 다른 방법을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/two-pointer}">투 포인터</a> — 두 위치를 함께 움직이는 기법을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/complexity}">시간 복잡도</a> — O(n × m)과 O(n + m)의 차이를 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>논문</strong> — Knuth, D. E., Morris, J. H., Pratt, V. R., "Fast pattern matching in strings", SIAM Journal on Computing 6(2), 1977</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>논문</strong> — Boyer, R. S. and Moore, J. S., "A fast string searching algorithm", Communications of the ACM 20(10), 1977</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>논문</strong> — Aho, A. V. and Corasick, M. J., "Efficient string matching: an aid to bibliographic search", Communications of the ACM 18(6), 1975</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>교재</strong> — Cormen, Leiserson, Rivest, Stein, "Introduction to Algorithms", 3rd ed., Chapter 32 String Matching</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/algo/11-20/kmp-string-matching-code :: code}"></th:block>
+            </div>
+
+            <!-- 탭 4: 퀴즈 -->
+            <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
+                <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+    <script th:src="@{/js/quiz.js}"></script>
+    <script th:src="@{/js/like.js}"></script>
+    <script th:src="@{/js/share.js}"></script>
+</body>
+</html>
