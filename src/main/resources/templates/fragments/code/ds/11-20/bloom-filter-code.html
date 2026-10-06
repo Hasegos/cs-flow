@@ -1,0 +1,104 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — 블룸 필터 기본 구현</p>
+            <div class="code-block">
+<pre><span class="kw">def</span> <span class="fn">djb2</span>(s):
+    h = <span class="num">5381</span>
+    <span class="kw">for</span> c <span class="kw">in</span> s.<span class="fn">encode</span>():
+        h = (h * <span class="num">33</span> + c) &amp; <span class="num">0xFFFFFFFF</span>
+    <span class="kw">return</span> h
+
+<span class="kw">def</span> <span class="fn">fnv</span>(s):
+    h = <span class="num">0x811c9dc5</span>
+    <span class="kw">for</span> c <span class="kw">in</span> s.<span class="fn">encode</span>():
+        h ^= c
+        h = (h * <span class="num">0x01000193</span>) &amp; <span class="num">0xFFFFFFFF</span>
+    <span class="kw">return</span> h
+
+<span class="kw">class</span> <span class="fn">BloomFilter</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, m, k):
+        self.m, self.k = m, k
+        self.bits = &#91;<span class="num">0</span>&#93; * m
+
+    <span class="kw">def</span> <span class="fn">_positions</span>(self, item):
+        a, b = <span class="fn">djb2</span>(item), <span class="fn">fnv</span>(item) | <span class="num">1</span>      <span class="cm"># 이중 해싱: h_i = a + i*b</span>
+        <span class="kw">return</span> &#91;(a + i * b) % self.m <span class="kw">for</span> i <span class="kw">in</span> <span class="fn">range</span>(self.k)&#93;
+
+    <span class="kw">def</span> <span class="fn">add</span>(self, item):
+        <span class="kw">for</span> p <span class="kw">in</span> self.<span class="fn">_positions</span>(item):
+            self.bits&#91;p&#93; = <span class="num">1</span>
+
+    <span class="kw">def</span> <span class="fn">might_contain</span>(self, item):
+        <span class="kw">return</span> <span class="fn">all</span>(self.bits&#91;p&#93; <span class="kw">for</span> p <span class="kw">in</span> self.<span class="fn">_positions</span>(item))
+
+bf = <span class="fn">BloomFilter</span>(<span class="num">16</span>, <span class="num">3</span>)
+<span class="kw">for</span> w <span class="kw">in</span> &#91;<span class="st">'apple'</span>, <span class="st">'banana'</span>, <span class="st">'cherry'</span>&#93;:
+    bf.<span class="fn">add</span>(w)
+<span class="fn">print</span>(bf.<span class="fn">_positions</span>(<span class="st">'apple'</span>), <span class="fn">sum</span>(bf.bits))                 <span class="cm"># &#91;7, 6, 5&#93; 7</span>
+<span class="fn">print</span>(bf.<span class="fn">might_contain</span>(<span class="st">'apple'</span>), bf.<span class="fn">might_contain</span>(<span class="st">'mango'</span>), bf.<span class="fn">might_contain</span>(<span class="st">'grape'</span>))   <span class="cm"># True False True</span></pre>
+            </div>
+            <p class="code-desc">
+                비트 배열 하나와 해시 위치 k개를 구하는 함수만 있으면 됩니다. 여기서는 해시 함수를 k개 따로 만드는 대신, 서로 다른 해시 두 개(djb2와 FNV)로 a + i * b를 계산하는 이중 해싱으로 위치 3개를 만듭니다. b를 홀수로 만들어 칸 수가 2의 거듭제곱일 때 위치가 겹치지 않게 합니다.
+                add는 위치의 칸을 1로 켜고, might_contain은 위치의 칸이 모두 1인지 확인합니다. 이름이 contain이 아니라 might_contain인 이유는 "모두 1"이어도 다른 원소가 켠 칸일 수 있기 때문입니다.
+                apple, banana, cherry를 넣은 뒤 apple의 위치는 7, 6, 5이고 켜진 칸은 7개입니다. mango는 12와 1이 0이라 False(확실히 없음)이고, 추가한 적 없는 grape는 위치 4, 5, 6이 모두 켜져 있어 True가 나옵니다. 시각화의 조회 탭이 보여 주는 거짓 양성입니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — 크기 계산과 실제 거짓 양성률</p>
+            <div class="code-block">
+<pre><span class="kw">import</span> math
+
+<span class="kw">def</span> <span class="fn">size</span>(n, p):
+    m = math.<span class="fn">ceil</span>(-n * math.<span class="fn">log</span>(p) / (math.<span class="fn">log</span>(<span class="num">2</span>) ** <span class="num">2</span>))   <span class="cm"># 비트 수</span>
+    k = <span class="fn">round</span>(m / n * math.<span class="fn">log</span>(<span class="num">2</span>))                           <span class="cm"># 해시 함수 수</span>
+    <span class="kw">return</span> m, k
+
+m, k = <span class="fn">size</span>(<span class="num">1_000_000</span>, <span class="num">0.01</span>)
+<span class="fn">print</span>(m, k, <span class="fn">round</span>(m / <span class="num">8</span> / <span class="num">1024</span>))      <span class="cm"># 9585059 7 1170  (약 1.14MiB)</span>
+
+n = <span class="num">10000</span>
+m, k = <span class="fn">size</span>(n, <span class="num">0.01</span>)
+bf = <span class="fn">BloomFilter</span>(m, k)
+<span class="kw">for</span> i <span class="kw">in</span> <span class="fn">range</span>(n):
+    bf.<span class="fn">add</span>(<span class="st">'item-%d'</span> % i)
+<span class="fn">print</span>(<span class="fn">all</span>(bf.<span class="fn">might_contain</span>(<span class="st">'item-%d'</span> % i) <span class="kw">for</span> i <span class="kw">in</span> <span class="fn">range</span>(n)))     <span class="cm"># True (거짓 음성 없음)</span>
+fp = <span class="fn">sum</span>(bf.<span class="fn">might_contain</span>(<span class="st">'other-%d'</span> % i) <span class="kw">for</span> i <span class="kw">in</span> <span class="fn">range</span>(<span class="num">100000</span>))
+<span class="fn">print</span>(m, k, fp / <span class="num">100000</span>)                          <span class="cm"># 95851 7 0.00972</span></pre>
+            </div>
+            <p class="code-desc">
+                원소 수 n과 목표 거짓 양성률 p가 정해지면 필요한 비트 수는 m = -n ln p / (ln 2)^2, 최적의 해시 함수 수는 k = (m / n) ln 2로 계산합니다. 원소 100만 개를 1% 오류율로 담으려면 비트 약 958만 개, 즉 약 1.14MiB가 필요하고 해시 함수는 7개입니다. 원소 하나당 약 9.6비트입니다.
+                원소 1만 개로 실제로 만들어 확인하면, 넣은 원소는 모두 "있을 수도 있다"로 나오고(거짓 음성 없음), 넣지 않은 10만 개 가운데 0.97%가 거짓 양성으로 나왔습니다. 목표한 1%에 가깝습니다.
+                이 예의 문자열(item-숫자)을 그대로 저장하면 글자만 약 89KB이지만, 블룸 필터는 약 12KB면 됩니다. 원소 자체를 저장하지 않는다는 점이 공간 절약의 원천입니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — 삭제가 되는 Counting Bloom Filter</p>
+            <div class="code-block">
+<pre><span class="kw">class</span> <span class="fn">CountingBloomFilter</span>(BloomFilter):
+    <span class="kw">def</span> <span class="fn">add</span>(self, item):
+        <span class="kw">for</span> p <span class="kw">in</span> self.<span class="fn">_positions</span>(item):
+            self.bits&#91;p&#93; += <span class="num">1</span>                  <span class="cm"># 비트 대신 카운터를 올린다</span>
+
+    <span class="kw">def</span> <span class="fn">remove</span>(self, item):
+        <span class="kw">for</span> p <span class="kw">in</span> self.<span class="fn">_positions</span>(item):
+            self.bits&#91;p&#93; -= <span class="num">1</span>                  <span class="cm"># 지울 때는 카운터를 내린다</span>
+
+cbf = <span class="fn">CountingBloomFilter</span>(<span class="num">16</span>, <span class="num">3</span>)
+<span class="kw">for</span> w <span class="kw">in</span> &#91;<span class="st">'apple'</span>, <span class="st">'banana'</span>, <span class="st">'cherry'</span>&#93;:
+    cbf.<span class="fn">add</span>(w)
+cbf.<span class="fn">remove</span>(<span class="st">'apple'</span>)
+<span class="fn">print</span>(cbf.<span class="fn">might_contain</span>(<span class="st">'apple'</span>), cbf.<span class="fn">might_contain</span>(<span class="st">'banana'</span>))   <span class="cm"># False True</span></pre>
+            </div>
+            <p class="code-desc">
+                Counting Bloom Filter는 칸마다 비트 하나 대신 작은 카운터를 두어 삭제를 지원합니다. add는 위치의 카운터를 1씩 올리고 remove는 1씩 내리며, might_contain은 카운터가 0보다 큰지 확인합니다. 파이썬 코드에서는 부모 클래스의 might_contain이 값이 0이 아닌지 검사하므로 그대로 쓸 수 있습니다.
+                앞에서 본 문제 상황과 같은 apple, banana, cherry에서 apple을 지워도, 칸 6과 7은 banana도 쓰고 있어 카운터가 2에서 1로 내려갈 뿐 0이 되지 않습니다. 그래서 banana는 여전히 True이고 apple은 False입니다. 비트 필터에서는 이 두 칸이 0이 되어 banana가 거짓 음성이 되었습니다.
+                대신 칸당 메모리가 비트 1개에서 카운터로 늘어납니다. 카운팅 블룸 필터를 제안한 Fan 등의 분석은 칸당 4비트면 오버플로 확률이 극히 낮아 충분하다고 봅니다. 같은 원소를 추가한 적 없이 remove하면 카운터가 음수가 될 수 있어서, 실제로 있었던 원소만 지운다는 전제가 필요합니다. 없던 원소를 지우면 공유한 칸의 카운터가 줄어 다른 원소의 거짓 음성이 생길 수도 있습니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>

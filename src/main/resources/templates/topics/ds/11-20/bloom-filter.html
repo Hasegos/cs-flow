@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">블룸 필터 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/ds/11-20/bloom-filter.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/ds}" class="topic-breadcrumb__link">자료구조</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">블룸 필터</span>
+                </nav>
+
+                <span class="topic-hero__slug">ds · 17</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">블룸 필터</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+                <button type="button" class="topic-like" th:classappend="${liked} ? ' topic-like--active' : ''" th:attr="data-topic-slug=${topic.slug}">
+                    <svg class="topic-like__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <span class="topic-like__count" th:text="${likeCount}">0</span>
+                </button>
+                <div class="topic-share">
+                    <button type="button" class="topic-share__btn topic-share__btn--copy" aria-label="링크 복사">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="topic-share__btn topic-share__btn--kakao" aria-label="카카오톡 공유">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                        </svg>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+                <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        "이 값이 집합에 들어 있는가?"는 해시 테이블이나 데이터베이스가 늘 답하는 질문이지만, 원소가 수억 개이면 원소를 그대로 저장하는 것만으로 메모리와 디스크 읽기가 부담입니다. <strong>블룸 필터(Bloom filter)</strong>는 원소를 저장하지 않고 비트 몇 개만 켜 두는 방식으로 "확실히 없다"와 "있을 수도 있다" 두 가지 답만 알려 주는 확률적 자료구조입니다. 대답이 가끔 틀리는 대신 메모리를 아주 적게 씁니다.
+                    </p>
+                    <p class="overview-lead">
+                        비트 배열 하나와 해시 함수 k개로 만듭니다. 원소를 추가하면 해시 함수 k개가 가리키는 칸을 모두 1로 켜고, 조회할 때는 같은 k개 칸이 모두 1인지 봅니다. 하나라도 0이면 추가한 적이 없다고 확신할 수 있고, 모두 1이어도 다른 원소들이 켠 칸일 수 있어 확실하지 않습니다. 이 토픽에서는 추가, 조회에서 생기는 거짓 양성, 삭제가 안 되는 이유를 단계별로 봅니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">비트 배열</h3>
+                            <p class="overview-card__desc">길이 m의 비트 배열로, 처음에는 모두 0입니다. 원소 자체를 저장하지 않고 원소의 흔적만 이 배열에 남깁니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">해시 함수 k개</h3>
+                            <p class="overview-card__desc">원소를 칸 번호 k개로 바꿉니다. 서로 독립에 가까운 해시 함수를 쓰거나, 해시 두 개를 조합하는 이중 해싱으로 k개를 만듭니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">추가</h3>
+                            <p class="overview-card__desc">원소의 해시 위치 k칸을 모두 1로 켭니다. 이미 1인 칸은 그대로 두며, 이 칸을 여러 원소가 공유할 수 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">조회</h3>
+                            <p class="overview-card__desc">k칸 중 하나라도 0이면 "확실히 없다", 모두 1이면 "있을 수도 있다"입니다. 거짓 음성은 없고 거짓 양성만 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">거짓 양성</h3>
+                            <p class="overview-card__desc">추가한 적 없는 원소인데 k칸이 우연히 모두 1이어서 "있을 수도 있다"가 나오는 경우입니다. 켜진 칸이 많아질수록 확률이 올라갑니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">삭제 불가</h3>
+                            <p class="overview-card__desc">한 칸을 여러 원소가 공유하므로 칸을 끄면 그 칸을 공유한 다른 원소의 흔적까지 지워 거짓 음성이 생길 수 있습니다. 삭제가 필요하면 칸에 카운터를 두는 변형을 씁니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>추가와 조회가 O(k)입니다</strong> — 해시 함수 k개를 계산하고 칸 k개를 읽거나 쓰는 일이라 키 길이를 일정하다고 보면 원소 수와 상관없이 일정합니다. k는 오류율 1%에서 7, 0.1%에서 10 정도처럼 작은 수이며 최적값은 (m / n) ln 2입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>"없다"는 항상 믿을 수 있습니다</strong> — 원소를 추가하면 해당 칸이 반드시 켜지므로, 꺼진 칸이 하나라도 있으면 추가된 적이 없습니다. 이 성질 때문에 비싼 조회를 건너뛰는 용도로 씁니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>오류율은 크기로 조절합니다</strong> — 거짓 양성 확률은 대략 (1 - e^(-kn/m))^k입니다. 원소 수 n에 비해 비트 수 m을 늘리면 확률이 내려가고, 목표 확률이 정해지면 필요한 m과 k를 계산할 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>원소를 꺼낼 수 없습니다</strong> — 비트만 남아 있어 어떤 원소가 들어 있는지 나열하거나 개수를 정확히 알 수 없습니다. 있는지 묻는 용도에만 씁니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "추가" 탭에서 해시 위치 h0, h1, h2의 칸이 켜지는 모습을, "조회" 탭에서 0이 있는 경우와 거짓 양성이 나오는 경우를, "삭제 불가" 탭에서 공유한 칸을 끄면 생기는 거짓 음성을 STEP으로 확인하세요.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">블룸 필터의 배경</h2>
+                    <p class="overview-lead">
+                        블룸 필터는 버튼 블룸(Burton H. Bloom)이 1970년 논문 "Space/Time Trade-offs in Hash Coding with Allowable Errors"에서 제안했습니다. 오류를 조금 허용하는 대신 해시 코딩의 공간을 크게 줄이는 방법으로, 대용량 데이터의 해시 영역이 주기억장치에 들어가지 않는 상황을 다뤘고, 논문의 예시는 하이픈 분리용 단어 사전이었습니다. 지금은 대규모 저장소가 디스크 읽기를 줄이는 용도로 널리 씁니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>작은 예시</strong> — 비트 16칸, 해시 3개에 apple, banana, cherry를 추가하면 켜지는 칸이 9개가 아니라 7개입니다. apple(7, 6, 5)과 banana(6, 7, 8)가 칸 6과 7을 공유하기 때문입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>거짓 양성</strong> — 이 필터에 추가한 적 없는 grape의 해시 위치가 4, 5, 6이고 세 칸이 모두 1이라 "있을 수도 있다"가 나옵니다. mango는 위치 7, 12, 1 가운데 12와 1이 0이라 "확실히 없다"입니다. (1 - (1 - 1/m)^(kn))^k로 계산한 확률은 약 8.6%입니다(근사식 (1 - e^(-kn/m))^k로는 약 8.0%).</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>크기 계산</strong> — 원소 100만 개를 거짓 양성률 1%로 담으려면 비트 약 958만 개(약 1.14MiB), 해시 함수 7개가 필요해 원소당 약 9.6비트입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>실제 확인</strong> — 원소 1만 개로 1% 설계(비트 95,851개, 해시 7개)를 만들어 넣지 않은 원소 10만 개를 조회하면 거짓 양성이 0.97%였고, 넣은 원소는 모두 "있을 수도 있다"로 나왔습니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>"있다"고 답하면 확실히 있다</strong> — "있을 수도 있다"일 뿐입니다. 확실히 있는지는 원래 저장소에서 다시 확인해야 합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>"없다"도 틀릴 수 있다</strong> — 삭제를 하지 않는 한 틀리지 않습니다. 블룸 필터에는 거짓 음성이 없다는 것이 핵심 성질입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>원소를 지우려면 해당 칸을 끄면 된다</strong> — 칸을 다른 원소도 쓰고 있을 수 있어서, 끄면 그 원소들이 사라진 것처럼 보입니다. 삭제가 필요하면 카운팅 블룸 필터를 씁니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>해시 함수가 많을수록 좋다</strong> — k가 너무 크면 한 원소가 켜는 칸이 많아 필터가 빨리 차고 오히려 오류가 늘어납니다. 주어진 m과 n에서 오류율을 가장 낮추는 최적의 k가 있습니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">블룸 필터는 무엇이고 언제 쓰나요?</h3>
+                            <p class="overview-card__desc">원소 존재 여부를 적은 메모리로 근사해서 답하는 확률적 자료구조입니다. 비싼 조회(디스크, 네트워크) 앞에 두어 "확실히 없다"인 요청을 걸러 낼 때 씁니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">거짓 양성과 거짓 음성은 어느 쪽이 있나요?</h3>
+                            <p class="overview-card__desc">거짓 양성만 있습니다. 추가한 원소는 해당 칸이 켜져 있으므로 항상 "있을 수도 있다"가 나오고, 추가하지 않은 원소가 가끔 "있을 수도 있다"로 나옵니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">왜 삭제가 안 되나요?</h3>
+                            <p class="overview-card__desc">한 칸을 여러 원소가 공유해서, 칸을 끄면 그 칸을 쓰던 다른 원소가 지워진 것처럼 보이는 거짓 음성이 생길 수 있기 때문입니다. 카운터를 두는 카운팅 블룸 필터가 대안입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">크기와 오류율의 관계는?</h3>
+                            <p class="overview-card__desc">원소 수 n, 목표 오류율 p가 정해지면 비트 수 m은 -n ln p / (ln 2)^2, 해시 수 k는 (m / n) ln 2 정도입니다. 오류율을 10분의 1로 줄이려면 원소당 약 4.8비트가 더 필요합니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Bigtable과 LSM 계열 저장소</strong> — 구글 Bigtable 논문은 클라이언트가 지정한 locality group의 SSTable에 블룸 필터를 만들어, 특정 행과 열 쌍의 데이터가 있는지 먼저 확인하고 디스크 읽기를 줄인다고 설명합니다. Cassandra, HBase, RocksDB도 같은 용도로 블룸 필터를 쓰며, HBase는 Get 요청에 적용됩니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Cassandra 설정</strong> — 테이블마다 bloom_filter_fp_chance로 목표 거짓 양성 확률을 정해, 메모리와 읽기 효율의 균형을 조절합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>라이브러리</strong> — 구아바(Guava)의 BloomFilter처럼 예상 원소 수와 목표 오류율을 받아 m과 k를 정해 주는 라이브러리 구현이 있습니다. 거짓 양성 공식은 해시가 균일하고 독립이라는 가정에 기댑니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/ds/hash-table}">해시 테이블</a> — 블룸 필터가 바탕으로 삼는 해시 함수와 충돌을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/index}">인덱스</a> — 디스크 조회를 줄이는 데이터베이스의 또 다른 방법을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/cdn}">CDN</a> — 캐시 계층에서 한 번만 요청되는 객체를 걸러 내는 문제의 맥락을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/ds/union-find}">분리집합</a> — 확률 없이 정확하게 답하는 집합 자료구조를 비교합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>논문</strong> — Bloom, B. H., "Space/Time Trade-offs in Hash Coding with Allowable Errors", Communications of the ACM 13(7), 1970</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>논문</strong> — Chang, F. 외, "Bigtable: A Distributed Storage System for Structured Data", OSDI 2006</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://github.com/facebook/rocksdb/wiki/RocksDB-Bloom-Filter" target="_blank" rel="noopener">RocksDB Bloom Filter</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://cassandra.apache.org/doc/latest/cassandra/managing/operating/bloom_filters.html" target="_blank" rel="noopener">Apache Cassandra Bloom Filters</a></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/ds/11-20/bloom-filter-code :: code}"></th:block>
+            </div>
+
+            <!-- 탭 4: 퀴즈 -->
+            <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
+                <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+    <script th:src="@{/js/quiz.js}"></script>
+    <script th:src="@{/js/like.js}"></script>
+    <script th:src="@{/js/share.js}"></script>
+</body>
+</html>
