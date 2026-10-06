@@ -1,0 +1,105 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">SQL — PostgreSQL의 WAL 설정과 PITR 준비</p>
+            <div class="code-block">
+<pre><span class="kw">SHOW</span> wal_level;                              <span class="cm">-- WAL에 기록하는 정보의 양 (기본 replica)</span>
+<span class="kw">SHOW</span> synchronous_commit;                    <span class="cm">-- on: 커밋 때 WAL을 디스크에 기록하고 응답</span>
+<span class="kw">SELECT</span> <span class="fn">pg_current_wal_lsn</span>();               <span class="cm">-- 현재 WAL 쓰기 위치</span>
+<span class="kw">CHECKPOINT</span>;                                 <span class="cm">-- 체크포인트를 바로 실행 (보통은 자동)</span>
+
+<span class="cm">-- postgresql.conf: WAL 아카이브 켜기</span>
+<span class="cm">-- archive_mode = on</span>
+<span class="cm">-- archive_command = 'test ! -f /archive/%f &amp;&amp; cp %p /archive/%f'</span>
+
+<span class="cm">-- 셸: 베이스 백업</span>
+<span class="cm">-- pg_basebackup -D /backup/base -Ft -z -P</span>
+
+<span class="cm">-- 복구할 때 (postgresql.conf)</span>
+<span class="cm">-- restore_command = 'cp /archive/%f %p'</span>
+<span class="cm">-- recovery_target_time = '2026-10-06 14:30:00'</span>
+<span class="cm">-- 데이터 디렉터리에 recovery.signal 파일을 만들고 서버를 시작</span></pre>
+            </div>
+            <p class="code-desc">
+                PostgreSQL은 모든 변경을 WAL에 먼저 기록하며, synchronous_commit이 on이면 커밋 때 WAL을 디스크에 기록한 뒤 응답합니다. CHECKPOINT는 더티 페이지를 데이터 파일에 쓰는 체크포인트를 즉시 실행하며 superuser 또는 pg_checkpoint 롤만 실행할 수 있고, 평소에는 서버가 자동으로 실행합니다. 동기 대기 서버를 설정하면 on은 그 서버의 기록까지 기다립니다. 시각화의 WAL 원칙 탭이 보여 주는 순서입니다.
+                PITR을 쓰려면 archive_mode와 archive_command로 WAL을 보관하고, pg_basebackup으로 베이스 백업을 받아 둡니다. 복구할 때는 베이스 백업을 복원한 뒤 restore_command로 보관한 WAL을 가져오고 recovery_target_time으로 멈출 시점을 정해, recovery.signal 파일을 만들고 서버를 시작합니다(PostgreSQL 12 이상). 경로와 시각은 환경마다 다르고, 자세한 절차는 PostgreSQL 문서를 따라야 합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — WAL과 장애 복구 모델</p>
+            <div class="code-block">
+<pre><span class="kw">class</span> <span class="fn">Db</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self):
+        self.disk = {<span class="st">'x'</span>: <span class="num">1</span>, <span class="st">'y'</span>: <span class="num">5</span>}          <span class="cm"># 데이터 파일</span>
+        self.wal = &#91;&#93;                         <span class="cm"># 디스크의 WAL</span>
+        self.mem = <span class="fn">dict</span>(self.disk)            <span class="cm"># 메모리 버퍼</span>
+        self.ckpt = <span class="num">0</span>                         <span class="cm"># 마지막 체크포인트 이후 WAL 시작 위치</span>
+
+    <span class="kw">def</span> <span class="fn">write</span>(self, tx, key, value):
+        self.wal.<span class="fn">append</span>((tx, <span class="st">'SET'</span>, key, self.mem&#91;key&#93;, value))   <span class="cm"># 로그를 먼저 기록</span>
+        self.mem&#91;key&#93; = value                                     <span class="cm"># 그 다음 메모리 페이지 변경</span>
+
+    <span class="kw">def</span> <span class="fn">commit</span>(self, tx):
+        self.wal.<span class="fn">append</span>((tx, <span class="st">'COMMIT'</span>))       <span class="cm"># 커밋 기록이 디스크에 닿으면 커밋 완료</span>
+
+    <span class="kw">def</span> <span class="fn">checkpoint</span>(self):
+        self.disk = <span class="fn">dict</span>(self.mem)            <span class="cm"># 더티 페이지를 데이터 파일에 기록</span>
+        self.ckpt = <span class="fn">len</span>(self.wal)
+
+    <span class="kw">def</span> <span class="fn">crash_and_recover</span>(self):
+        self.mem = <span class="fn">dict</span>(self.disk)            <span class="cm"># 메모리는 사라지고 데이터 파일만 남음</span>
+        committed = {r&#91;<span class="num">0</span>&#93; <span class="kw">for</span> r <span class="kw">in</span> self.wal&#91;self.ckpt:&#93; <span class="kw">if</span> r&#91;<span class="num">1</span>&#93; == <span class="st">'COMMIT'</span>}
+        <span class="kw">for</span> r <span class="kw">in</span> self.wal&#91;self.ckpt:&#93;:        <span class="cm"># 체크포인트 이후 WAL 재생(redo)</span>
+            <span class="kw">if</span> r&#91;<span class="num">1</span>&#93; == <span class="st">'SET'</span> <span class="kw">and</span> r&#91;<span class="num">0</span>&#93; <span class="kw">in</span> committed:
+                self.mem&#91;r&#91;<span class="num">2</span>&#93;&#93; = r&#91;<span class="num">4</span>&#93;
+        <span class="kw">return</span> self.mem
+
+db = <span class="fn">Db</span>()
+db.<span class="fn">write</span>(<span class="st">'T1'</span>, <span class="st">'x'</span>, <span class="num">2</span>)
+db.<span class="fn">commit</span>(<span class="st">'T1'</span>)                               <span class="cm"># T1 커밋 (데이터 파일에는 아직 x = 1)</span>
+db.<span class="fn">write</span>(<span class="st">'T2'</span>, <span class="st">'y'</span>, <span class="num">9</span>)                        <span class="cm"># T2는 커밋하지 못한 채 장애</span>
+<span class="fn">print</span>(<span class="st">'장애 직전:'</span>, db.mem, <span class="st">'데이터 파일:'</span>, db.disk)
+<span class="fn">print</span>(<span class="st">'복구 결과:'</span>, db.<span class="fn">crash_and_recover</span>())
+<span class="fn">print</span>(<span class="st">'WAL:'</span>, db.wal)
+<span class="cm"># 장애 직전: {'x': 2, 'y': 9} 데이터 파일: {'x': 1, 'y': 5}</span>
+<span class="cm"># 복구 결과: {'x': 2, 'y': 5}</span>
+<span class="cm"># WAL: &#91;('T1', 'SET', 'x', 1, 2), ('T1', 'COMMIT'), ('T2', 'SET', 'y', 5, 9)&#93;</span></pre>
+            </div>
+            <p class="code-desc">
+                WAL의 순서를 옮긴 장난감 모델입니다. write는 로그를 먼저 쓰고 메모리를 바꾸며, commit은 커밋 기록을 남깁니다. T1이 커밋하고 T2가 커밋하지 못한 채 장애가 나면 메모리의 x = 2, y = 9는 사라지고 데이터 파일에는 옛 값 x = 1, y = 5만 남습니다.
+                복구는 체크포인트 이후의 WAL을 재생하되 이 모델은 설명을 위해 커밋 기록이 있는 T1만 반영하므로 x = 2, y = 5가 됩니다. 실제 PostgreSQL은 로그를 모두 재생한 뒤 커밋되지 않은 변경을 MVCC 규칙으로 보이지 않게 둡니다. 시각화의 장애 복구 탭과 같은 결과입니다. 실제 데이터베이스는 페이지 단위의 로그, 일련번호(LSN), 동시에 실행되는 여러 트랜잭션을 함께 다루므로 훨씬 복잡합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 베이스 백업에 WAL을 재생하는 PITR 모델</p>
+            <div class="code-block">
+<pre><span class="kw">record</span> Wal(<span class="kw">int</span> t, String op, String key, Integer val) {}
+
+<span class="kw">static</span> Map&lt;String, Integer&gt; <span class="fn">restore</span>(Map&lt;String, Integer&gt; base, List&lt;Wal&gt; archive, <span class="kw">int</span> target) {
+    Map&lt;String, Integer&gt; db = <span class="kw">new</span> TreeMap&lt;&gt;(base);          <span class="cm">// 베이스 백업을 복원</span>
+    <span class="kw">for</span> (Wal w : archive) {
+        <span class="kw">if</span> (w.<span class="fn">t</span>() &gt; target) <span class="kw">break</span>;                          <span class="cm">// 복구 목표 시점에서 멈춤</span>
+        <span class="kw">if</span> (w.<span class="fn">op</span>().<span class="fn">equals</span>(<span class="st">"SET"</span>)) db.<span class="fn">put</span>(w.<span class="fn">key</span>(), w.<span class="fn">val</span>());
+        <span class="kw">else</span> db.<span class="fn">remove</span>(w.<span class="fn">key</span>());
+    }
+    <span class="kw">return</span> db;
+}
+
+Map&lt;String, Integer&gt; base = Map.<span class="fn">of</span>(<span class="st">"x"</span>, <span class="num">1</span>, <span class="st">"y"</span>, <span class="num">5</span>);       <span class="cm">// t = 0의 베이스 백업</span>
+List&lt;Wal&gt; archive = List.<span class="fn">of</span>(
+    <span class="kw">new</span> Wal(<span class="num">1</span>, <span class="st">"SET"</span>, <span class="st">"x"</span>, <span class="num">2</span>), <span class="kw">new</span> Wal(<span class="num">3</span>, <span class="st">"SET"</span>, <span class="st">"y"</span>, <span class="num">9</span>),
+    <span class="kw">new</span> Wal(<span class="num">4</span>, <span class="st">"SET"</span>, <span class="st">"x"</span>, <span class="num">3</span>), <span class="kw">new</span> Wal(<span class="num">5</span>, <span class="st">"DELETE"</span>, <span class="st">"x"</span>, <span class="kw">null</span>));
+System.out.<span class="fn">println</span>(<span class="st">"t=4까지: "</span> + <span class="fn">restore</span>(base, archive, <span class="num">4</span>));   <span class="cm">// t=4까지: {x=3, y=9}</span>
+System.out.<span class="fn">println</span>(<span class="st">"끝까지: "</span> + <span class="fn">restore</span>(base, archive, <span class="num">8</span>));      <span class="cm">// 끝까지: {y=9}</span></pre>
+            </div>
+            <p class="code-desc">
+                PITR의 핵심을 옮긴 모델입니다. 베이스 백업(x = 1, y = 5)을 복원한 뒤 WAL을 시각 순서대로 재생하되 목표 시점을 넘으면 멈춥니다. 목표를 t = 4로 하면 x = 3, y = 9가 되어 t = 5의 DELETE가 반영되지 않은 사고 직전 상태가 되고, 끝까지 재생하면 x가 지워진 {y=9}가 됩니다. 시각화의 PITR 탭이 보여 주는 결과입니다.
+                실제 PITR은 WAL 레코드를 파일 단위로 아카이브에서 가져와 순서대로 재생하며, 시각 외에 트랜잭션 번호나 위치 같은 값으로도 멈출 지점을 정할 수 있습니다. 이 코드는 개념 설명용입니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
