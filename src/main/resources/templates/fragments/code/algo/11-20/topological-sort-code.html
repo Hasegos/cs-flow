@@ -1,0 +1,107 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — Kahn 알고리즘 (진입 차수 기반)</p>
+            <div class="code-block">
+<pre><span class="kw">from</span> collections <span class="kw">import</span> deque
+
+graph = {                                      <span class="cm"># 간선 u → v 는 "u가 v보다 먼저"</span>
+    <span class="st">'A'</span>: &#91;<span class="st">'C'</span>&#93;,
+    <span class="st">'B'</span>: &#91;<span class="st">'C'</span>, <span class="st">'D'</span>&#93;,
+    <span class="st">'C'</span>: &#91;<span class="st">'E'</span>&#93;,
+    <span class="st">'D'</span>: &#91;<span class="st">'E'</span>, <span class="st">'F'</span>&#93;,
+    <span class="st">'E'</span>: &#91;&#93;,
+    <span class="st">'F'</span>: &#91;&#93;,
+}
+
+<span class="kw">def</span> <span class="fn">kahn</span>(graph):
+    indeg = {v: <span class="num">0</span> <span class="kw">for</span> v <span class="kw">in</span> graph}
+    <span class="kw">for</span> v <span class="kw">in</span> graph:
+        <span class="kw">for</span> w <span class="kw">in</span> graph&#91;v&#93;:
+            indeg&#91;w&#93; += <span class="num">1</span>                    <span class="cm"># 진입 차수 계산</span>
+    q = <span class="fn">deque</span>(v <span class="kw">for</span> v <span class="kw">in</span> graph <span class="kw">if</span> indeg&#91;v&#93; == <span class="num">0</span>)
+    order = &#91;&#93;
+    <span class="kw">while</span> q:
+        v = q.<span class="fn">popleft</span>()
+        order.<span class="fn">append</span>(v)
+        <span class="kw">for</span> w <span class="kw">in</span> graph&#91;v&#93;:
+            indeg&#91;w&#93; -= <span class="num">1</span>                    <span class="cm"># v에서 나가는 간선을 지운다</span>
+            <span class="kw">if</span> indeg&#91;w&#93; == <span class="num">0</span>:
+                q.<span class="fn">append</span>(w)
+    <span class="kw">return</span> order <span class="kw">if</span> <span class="fn">len</span>(order) == <span class="fn">len</span>(graph) <span class="kw">else None</span>
+
+<span class="fn">print</span>(<span class="fn">kahn</span>(graph))                         <span class="cm"># &#91;'A', 'B', 'C', 'D', 'E', 'F'&#93;</span>
+
+cyc = <span class="fn">dict</span>(graph)
+cyc&#91;<span class="st">'E'</span>&#93; = &#91;<span class="st">'A'</span>&#93;                           <span class="cm"># A → C → E → A 사이클</span>
+<span class="fn">print</span>(<span class="fn">kahn</span>(cyc))                           <span class="cm"># None</span></pre>
+            </div>
+            <p class="code-desc">
+                Kahn 알고리즘은 먼저 모든 정점의 진입 차수(들어오는 간선 수)를 셉니다. 진입 차수가 0인 정점은 먼저 와야 할 정점이 없으므로 큐에 넣고, 큐에서 꺼낼 때마다 그 정점을 결과에 넣은 뒤 나가는 간선을 지워 이웃의 진입 차수를 1씩 줄입니다. 진입 차수가 0이 된 이웃은 큐에 넣습니다. 이 그래프에서는 A와 B로 시작해 A, B, C, D, E, F 순서가 나옵니다.
+                큐가 빌 때까지 반복한 뒤 결과의 길이가 정점 수와 같으면 위상 순서이고, 모자라면 사이클이 있다는 뜻입니다. E에서 A로 가는 간선을 더해 A, C, E가 사이클을 이루게 하면 진입 차수가 0이 되지 않는 A, C, E는 큐에 들어가지 못해 함수가 None을 돌려줍니다. 시각화의 Kahn 알고리즘 탭과 사이클 탐지 탭이 보여 주는 과정과 같습니다. 정점과 간선을 한 번씩 처리하므로 O(V + E)입니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — DFS 종료 순서를 뒤집는 방식</p>
+            <div class="code-block">
+<pre><span class="kw">def</span> <span class="fn">dfs_sort</span>(graph):
+    state = {}                                  <span class="cm"># 1: 탐색 중, 2: 종료</span>
+    out = &#91;&#93;
+
+    <span class="kw">def</span> <span class="fn">visit</span>(v):
+        state&#91;v&#93; = <span class="num">1</span>
+        <span class="kw">for</span> w <span class="kw">in</span> graph&#91;v&#93;:
+            <span class="kw">if</span> state.<span class="fn">get</span>(w) == <span class="num">1</span>:
+                <span class="kw">raise</span> <span class="fn">ValueError</span>(<span class="st">'cycle'</span>)      <span class="cm"># 탐색 중인 정점으로 되돌아옴</span>
+            <span class="kw">if</span> w <span class="kw">not in</span> state:
+                <span class="fn">visit</span>(w)
+        state&#91;v&#93; = <span class="num">2</span>
+        out.<span class="fn">append</span>(v)                         <span class="cm"># 끝나는 순서대로 기록</span>
+
+    <span class="kw">for</span> v <span class="kw">in</span> graph:
+        <span class="kw">if</span> v <span class="kw">not in</span> state:
+            <span class="fn">visit</span>(v)
+    <span class="kw">return</span> out&#91;::-<span class="num">1</span>&#93;                           <span class="cm"># 뒤집으면 위상 순서</span>
+
+<span class="fn">print</span>(<span class="fn">dfs_sort</span>(graph))                     <span class="cm"># &#91;'B', 'D', 'F', 'A', 'C', 'E'&#93;</span>
+<span class="kw">try</span>:
+    <span class="fn">dfs_sort</span>(cyc)
+<span class="kw">except</span> <span class="fn">ValueError</span> <span class="kw">as</span> e:
+    <span class="fn">print</span>(<span class="st">'ValueError'</span>, e)               <span class="cm"># ValueError cycle</span></pre>
+            </div>
+            <p class="code-desc">
+                DFS 방식은 깊이 우선 탐색을 하면서 정점의 탐색이 끝나는 순서를 기록하고, 마지막에 그 순서를 뒤집습니다. DAG에서는 간선 u → v가 있으면 v의 탐색이 u보다 먼저 끝나므로, 뒤집은 순서에서는 u가 v보다 앞에 옵니다. 이 그래프에서는 E, C, A, F, D, B 순서로 끝나고, 뒤집으면 B, D, F, A, C, E입니다. Kahn 알고리즘의 결과와 다르지만 모든 간선이 앞에서 뒤로 향하므로 둘 다 올바른 위상 순서입니다.
+                정점이 탐색 중(1)일 때 그 정점으로 되돌아오는 간선을 만나면 사이클입니다. 사이클을 만든 그래프에 적용하면 ValueError가 발생합니다. 재귀로 구현해서 정점이 매우 많은 그래프에서는 재귀 깊이 제한에 걸릴 수 있으며, 그런 경우에는 Kahn 방식이나 명시적 스택을 씁니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — 표준 라이브러리 graphlib</p>
+            <div class="code-block">
+<pre><span class="kw">from</span> graphlib <span class="kw">import</span> TopologicalSorter, CycleError
+
+deps = {                                       <span class="cm"># 키: 작업, 값: 먼저 끝나야 하는 작업들</span>
+    <span class="st">'C'</span>: &#91;<span class="st">'A'</span>, <span class="st">'B'</span>&#93;,
+    <span class="st">'D'</span>: &#91;<span class="st">'B'</span>&#93;,
+    <span class="st">'E'</span>: &#91;<span class="st">'C'</span>, <span class="st">'D'</span>&#93;,
+    <span class="st">'F'</span>: &#91;<span class="st">'D'</span>&#93;,
+}
+<span class="fn">print</span>(<span class="fn">list</span>(<span class="fn">TopologicalSorter</span>(deps).<span class="fn">static_order</span>()))
+<span class="cm"># &#91;'A', 'B', 'C', 'D', 'E', 'F'&#93;</span>
+
+deps&#91;<span class="st">'A'</span>&#93; = &#91;<span class="st">'E'</span>&#93;                           <span class="cm"># 사이클 추가</span>
+<span class="kw">try</span>:
+    <span class="fn">list</span>(<span class="fn">TopologicalSorter</span>(deps).<span class="fn">static_order</span>())
+<span class="kw">except</span> CycleError:
+    <span class="fn">print</span>(<span class="st">'CycleError'</span>)                   <span class="cm"># CycleError</span></pre>
+            </div>
+            <p class="code-desc">
+                파이썬 3.9부터 표준 라이브러리에 graphlib.TopologicalSorter가 들어 있습니다. 위의 두 함수와 달리 그래프를 "정점 → 먼저 끝나야 하는 정점들"의 형태로 받으며, static_order()는 위상 순서를 차례로 돌려주고 사이클이 있으면 CycleError를 일으킵니다. 빌드 작업이나 데이터 파이프라인처럼 작업의 선후 관계를 순서로 바꾸는 일에 바로 쓸 수 있습니다.
+                위상 순서는 하나로 정해지지 않는 경우가 많아서, 같은 그래프라도 입력을 넣은 순서에 따라 결과가 다를 수 있습니다. 순서에 의존하는 코드를 쓰기보다 모든 간선이 앞에서 뒤로 향하는지를 기준으로 확인하세요.
+            </p>
+        </div>
+
+    </div>
+</th:block>
