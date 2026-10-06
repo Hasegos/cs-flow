@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">LRU 캐시 구현 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/ds/11-20/lru-cache-impl.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/ds}" class="topic-breadcrumb__link">자료구조</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">LRU 캐시 구현</span>
+                </nav>
+
+                <span class="topic-hero__slug">ds · 16</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">LRU 캐시 구현</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+                <button type="button" class="topic-like" th:classappend="${liked} ? ' topic-like--active' : ''" th:attr="data-topic-slug=${topic.slug}">
+                    <svg class="topic-like__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <span class="topic-like__count" th:text="${likeCount}">0</span>
+                </button>
+                <div class="topic-share">
+                    <button type="button" class="topic-share__btn topic-share__btn--copy" aria-label="링크 복사">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="topic-share__btn topic-share__btn--kakao" aria-label="카카오톡 공유">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                        </svg>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+                <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        캐시는 작고 빠른 저장소라서 모든 데이터를 담을 수 없고, 가득 차면 무엇을 버릴지 정해야 합니다. 그 기준으로 널리 쓰이는 것이 <strong>LRU(Least Recently Used)</strong>입니다. 가장 오래 사용되지 않은 항목을 버린다는 뜻으로, 최근에 쓴 데이터는 곧 다시 쓰일 가능성이 높다는 시간 지역성(temporal locality)에 기대는 정책입니다.
+                    </p>
+                    <p class="overview-lead">
+                        LRU 정책을 말로만 설명하면 쉽지만, 조회와 삽입, 제거를 모두 O(1)에 하려면 자료구조를 골라야 합니다. 표준적인 구현은 <strong>해시맵과 이중 연결 리스트의 조합</strong>입니다. 해시맵은 키로 노드를 O(1)에 찾고, 이중 연결 리스트는 사용 순서를 담아 노드를 O(1)에 떼어 맨 앞으로 옮기거나 맨 뒤를 제거합니다. 이 토픽에서는 두 구조가 함께 움직이는 모습을 단계별로 봅니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">LRU 정책</h3>
+                            <p class="overview-card__desc">용량이 가득 찼을 때 가장 오래 사용되지 않은 항목을 제거합니다. 기준은 삽입 순서가 아니라 마지막으로 사용한 시점입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">해시맵</h3>
+                            <p class="overview-card__desc">키에서 리스트 노드로 가는 길을 만들어, 항목을 찾는 데 리스트를 훑지 않아도 되게 합니다. 평균 O(1)로 조회합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">이중 연결 리스트</h3>
+                            <p class="overview-card__desc">앞쪽이 가장 최근, 뒤쪽이 가장 오래된 항목인 순서를 유지합니다. 노드가 앞뒤 포인터를 모두 가져 중간 노드도 O(1)에 떼어 낼 수 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">조회 = 맨 앞으로 이동</h3>
+                            <p class="overview-card__desc">get으로 항목을 쓰면 그 노드를 떼어 리스트 맨 앞으로 옮깁니다. 값을 갱신하는 put도 사용으로 보고 같은 방식으로 처리합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">용량 초과 시 맨 뒤 제거</h3>
+                            <p class="overview-card__desc">새 키를 넣을 때 가득 차 있으면 리스트 맨 뒤 노드를 제거하고 해시맵에서도 그 키를 지웁니다. 둘 중 하나만 지우면 불일치가 생깁니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">더미 노드</h3>
+                            <p class="overview-card__desc">값이 없는 head와 tail 노드를 양 끝에 두면, 리스트가 비었거나 노드가 하나일 때의 예외 처리 없이 같은 코드로 삽입과 삭제를 합니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>get과 put이 모두 평균 O(1)입니다</strong> — 해시맵 조회, 리스트에서 노드 떼기, 맨 앞 삽입, 맨 뒤 제거가 각각 O(1)이기 때문입니다. 해시 충돌이 심하면 해시맵 쪽이 느려질 수 있어 "평균"입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>단일 구조로는 O(1)이 안 됩니다</strong> — 배열이나 단일 연결 리스트만으로는 찾기나 순서 변경 중 하나가 O(n)입니다. 일반적인 해시맵은 사용 순서를 알지 못하고 리스트는 찾기가 느려서 둘을 합칩니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공간은 O(용량)입니다</strong> — 항목마다 노드 하나와 해시맵 항목 하나만 가지며, 용량을 넘기지 않으므로 메모리가 일정하게 유지됩니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>FIFO와 다릅니다</strong> — FIFO는 먼저 들어온 항목을 버리지만 LRU는 오래 쓰지 않은 항목을 버립니다. 자주 조회되는 오래된 항목은 LRU에서 살아남습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "구조" 탭에서 해시맵과 리스트가 함께 채워지는 모양을, "조회" 탭에서 조회한 노드가 맨 앞으로 이동하는 과정을, "제거" 탭에서 가득 찼을 때 맨 뒤(빨간색)가 제거되는 과정을 STEP으로 확인하세요.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">LRU의 배경</h2>
+                    <p class="overview-lead">
+                        LRU는 가상 메모리의 페이지 교체 알고리즘으로 일찍부터 연구되었습니다. 1966년 벨레이디(Belady)는 가상 기억 장치 컴퓨터의 여러 교체 알고리즘을 다룬 논문을 발표했고, 이 연구에서 앞으로 가장 늦게 쓰일 페이지를 버리는 최적 알고리즘이 비교 기준으로 쓰입니다. 미래를 알 수 없으므로 과거의 사용 이력으로 미래를 짐작하는 LRU가 실용적인 대안이 되었고, 지금은 운영체제의 페이지 교체, 데이터베이스 버퍼 풀, 애플리케이션 캐시에서 LRU 또는 그 변형이 쓰입니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>조회</strong> — 용량 3인 캐시에 키 1, 2, 3을 넣으면 리스트는 3, 2, 1 순서입니다. get(1)을 하면 노드 1이 맨 앞으로 이동해 순서가 1, 3, 2가 됩니다. 노드 하나를 떼어 붙이는 일이라 항목 수와 무관하게 O(1)입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>제거</strong> — 그 상태에서 put(4, D)를 하면 맨 뒤인 키 2가 제거되고 순서가 4, 1, 3이 됩니다. 삽입 순서(FIFO)였다면 먼저 들어온 키 1이 제거됐을 것입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>파이썬 확인</strong> — maxsize=2인 lru_cache로 sq(1), sq(2), sq(1), sq(3)을 호출하면 적중 1번, 미스 3번이고 항목은 2개만 남습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>자바 확인</strong> — 접근 순서 LinkedHashMap에 용량 3으로 1, 2, 3을 넣고 1을 조회한 뒤 4를 넣으면 키 순서가 3, 1, 4이고 2는 사라집니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>조회만 하면 순서가 안 바뀐다</strong> — LRU에서는 조회도 사용입니다. get할 때 노드를 맨 앞으로 옮기지 않으면 자주 조회되는 항목이 먼저 제거되는 버그가 생깁니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>해시맵만으로 충분하다</strong> — 해시맵은 가장 오래된 항목이 무엇인지 모릅니다. 순서를 유지하는 이중 연결 리스트가 있어야 제거 대상을 O(1)에 찾습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>단일 연결 리스트로도 된다</strong> — 해시맵으로 중간 노드를 찾아도 단일 연결 리스트는 이전 노드를 몰라서 떼어 내려면 앞에서부터 찾아야 합니다. 이전 노드를 따로 기록하는 우회도 있지만, 이전 포인터가 있는 이중 연결 리스트가 가장 단순합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>LRU가 항상 최적이다</strong> — 한 번 훑고 지나가는 대량 스캔 같은 접근 패턴에서는 오히려 쓸모 있는 항목을 밀어낼 수 있습니다. 그래서 실제 시스템은 LRU를 변형하거나 근사해서 씁니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">LRU 캐시를 O(1)로 구현하려면?</h3>
+                            <p class="overview-card__desc">해시맵은 키로 노드를 찾고 이중 연결 리스트는 사용 순서를 유지합니다. get은 노드를 맨 앞으로 옮기고, put은 가득 찼을 때 맨 뒤 노드를 리스트와 해시맵에서 지운 뒤 맨 앞에 넣습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">왜 이중 연결 리스트인가요?</h3>
+                            <p class="overview-card__desc">해시맵으로 찾은 중간 노드를 O(1)에 떼어 내려면 앞 노드의 포인터를 고쳐야 하므로 앞 노드를 바로 알아야 합니다. 이전 포인터를 가진 이중 연결 리스트가 이를 가장 단순하게 가능하게 합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">LRU와 LFU, FIFO의 차이는?</h3>
+                            <p class="overview-card__desc">FIFO는 들어온 순서, LRU는 마지막 사용 시점, LFU(Least Frequently Used)는 사용 횟수가 기준입니다. LRU는 최근성, LFU는 빈도를 중시합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">멀티스레드에서는 어떻게 하나요?</h3>
+                            <p class="overview-card__desc">get도 리스트를 바꾸므로 읽기 연산이어도 동기화가 필요합니다. 전체에 락을 거는 방법, 샤딩처럼 락 범위를 줄이는 방법, 직접 만들기보다 동시성을 지원하는 캐시 라이브러리를 쓰는 방법이 있습니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>운영체제 페이지 교체</strong> — 메모리가 부족할 때 쫓아낼 페이지를 고르는 정책으로 LRU와 그 근사가 쓰입니다. 하드웨어가 페이지 접근 때 켜 주는 접근 비트(참조 비트)를 이용해 LRU를 근사하는 방식(예: 클럭 알고리즘)을 많은 시스템이 씁니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Redis</strong> — maxmemory 정책에 allkeys-lru, volatile-lru가 있으며, 정확한 LRU 대신 표본을 뽑아 근사하는 방식으로 구현됩니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>데이터베이스 버퍼 풀</strong> — MySQL InnoDB의 버퍼 풀은 LRU 리스트를 변형해 쓰며, 한 번 읽고 마는 스캔이 캐시를 덜 밀어내도록 새 페이지를 리스트 중간 지점에 삽입합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>언어 표준 라이브러리</strong> — 파이썬의 functools.lru_cache, 자바의 LinkedHashMap 접근 순서 모드가 LRU를 쉽게 쓰게 해 줍니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/ds/hash-table}">해시 테이블</a> — LRU가 키 조회에 쓰는 해시맵의 원리를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/ds/array-linkedlist}">배열과 연결 리스트</a> — 이중 연결 리스트의 삽입과 삭제를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/virtual-memory-os}">가상 메모리</a> — LRU가 페이지 교체 정책으로 쓰이는 곳을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/arch/cache-memory}">캐시 메모리</a> — 시간 지역성과 캐시 교체를 하드웨어 관점에서 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>논문</strong> — Belady, L. A., "A study of replacement algorithms for a virtual-storage computer", IBM Systems Journal 5(2), 1966</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://redis.io/docs/latest/develop/reference/eviction/" target="_blank" rel="noopener">Redis Key eviction</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://dev.mysql.com/doc/refman/8.4/en/innodb-buffer-pool.html" target="_blank" rel="noopener">MySQL InnoDB Buffer Pool</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://docs.python.org/3/library/functools.html#functools.lru_cache" target="_blank" rel="noopener">Python functools.lru_cache</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/LinkedHashMap.html" target="_blank" rel="noopener">Java LinkedHashMap</a></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/ds/11-20/lru-cache-impl-code :: code}"></th:block>
+            </div>
+
+            <!-- 탭 4: 퀴즈 -->
+            <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
+                <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+    <script th:src="@{/js/quiz.js}"></script>
+    <script th:src="@{/js/like.js}"></script>
+    <script th:src="@{/js/share.js}"></script>
+</body>
+</html>

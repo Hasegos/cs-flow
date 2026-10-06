@@ -1,0 +1,148 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — 해시맵과 이중 연결 리스트로 직접 구현</p>
+            <div class="code-block">
+<pre><span class="kw">class</span> <span class="fn">Node</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, key=<span class="num">0</span>, val=<span class="num">0</span>):
+        self.key, self.val = key, val
+        self.prev = self.next = <span class="kw">None</span>
+
+<span class="kw">class</span> <span class="fn">LRUCache</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, capacity):
+        self.cap = capacity
+        self.map = {}                           <span class="cm"># key -&gt; Node</span>
+        self.head, self.tail = <span class="fn">Node</span>(), <span class="fn">Node</span>()   <span class="cm"># 더미 노드로 경계 처리를 없앤다</span>
+        self.head.next, self.tail.prev = self.tail, self.head
+
+    <span class="kw">def</span> <span class="fn">_remove</span>(self, node):
+        node.prev.next, node.next.prev = node.next, node.prev
+
+    <span class="kw">def</span> <span class="fn">_add_front</span>(self, node):
+        node.prev, node.next = self.head, self.head.next
+        self.head.next.prev = node
+        self.head.next = node
+
+    <span class="kw">def</span> <span class="fn">get</span>(self, key):
+        <span class="kw">if</span> key <span class="kw">not in</span> self.map:
+            <span class="kw">return</span> <span class="kw">None</span>
+        node = self.map&#91;key&#93;
+        self.<span class="fn">_remove</span>(node)
+        self.<span class="fn">_add_front</span>(node)                  <span class="cm"># 사용했으니 맨 앞으로</span>
+        <span class="kw">return</span> node.val
+
+    <span class="kw">def</span> <span class="fn">put</span>(self, key, val):
+        <span class="kw">if</span> key <span class="kw">in</span> self.map:
+            node = self.map&#91;key&#93;
+            node.val = val
+            self.<span class="fn">_remove</span>(node)
+            self.<span class="fn">_add_front</span>(node)
+            <span class="kw">return</span>
+        <span class="kw">if</span> <span class="fn">len</span>(self.map) == self.cap:
+            lru = self.tail.prev                <span class="cm"># 맨 뒤 = 가장 오래 쓰지 않은 노드</span>
+            self.<span class="fn">_remove</span>(lru)
+            <span class="kw">del</span> self.map&#91;lru.key&#93;
+        node = <span class="fn">Node</span>(key, val)
+        self.map&#91;key&#93; = node
+        self.<span class="fn">_add_front</span>(node)
+
+    <span class="kw">def</span> <span class="fn">keys</span>(self):                       <span class="cm"># 최근 → 오래된 순서</span>
+        out, n = &#91;&#93;, self.head.next
+        <span class="kw">while</span> n <span class="kw">is not</span> self.tail:
+            out.<span class="fn">append</span>(n.key); n = n.next
+        <span class="kw">return</span> out
+
+c = <span class="fn">LRUCache</span>(<span class="num">3</span>)
+c.<span class="fn">put</span>(<span class="num">1</span>, <span class="st">'A'</span>); c.<span class="fn">put</span>(<span class="num">2</span>, <span class="st">'B'</span>); c.<span class="fn">put</span>(<span class="num">3</span>, <span class="st">'C'</span>)
+<span class="fn">print</span>(c.<span class="fn">keys</span>())                         <span class="cm"># &#91;3, 2, 1&#93;</span>
+<span class="fn">print</span>(c.<span class="fn">get</span>(<span class="num">1</span>), c.<span class="fn">keys</span>())               <span class="cm"># A &#91;1, 3, 2&#93;</span>
+<span class="fn">print</span>(c.<span class="fn">get</span>(<span class="num">9</span>))                          <span class="cm"># None</span>
+c.<span class="fn">put</span>(<span class="num">4</span>, <span class="st">'D'</span>)
+<span class="fn">print</span>(c.<span class="fn">keys</span>(), <span class="num">2</span> <span class="kw">in</span> c.map)              <span class="cm"># &#91;4, 1, 3&#93; False</span>
+c.<span class="fn">put</span>(<span class="num">3</span>, <span class="st">'E'</span>)
+<span class="fn">print</span>(c.<span class="fn">keys</span>(), c.<span class="fn">get</span>(<span class="num">3</span>))               <span class="cm"># &#91;3, 4, 1&#93; E</span></pre>
+            </div>
+            <p class="code-desc">
+                map은 키로 노드를 O(1)에 찾게 해 주고, 이중 연결 리스트는 노드를 O(1)에 떼어 맨 앞에 붙이게 해 줍니다. head와 tail은 값이 없는 더미 노드라서 리스트가 비어 있거나 노드가 하나일 때도 앞뒤 포인터를 같은 식으로 고칠 수 있습니다.
+                get은 노드를 찾아 맨 앞으로 옮기고 값을 돌려줍니다. put은 이미 있는 키면 값을 바꾸고 맨 앞으로 옮기고, 새 키인데 가득 찼으면 tail 바로 앞 노드(가장 오래 쓰지 않은 항목)를 리스트와 map에서 지운 뒤 새 노드를 맨 앞에 넣습니다. 시각화의 세 탭이 보여 주는 순서와 같습니다.
+                1, 2, 3을 넣고 1을 조회하면 순서가 1, 3, 2가 되고, 키 4를 넣을 때 맨 뒤인 2가 제거됩니다. 가장 먼저 들어온 1이 아니라 가장 오래 쓰지 않은 2가 제거되는 것이 FIFO와 다른 점입니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — OrderedDict와 functools.lru_cache</p>
+            <div class="code-block">
+<pre><span class="kw">from</span> collections <span class="kw">import</span> OrderedDict
+
+<span class="kw">class</span> <span class="fn">LRU2</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, cap):
+        self.cap, self.d = cap, <span class="fn">OrderedDict</span>()
+
+    <span class="kw">def</span> <span class="fn">get</span>(self, k):
+        <span class="kw">if</span> k <span class="kw">not in</span> self.d: <span class="kw">return</span> <span class="kw">None</span>
+        self.d.<span class="fn">move_to_end</span>(k)               <span class="cm"># 사용한 키를 맨 뒤(최근)로</span>
+        <span class="kw">return</span> self.d&#91;k&#93;
+
+    <span class="kw">def</span> <span class="fn">put</span>(self, k, v):
+        self.d&#91;k&#93; = v
+        self.d.<span class="fn">move_to_end</span>(k)
+        <span class="kw">if</span> <span class="fn">len</span>(self.d) &gt; self.cap:
+            self.d.<span class="fn">popitem</span>(last=<span class="kw">False</span>)      <span class="cm"># 맨 앞(가장 오래된) 항목 제거</span>
+
+c2 = <span class="fn">LRU2</span>(<span class="num">3</span>)
+<span class="kw">for</span> k, v <span class="kw">in</span> &#91;(<span class="num">1</span>, <span class="st">'A'</span>), (<span class="num">2</span>, <span class="st">'B'</span>), (<span class="num">3</span>, <span class="st">'C'</span>)&#93;: c2.<span class="fn">put</span>(k, v)
+c2.<span class="fn">get</span>(<span class="num">1</span>)
+c2.<span class="fn">put</span>(<span class="num">4</span>, <span class="st">'D'</span>)
+<span class="fn">print</span>(<span class="fn">list</span>(c2.d))                      <span class="cm"># &#91;3, 1, 4&#93; (오래된 → 최근)</span>
+
+<span class="kw">from</span> functools <span class="kw">import</span> lru_cache
+
+<span class="fn">@lru_cache</span>(maxsize=<span class="num">2</span>)
+<span class="kw">def</span> <span class="fn">sq</span>(n): <span class="kw">return</span> n * n
+
+sq(<span class="num">1</span>); sq(<span class="num">2</span>); sq(<span class="num">1</span>); sq(<span class="num">3</span>)
+<span class="fn">print</span>(sq.<span class="fn">cache_info</span>())              <span class="cm"># CacheInfo(hits=1, misses=3, maxsize=2, currsize=2)</span></pre>
+            </div>
+            <p class="code-desc">
+                파이썬의 OrderedDict는 키의 순서를 기억하고 move_to_end와 popitem(last=False)를 O(1)에 지원해서, 위 코드처럼 해시맵과 순서 리스트를 한 객체로 대신합니다. 여기서는 뒤쪽이 최근이고 앞쪽이 가장 오래된 쪽입니다. 시각화와 방향만 반대이고 같은 동작입니다.
+                표준 라이브러리의 functools.lru_cache는 함수 호출 결과를 같은 정책으로 캐시하는 데코레이터입니다. maxsize=2로 sq(1), sq(2), sq(1), sq(3)을 호출하면 두 번째 sq(1)만 적중(hit)하고 나머지 3번은 미스이며, 세 번째 서로 다른 값이 들어올 때 가장 오래 쓰지 않은 sq(2)가 밀려납니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — LinkedHashMap으로 LRU 캐시</p>
+            <div class="code-block">
+<pre><span class="kw">import</span> java.util.LinkedHashMap;
+<span class="kw">import</span> java.util.Map;
+
+<span class="kw">class</span> <span class="fn">LRUCache</span>&lt;K, V&gt; <span class="kw">extends</span> LinkedHashMap&lt;K, V&gt; {
+    <span class="kw">private final int</span> capacity;
+
+    LRUCache(<span class="kw">int</span> capacity) {
+        <span class="kw">super</span>(<span class="num">16</span>, <span class="num">0.75f</span>, <span class="kw">true</span>);          <span class="cm">// true: 접근 순서(access-order)로 유지</span>
+        <span class="kw">this</span>.capacity = capacity;
+    }
+
+    <span class="fn">@Override</span>
+    <span class="kw">protected boolean</span> <span class="fn">removeEldestEntry</span>(Map.Entry&lt;K, V&gt; eldest) {
+        <span class="kw">return</span> <span class="fn">size</span>() &gt; capacity;           <span class="cm">// 넘치면 가장 오래된 항목을 제거</span>
+    }
+}
+
+LRUCache&lt;Integer, String&gt; cache = <span class="kw">new</span> LRUCache&lt;&gt;(<span class="num">3</span>);
+cache.<span class="fn">put</span>(<span class="num">1</span>, <span class="st">"A"</span>); cache.<span class="fn">put</span>(<span class="num">2</span>, <span class="st">"B"</span>); cache.<span class="fn">put</span>(<span class="num">3</span>, <span class="st">"C"</span>);
+cache.<span class="fn">get</span>(<span class="num">1</span>);
+cache.<span class="fn">put</span>(<span class="num">4</span>, <span class="st">"D"</span>);
+System.out.<span class="fn">println</span>(cache.<span class="fn">keySet</span>());          <span class="cm">// &#91;3, 1, 4&#93;</span>
+System.out.<span class="fn">println</span>(cache.<span class="fn">containsKey</span>(<span class="num">2</span>));    <span class="cm">// false</span></pre>
+            </div>
+            <p class="code-desc">
+                자바의 LinkedHashMap은 해시 테이블과 이중 연결 리스트를 함께 가진 맵이고, 생성자의 세 번째 인자를 true로 주면 항목을 조회하거나 넣을 때마다 그 항목을 순서의 맨 끝으로 옮기는 접근 순서 모드가 됩니다. 앞의 직접 구현이 하는 일을 라이브러리가 대신하는 셈입니다.
+                put이 새 항목을 넣은 직후 호출되는 removeEldestEntry가 true를 돌려주면 가장 오래된 항목이 제거되므로, size가 capacity를 넘는지만 검사하면 용량 제한이 완성됩니다. 1, 2, 3을 넣고 1을 조회한 뒤 4를 넣으면 2가 제거되어 키 순서가 3, 1, 4가 됩니다.
+                이 클래스는 스레드에 안전하지 않습니다. 여러 스레드가 함께 쓰려면 바깥에서 동기화하거나 Caffeine 같은 동시성 캐시 라이브러리를 씁니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
