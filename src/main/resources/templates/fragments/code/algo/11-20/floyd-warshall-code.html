@@ -1,0 +1,93 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — 플로이드-워셜과 경로 복원</p>
+            <div class="code-block">
+<pre>INF = <span class="fn">float</span>(<span class="st">'inf'</span>)
+
+<span class="kw">def</span> <span class="fn">floyd_warshall</span>(n, edges):
+    dist = &#91;&#91;INF&#93; * n <span class="kw">for</span> _ <span class="kw">in</span> <span class="fn">range</span>(n)&#93;
+    nxt = &#91;&#91;<span class="kw">None</span>&#93; * n <span class="kw">for</span> _ <span class="kw">in</span> <span class="fn">range</span>(n)&#93;
+    <span class="kw">for</span> i <span class="kw">in</span> <span class="fn">range</span>(n):
+        dist&#91;i&#93;&#91;i&#93; = <span class="num">0</span>
+    <span class="kw">for</span> u, v, w <span class="kw">in</span> edges:
+        dist&#91;u&#93;&#91;v&#93; = w
+        nxt&#91;u&#93;&#91;v&#93; = v                           <span class="cm"># u에서 v로 가려면 먼저 v로</span>
+    <span class="kw">for</span> k <span class="kw">in</span> <span class="fn">range</span>(n):                         <span class="cm"># 경유지가 가장 바깥</span>
+        <span class="kw">for</span> i <span class="kw">in</span> <span class="fn">range</span>(n):
+            <span class="kw">for</span> j <span class="kw">in</span> <span class="fn">range</span>(n):
+                <span class="kw">if</span> dist&#91;i&#93;&#91;k&#93; + dist&#91;k&#93;&#91;j&#93; &lt; dist&#91;i&#93;&#91;j&#93;:
+                    dist&#91;i&#93;&#91;j&#93; = dist&#91;i&#93;&#91;k&#93; + dist&#91;k&#93;&#91;j&#93;
+                    nxt&#91;i&#93;&#91;j&#93; = nxt&#91;i&#93;&#91;k&#93;       <span class="cm"># k 쪽으로 먼저 간다</span>
+    <span class="kw">return</span> dist, nxt
+
+<span class="kw">def</span> <span class="fn">path</span>(nxt, i, j):
+    p = &#91;i&#93;
+    <span class="kw">while</span> i != j:
+        i = nxt&#91;i&#93;&#91;j&#93;
+        p.<span class="fn">append</span>(i)
+    <span class="kw">return</span> p
+
+<span class="cm"># A=0, B=1, C=2, D=3 · (출발, 도착, 가중치)</span>
+E = &#91;(<span class="num">0</span>, <span class="num">1</span>, <span class="num">3</span>), (<span class="num">0</span>, <span class="num">3</span>, <span class="num">7</span>), (<span class="num">1</span>, <span class="num">0</span>, <span class="num">8</span>), (<span class="num">1</span>, <span class="num">2</span>, <span class="num">2</span>),
+     (<span class="num">2</span>, <span class="num">0</span>, <span class="num">5</span>), (<span class="num">2</span>, <span class="num">3</span>, <span class="num">1</span>), (<span class="num">3</span>, <span class="num">0</span>, <span class="num">2</span>)&#93;
+dist, nxt = <span class="fn">floyd_warshall</span>(<span class="num">4</span>, E)
+<span class="kw">for</span> row <span class="kw">in</span> dist:
+    <span class="fn">print</span>(row)
+<span class="cm"># &#91;0, 3, 5, 6&#93;</span>
+<span class="cm"># &#91;5, 0, 2, 3&#93;</span>
+<span class="cm"># &#91;3, 6, 0, 1&#93;</span>
+<span class="cm"># &#91;2, 5, 7, 0&#93;</span>
+<span class="fn">print</span>(<span class="fn">path</span>(nxt, <span class="num">0</span>, <span class="num">3</span>), dist&#91;<span class="num">0</span>&#93;&#91;<span class="num">3</span>&#93;)       <span class="cm"># &#91;0, 1, 2, 3&#93; 6</span></pre>
+            </div>
+            <p class="code-desc">
+                플로이드-워셜은 거리 행렬 dist에서 시작해, 경유지 k를 하나씩 허용하며 모든 칸 (i, j)에서 dist&#91;i&#93;&#91;j&#93;와 dist&#91;i&#93;&#91;k&#93; + dist&#91;k&#93;&#91;j&#93; 중 작은 값을 고릅니다. 이 점화식 하나가 알고리즘의 전부이고, 경유지 k, 출발지 i, 도착지 j의 삼중 반복이므로 O(V³)입니다. 이 예시 그래프에서는 A → D가 직접 7이지만 A → B → C → D로 3 + 2 + 1 = 6이 되어 dist&#91;0&#93;&#91;3&#93;이 6으로 바뀝니다.
+                경유지 k를 가장 바깥 반복문에 두는 것이 중요합니다. 바깥 반복이 k여야 "경유지를 k까지 허용했을 때의 최단 거리"라는 뜻이 유지되고, 순서를 바꾸면 결과가 틀릴 수 있습니다.
+                dist를 갱신할 때 nxt&#91;i&#93;&#91;j&#93;도 nxt&#91;i&#93;&#91;k&#93;로 바꿔 두면, path 함수가 nxt를 따라가며 실제 경로를 복원합니다. A에서 D까지는 &#91;0, 1, 2, 3&#93;, 곧 A → B → C → D입니다. 시각화의 거리 행렬 갱신 탭과 경로 복원 탭이 보여 주는 과정과 같습니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — 음수 사이클 탐지</p>
+            <div class="code-block">
+<pre>neg = E + &#91;(<span class="num">1</span>, <span class="num">3</span>, -<span class="num">20</span>)&#93;                      <span class="cm"># B → D(-20) 추가</span>
+d2, _ = <span class="fn">floyd_warshall</span>(<span class="num">4</span>, neg)
+<span class="fn">print</span>(&#91;d2&#91;i&#93;&#91;i&#93; <span class="kw">for</span> i <span class="kw">in</span> <span class="fn">range</span>(<span class="num">4</span>)&#93;)      <span class="cm"># &#91;-15, -15, -5, -30&#93;</span>
+<span class="fn">print</span>(<span class="fn">any</span>(d2&#91;i&#93;&#91;i&#93; &lt; <span class="num">0</span> <span class="kw">for</span> i <span class="kw">in</span> <span class="fn">range</span>(<span class="num">4</span>)))     <span class="cm"># True</span></pre>
+            </div>
+            <p class="code-desc">
+                플로이드-워셜은 음수 가중치 간선이 있어도 음수 사이클만 없으면 올바르게 동작합니다. 음수 사이클이 있는지는 계산이 끝난 뒤 대각선 dist&#91;i&#93;&#91;i&#93;를 보면 알 수 있습니다. 정점에서 출발해 자기 자신으로 돌아오는 경로의 합이 0보다 작아졌다면, 그 경로가 음수 사이클을 포함하므로 그래프에 음수 사이클이 있다는 뜻입니다. 음수가 나온 정점이 꼭 그 사이클 위에 있는 것은 아닙니다.
+                위에서는 B → D(-20) 간선을 더해 B → D → A → B의 합이 -20 + 2 + 3 = -15인 음수 사이클을 만들었고, 대각선에 음수가 나타납니다. 음수 사이클이 있으면 최단 거리가 정의되지 않으므로 이때의 거리 값은 쓰지 않습니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 플로이드-워셜</p>
+            <div class="code-block">
+<pre><span class="kw">static final int</span> INF = Integer.MAX_VALUE;
+
+<span class="kw">static int</span>&#91;&#93;&#91;&#93; <span class="fn">floydWarshall</span>(<span class="kw">int</span> n, <span class="kw">int</span>&#91;&#93;&#91;&#93; edges) {
+    <span class="kw">int</span>&#91;&#93;&#91;&#93; d = <span class="kw">new int</span>&#91;n&#93;&#91;n&#93;;
+    <span class="kw">for</span> (<span class="kw">int</span>&#91;&#93; row : d) Arrays.<span class="fn">fill</span>(row, INF);
+    <span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">0</span>; i &lt; n; i++) d&#91;i&#93;&#91;i&#93; = <span class="num">0</span>;
+    <span class="kw">for</span> (<span class="kw">int</span>&#91;&#93; e : edges) d&#91;e&#91;<span class="num">0</span>&#93;&#93;&#91;e&#91;<span class="num">1</span>&#93;&#93; = e&#91;<span class="num">2</span>&#93;;
+    <span class="kw">for</span> (<span class="kw">int</span> k = <span class="num">0</span>; k &lt; n; k++)
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">0</span>; i &lt; n; i++)
+            <span class="kw">for</span> (<span class="kw">int</span> j = <span class="num">0</span>; j &lt; n; j++)
+                <span class="kw">if</span> (d&#91;i&#93;&#91;k&#93; != INF &amp;&amp; d&#91;k&#93;&#91;j&#93; != INF &amp;&amp; d&#91;i&#93;&#91;k&#93; + d&#91;k&#93;&#91;j&#93; &lt; d&#91;i&#93;&#91;j&#93;)
+                    d&#91;i&#93;&#91;j&#93; = d&#91;i&#93;&#91;k&#93; + d&#91;k&#93;&#91;j&#93;;
+    <span class="kw">return</span> d;
+}
+
+<span class="cm">// 같은 그래프의 결과</span>
+<span class="cm">// &#91;0, 3, 5, 6&#93;  &#91;5, 0, 2, 3&#93;  &#91;3, 6, 0, 1&#93;  &#91;2, 5, 7, 0&#93;</span></pre>
+            </div>
+            <p class="code-desc">
+                자바 버전도 같은 삼중 반복문입니다. INF를 Integer.MAX_VALUE로 두었기 때문에 두 거리를 더하기 전에 둘 다 INF가 아닌지 검사해야 합니다. 검사하지 않으면 INF에 양수를 더할 때 값이 넘쳐 음수가 되어 닿지 못하는 쌍이 가까운 것처럼 갱신됩니다.
+                정점 수 V에 대해 시간은 O(V³), 거리 행렬 저장에 공간은 O(V²)입니다. 모든 쌍을 한꺼번에 구해야 하고 정점 수가 크지 않을 때 간단해서 많이 씁니다. 한 출발점에서만 구한다면 다익스트라나 벨만-포드가 알맞습니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
