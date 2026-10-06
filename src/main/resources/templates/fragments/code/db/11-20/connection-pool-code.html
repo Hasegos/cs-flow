@@ -1,0 +1,86 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">SQL — PostgreSQL에서 연결 수와 상태 확인</p>
+            <div class="code-block">
+<pre><span class="kw">SHOW</span> max_connections;                                   <span class="cm">-- 서버가 받는 최대 동시 연결 수 (보통 기본 100)</span>
+
+<span class="kw">SELECT</span> state, <span class="fn">count</span>(*)
+<span class="kw">FROM</span> pg_stat_activity
+<span class="kw">WHERE</span> datname = <span class="fn">current_database</span>()
+<span class="kw">GROUP BY</span> state;                                        <span class="cm">-- active / idle / idle in transaction 별 연결 수</span>
+
+<span class="kw">SELECT</span> pid, <span class="fn">now</span>() - xact_start <span class="kw">AS</span> open_time, query
+<span class="kw">FROM</span> pg_stat_activity
+<span class="kw">WHERE</span> state = <span class="st">'idle in transaction'</span>
+<span class="kw">ORDER BY</span> xact_start;                                   <span class="cm">-- 트랜잭션을 연 채 놀고 있는 연결 (반납이 늦는 후보)</span></pre>
+            </div>
+            <p class="code-desc">
+                PostgreSQL은 연결마다 서버 프로세스를 하나씩 띄우므로 max_connections로 동시에 받을 수 있는 연결 수를 제한하고, 기본값은 보통 100입니다. 애플리케이션 서버가 여러 대일 때는 서버마다 가진 풀 크기를 모두 더한 값이 이 한도를 넘지 않아야 합니다.
+                pg_stat_activity의 state로 지금 연결이 쿼리를 실행 중인지(active), 놀고 있는지(idle), 트랜잭션을 연 채 놀고 있는지(idle in transaction) 볼 수 있습니다. 세 번째 쿼리에서 idle in transaction 연결이 오래 남아 있다면 연결을 쥔 채 트랜잭션을 끝내지 않는 코드가 있다는 신호입니다. state 값은 이 셋만 있는 것은 아니며, 권한이 없으면 다른 사용자 세션의 열은 NULL로 보일 수 있습니다. 시각화의 연결 누수 탭이 보여 주는 문제와 이어집니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — 큐로 만든 연결 풀</p>
+            <div class="code-block">
+<pre><span class="kw">import</span> queue
+
+<span class="kw">class</span> <span class="fn">Pool</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, size):
+        self.q = queue.<span class="fn">Queue</span>()
+        <span class="kw">for</span> i <span class="kw">in</span> <span class="fn">range</span>(size):
+            self.q.<span class="fn">put</span>(<span class="st">f'conn{i + 1}'</span>)            <span class="cm"># 미리 만들어 둔 연결</span>
+
+    <span class="kw">def</span> <span class="fn">get</span>(self, timeout):
+        <span class="kw">return</span> self.q.<span class="fn">get</span>(timeout=timeout)        <span class="cm"># 빈 연결이 없으면 대기, 시간 초과 시 queue.Empty</span>
+
+    <span class="kw">def</span> <span class="fn">put</span>(self, conn):
+        self.q.<span class="fn">put</span>(conn)                          <span class="cm"># 반납: 연결은 끊지 않고 되돌려 놓음</span>
+
+pool = <span class="fn">Pool</span>(<span class="num">3</span>)
+held = &#91;pool.<span class="fn">get</span>(<span class="num">0.1</span>) <span class="kw">for</span> _ <span class="kw">in</span> <span class="fn">range</span>(<span class="num">3</span>)&#93;
+<span class="fn">print</span>(held)
+<span class="kw">try</span>:
+    pool.<span class="fn">get</span>(<span class="num">0.1</span>)
+<span class="kw">except</span> queue.Empty:
+    <span class="fn">print</span>(<span class="st">'4번째 요청: 시간 초과'</span>)
+pool.<span class="fn">put</span>(held.<span class="fn">pop</span>(<span class="num">0</span>))
+<span class="fn">print</span>(<span class="st">'반납 뒤 재사용:'</span>, pool.<span class="fn">get</span>(<span class="num">0.1</span>))
+<span class="cm"># &#91;'conn1', 'conn2', 'conn3'&#93;</span>
+<span class="cm"># 4번째 요청: 시간 초과</span>
+<span class="cm"># 반납 뒤 재사용: conn1</span></pre>
+            </div>
+            <p class="code-desc">
+                풀의 핵심을 큐로 옮긴 장난감 모델입니다. 시작할 때 연결 3개를 큐에 넣어 두고, 요청은 get으로 하나씩 꺼내 쓰고 put으로 돌려놓습니다. 연결 3개를 모두 빌린 뒤 네 번째 요청은 빈 연결이 없어 기다리다 시간 초과가 나고, conn1을 반납하자 바로 다음 요청이 같은 conn1을 받아 갑니다. 시각화의 풀의 동작, 풀 크기 탭과 같은 결과입니다.
+                실제 풀은 연결이 끊어졌는지 확인하고, 필요하면 새 연결을 만들며, 스레드 안전을 위한 처리를 더 합니다. 여기서는 큐가 스레드 안전한 것에 기대어 가장 단순한 형태만 보였습니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — HikariCP 설정과 안전한 반납</p>
+            <div class="code-block">
+<pre>HikariConfig cfg = <span class="kw">new</span> HikariConfig();
+cfg.<span class="fn">setJdbcUrl</span>(<span class="st">"jdbc:postgresql://localhost:5432/app"</span>);
+cfg.<span class="fn">setMaximumPoolSize</span>(<span class="num">10</span>);              <span class="cm">// 풀 크기 (기본값 10)</span>
+cfg.<span class="fn">setConnectionTimeout</span>(<span class="num">30_000</span>);         <span class="cm">// 연결을 얻으려 기다리는 한도 ms (기본값 30초)</span>
+cfg.<span class="fn">setLeakDetectionThreshold</span>(<span class="num">2_000</span>);     <span class="cm">// 이보다 오래 반납 안 되면 로그 (기본값 0 = 꺼짐)</span>
+
+<span class="kw">try</span> (HikariDataSource ds = <span class="kw">new</span> HikariDataSource(cfg)) {
+    <span class="kw">try</span> (Connection conn = ds.<span class="fn">getConnection</span>();
+         PreparedStatement ps = conn.<span class="fn">prepareStatement</span>(<span class="st">"SELECT 1"</span>)) {
+        ps.<span class="fn">executeQuery</span>();
+    }                                          <span class="cm">// 블록을 나가면 close()가 연결을 풀에 반납</span>
+}
+
+<span class="cm">// Spring Boot: spring.datasource.hikari.maximum-pool-size=10</span></pre>
+            </div>
+            <p class="code-desc">
+                HikariCP는 자바 풀 구현체이고 스프링 부트는 HikariCP가 있으면 기본으로 사용합니다. 풀 크기를 정하는 maximumPoolSize, 연결을 기다리는 한도인 connectionTimeout, 반납되지 않는 연결을 로그로 알려 주는 leakDetectionThreshold를 설정할 수 있습니다. 괄호 안의 기본값은 HikariCP 문서에 적힌 값입니다. 설정 값은 서비스 환경에 맞춰 정해야 합니다.
+                try-with-resources로 Connection을 열면 예외가 나도 블록을 나갈 때 close()가 호출됩니다. 풀이 준 Connection의 close()는 연결을 끊지 않고 풀에 반납하므로, 이를 빠뜨리지 않는 것이 연결 누수를 막는 가장 확실한 방법입니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>

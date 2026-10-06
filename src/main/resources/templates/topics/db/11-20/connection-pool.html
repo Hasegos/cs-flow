@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">커넥션 풀 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/db/11-20/connection-pool.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/db}" class="topic-breadcrumb__link">데이터베이스</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">커넥션 풀</span>
+                </nav>
+
+                <span class="topic-hero__slug">db · 15</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">커넥션 풀</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+                <button type="button" class="topic-like" th:classappend="${liked} ? ' topic-like--active' : ''" th:attr="data-topic-slug=${topic.slug}">
+                    <svg class="topic-like__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <span class="topic-like__count" th:text="${likeCount}">0</span>
+                </button>
+                <div class="topic-share">
+                    <button type="button" class="topic-share__btn topic-share__btn--copy" aria-label="링크 복사">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="topic-share__btn topic-share__btn--kakao" aria-label="카카오톡 공유">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                        </svg>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+                <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        커넥션 풀은 데이터베이스 연결을 미리 만들어 두고 요청이 빌려 쓰고 반납하게 하는 기법입니다. DB 연결을 새로 맺는 데는 네트워크 연결, 인증, 세션 준비 비용이 들기 때문에, 요청마다 새로 맺지 않고 열린 연결을 재사용해 이 비용을 줄입니다.
+                    </p>
+                    <p class="overview-lead">
+                        풀은 연결 수에 상한을 두는 역할도 합니다. 동시에 DB로 가는 요청이 풀 크기를 넘으면 나머지는 기다리게 해서 DB 서버를 보호합니다. 이 토픽에서는 풀이 연결을 빌려 주고 돌려받는 과정, 풀 크기가 부족하거나 너무 클 때의 문제, 연결을 반납하지 않는 누수를 시각화로 확인합니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">연결 재사용</h3>
+                            <p class="overview-card__desc">풀은 열린 연결을 보관하다 요청이 오면 빌려 주고, 끝나면 돌려받아 다음 요청에 다시 줍니다. 연결을 새로 만드는 비용을 줄입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">풀 크기</h3>
+                            <p class="overview-card__desc">풀이 동시에 빌려 줄 수 있는 연결의 최대 수입니다. 크기를 넘는 요청은 연결이 반납될 때까지 기다립니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">대기와 시간 초과</h3>
+                            <p class="overview-card__desc">연결이 모두 사용 중이면 요청은 줄을 서고, 정해진 시간 안에 얻지 못하면 오류로 실패합니다. HikariCP에서는 connectionTimeout이 이 한도입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">반납</h3>
+                            <p class="overview-card__desc">풀에서 받은 연결의 close()는 연결을 끊지 않고 풀에 돌려줍니다. 빌린 연결은 반드시 반납해야 합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">연결 누수</h3>
+                            <p class="overview-card__desc">빌린 연결을 반납하지 않는 문제입니다. 쌓이면 풀이 비어 새 요청이 연결을 얻지 못하는 풀 고갈로 이어집니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">HikariCP</h3>
+                            <p class="overview-card__desc">가볍고 빠른 자바 커넥션 풀 구현체입니다. 스프링 부트는 HikariCP가 클래스패스에 있으면 이를 기본 풀로 사용합니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>연결 비용을 한 번만 냅니다</strong> — 연결을 만들고 인증하는 비용은 풀을 채울 때나 오래된 연결을 교체할 때만 내고, 요청마다 내지는 않습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>DB를 동시 연결 수로부터 보호합니다</strong> — 풀 크기가 DB로 가는 동시 연결의 상한이 되어 연결이 폭주해 성능이 떨어지거나 max_connections를 넘어 연결이 거부되는 것을 막습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>풀이 크다고 빠르지 않습니다</strong> — DB 서버가 동시에 효율적으로 처리할 수 있는 양에는 한계가 있어 연결을 지나치게 늘리면 경합이 커져 처리량이 줄 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>서버 대수도 계산에 넣어야 합니다</strong> — 풀은 애플리케이션 인스턴스마다 있으므로 인스턴스 수와 풀 크기의 곱이 DB의 최대 연결 수를 넘지 않아야 하고, 예약된 연결과 관리용 접속도 빼고 계산해야 합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "풀의 동작" 탭에서 풀 없이 쓰면 요청마다 새 연결이 생기고 풀을 쓰면 연결이 반납되어 재사용되는 모습을, "풀 크기" 탭에서 풀 크기를 넘는 요청이 기다리다 시간 초과로 실패하는 모습과 풀이 너무 클 때 DB가 힘들어지는 모습을, "연결 누수" 탭에서 반납하지 않은 연결 때문에 풀이 비는 모습을 STEP으로 확인하세요.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">커넥션 풀의 배경</h2>
+                    <p class="overview-lead">
+                        웹 서비스가 요청마다 DB 연결을 새로 맺으면 요청이 몰릴 때 연결 생성이 병목이 되고, DB 서버의 연결 수 한도를 쉽게 넘깁니다. 자바에서는 JDBC의 DataSource 뒤에 풀을 두는 구조로 이 문제를 풀어 왔습니다.
+                    </p>
+                    <p class="overview-lead">
+                        자바 진영에는 Apache DBCP, C3P0, Tomcat JDBC Pool, HikariCP 같은 구현체가 있습니다. 스프링 부트 2.0부터 HikariCP가 기본 풀이 되었고, 설정은 spring.datasource.hikari 아래 속성으로 합니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>풀 없이 3개 요청</strong> — 요청이 3개면 연결 생성과 종료가 3번 일어나고, 풀을 쓰면 미리 만든 연결 3개를 돌려 씁니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>풀 크기 3, 요청 5</strong> — 연결 3개가 모두 쓰이면 R4와 R5는 기다리고, R1이 반납하면 R4가 받습니다. R5가 한도 안에 연결을 얻지 못하면 오류로 실패합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>HikariCP 기본값</strong> — 풀 크기(maximumPoolSize) 10, 대기 한도(connectionTimeout) 30초, 누수 감지(leakDetectionThreshold) 0(꺼짐)입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>코드 확인</strong> — 파이썬 풀 모델은 연결 3개를 빌린 뒤 네 번째 요청이 시간 초과가 나고, conn1을 반납하면 다음 요청이 conn1을 받습니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>풀 크기는 클수록 좋다</strong> — 연결이 많으면 DB의 메모리 사용과 컨텍스트 전환, 잠금 경합이 늘어 처리량이 오히려 줄 수 있습니다. 필요한 만큼만 둡니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>풀의 close()는 연결을 끊는다</strong> — 풀이 준 연결의 close()는 실제 연결을 끊지 않고 풀에 반납합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>풀을 쓰면 쿼리 자체가 빨라진다</strong> — 풀이 줄이는 것은 연결을 맺는 비용이고 쿼리 실행 시간은 그대로입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>풀이 가득 차면 DB가 바쁜 것이다</strong> — 연결 누수나 오래 걸리는 쿼리, 트랜잭션을 열어 둔 코드 때문에 연결이 반납되지 않아도 풀은 가득 찹니다. 원인을 따로 확인해야 합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>풀 크기만 늘리면 대기가 해결된다</strong> — 쿼리가 느려서 연결을 오래 쥐고 있는 것이 원인이면 풀을 키워도 DB 부담만 커집니다. 쿼리와 트랜잭션 길이를 먼저 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">커넥션 풀을 쓰는 이유는?</h3>
+                            <p class="overview-card__desc">DB 연결을 새로 맺는 비용을 줄이려고 미리 만든 연결을 재사용하고, 동시 연결 수를 제한해 DB를 보호하기 위해서입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">풀 크기를 무작정 크게 잡으면 어떻게 되나요?</h3>
+                            <p class="overview-card__desc">DB 서버의 자원 부담과 경합이 늘어 성능이 오히려 떨어질 수 있습니다. 코어 수와 쿼리 특성을 고려해 적정 크기를 잡고 측정으로 조정합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">스프링 부트의 기본 커넥션 풀은?</h3>
+                            <p class="overview-card__desc">HikariCP입니다. 스프링 부트 2.0부터 기본이고, maximum-pool-size 같은 속성으로 크기를 조정합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">연결 누수는 왜 위험하고 어떻게 막나요?</h3>
+                            <p class="overview-card__desc">반납되지 않은 연결이 쌓이면 풀이 비어 새 요청이 실패합니다. try-with-resources 같은 구조로 항상 반납하고, 누수 감지 설정으로 오래 반납되지 않는 연결을 찾습니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">활용 분야</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>웹 애플리케이션 서버</strong> — 요청이 몰려도 연결 생성 비용 없이 DB에 접근하고 연결 수가 DB 한도 안에 머물게 합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>연결 수가 많은 환경의 프록시 풀</strong> — 애플리케이션 인스턴스가 많을 때 DB 앞에 연결 풀링 프록시를 두어 DB가 받는 연결 수를 줄이기도 합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>운영 점검</strong> — 풀의 사용 중 연결 수와 대기 요청 수, 연결 획득 시간을 감시해 풀 크기를 조정하고 누수를 찾습니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/transaction}">트랜잭션</a> — 연결을 쥔 채 트랜잭션이 길어질 때의 영향을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/lock}">락</a> — 연결이 늘 때 커지는 잠금 경합을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/query-plan}">쿼리 실행 계획</a> — 연결을 오래 쥐는 느린 쿼리를 찾는 방법을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/replication}">복제</a> — 읽기 부하를 나누는 구성과 풀을 함께 설계하는 방법을 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://github.com/brettwooldridge/HikariCP" target="_blank" rel="noopener">HikariCP: README (설정과 기본값)</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://github.com/brettwooldridge/HikariCP/wiki/About-Pool-Sizing" target="_blank" rel="noopener">HikariCP: About Pool Sizing</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://docs.spring.io/spring-boot/reference/data/sql.html" target="_blank" rel="noopener">Spring Boot: SQL Databases (Connection Pool)</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://www.postgresql.org/docs/current/runtime-config-connection.html" target="_blank" rel="noopener">PostgreSQL: Connections and Authentication</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://www.postgresql.org/docs/current/monitoring-stats.html" target="_blank" rel="noopener">PostgreSQL: pg_stat_activity</a></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/db/11-20/connection-pool-code :: code}"></th:block>
+            </div>
+
+            <!-- 탭 4: 퀴즈 -->
+            <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
+                <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+    <script th:src="@{/js/quiz.js}"></script>
+    <script th:src="@{/js/like.js}"></script>
+    <script th:src="@{/js/share.js}"></script>
+</body>
+</html>
