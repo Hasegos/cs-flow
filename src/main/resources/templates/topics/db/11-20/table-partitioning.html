@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">테이블 파티셔닝 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/db/11-20/table-partitioning.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/db}" class="topic-breadcrumb__link">데이터베이스</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">테이블 파티셔닝</span>
+                </nav>
+
+                <span class="topic-hero__slug">db · 13</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">테이블 파티셔닝</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+                <button type="button" class="topic-like" th:classappend="${liked} ? ' topic-like--active' : ''" th:attr="data-topic-slug=${topic.slug}">
+                    <svg class="topic-like__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <span class="topic-like__count" th:text="${likeCount}">0</span>
+                </button>
+                <div class="topic-share">
+                    <button type="button" class="topic-share__btn topic-share__btn--copy" aria-label="링크 복사">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="topic-share__btn topic-share__btn--kakao" aria-label="카카오톡 공유">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                        </svg>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+                <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        테이블 파티셔닝은 논리적으로 하나인 큰 테이블을 파티션 키 기준으로 더 작은 물리 조각(파티션)으로 나누어 저장하는 방법입니다. 응용 프로그램은 여전히 테이블 하나를 조회하지만, 데이터베이스는 행을 키 값에 맞는 파티션에 넣고, WHERE에 파티션 키 조건이 있으면 조회할 때 필요한 파티션만 읽습니다.
+                    </p>
+                    <p class="overview-lead">
+                        PostgreSQL 문서는 파티셔닝의 이점으로 자주 쓰는 행이 한두 파티션에 모여 있을 때의 조회 성능, 파티션을 붙이고 떼는 방식으로 하는 대량 적재와 삭제, 잘 쓰지 않는 데이터의 저렴한 저장소 이동을 듭니다. 이 토픽에서는 Range, List, Hash 세 분할 방식, 파티션 프루닝, 파티셔닝과 샤딩의 차이를 시각화로 확인합니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">파티션과 파티션 키</h3>
+                            <p class="overview-card__desc">테이블을 나누는 기준 열이 파티션 키이고, 나뉜 조각 하나하나가 파티션입니다. 행은 키 값에 따라 어느 파티션에 들어갈지 정해집니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">Range 파티셔닝</h3>
+                            <p class="overview-card__desc">키 값의 범위로 나눕니다. 범위끼리는 겹치지 않고, 날짜나 시간처럼 이어지는 값에 잘 맞습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">List 파티셔닝</h3>
+                            <p class="overview-card__desc">키 값이 어느 값 목록에 속하는지로 나눕니다. 국가나 상태 코드처럼 값이 몇 가지로 정해진 열에 맞습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">Hash 파티셔닝</h3>
+                            <p class="overview-card__desc">키 값의 해시를 modulus로 나눈 나머지로 나눕니다(보통 파티션 수와 같게 둡니다). 행이 비교적 고르게 흩어지지만 키의 범위로 파티션을 골라내기는 어렵습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">파티션 프루닝</h3>
+                            <p class="overview-card__desc">WHERE 조건을 보고 읽을 필요가 없는 파티션을 계획 수립 또는 실행 중에 제외하는 최적화입니다. 파티션 키 열을 단순하게 비교하는 조건이 있을 때 가장 잘 동작합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">파티셔닝과 샤딩</h3>
+                            <p class="overview-card__desc">파티셔닝은 보통 한 데이터베이스 안에서 테이블을 나누고, 샤딩은 데이터를 여러 서버에 나눠 저장합니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>조회가 필요한 파티션만 읽습니다</strong> — WHERE에 파티션 키 조건이 있으면 나머지 파티션은 계획에서 빠져 읽을 데이터가 줄어듭니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>오래된 데이터를 통째로 지웁니다</strong> — 기간별 Range 파티션이면 보관 기간이 지난 파티션을 떼어 내 삭제할 수 있어, 행마다 지우는 대량 DELETE의 부담을 피합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>키 선택이 성능을 좌우합니다</strong> — 자주 쓰는 WHERE 조건과 맞지 않는 열로 나누면 모든 파티션을 훑게 되어 프루닝의 이점을 얻지 못합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>제약 조건에 제한이 있습니다</strong> — PostgreSQL에서 파티션된 테이블의 기본 키와 유니크 제약에는 파티션 키 열이 모두 들어 있어야 합니다. 각 파티션의 인덱스는 자기 파티션 안에서만 유일성을 강제하기 때문입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "분할 방식" 탭에서 같은 24행이 Range, List, Hash로 달리 나뉘는 모습을, "파티션 프루닝" 탭에서 month 조건이면 파티션 하나만 읽고 region 조건이면 4개를 모두 읽는 모습을, "파티셔닝과 샤딩" 탭에서 한 서버 안의 파티션과 여러 서버의 샤드가 어떻게 다른지 STEP으로 확인하세요.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">파티셔닝의 배경</h2>
+                    <p class="overview-lead">
+                        테이블이 서버 메모리보다 클 정도로 매우 커지면 인덱스가 커지고 정리 작업이 오래 걸리며, 보관 기간이 지난 데이터를 지우는 일 자체가 부담이 됩니다. 한 테이블을 나눠서 다루면 이런 작업을 조각 단위로 할 수 있습니다.
+                    </p>
+                    <p class="overview-lead">
+                        PostgreSQL은 10 버전부터 PARTITION BY로 Range와 List를 선언하는 선언적 파티셔닝을 제공하고, 11 버전에서 Hash 파티셔닝이 추가되었습니다. MySQL도 RANGE, LIST, HASH, KEY 같은 파티셔닝을 지원합니다. 구체적인 문법과 제약은 데이터베이스마다 다르고, MySQL도 모든 유니크 키가 파티셔닝에 쓰는 열을 포함해야 합니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Range 4개</strong> — 주문 24행을 month로 나누면 1월부터 4월까지 6, 5, 7, 6행입니다. 파티션 크기가 달라도 합은 항상 24행입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>List와 Hash</strong> — region으로 나누면 KR 12행, US 8행, JP 4행으로 고르지 않고, id % 4로 나누면 6행씩 고릅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>프루닝 효과</strong> — month = 3으로 찾으면 파티션 1개 7행만 검사하고, month가 2에서 3 사이면 파티션 2개 12행을 검사합니다. 파티션 키가 아닌 region으로 찾으면 파티션 4개 24행을 모두 검사합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>코드 확인</strong> — 파이썬과 자바 모델 모두 Range 배정이 6, 5, 7, 6행이고 해시 배정이 6행씩이며, 파이썬 scan은 키 조건이면 7행, 키가 아니면 24행을 반환합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>파티션을 나누면 모든 조회가 빨라진다</strong> — WHERE에 파티션 키 조건이 있어 프루닝이 될 때 이점이 큽니다. 키 조건이 없으면 모든 파티션을 읽고, 파티션 수가 많으면 계획 수립 비용이 늘 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>파티션은 많을수록 좋다</strong> — 파티션이 지나치게 많으면 계획 수립 시간과 메모리 사용이 늘어납니다. 필요한 만큼만 나누며, PostgreSQL 문서는 테이블이 아주 클 때에만 보통 이득이 있다고 설명합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>파티셔닝과 샤딩은 같은 말이다</strong> — 파티셔닝은 보통 한 데이터베이스 안에서 테이블을 나누는 것이고, 샤딩은 데이터를 여러 서버에 나눠 저장하는 것입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>인덱스를 대신해 준다</strong> — 파티셔닝은 읽을 범위를 줄일 뿐이어서, 파티션 안에서 일부 행만 읽는 쿼리에는 인덱스가 여전히 도움이 됩니다. 파티셔닝이 인덱스를 완전히 대체하지는 않습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>키 열에 함수를 씌워도 프루닝이 된다</strong> — 프루닝은 키 열을 상수나 파라미터와 단순 비교할 때 가장 확실합니다. 키 열에 함수를 씌우거나 복잡한 식과 비교하면 파티션을 거르지 못할 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>어떤 열이든 키로 쓸 수 있다</strong> — 키는 자주 쓰는 WHERE 조건과 보관 정책에 맞춰 골라야 하고, 파티션된 테이블의 기본 키와 유니크 제약은 키 열을 포함해야 하는 제약도 있습니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">Range 파티셔닝의 대표적인 예는?</h3>
+                            <p class="overview-card__desc">날짜 범위로 나누는 경우입니다. 월별이나 연도별 파티션으로 나누면 오래된 기간을 파티션 단위로 보관하거나 삭제하기 쉽습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">파티션 프루닝이란?</h3>
+                            <p class="overview-card__desc">WHERE 조건으로 읽을 필요가 없는 파티션을 계획 수립 또는 실행 중에 제외하는 최적화입니다. 파티션 키 조건이 있어야 동작합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">파티셔닝과 샤딩은 어떻게 다른가요?</h3>
+                            <p class="overview-card__desc">파티셔닝은 보통 한 데이터베이스 인스턴스 안에서 테이블을 나누고, 샤딩은 데이터를 여러 서버에 나눠 저장합니다. 샤딩은 서버를 늘려 용량과 처리량을 키울 수 있지만 라우팅과 샤드 간 조인 같은 부담이 따릅니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">파티션 키는 어떻게 고르나요?</h3>
+                            <p class="overview-card__desc">자주 쓰는 WHERE 조건과 데이터 보관 정책에 맞는 열을 고릅니다. 시간 기반 데이터는 날짜 열을 Range 키로 쓰는 경우가 많습니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">활용 분야</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>로그와 이벤트 테이블</strong> — 시간 순으로 쌓이는 데이터를 월별이나 일별 Range 파티션으로 나누고, 보관 기간이 지난 파티션을 삭제합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>주문과 거래 이력</strong> — 최근 기간 조회가 대부분이면 기간 키로 나눠 최근 파티션만 읽게 합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>지역이나 상태별 분리</strong> — 국가 코드처럼 값이 정해진 열은 List 파티셔닝으로 나눠 해당 지역 조회와 관리를 분리합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/sharding}">샤딩</a> — 데이터를 여러 서버에 나누는 방식과 파티셔닝의 차이를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/index}">인덱스</a> — 파티션 안에서 행을 빨리 찾는 방법을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/query-plan}">쿼리 실행 계획</a> — EXPLAIN으로 프루닝된 파티션을 확인하는 방법을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/replication}">복제</a> — 데이터를 다른 서버에 복사하는 또 다른 확장 방식입니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://www.postgresql.org/docs/current/ddl-partitioning.html" target="_blank" rel="noopener">PostgreSQL: Table Partitioning</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://www.postgresql.org/docs/current/sql-createtable.html" target="_blank" rel="noopener">PostgreSQL: CREATE TABLE</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://www.postgresql.org/docs/current/runtime-config-query.html" target="_blank" rel="noopener">PostgreSQL: Planner Method Configuration</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://dev.mysql.com/doc/refman/8.4/en/partitioning-overview.html" target="_blank" rel="noopener">MySQL: Partitioning</a></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/db/11-20/table-partitioning-code :: code}"></th:block>
+            </div>
+
+            <!-- 탭 4: 퀴즈 -->
+            <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
+                <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+    <script th:src="@{/js/quiz.js}"></script>
+    <script th:src="@{/js/like.js}"></script>
+    <script th:src="@{/js/share.js}"></script>
+</body>
+</html>
