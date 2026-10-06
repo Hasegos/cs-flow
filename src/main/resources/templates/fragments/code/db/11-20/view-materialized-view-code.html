@@ -1,0 +1,101 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">SQL — PostgreSQL의 뷰와 구체화 뷰</p>
+            <div class="code-block">
+<pre><span class="kw">CREATE VIEW</span> region_sales <span class="kw">AS</span>
+<span class="kw">SELECT</span> region, <span class="fn">SUM</span>(amount) <span class="kw">AS</span> total <span class="kw">FROM</span> orders <span class="kw">GROUP BY</span> region;
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> region_sales;                           <span class="cm">-- 조회할 때마다 위 쿼리가 원본에 실행된다</span>
+
+<span class="kw">CREATE MATERIALIZED VIEW</span> region_mv <span class="kw">AS</span>
+<span class="kw">SELECT</span> region, <span class="fn">SUM</span>(amount) <span class="kw">AS</span> total <span class="kw">FROM</span> orders <span class="kw">GROUP BY</span> region
+<span class="kw">WITH DATA</span>;                                          <span class="cm">-- 만들 때 결과를 채운다 (기본값)</span>
+
+<span class="kw">CREATE UNIQUE INDEX ON</span> region_mv (region);               <span class="cm">-- CONCURRENTLY 갱신에 필요</span>
+
+<span class="kw">REFRESH MATERIALIZED VIEW</span> region_mv;                    <span class="cm">-- 갱신 동안 조회가 막힐 수 있다</span>
+<span class="kw">REFRESH MATERIALIZED VIEW CONCURRENTLY</span> region_mv;      <span class="cm">-- 조회를 막지 않고 갱신</span>
+
+<span class="kw">SELECT</span> matviewname, ispopulated <span class="kw">FROM</span> pg_matviews;     <span class="cm">-- 구체화 뷰 목록과 채워졌는지 여부</span></pre>
+            </div>
+            <p class="code-desc">
+                일반 뷰는 CREATE VIEW로 쿼리에 이름을 붙여 저장하고, 조회할 때마다 그 쿼리를 원본 테이블에 실행합니다. 구체화 뷰는 CREATE MATERIALIZED VIEW가 쿼리를 한 번 실행해 결과를 실제 데이터로 저장하며, 원본이 바뀌어도 자동으로 반영되지 않고 REFRESH로 갱신해야 합니다. 시각화의 일반 뷰와 구체화 뷰 탭이 보여 주는 차이와 같습니다.
+                REFRESH MATERIALIZED VIEW는 옵션 없이 쓰면 갱신하는 동안 조회를 막을 수 있고, CONCURRENTLY를 붙이면 조회를 막지 않고 갱신하지만 구체화 뷰에 컬럼만으로 만든(표현식과 WHERE가 없는) UNIQUE 인덱스가 있어야 하고 이미 채워진 상태여야 합니다. 시각화의 REFRESH 탭이 보여 주는 동작입니다. 자세한 문법과 제약은 PostgreSQL 문서를 확인하세요.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — 조회마다 계산하는 뷰와 저장된 구체화 뷰</p>
+            <div class="code-block">
+<pre>base = &#91;(<span class="st">'KR'</span>, <span class="num">100</span>), (<span class="st">'KR'</span>, <span class="num">200</span>), (<span class="st">'US'</span>, <span class="num">150</span>), (<span class="st">'KR'</span>, <span class="num">50</span>), (<span class="st">'US'</span>, <span class="num">300</span>), (<span class="st">'JP'</span>, <span class="num">80</span>)&#93;
+reads = <span class="num">0</span>
+
+<span class="kw">def</span> <span class="fn">query</span>():                                  <span class="cm"># 지역별 합계 쿼리</span>
+    <span class="kw">global</span> reads
+    reads += <span class="fn">len</span>(base)                        <span class="cm"># 원본에서 읽은 행 수</span>
+    out = {}
+    <span class="kw">for</span> region, amount <span class="kw">in</span> base:
+        out&#91;region&#93; = out.<span class="fn">get</span>(region, <span class="num">0</span>) + amount
+    <span class="kw">return</span> out
+
+<span class="kw">def</span> <span class="fn">view</span>():                                   <span class="cm"># 일반 뷰: 조회할 때마다 쿼리 실행</span>
+    <span class="kw">return</span> <span class="fn">query</span>()
+
+stored = <span class="fn">query</span>()                              <span class="cm"># 구체화 뷰: 만들 때 한 번 실행해 저장</span>
+
+<span class="kw">def</span> <span class="fn">mview</span>():
+    <span class="kw">return</span> stored                             <span class="cm"># 조회는 저장된 결과를 읽음</span>
+
+<span class="kw">def</span> <span class="fn">refresh</span>():
+    <span class="kw">global</span> stored
+    stored = <span class="fn">query</span>()                          <span class="cm"># REFRESH: 쿼리를 다시 실행해 저장</span>
+
+reads = <span class="num">0</span>
+base.<span class="fn">append</span>((<span class="st">'KR'</span>, <span class="num">150</span>))                      <span class="cm"># 원본에 새 행</span>
+<span class="fn">print</span>(<span class="st">'뷰'</span>, <span class="fn">view</span>()&#91;<span class="st">'KR'</span>&#93;, <span class="st">'읽은 행'</span>, reads)
+<span class="fn">print</span>(<span class="st">'구체화 뷰'</span>, <span class="fn">mview</span>()&#91;<span class="st">'KR'</span>&#93;, <span class="st">'읽은 행'</span>, reads)
+<span class="fn">refresh</span>()
+<span class="fn">print</span>(<span class="st">'REFRESH 뒤'</span>, <span class="fn">mview</span>()&#91;<span class="st">'KR'</span>&#93;, <span class="st">'읽은 행'</span>, reads)
+<span class="cm"># 뷰 500 읽은 행 7</span>
+<span class="cm"># 구체화 뷰 350 읽은 행 7</span>
+<span class="cm"># REFRESH 뒤 500 읽은 행 14</span></pre>
+            </div>
+            <p class="code-desc">
+                두 방식의 차이를 읽은 행 수로 보여 주는 장난감 모델입니다. 원본에 KR 150 행을 추가한 뒤 뷰를 조회하면 쿼리가 원본 7행을 읽어 최신 합계 500을 돌려줍니다. 구체화 뷰는 저장된 결과를 읽을 뿐이라 읽은 행이 늘지 않고, 값은 갱신 전의 350 그대로입니다. REFRESH가 쿼리를 다시 실행해 원본 7행을 더 읽으면 총 14행이 되고 값이 500으로 바뀝니다.
+                시각화의 구체화 뷰 탭과 같은 흐름입니다. 구체화 뷰의 조회가 가볍다는 것은 저장된 결과를 읽기만 하기 때문이고, 그 대가가 갱신 전까지 오래된 값을 읽는 것입니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 같은 모델을 자바로</p>
+            <div class="code-block">
+<pre><span class="kw">static</span> List&lt;Map.Entry&lt;String, Integer&gt;&gt; base = <span class="kw">new</span> ArrayList&lt;&gt;(List.<span class="fn">of</span>(
+    Map.<span class="fn">entry</span>(<span class="st">"KR"</span>, <span class="num">100</span>), Map.<span class="fn">entry</span>(<span class="st">"KR"</span>, <span class="num">200</span>), Map.<span class="fn">entry</span>(<span class="st">"US"</span>, <span class="num">150</span>),
+    Map.<span class="fn">entry</span>(<span class="st">"KR"</span>, <span class="num">50</span>), Map.<span class="fn">entry</span>(<span class="st">"US"</span>, <span class="num">300</span>), Map.<span class="fn">entry</span>(<span class="st">"JP"</span>, <span class="num">80</span>)));
+<span class="kw">static int</span> reads = <span class="num">0</span>;
+<span class="kw">static</span> Map&lt;String, Integer&gt; stored;
+
+<span class="kw">static</span> Map&lt;String, Integer&gt; <span class="fn">query</span>() {
+    reads += base.<span class="fn">size</span>();
+    Map&lt;String, Integer&gt; out = <span class="kw">new</span> TreeMap&lt;&gt;();
+    <span class="kw">for</span> (Map.Entry&lt;String, Integer&gt; e : base) out.<span class="fn">merge</span>(e.<span class="fn">getKey</span>(), e.<span class="fn">getValue</span>(), Integer::sum);
+    <span class="kw">return</span> out;
+}
+
+stored = <span class="fn">query</span>();                                  <span class="cm">// 구체화 뷰를 만들 때 한 번 실행</span>
+reads = <span class="num">0</span>;
+base.<span class="fn">add</span>(Map.<span class="fn">entry</span>(<span class="st">"KR"</span>, <span class="num">150</span>));
+System.out.<span class="fn">println</span>(<span class="st">"뷰 "</span> + <span class="fn">query</span>().<span class="fn">get</span>(<span class="st">"KR"</span>) + <span class="st">" 읽은 행 "</span> + reads);      <span class="cm">// 뷰 500 읽은 행 7</span>
+System.out.<span class="fn">println</span>(<span class="st">"구체화 뷰 "</span> + stored.<span class="fn">get</span>(<span class="st">"KR"</span>) + <span class="st">" 읽은 행 "</span> + reads);  <span class="cm">// 구체화 뷰 350 읽은 행 7</span>
+stored = <span class="fn">query</span>();                                  <span class="cm">// REFRESH</span>
+System.out.<span class="fn">println</span>(<span class="st">"REFRESH 뒤 "</span> + stored.<span class="fn">get</span>(<span class="st">"KR"</span>) + <span class="st">" 읽은 행 "</span> + reads);  <span class="cm">// REFRESH 뒤 500 읽은 행 14</span></pre>
+            </div>
+            <p class="code-desc">
+                파이썬 모델과 같은 흐름을 자바로 옮긴 코드로 출력도 같습니다. 아래 조각은 main 메서드 안에서 실행한다고 가정했습니다. query가 조회마다 원본 행을 모두 읽어 합계를 구하고, 구체화 뷰에 해당하는 stored는 만들 때 한 번 채워 둔 결과를 그대로 돌려줍니다. 원본에 행이 늘어난 뒤에도 stored는 REFRESH에 해당하는 query 재실행 전까지 350입니다.
+                실제 데이터베이스는 이렇게 애플리케이션 코드에서 구체화하지 않고 구체화 뷰를 SQL 객체로 제공합니다. 일반 뷰의 쿼리 재작성, 구체화 뷰의 저장과 갱신은 모두 데이터베이스가 처리합니다. 이 코드는 개념 설명용입니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
