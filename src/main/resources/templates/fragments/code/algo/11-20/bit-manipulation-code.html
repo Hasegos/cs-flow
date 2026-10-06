@@ -1,0 +1,83 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — 비트 연산자와 대표 트릭</p>
+            <div class="code-block">
+<pre><span class="kw">from</span> functools <span class="kw">import</span> reduce
+<span class="kw">from</span> operator <span class="kw">import</span> xor
+
+a, b = <span class="num">0b01101010</span>, <span class="num">0b00111100</span>               <span class="cm"># 106, 60</span>
+<span class="fn">print</span>(a &amp; b, a | b, a ^ b, a &lt;&lt; <span class="num">1</span>, a &gt;&gt; <span class="num">2</span>, ~a)
+<span class="cm"># 40 126 86 212 26 -107</span>
+
+<span class="kw">def</span> <span class="fn">is_pow2</span>(n):
+    <span class="kw">return</span> n &gt; <span class="num">0</span> <span class="kw">and</span> n &amp; (n - <span class="num">1</span>) == <span class="num">0</span>      <span class="cm"># 가장 낮은 1을 지우면 0</span>
+
+<span class="fn">print</span>(&#91;<span class="fn">is_pow2</span>(n) <span class="kw">for</span> n <span class="kw">in</span> (<span class="num">8</span>, <span class="num">12</span>, <span class="num">1</span>, <span class="num">0</span>)&#93;)   <span class="cm"># &#91;True, False, True, False&#93;</span>
+
+<span class="kw">def</span> <span class="fn">popcount</span>(n):
+    c = <span class="num">0</span>
+    <span class="kw">while</span> n:
+        n &amp;= n - <span class="num">1</span>                         <span class="cm"># 1을 하나씩 지운다</span>
+        c += <span class="num">1</span>
+    <span class="kw">return</span> c
+
+<span class="fn">print</span>(<span class="fn">popcount</span>(<span class="num">13</span>), <span class="num">12</span> &amp; -<span class="num">12</span>)               <span class="cm"># 3 4  (13 = 1101, 12의 가장 낮은 1은 4)</span>
+<span class="fn">print</span>(<span class="fn">reduce</span>(xor, &#91;<span class="num">4</span>, <span class="num">1</span>, <span class="num">2</span>, <span class="num">1</span>, <span class="num">2</span>&#93;))           <span class="cm"># 4  (쌍은 사라지고 하나만 남는다)</span></pre>
+            </div>
+            <p class="code-desc">
+                AND, OR, XOR, 시프트, NOT은 정수의 각 비트를 한꺼번에 다루는 연산자입니다. 파이썬 정수는 길이 제한이 없고 음수는 무한히 긴 2의 보수로 다루므로 ~106은 -107이 됩니다(~x = -x - 1).
+                n &amp; (n - 1)은 n의 가장 낮은 1 하나를 지운 값입니다. 2의 거듭제곱은 1이 하나뿐이라 지우면 0이 되므로 n이 양수이고 이 값이 0이면 2의 거듭제곱입니다. n &gt; 0을 빠뜨리면 0도 통과하는 점에 주의합니다. 같은 식을 0이 될 때까지 반복하며 횟수를 세면 1의 개수가 나옵니다. 13은 1101이라 세 번에 0이 됩니다.
+                n &amp; -n은 가장 낮은 1만 남기는 식입니다. 음수가 2의 보수로 표현되어 -n이 n의 비트를 반전해 1을 더한 값이기 때문입니다. XOR은 같은 값끼리 0이 되고 0과는 그대로이므로, 한 원소만 한 번 나오고 나머지는 두 번씩 나오는 배열에서 모두 XOR하면 한 번 나온 값이 남습니다. 시각화의 비트 연산자 탭과 n &amp; (n-1) 트릭 탭이 보여 주는 과정과 같습니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — 비트마스크로 집합 다루기</p>
+            <div class="code-block">
+<pre>mask = <span class="num">0</span>
+mask |= <span class="num">1</span> &lt;&lt; <span class="num">2</span>                                   <span class="cm"># C 추가</span>
+mask |= <span class="num">1</span> &lt;&lt; <span class="num">4</span>                                   <span class="cm"># E 추가</span>
+mask |= <span class="num">1</span> &lt;&lt; <span class="num">6</span>                                   <span class="cm"># G 추가</span>
+<span class="fn">print</span>(mask, <span class="fn">bin</span>(mask), <span class="fn">bool</span>(mask &amp; (<span class="num">1</span> &lt;&lt; <span class="num">4</span>)), <span class="fn">bool</span>(mask &amp; (<span class="num">1</span> &lt;&lt; <span class="num">3</span>)))
+<span class="cm"># 84 0b1010100 True False</span>
+
+mask ^= <span class="num">1</span> &lt;&lt; <span class="num">4</span>                                   <span class="cm"># E 토글 (있었으므로 빠진다)</span>
+mask &amp;= ~(<span class="num">1</span> &lt;&lt; <span class="num">2</span>)                                <span class="cm"># C 삭제</span>
+<span class="fn">print</span>(mask)                                      <span class="cm"># 64  (G만 남음)</span>
+
+items = &#91;<span class="st">'A'</span>, <span class="st">'B'</span>, <span class="st">'C'</span>&#93;
+<span class="fn">print</span>(&#91;&#91;items&#91;i&#93; <span class="kw">for</span> i <span class="kw">in</span> <span class="fn">range</span>(<span class="num">3</span>) <span class="kw">if</span> m &gt;&gt; i &amp; <span class="num">1</span>&#93; <span class="kw">for</span> m <span class="kw">in</span> <span class="fn">range</span>(<span class="num">1</span> &lt;&lt; <span class="num">3</span>)&#93;)
+<span class="cm"># &#91;&#91;&#93;, &#91;'A'&#93;, &#91;'B'&#93;, &#91;'A', 'B'&#93;, &#91;'C'&#93;, &#91;'A', 'C'&#93;, &#91;'B', 'C'&#93;, &#91;'A', 'B', 'C'&#93;&#93;</span></pre>
+            </div>
+            <p class="code-desc">
+                비트마스크는 정수의 각 비트를 집합의 원소 하나로 보는 방법입니다. 원소를 넣을 때는 1 &lt;&lt; i를 OR하고, 확인할 때는 mask &amp; (1 &lt;&lt; i)이 0이 아닌지 보고, 토글은 XOR, 삭제는 ~(1 &lt;&lt; i)와 AND합니다. 위 흐름은 시각화의 비트마스크 집합 탭과 같고 마지막에 G만 남습니다.
+                원소가 n개이면 부분집합은 2^n개이고, 0부터 (1 &lt;&lt; n) - 1까지의 정수가 모든 부분집합에 하나씩 대응합니다. 그래서 range(1 &lt;&lt; n)을 도는 반복문 하나로 모든 부분집합을 열거할 수 있고, 원소가 적은 문제에서 상태를 정수 하나로 줄이는 데 자주 씁니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 연산자와 시프트의 차이</p>
+            <div class="code-block">
+<pre><span class="kw">int</span> a = <span class="num">106</span>, b = <span class="num">60</span>;
+System.out.<span class="fn">println</span>((a &amp; b) + <span class="st">" "</span> + (a | b) + <span class="st">" "</span> + (a ^ b) + <span class="st">" "</span> + (a &lt;&lt; <span class="num">1</span>) + <span class="st">" "</span> + (a &gt;&gt; <span class="num">2</span>) + <span class="st">" "</span> + (~a));
+<span class="cm">// 40 126 86 212 26 -107</span>
+
+System.out.<span class="fn">println</span>((-<span class="num">8</span> &gt;&gt; <span class="num">1</span>) + <span class="st">" "</span> + (-<span class="num">8</span> &gt;&gt;&gt; <span class="num">1</span>));
+<span class="cm">// -4 2147483644   (&gt;&gt; 는 부호 비트로 채우고, &gt;&gt;&gt; 는 0으로 채운다)</span>
+
+System.out.<span class="fn">println</span>(Integer.<span class="fn">bitCount</span>(<span class="num">13</span>) + <span class="st">" "</span> + Integer.<span class="fn">toBinaryString</span>(<span class="num">106</span>));
+<span class="cm">// 3 1101010</span>
+
+<span class="kw">int</span> n = <span class="num">8</span>;
+System.out.<span class="fn">println</span>(n &gt; <span class="num">0</span> &amp;&amp; (n &amp; (n - <span class="num">1</span>)) == <span class="num">0</span>);     <span class="cm">// true  (괄호가 꼭 필요하다)</span></pre>
+            </div>
+            <p class="code-desc">
+                자바의 비트 연산자도 같은 방식으로 동작하지만 int는 32비트로 고정되어 있습니다. 오른쪽 시프트는 두 가지입니다. &gt;&gt;는 부호 비트를 그대로 채워 음수가 음수로 남고 -8 &gt;&gt; 1은 -4가 되며, &gt;&gt;&gt;는 항상 0으로 채워 -8 &gt;&gt;&gt; 1은 2147483644가 됩니다.
+                괄호도 중요합니다. 자바와 C에서는 비교 연산자(==)가 비트 AND(&amp;)보다 우선순위가 높아서 n &amp; (n - 1) == 0처럼 쓰면 n &amp; ((n - 1) == 0)으로 묶여 자바에서는 컴파일 오류가 나고 C에서는 의도와 다르게 계산됩니다. 반드시 (n &amp; (n - 1)) == 0으로 괄호를 칩니다. 파이썬은 우선순위가 반대라 괄호가 없어도 되지만 같은 습관을 들이는 것이 안전합니다. 표준 라이브러리의 Integer.bitCount는 1의 개수를 한 번에 세어 줍니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
