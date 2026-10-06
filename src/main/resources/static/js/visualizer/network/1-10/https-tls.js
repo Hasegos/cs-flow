@@ -63,6 +63,7 @@
         const w   = canvasWrap.offsetWidth  || 320;
         const mob = w < 520;
         const minH = (mob ? 50 : 62) * 9 + (mob ? 44 : 52) + (mob ? 20 : 26) + 8 + 20;
+        canvasWrap.style.minHeight = minH + 'px';
         const h   = Math.max(canvasWrap.offsetHeight || 0, minH);
         canvas.width  = w * dpr;
         canvas.height = h * dpr;

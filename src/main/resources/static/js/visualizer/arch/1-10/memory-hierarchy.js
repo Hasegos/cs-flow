@@ -59,6 +59,7 @@
         const layerGap  = 4;
         const labelSpace = mob ? 32 : 28;
         const minH = pad * 2 + LAYERS.length * minLayerH + (LAYERS.length - 1) * layerGap + labelSpace;
+        canvasWrap.style.minHeight = minH + 'px';
         const h    = Math.max(canvasWrap.offsetHeight, minH);
         canvas.width  = w * dpr;
         canvas.height = h * dpr;
