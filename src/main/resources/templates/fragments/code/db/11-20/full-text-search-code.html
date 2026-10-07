@@ -1,0 +1,120 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">SQL — PostgreSQL의 전문 검색</p>
+            <div class="code-block">
+<pre><span class="cm">-- 텍스트를 tsvector로 바꾼다 (PostgreSQL 문서의 예)</span>
+<span class="kw">SELECT</span> <span class="fn">to_tsvector</span>(<span class="st">'english'</span>, <span class="st">'a fat cat sat on a mat - it ate a fat rats'</span>);
+<span class="cm">-- 'ate':9 'cat':3 'fat':2,11 'mat':7 'rat':12 'sat':4</span>
+
+<span class="cm">-- tsquery로 검색: @@ 연산자 (결과 t)</span>
+<span class="kw">SELECT</span> <span class="fn">to_tsvector</span>(<span class="st">'english'</span>, <span class="st">'a fat cat sat on a mat - it ate a fat rats'</span>)
+       @@ <span class="fn">to_tsquery</span>(<span class="st">'english'</span>, <span class="st">'fat &amp; rat'</span>);
+
+<span class="cm">-- tsvector 생성 열과 GIN 인덱스</span>
+<span class="kw">CREATE TABLE</span> docs (
+    id   <span class="kw">int</span> <span class="kw">PRIMARY KEY</span>,
+    body <span class="kw">text</span>,
+    tsv  <span class="kw">tsvector</span> <span class="kw">GENERATED ALWAYS AS</span> (<span class="fn">to_tsvector</span>(<span class="st">'english'</span>, body)) <span class="kw">STORED</span>
+);
+<span class="kw">CREATE INDEX</span> docs_tsv_idx <span class="kw">ON</span> docs <span class="kw">USING</span> GIN (tsv);
+
+<span class="kw">SELECT</span> id <span class="kw">FROM</span> docs <span class="kw">WHERE</span> tsv @@ <span class="fn">to_tsquery</span>(<span class="st">'english'</span>, <span class="st">'cat'</span>);
+
+<span class="cm">-- 관련도 순으로 정렬</span>
+<span class="kw">SELECT</span> id, <span class="fn">ts_rank</span>(tsv, query) <span class="kw">AS</span> rank
+<span class="kw">FROM</span> docs, <span class="fn">to_tsquery</span>(<span class="st">'english'</span>, <span class="st">'fat &amp; cat'</span>) <span class="kw">AS</span> query
+<span class="kw">WHERE</span> tsv @@ query
+<span class="kw">ORDER BY</span> rank <span class="kw">DESC</span>;
+
+<span class="cm">-- LIKE '%word%' 같은 부분 문자열 검색은 pg_trgm 확장의 인덱스</span>
+<span class="kw">CREATE EXTENSION</span> pg_trgm;
+<span class="kw">CREATE INDEX</span> docs_body_trgm <span class="kw">ON</span> docs <span class="kw">USING</span> GIN (body gin_trgm_ops);</pre>
+            </div>
+            <p class="code-desc">
+                to_tsvector는 텍스트를 토큰으로 나누고 불용어를 빼고 어간을 추출해 tsvector로 바꿉니다. 첫 줄의 결과는 PostgreSQL 문서에 실린 예와 같은 형태이고, 위치 번호는 불용어를 뺀 뒤에도 원래 단어의 위치를 유지합니다. @@ 연산자는 tsvector가 tsquery와 일치하는지 판단하며, fat &amp; rat은 두 단어가 모두 있어야 일치합니다. 시각화의 토큰과 정규화 탭이 보여 주는 순서입니다.
+                tsvector를 생성 열에 저장하고 GIN 인덱스를 만들면 단어에서 문서를 빠르게 찾을 수 있습니다. GIN(Generalized Inverted Index)은 키마다 그 키가 든 행의 목록(posting list)을 저장하는 역색인 형태의 인덱스입니다. 생성 열은 PostgreSQL 12 이상에서 쓸 수 있습니다. ts_rank는 관련도 점수를 계산합니다. 부분 문자열 검색을 빠르게 하려면 pg_trgm 확장의 gin_trgm_ops 인덱스를 씁니다. 결과는 텍스트 검색 설정(여기서는 english)에 따라 달라집니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — 역색인 만들기와 LIKE 비교</p>
+            <div class="code-block">
+<pre>docs = {<span class="num">1</span>: <span class="st">'fat cat sat'</span>, <span class="num">2</span>: <span class="st">'fat rat ran'</span>, <span class="num">3</span>: <span class="st">'cat ate rat'</span>, <span class="num">4</span>: <span class="st">'big fat cat'</span>,
+        <span class="num">5</span>: <span class="st">'dog ran fast'</span>, <span class="num">6</span>: <span class="st">'big dog sat'</span>, <span class="num">7</span>: <span class="st">'cat ran fast'</span>, <span class="num">8</span>: <span class="st">'fast dog'</span>}
+
+index = {}
+<span class="kw">for</span> doc_id, text <span class="kw">in</span> docs.<span class="fn">items</span>():
+    <span class="kw">for</span> word <span class="kw">in</span> text.<span class="fn">split</span>():
+        index.<span class="fn">setdefault</span>(word, &#91;&#93;).<span class="fn">append</span>(doc_id)       <span class="cm"># 단어 -&gt; 문서 목록(posting list)</span>
+
+<span class="kw">for</span> word <span class="kw">in</span> <span class="fn">sorted</span>(index):
+    <span class="fn">print</span>(word, index&#91;word&#93;)
+
+<span class="kw">def</span> <span class="fn">search_and</span>(*words):
+    result = <span class="fn">set</span>(index.<span class="fn">get</span>(words&#91;<span class="num">0</span>&#93;, &#91;&#93;))
+    <span class="kw">for</span> w <span class="kw">in</span> words&#91;<span class="num">1</span>:&#93;:
+        result &amp;= <span class="fn">set</span>(index.<span class="fn">get</span>(w, &#91;&#93;))                  <span class="cm"># 문서 목록의 교집합</span>
+    <span class="kw">return</span> <span class="fn">sorted</span>(result)
+
+<span class="fn">print</span>(<span class="st">'cat:'</span>, <span class="fn">search_and</span>(<span class="st">'cat'</span>))
+<span class="fn">print</span>(<span class="st">'fat &amp; cat:'</span>, <span class="fn">search_and</span>(<span class="st">'fat'</span>, <span class="st">'cat'</span>))
+
+scanned = <span class="num">0</span>
+like = &#91;&#93;
+<span class="kw">for</span> doc_id, text <span class="kw">in</span> docs.<span class="fn">items</span>():                        <span class="cm"># LIKE '%cat%' : 문서를 하나씩 검사</span>
+    scanned += <span class="num">1</span>
+    <span class="kw">if</span> <span class="st">'cat'</span> <span class="kw">in</span> text:
+        like.<span class="fn">append</span>(doc_id)
+<span class="fn">print</span>(<span class="st">'LIKE:'</span>, like, <span class="st">'검사한 문서'</span>, scanned)
+<span class="cm"># ate &#91;3&#93;  big &#91;4, 6&#93;  cat &#91;1, 3, 4, 7&#93;  dog &#91;5, 6, 8&#93;  fast &#91;5, 7, 8&#93;</span>
+<span class="cm"># fat &#91;1, 2, 4&#93;  ran &#91;2, 5, 7&#93;  rat &#91;2, 3&#93;  sat &#91;1, 6&#93;  (한 줄에 하나씩 출력)</span>
+<span class="cm"># cat: &#91;1, 3, 4, 7&#93;</span>
+<span class="cm"># fat &amp; cat: &#91;1, 4&#93;</span>
+<span class="cm"># LIKE: &#91;1, 3, 4, 7&#93; 검사한 문서 8</span></pre>
+            </div>
+            <p class="code-desc">
+                문서 8개로 만든 장난감 역색인입니다. 문서를 하나씩 읽으며 단어마다 문서 번호를 목록에 추가하고, 두 단어 검색은 두 목록의 교집합으로 계산합니다. cat은 D1, D3, D4, D7이고 fat &amp; cat은 D1, D4입니다.
+                마지막 반복문은 별도 인덱스가 없는 LIKE처럼 문서를 하나씩 검사해 같은 결과를 얻지만 검사한 문서가 8개입니다. 시각화의 역색인 탭과 LIKE와 전문 검색 탭이 보여 주는 결과입니다. 실제 검색 엔진은 어간 추출, 단어 위치, 순위, 디스크 저장 형식까지 다루므로 훨씬 복잡합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — TreeMap과 TreeSet으로 만든 역색인</p>
+            <div class="code-block">
+<pre>Map&lt;Integer, String&gt; docs = <span class="kw">new</span> TreeMap&lt;&gt;();
+docs.<span class="fn">put</span>(<span class="num">1</span>, <span class="st">"fat cat sat"</span>); docs.<span class="fn">put</span>(<span class="num">2</span>, <span class="st">"fat rat ran"</span>);
+docs.<span class="fn">put</span>(<span class="num">3</span>, <span class="st">"cat ate rat"</span>); docs.<span class="fn">put</span>(<span class="num">4</span>, <span class="st">"big fat cat"</span>);
+docs.<span class="fn">put</span>(<span class="num">5</span>, <span class="st">"dog ran fast"</span>); docs.<span class="fn">put</span>(<span class="num">6</span>, <span class="st">"big dog sat"</span>);
+docs.<span class="fn">put</span>(<span class="num">7</span>, <span class="st">"cat ran fast"</span>); docs.<span class="fn">put</span>(<span class="num">8</span>, <span class="st">"fast dog"</span>);
+
+Map&lt;String, TreeSet&lt;Integer&gt;&gt; index = <span class="kw">new</span> TreeMap&lt;&gt;();         <span class="cm">// 단어는 정렬된 순서로 보관</span>
+<span class="kw">for</span> (Map.Entry&lt;Integer, String&gt; e : docs.<span class="fn">entrySet</span>())
+    <span class="kw">for</span> (String w : e.<span class="fn">getValue</span>().<span class="fn">split</span>(<span class="st">" "</span>))
+        index.<span class="fn">computeIfAbsent</span>(w, k -&gt; <span class="kw">new</span> TreeSet&lt;&gt;()).<span class="fn">add</span>(e.<span class="fn">getKey</span>());
+System.out.<span class="fn">println</span>(index);
+
+TreeSet&lt;Integer&gt; both = <span class="kw">new</span> TreeSet&lt;&gt;(index.<span class="fn">get</span>(<span class="st">"fat"</span>));
+both.<span class="fn">retainAll</span>(index.<span class="fn">get</span>(<span class="st">"cat"</span>));                              <span class="cm">// 문서 목록의 교집합</span>
+System.out.<span class="fn">println</span>(<span class="st">"fat &amp; cat: "</span> + both);
+
+<span class="kw">int</span> scanned = <span class="num">0</span>;
+List&lt;Integer&gt; like = <span class="kw">new</span> ArrayList&lt;&gt;();
+<span class="kw">for</span> (Map.Entry&lt;Integer, String&gt; e : docs.<span class="fn">entrySet</span>()) {                <span class="cm">// LIKE '%cat%' : 문서를 하나씩 검사</span>
+    scanned++;
+    <span class="kw">if</span> (e.<span class="fn">getValue</span>().<span class="fn">contains</span>(<span class="st">"cat"</span>)) like.<span class="fn">add</span>(e.<span class="fn">getKey</span>());
+}
+System.out.<span class="fn">println</span>(<span class="st">"LIKE: "</span> + like + <span class="st">" 검사한 문서 "</span> + scanned);
+<span class="cm">// {ate=&#91;3&#93;, big=&#91;4, 6&#93;, cat=&#91;1, 3, 4, 7&#93;, dog=&#91;5, 6, 8&#93;, fast=&#91;5, 7, 8&#93;, fat=&#91;1, 2, 4&#93;, ran=&#91;2, 5, 7&#93;, rat=&#91;2, 3&#93;, sat=&#91;1, 6&#93;}</span>
+<span class="cm">// fat &amp; cat: &#91;1, 4&#93;</span>
+<span class="cm">// LIKE: &#91;1, 3, 4, 7&#93; 검사한 문서 8</span></pre>
+            </div>
+            <p class="code-desc">
+                같은 모델을 자바로 옮겼습니다. TreeMap은 단어를 정렬된 순서로 보관해 색인이 정렬된 단어 목록처럼 출력되고, TreeSet은 문서 번호를 정렬해 담아 retainAll로 교집합을 간단히 구합니다. fat &amp; cat은 D1, D4입니다.
+                마지막 반복문은 LIKE처럼 모든 문서를 검사하는 방법으로, 검사한 문서가 8개입니다. 색인은 문서를 한 번 훑어 미리 만들어 두고 이후 검색은 색인에서 단어를 찾는 방식입니다. 개념 설명용 코드입니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>

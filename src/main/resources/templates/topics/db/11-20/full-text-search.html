@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">전문 검색(역색인) | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/db/11-20/full-text-search.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/db}" class="topic-breadcrumb__link">데이터베이스</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">전문 검색(역색인)</span>
+                </nav>
+
+                <span class="topic-hero__slug">db · 20</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">전문 검색(역색인)</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+                <button type="button" class="topic-like" th:classappend="${liked} ? ' topic-like--active' : ''" th:attr="data-topic-slug=${topic.slug}">
+                    <svg class="topic-like__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <span class="topic-like__count" th:text="${likeCount}">0</span>
+                </button>
+                <div class="topic-share">
+                    <button type="button" class="topic-share__btn topic-share__btn--copy" aria-label="링크 복사">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="topic-share__btn topic-share__btn--kakao" aria-label="카카오톡 공유">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                        </svg>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+                <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        전문 검색(full-text search)은 자연어로 쓴 문서 가운데 질의에 맞는 문서를 찾고, 필요하면 관련도 순으로 정렬하는 기능입니다. 글자를 그대로 비교하는 대신 문서를 단어 단위로 나누고 정규화한 뒤, 단어에서 그 단어가 든 문서를 바로 찾을 수 있게 색인을 만들어 둡니다.
+                    </p>
+                    <p class="overview-lead">
+                        이 색인이 역색인(inverted index)입니다. 문서에서 단어를 찾는 방향을 뒤집어 단어를 키로 하고 그 단어가 나오는 문서의 목록을 값으로 저장합니다. LIKE '%단어%'는 pg_trgm 같은 별도 인덱스가 없으면 문서를 하나씩 검사해야 하지만 역색인은 목록을 바로 얻습니다. 이 토픽에서는 역색인이 만들어지는 과정, LIKE와의 차이, 텍스트가 tsvector로 바뀌는 과정을 시각화로 확인합니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">역색인</h3>
+                            <p class="overview-card__desc">단어를 키로, 그 단어가 나오는 문서의 목록을 값으로 저장한 구조입니다. 책 뒤의 찾아보기와 비슷합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">토큰과 불용어</h3>
+                            <p class="overview-card__desc">문장을 단어(토큰)로 나누고, a, on, it처럼 검색에 도움이 되지 않는 흔한 단어(불용어)는 검색 설정에 따라 색인에서 뺄 수 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">어간 추출</h3>
+                            <p class="overview-card__desc">rats를 rat으로 바꾸듯 단어를 기본형에 가깝게 맞춥니다. 사전이 인식하는 단어라면 형태가 달라도 같은 단어로 검색할 수 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">tsvector</h3>
+                            <p class="overview-card__desc">PostgreSQL에서 문서를 정규화한 단어와 그 위치의 목록으로 저장하는 타입입니다. to_tsvector 함수가 만듭니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">tsquery와 @@</h3>
+                            <p class="overview-card__desc">검색어를 정규화한 질의 타입입니다. tsvector @@ tsquery가 일치 여부를 판단하고, &amp;는 두 단어가 모두 있어야 한다는 뜻입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">GIN 인덱스</h3>
+                            <p class="overview-card__desc">tsvector 열에 만드는 역색인 형태의 인덱스입니다. PostgreSQL 문서는 전문 검색에 GIN 인덱스를 우선 권장합니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>색인은 쓸 때 만들고 읽을 때 활용합니다</strong> — 문서를 한 번 훑어 단어마다 문서 목록을 만들어 두면, 검색은 문서 전체를 읽지 않고 색인에서 단어를 찾는 일이 됩니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>여러 단어는 목록을 합칩니다</strong> — fat &amp; cat처럼 두 단어가 모두 필요하면 두 문서 목록의 교집합을 구합니다. 목록이 정렬되어 있으면 합치기가 쉽습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>LIKE '%단어%'는 B-Tree 정렬 순서를 쓰지 못합니다</strong> — B-Tree 인덱스는 값을 정렬해 두기 때문에 LIKE 'foo%'처럼 앞부분이 정해진 패턴은 쓸 수 있지만, %로 시작하는 패턴은 그 순서를 활용할 수 없습니다. 부분 문자열 검색용 인덱스가 필요하면 PostgreSQL의 pg_trgm 확장 같은 방법이 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>색인의 이점은 단어에 따라 다릅니다</strong> — 일치하는 문서가 적은 단어는 짧은 목록만 읽으면 되지만, 거의 모든 문서에 나오는 흔한 단어는 목록이 길어 이점이 줄어듭니다. 불용어를 빼는 이유 중 하나입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "역색인" 탭에서 문서 8개로 색인이 만들어지고 cat은 D1, D3, D4, D7, fat &amp; cat은 D1, D4가 되는 모습을, "LIKE와 전문 검색" 탭에서 LIKE는 문서 8개를 모두 검사하고 색인은 일치하는 4개만 접근하는 모습을, "토큰과 정규화" 탭에서 한 문장이 토큰, 불용어 제거, 어간 추출을 거쳐 tsvector가 되는 모습을 STEP으로 확인하세요.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">전문 검색의 배경</h2>
+                    <p class="overview-lead">
+                        문서에서 단어로 문서를 찾는 문제는 정보 검색(information retrieval) 분야의 오래된 주제이고, 역색인은 그 기본 자료구조로 교재에서 가장 먼저 다루는 구조 가운데 하나입니다. 교재에서는 단어 사전(dictionary)과 단어마다 문서 번호를 모은 포스팅 목록(postings list)으로 색인을 설명하고, 목록의 항목 하나(단어가 문서에 나타났다는 기록)를 포스팅(posting)이라 부릅니다.
+                    </p>
+                    <p class="overview-lead">
+                        관계형 데이터베이스의 일반 인덱스(B-Tree 등)는 값 비교와 범위 검색에 맞춰져 있어서, 글 속의 단어는 LIKE나 정규식으로 찾는 경우가 많았습니다. PostgreSQL 문서는 이 방법이 언어 지식이 없고, 결과를 순위로 정렬하지 못하며, 인덱스 지원이 없어 느릴 수 있다고 설명합니다. 이런 한계 때문에 PostgreSQL을 비롯한 여러 데이터베이스는 전문 검색 기능을 직접 제공하고, 그렇지 않은 환경에서는 별도의 검색 엔진을 함께 두기도 합니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>문서 8개, 단어 9개</strong> — 8개 문서에서 서로 다른 단어는 ate, big, cat, dog, fast, fat, ran, rat, sat의 9개이고, 각 단어마다 문서 목록이 하나씩 만들어집니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>검사 8개 대 접근 4개</strong> — cat이 든 문서를 찾을 때 별도 인덱스가 없는 LIKE는 8개를 모두 검사하고, 색인은 목록 D1, D3, D4, D7의 4개만 접근합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>교집합으로 합치기</strong> — fat의 목록 1, 2, 4와 cat의 목록 1, 3, 4, 7에 모두 있는 문서는 D1과 D4입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>토큰 12개에서 단어 6개로</strong> — 예문은 12개 토큰이고 불용어 5개를 빼고 어간을 추출하면 ate, cat, fat, mat, rat, sat의 6개가 되며, fat은 위치 2와 11에 두 번 나옵니다. 코드는 같은 색인을 파이썬과 자바로 만들어 cat은 D1, D3, D4, D7, 검사한 문서는 8개를 출력합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>전문 검색은 LIKE를 빠르게 만든 것이다</strong> — 둘은 찾는 단위가 다릅니다. LIKE는 글자의 부분 일치이고 전문 검색은 정규화한 단어 단위의 일치라, 단어의 중간 부분(부분 문자열) 검색을 그대로 대신하지는 못합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>색인만 만들면 어떤 검색도 빨라진다</strong> — 색인은 만든 방식에 맞는 질의에만 쓰입니다. tsvector의 GIN 인덱스는 @@ 검색용이고, LIKE '%단어%'는 별도의 인덱스(pg_trgm)가 필요합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>검색어는 입력한 그대로 비교한다</strong> — 검색어도 문서와 같은 방식으로 정규화해 tsquery로 바꿉니다. 그래서 rat을 검색해도 문서의 rats를 찾을 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>역색인은 검색 엔진에서만 쓴다</strong> — 검색 엔진의 핵심 구조이기도 하지만, PostgreSQL처럼 관계형 데이터베이스도 tsvector와 GIN 인덱스로 같은 방식의 검색을 제공합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>english 설정으로 한국어도 잘 검색된다</strong> — 어간 추출과 불용어는 텍스트 검색 설정(사전)에 따라 다르고 english 설정은 영어 규칙입니다. 한국어에는 맞는 설정이나 별도의 형태소 분석 도구가 필요할 수 있습니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">역색인이란 무엇인가요?</h3>
+                            <p class="overview-card__desc">단어를 키로 하고 그 단어가 나오는 문서의 목록을 값으로 저장한 구조입니다. 단어로 문서를 바로 찾을 수 있어 문서를 하나씩 훑지 않아도 됩니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">LIKE '%단어%'가 느린 이유는?</h3>
+                            <p class="overview-card__desc">B-Tree 인덱스는 값을 정렬해 두기 때문에 앞부분이 정해진 패턴은 쓸 수 있지만, %로 시작하는 패턴은 정렬 순서를 쓰지 못해 별도 인덱스가 없으면 행을 하나씩 검사하게 됩니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">tsvector와 tsquery는 무엇인가요?</h3>
+                            <p class="overview-card__desc">tsvector는 문서를 정규화한 단어와 위치의 목록이고, tsquery는 정규화한 검색 조건입니다. @@ 연산자로 일치 여부를 판단합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">전문 검색에 GIN 인덱스를 쓰는 이유는?</h3>
+                            <p class="overview-card__desc">GIN은 키(단어)마다 그 키가 든 행의 목록(posting list)을 저장하는 역색인 형태라, 한 문서에 여러 단어가 들어 있는 tsvector에서 단어로 문서를 찾는 데 맞습니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">활용 분야</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>게시글과 상품 검색</strong> — 블로그, 게시판, 쇼핑몰의 제목과 본문에서 단어로 글을 찾는 기능에 씁니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>문서와 로그 검색</strong> — 문서 저장소나 로그에서 특정 단어가 든 항목을 찾습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>검색 엔진</strong> — Elasticsearch 같은 검색 엔진은 역색인을 기반으로 대량의 텍스트를 검색하며, 데이터베이스의 전문 검색으로 부족할 때 함께 두기도 합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/index}">인덱스</a> — B-Tree가 앞부분 기준 정렬이라 LIKE '%단어%'에 쓰이지 못하는 이유를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/query-plan}">쿼리 실행 계획</a> — 순차 검색과 인덱스 검색이 실행 계획에서 어떻게 다른지 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/nosql}">NoSQL</a> — 관계형이 아닌 저장소의 종류와 특징을 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://www.postgresql.org/docs/current/textsearch-intro.html" target="_blank" rel="noopener">PostgreSQL: Full Text Search Introduction</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://www.postgresql.org/docs/current/textsearch-controls.html" target="_blank" rel="noopener">PostgreSQL: Parsing Documents (to_tsvector)</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://www.postgresql.org/docs/current/textsearch-indexes.html" target="_blank" rel="noopener">PostgreSQL: Preferred Index Types for Text Search</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://www.postgresql.org/docs/current/gin.html" target="_blank" rel="noopener">PostgreSQL: GIN Indexes</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://www.postgresql.org/docs/current/pgtrgm.html" target="_blank" rel="noopener">PostgreSQL: pg_trgm</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>교재</strong> — Manning, C. D., Raghavan, P., Schütze, H., "Introduction to Information Retrieval", Cambridge University Press, 2008</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/db/11-20/full-text-search-code :: code}"></th:block>
+            </div>
+
+            <!-- 탭 4: 퀴즈 -->
+            <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
+                <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+    <script th:src="@{/js/quiz.js}"></script>
+    <script th:src="@{/js/like.js}"></script>
+    <script th:src="@{/js/share.js}"></script>
+</body>
+</html>
