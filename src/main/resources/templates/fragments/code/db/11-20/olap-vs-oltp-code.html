@@ -1,0 +1,86 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">SQL — OLTP의 트랜잭션과 OLAP의 집계 쿼리</p>
+            <div class="code-block">
+<pre><span class="cm">-- OLTP: 짧은 트랜잭션, 행 하나씩</span>
+<span class="kw">BEGIN</span>;
+<span class="kw">INSERT INTO</span> sales (id, sold_on, region, product, amount)
+<span class="kw">VALUES</span> (<span class="num">7</span>, <span class="st">'2024-10-04'</span>, <span class="st">'KR'</span>, <span class="st">'A'</span>, <span class="num">120</span>);
+<span class="kw">UPDATE</span> stock <span class="kw">SET</span> quantity = quantity - <span class="num">1</span> <span class="kw">WHERE</span> product = <span class="st">'A'</span>;
+<span class="kw">COMMIT</span>;
+
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> sales <span class="kw">WHERE</span> id = <span class="num">7</span>;                    <span class="cm">-- 기본 키 인덱스를 써서 행 하나를 찾을 수 있다</span>
+
+<span class="cm">-- OLAP: 많은 행을 훑어 집계</span>
+<span class="kw">SELECT</span> region, <span class="fn">date_trunc</span>(<span class="st">'month'</span>, sold_on) <span class="kw">AS</span> month, <span class="fn">SUM</span>(amount) <span class="kw">AS</span> total
+<span class="kw">FROM</span> sales
+<span class="kw">WHERE</span> sold_on &gt;= <span class="st">'2022-01-01'</span>
+<span class="kw">GROUP BY</span> region, month
+<span class="kw">ORDER BY</span> region, month;                              <span class="cm">-- 지난 몇 해의 지역별 월 매출</span></pre>
+            </div>
+            <p class="code-desc">
+                위쪽은 OLTP의 전형적인 모습입니다. 주문 한 건을 INSERT하고 재고를 UPDATE한 뒤 바로 커밋하는 짧은 트랜잭션이고, 조회도 기본 키 인덱스를 써서 행 하나를 찾을 수 있습니다. 시각화의 OLTP 탭이 보여 주는 INSERT, UPDATE, SELECT와 같은 흐름이며, 시각화는 표의 행 하나를 예로 강조합니다. date_trunc와 GROUP BY에서 출력 열 별칭을 쓰는 것은 PostgreSQL 기준 문법이고 제품마다 다릅니다.
+                아래쪽은 OLAP의 전형적인 모습입니다. 오랜 기간의 많은 행을 훑어 지역과 월별로 묶어 합계를 구합니다. 결과는 요약된 소수의 행이지만 읽는 행은 매우 많아 쿼리 하나가 오래 걸릴 수 있어, 업무 처리용 DB와 분리한 데이터 웨어하우스에서 돌리는 경우가 많습니다. 테이블과 열 이름은 예시입니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — 행 지향과 컬럼 지향이 읽는 양</p>
+            <div class="code-block">
+<pre>rows = &#91;(<span class="num">1</span>, <span class="st">'10-01'</span>, <span class="st">'KR'</span>, <span class="st">'A'</span>, <span class="num">100</span>), (<span class="num">2</span>, <span class="st">'10-01'</span>, <span class="st">'US'</span>, <span class="st">'B'</span>, <span class="num">150</span>), (<span class="num">3</span>, <span class="st">'10-02'</span>, <span class="st">'KR'</span>, <span class="st">'A'</span>, <span class="num">200</span>),
+        (<span class="num">4</span>, <span class="st">'10-02'</span>, <span class="st">'JP'</span>, <span class="st">'C'</span>, <span class="num">80</span>), (<span class="num">5</span>, <span class="st">'10-03'</span>, <span class="st">'US'</span>, <span class="st">'B'</span>, <span class="num">300</span>), (<span class="num">6</span>, <span class="st">'10-03'</span>, <span class="st">'KR'</span>, <span class="st">'A'</span>, <span class="num">50</span>)&#93;
+names = (<span class="st">'id'</span>, <span class="st">'date'</span>, <span class="st">'region'</span>, <span class="st">'product'</span>, <span class="st">'amount'</span>)
+
+cols = {n: &#91;r&#91;i&#93; <span class="kw">for</span> r <span class="kw">in</span> rows&#93; <span class="kw">for</span> i, n <span class="kw">in</span> <span class="fn">enumerate</span>(names)}   <span class="cm"># 컬럼 지향: 열마다 모아 저장</span>
+
+need = (<span class="st">'region'</span>, <span class="st">'amount'</span>)                                      <span class="cm"># 집계 쿼리가 필요한 열</span>
+row_cells = <span class="fn">len</span>(rows) * <span class="fn">len</span>(names)                               <span class="cm"># 행 지향: 행 전체를 읽음</span>
+col_cells = <span class="fn">len</span>(rows) * <span class="fn">len</span>(need)                                <span class="cm"># 컬럼 지향: 필요한 열만 읽음</span>
+<span class="fn">print</span>(<span class="st">'읽는 셀:'</span>, row_cells, col_cells)
+
+total = {}
+<span class="kw">for</span> region, amount <span class="kw">in</span> <span class="fn">zip</span>(cols&#91;<span class="st">'region'</span>&#93;, cols&#91;<span class="st">'amount'</span>&#93;):
+    total&#91;region&#93; = total.<span class="fn">get</span>(region, <span class="num">0</span>) + amount
+<span class="fn">print</span>(<span class="st">'집계:'</span>, total)
+
+<span class="fn">print</span>(<span class="st">'행 하나(id=3) 읽기:'</span>, rows&#91;<span class="num">2</span>&#93;)                            <span class="cm"># 행 지향: 한 번에 연속으로</span>
+<span class="fn">print</span>(<span class="st">'컬럼 지향으로 id=3 읽기:'</span>, &#91;cols&#91;n&#93;&#91;<span class="num">2</span>&#93; <span class="kw">for</span> n <span class="kw">in</span> names&#93;, <span class="st">'열 5곳을 읽음'</span>)
+<span class="cm"># 읽는 셀: 30 12</span>
+<span class="cm"># 집계: {'KR': 350, 'US': 450, 'JP': 80}</span>
+<span class="cm"># 행 하나(id=3) 읽기: (3, '10-02', 'KR', 'A', 200)</span>
+<span class="cm"># 컬럼 지향으로 id=3 읽기: &#91;3, '10-02', 'KR', 'A', 200&#93; 열 5곳을 읽음</span></pre>
+            </div>
+            <p class="code-desc">
+                같은 6행을 행 지향(rows)과 컬럼 지향(cols)으로 놓고 읽는 양을 비교하는 장난감 모델입니다. 지역별 합계에는 region과 amount 두 열만 필요하므로, 컬럼 지향은 12칸만 읽고 행 지향은 행 전체인 30칸을 읽습니다. 시각화의 행 vs 컬럼 저장 탭과 같은 결과입니다. 집계 결과는 KR 350, US 450, JP 80입니다.
+                반대로 id가 3인 행 하나를 읽는 경우, 행 지향은 한 곳에서 5개의 값을 한꺼번에 읽지만 컬럼 지향은 5개의 열을 각각 찾아가야 합니다. 실제 컬럼 지향 저장소는 열을 압축하고 블록 단위로 읽으며 훨씬 복잡합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 스트림 집계와 열 단위 배열</p>
+            <div class="code-block">
+<pre><span class="kw">record</span> Sale(<span class="kw">int</span> id, String date, String region, String product, <span class="kw">int</span> amount) {}
+
+List&lt;Sale&gt; rows = List.<span class="fn">of</span>(
+    <span class="kw">new</span> Sale(<span class="num">1</span>, <span class="st">"10-01"</span>, <span class="st">"KR"</span>, <span class="st">"A"</span>, <span class="num">100</span>), <span class="kw">new</span> Sale(<span class="num">2</span>, <span class="st">"10-01"</span>, <span class="st">"US"</span>, <span class="st">"B"</span>, <span class="num">150</span>),
+    <span class="kw">new</span> Sale(<span class="num">3</span>, <span class="st">"10-02"</span>, <span class="st">"KR"</span>, <span class="st">"A"</span>, <span class="num">200</span>), <span class="kw">new</span> Sale(<span class="num">4</span>, <span class="st">"10-02"</span>, <span class="st">"JP"</span>, <span class="st">"C"</span>, <span class="num">80</span>),
+    <span class="kw">new</span> Sale(<span class="num">5</span>, <span class="st">"10-03"</span>, <span class="st">"US"</span>, <span class="st">"B"</span>, <span class="num">300</span>), <span class="kw">new</span> Sale(<span class="num">6</span>, <span class="st">"10-03"</span>, <span class="st">"KR"</span>, <span class="st">"A"</span>, <span class="num">50</span>));
+
+Map&lt;String, Integer&gt; byRegion = rows.<span class="fn">stream</span>()
+    .<span class="fn">collect</span>(Collectors.<span class="fn">groupingBy</span>(Sale::region, TreeMap::<span class="kw">new</span>, Collectors.<span class="fn">summingInt</span>(Sale::amount)));
+System.out.<span class="fn">println</span>(<span class="st">"집계: "</span> + byRegion);                           <span class="cm">// 집계: {JP=80, KR=350, US=450}</span>
+
+<span class="kw">int</span>&#91;&#93; amount = rows.<span class="fn">stream</span>().<span class="fn">mapToInt</span>(Sale::amount).<span class="fn">toArray</span>();      <span class="cm">// 컬럼 지향: amount 열만 모은 배열</span>
+System.out.<span class="fn">println</span>(<span class="st">"amount 열: "</span> + Arrays.<span class="fn">toString</span>(amount) + <span class="st">" 합계 "</span> + Arrays.<span class="fn">stream</span>(amount).<span class="fn">sum</span>());
+<span class="cm">// amount 열: &#91;100, 150, 200, 80, 300, 50&#93; 합계 880</span></pre>
+            </div>
+            <p class="code-desc">
+                자바에서는 레코드 목록(행 지향)에 스트림으로 groupingBy와 summingInt를 적용해 지역별 합계를 구합니다. TreeMap을 써서 키 순서로 JP, KR, US가 출력되고 값은 파이썬 결과와 같습니다. 이 방식은 Sale 객체를 하나씩 따라가며 region과 amount를 읽습니다.
+                아래쪽처럼 amount만 모은 배열로 합계를 구하면 필요한 열만 읽는 컬럼 지향의 모습을 흉내 낼 수 있고, 합계 880은 세 지역의 합 350 + 450 + 80과 같습니다. 많은 분석 엔진은 열 단위 저장과 압축을 쓰고, 일부는 벡터화된 계산도 함께 씁니다. 이 코드는 개념 설명용입니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
