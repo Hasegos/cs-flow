@@ -245,7 +245,7 @@
             line(tx2, y0 + plotH, tx2, y0 + plotH + 3, P.muted + '77', 1);
             tx(String(tn), tx2, y0 + plotH + padB - (mob ? 8 : 10), fTick, P.text + '88', 'center', false);
         });
-        tx('n (입력 크기)', x0 + plotW - (mob ? 0 : 6), y0 + plotH + padB - (mob ? 8 : 10), fTick, P.text + '66', mob ? 'center' : 'right', false);
+        tx('n (입력 크기)', mob ? x0 + plotW * 0.75 : x0 + plotW - 6, y0 + plotH + padB - (mob ? 8 : 10), fTick, P.text + '66', mob ? 'center' : 'right', false);
 
         if (n > 0) {
             var curX = x0 + (n / N_MAX) * plotW;

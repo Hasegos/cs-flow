@@ -74,10 +74,11 @@
     function resize() {
         const w   = canvasWrap.offsetWidth;
         const mob = w < 520;
-        const h   = Math.max(canvasWrap.offsetHeight, mob ? 520 : 480);
+        const minH = mob ? 520 : 480;
+        canvasWrap.style.minHeight = minH + 'px';
+        const h   = Math.max(canvasWrap.offsetHeight, minH);
         canvas.width  = w * dpr;
         canvas.height = h * dpr;
-        if (mob) canvasWrap.style.minHeight = h + 'px';
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         draw();
     }

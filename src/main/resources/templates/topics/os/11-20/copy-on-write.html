@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">Copy-on-Write(COW) | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/os/11-20/copy-on-write.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/os}" class="topic-breadcrumb__link">운영체제</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">Copy-on-Write(COW)</span>
+                </nav>
+
+                <span class="topic-hero__slug">os · 13</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">Copy-on-Write(COW)</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+                <button type="button" class="topic-like" th:classappend="${liked} ? ' topic-like--active' : ''" th:attr="data-topic-slug=${topic.slug}">
+                    <svg class="topic-like__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <span class="topic-like__count" th:text="${likeCount}">0</span>
+                </button>
+                <div class="topic-share">
+                    <button type="button" class="topic-share__btn topic-share__btn--copy" aria-label="링크 복사">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="topic-share__btn topic-share__btn--kakao" aria-label="카카오톡 공유">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                        </svg>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+                <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        유닉스 계열 운영체제에서 새 프로세스를 만드는 기본 방법은 fork입니다. fork는 호출한 프로세스(부모)의 복제본(자식)을 만들고, 자식은 부모와 같은 코드와 데이터를 가진 채 fork 다음 줄부터 실행합니다. 부모의 메모리가 수백 메가바이트라면 이를 전부 복사하는 일은 시간과 메모리를 많이 씁니다.
+                        <strong>Copy-on-Write(COW, 쓰기 시 복사)</strong>는 이 복사를 미루는 기법입니다. fork 때는 메모리를 복사하지 않고 부모와 자식이 같은 물리 페이지를 읽기 전용으로 공유하다가, 어느 한쪽이 그 페이지에 <strong>쓰려고 하는 순간</strong> 그 페이지만 복사합니다.
+                    </p>
+                    <p class="overview-lead">
+                        COW 덕분에 fork가 빨라지고, 자식이 실제로 건드리지 않는 페이지는 끝까지 공유되어 메모리도 아낍니다. 특히 fork 직후 exec으로 다른 프로그램을 실행하는 흔한 패턴에서는, 곧 버려질 메모리를 복사하는 낭비가 사라집니다.
+                        이 토픽에서는 fork 직후 부모와 자식이 메모리를 공유하는 모습, 쓰기 순간에 페이지가 복사되는 과정, fork 뒤 exec 패턴에서의 이점을 봅니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">fork</h3>
+                            <p class="overview-card__desc">현재 프로세스를 복제해 자식 프로세스를 만드는 시스템 콜입니다. 자식은 부모와 같은 내용의 주소 공간을 갖지만 별개의 프로세스이므로, 한쪽이 변수를 바꿔도 다른 쪽에는 보이지 않습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">페이지 공유</h3>
+                            <p class="overview-card__desc">COW에서는 fork 때 자식의 페이지 테이블이 부모와 같은 물리 프레임을 가리키게 하고, 양쪽 페이지를 읽기 전용으로 표시합니다. 메모리 내용은 복사하지 않습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">쓰기 시 페이지 폴트</h3>
+                            <p class="overview-card__desc">읽기 전용으로 공유한 페이지에 쓰면 CPU가 페이지 폴트를 일으킵니다. 커널은 이 폴트가 COW 때문임을 알아보고 그 페이지를 새 프레임에 복사한 뒤 쓰는 쪽에 전용 복사본을 줍니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">필요한 만큼만 복사</h3>
+                            <p class="overview-card__desc">복사는 쓰기가 일어난 페이지 단위로만 이뤄집니다. 읽기만 하는 페이지는 끝까지 공유되므로 자식이 일부만 건드리면 복사량도 그만큼 작습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">fork 뒤 exec</h3>
+                            <p class="overview-card__desc">자식이 fork 직후 exec으로 다른 프로그램을 불러오면 복제한 메모리는 곧 교체됩니다. COW는 이 메모리를 복사하지 않으므로 낭비 없이 새 프로그램을 시작할 수 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">남는 비용</h3>
+                            <p class="overview-card__desc">COW에서도 부모의 페이지 테이블을 복제하고 자식의 프로세스 관리 구조를 만드는 비용은 듭니다. 메모리가 클수록 이 비용도 늘고, 쓰기가 많으면 페이지 복사와 폴트 처리 비용이 생깁니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>복사를 쓰는 시점까지 미룹니다</strong> — fork 때 메모리를 복사하지 않고 공유하다가 쓰는 순간 그 페이지만 복사합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>프로세스의 독립성은 그대로입니다</strong> — 복사는 쓰기 직전에 이뤄지므로 한쪽의 쓰기가 다른 쪽에 보이지 않습니다. 겉으로는 fork 때 전부 복사한 것과 같습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>fork가 빨라지고 메모리를 아낍니다</strong> — 복사할 데이터 양이 아니라 페이지 테이블 크기에 비용이 비례합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>쓰기가 많으면 이득이 줄어듭니다</strong> — 자식이 대부분의 페이지를 쓰면 결국 대부분을 복사하고 폴트 처리 비용까지 더해집니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "fork 직후 공유" 탭에서 모두 복사하는 방식과 공유 방식의 프레임 수를, "쓰기 시 복사" 탭에서 페이지 폴트 뒤 한 페이지만 복사되는 과정을, "fork 뒤 exec" 탭에서 버려지는 복사의 양을 STEP으로 확인하세요.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">COW의 배경</h2>
+                    <p class="overview-lead">
+                        초기 유닉스의 fork는 부모의 메모리를 통째로 복사했고, 자식이 곧바로 exec으로 메모리를 버리는 경우가 많아 낭비가 컸습니다. 이를 줄이려고 vfork 같은 변형이 쓰였고, 이후 가상 메모리와 페이지 폴트를 이용해 복사를 미루는 COW가 리눅스를 비롯한 많은 fork 구현에 쓰입니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>fork 직후(페이지 4개 가정)</strong> — 모두 복사하면 물리 프레임 8개를 쓰고 4개를 복사합니다. COW는 프레임 4개를 공유하고 복사는 0개입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>자식이 한 페이지에 쓰면</strong> — 그 페이지만 새 프레임에 복사되어 프레임 5개, 복사 1개가 됩니다. 나머지 3개 페이지는 계속 공유됩니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>fork 뒤 exec(페이지 1,000개 가정)</strong> — 모두 복사하면 1,000개를 복사하고 exec 때 1,000개를 버립니다. COW는 복사 0개이고 버려지는 것도 없습니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>COW는 fork 때 아무 비용이 없다</strong> — 메모리 내용은 복사하지 않지만 페이지 테이블 복제와 프로세스 구조 생성 비용은 남습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>부모와 자식이 같은 메모리를 영원히 공유한다</strong> — 읽기만 하는 동안만 공유합니다. 쓰는 순간 그 페이지는 각자의 복사본이 됩니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>자식이 쓰면 부모의 값도 바뀐다</strong> — 쓰기는 복사본에 이뤄지므로 부모의 데이터는 그대로입니다. 스레드와 달리 프로세스는 메모리가 격리됩니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>COW는 프로세스에서만 쓰인다</strong> — 파일 시스템의 스냅샷(예: Btrfs), 가상 머신 디스크 이미지(예: QEMU qcow2), 일부 언어 라이브러리의 컬렉션(예: Java CopyOnWriteArrayList)에서도 같은 발상을 씁니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">Copy-on-Write가 무엇인가요?</h3>
+                            <p class="overview-card__desc">fork 때 메모리를 복사하지 않고 부모와 자식이 같은 물리 페이지를 읽기 전용으로 공유하다가, 쓰기가 일어나는 순간 그 페이지만 복사하는 기법입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">쓰기 시 어떤 일이 일어나나요?</h3>
+                            <p class="overview-card__desc">읽기 전용 페이지에 쓰기를 시도하면 페이지 폴트가 발생하고, 커널이 그 페이지를 새 프레임에 복사해 쓰는 프로세스에 전용 복사본을 준 뒤 쓰기를 허용합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">fork 뒤 exec에서 COW가 왜 유리한가요?</h3>
+                            <p class="overview-card__desc">exec이 자식의 메모리를 새 프로그램으로 교체하므로 fork 때 전체를 복사하면 낭비입니다. COW는 복사를 미뤄 이 낭비를 없앱니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">COW의 단점은?</h3>
+                            <p class="overview-card__desc">쓰기가 많으면 페이지 복사와 폴트 처리 비용이 생깁니다. 페이지 테이블 복제 비용도 남습니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>리눅스 fork</strong> — fork(2) 문서는 리눅스가 COW 페이지로 fork를 구현하며, 부모의 페이지 테이블을 복제하고 자식의 태스크 구조를 만드는 시간과 메모리만 든다고 설명합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Redis의 스냅샷</strong> — Redis는 RDB 저장과 AOF 재작성 때 자식 프로세스를 fork하고 운영체제의 COW를 이용합니다. 그동안 부모가 데이터를 바꾸면 해당 페이지가 복사되어 메모리 사용량이 늘 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>대안</strong> — posix_spawn은 새 프로그램을 시작하는 용도로 fork와 exec을 합친 인터페이스를 제공합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/process}">프로세스</a> — fork로 만들어지는 프로세스와 그 주소 공간을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/virtual-memory-os}">가상 메모리</a> — 페이지 테이블과 페이지 폴트가 COW의 바탕임을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/memory-management}">메모리 관리</a> — 페이징과 프레임 할당을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/system-call}">시스템 콜</a> — fork와 exec이 시스템 콜로 호출되는 과정을 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>리눅스</strong> — <a href="https://man7.org/linux/man-pages/man2/fork.2.html" target="_blank" rel="noopener">fork(2)</a>, <a href="https://man7.org/linux/man-pages/man3/posix_spawn.3.html" target="_blank" rel="noopener">posix_spawn(3)</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Redis</strong> — <a href="https://redis.io/docs/latest/operate/oss_and_stack/management/persistence/" target="_blank" rel="noopener">Redis persistence</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>교재</strong> — Silberschatz 외, "Operating System Concepts"의 가상 메모리 중 Copy-on-Write 절</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/os/11-20/copy-on-write-code :: code}"></th:block>
+            </div>
+
+            <!-- 탭 4: 퀴즈 -->
+            <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
+                <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+    <script th:src="@{/js/quiz.js}"></script>
+    <script th:src="@{/js/like.js}"></script>
+    <script th:src="@{/js/share.js}"></script>
+</body>
+</html>

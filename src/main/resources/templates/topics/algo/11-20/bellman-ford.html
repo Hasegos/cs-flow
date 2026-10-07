@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">벨만-포드 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/algo/11-20/bellman-ford.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/algo}" class="topic-breadcrumb__link">알고리즘</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">벨만-포드</span>
+                </nav>
+
+                <span class="topic-hero__slug">algo · 12</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">벨만-포드</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+                <button type="button" class="topic-like" th:classappend="${liked} ? ' topic-like--active' : ''" th:attr="data-topic-slug=${topic.slug}">
+                    <svg class="topic-like__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <span class="topic-like__count" th:text="${likeCount}">0</span>
+                </button>
+                <div class="topic-share">
+                    <button type="button" class="topic-share__btn topic-share__btn--copy" aria-label="링크 복사">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="topic-share__btn topic-share__btn--kakao" aria-label="카카오톡 공유">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                        </svg>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+                <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        벨만-포드(Bellman-Ford) 알고리즘은 한 출발 정점에서 다른 모든 정점까지의 최단 거리를 구하는 알고리즘입니다. 다익스트라와 목적은 같지만 <strong>음수 가중치 간선이 있어도</strong> 동작하고, 음수 사이클이 있는지도 알려 줍니다. 방법은 단순합니다. 모든 간선을 한 번씩 훑으며 "이 간선을 거치면 더 짧아지는가"를 확인하는 일(완화, relaxation)을 V-1번 반복합니다.
+                    </p>
+                    <p class="overview-lead">
+                        다익스트라는 한 번 확정한 거리를 다시 고치지 않는다는 가정 위에 서 있어서 음수 간선을 만나면 틀릴 수 있습니다. 벨만-포드는 확정하지 않고 거리를 계속 줄여 가므로 그 가정이 필요 없습니다. 대신 모든 간선을 여러 번 훑어서 느립니다. 이 토픽에서는 라운드가 반복되며 거리가 줄어드는 모습, 간선 하나를 완화하는 순간, 음수 사이클에서 알고리즘이 어떻게 이상을 알리는지를 봅니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">완화(relaxation)</h3>
+                            <p class="overview-card__desc">간선 u → v에 대해 d[u] + 가중치가 d[v]보다 작으면 d[v]를 그 값으로 줄입니다. 지금까지 알려진 경로보다 짧은 길을 발견했을 때 거리를 갱신하는 연산입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">V-1번 반복</h3>
+                            <p class="overview-card__desc">음수 사이클이 없으면 최단 경로는 정점을 중복해서 지나지 않으므로 간선을 많아야 V-1개 씁니다. 라운드를 i번 돌리면 간선 i개 이하로 가는 최단 경로가 반영되어 V-1번이면 충분합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">음수 가중치</h3>
+                            <p class="overview-card__desc">간선의 가중치가 음수여도 됩니다. 거리를 확정하지 않고 계속 줄일 수 있어서, 나중에 발견한 음수 간선이 앞서 구한 값을 더 낮추는 경우도 반영됩니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">음수 사이클</h3>
+                            <p class="overview-card__desc">가중치 합이 음수인 사이클입니다. 한 바퀴 돌 때마다 거리가 줄어서 출발점에서 닿을 수 있다면 최단 거리가 정해지지 않습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">V번째 확인</h3>
+                            <p class="overview-card__desc">V-1번 반복한 뒤 한 번 더 모든 간선을 완화해 봅니다. 그래도 줄어드는 간선이 있다면 출발 정점에서 닿을 수 있는 음수 사이클이 있다는 신호입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">조기 종료</h3>
+                            <p class="overview-card__desc">한 라운드에서 갱신이 없으면 그 뒤로도 변하지 않으므로 반복을 멈출 수 있습니다. 간선을 훑는 순서에 따라 필요한 라운드 수는 달라집니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>시간은 O(VE)입니다</strong> — 간선 E개를 확인하는 라운드를 V-1번 돌립니다. 간선이 정점 수의 제곱에 가까운 조밀한 그래프에서는 O(V³)에 가까워집니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공간은 O(V)입니다</strong> — 입력 그래프를 빼면 추가 공간은 거리 배열 하나뿐입니다. 실제 경로까지 복원하려면 이전 정점을 기록하는 배열이 하나 더 필요합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>다익스트라보다 느립니다</strong> — 이진 힙을 쓰는 다익스트라는 O((V + E) log V)입니다. 음수 간선이 없다면 다익스트라가 보통 더 빠르고, 음수 간선이 있거나 음수 사이클을 찾을 때 벨만-포드를 씁니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>간선 순서에 민감합니다</strong> — 같은 라운드 안에서 먼저 갱신된 값이 뒤쪽 간선에 바로 쓰입니다. 순서가 좋으면 적은 라운드에 끝나고, 나쁘면 V-1번이 모두 필요하지만 결과는 같습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "라운드 반복" 탭에서 라운드마다 거리가 줄어들고 마지막 확인 라운드에서 갱신이 멈추는 모습을, "간선 완화" 탭에서 d[u] + 가중치와 d[v]를 비교하는 순간을, "음수 사이클" 탭에서 확인 라운드에도 거리가 줄어드는 모습을 STEP으로 확인하세요.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">벨만-포드의 배경</h2>
+                    <p class="overview-lead">
+                        이 알고리즘은 리처드 벨만(Richard Bellman)이 1958년 논문 "On a routing problem"에서 동적 계획법으로 최단 경로 문제를 푸는 방식으로 소개했고, 레스터 포드(Lester R. Ford Jr.)가 1956년 거리를 완화로 줄여 가는 일반적인 틀을 먼저 제시했습니다. 에드워드 무어(Edward F. Moore)도 1957년 학회에서 같은 방식을 발표해서(논문은 1959년) 벨만-포드-무어 알고리즘이라고 부르기도 합니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>예시 그래프</strong> — 정점 S, A, B, C, D 5개와 간선 7개(S → A 4, S → B 5, A → B -3, A → C 8, B → C 4, B → D 7, C → D 2)입니다. 출발은 S이고 A → B가 음수 간선입니다. 간선은 C → D, B → C, A → B, S → A, S → B, A → C, B → D 순서로 확인합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>라운드 1~2</strong> — 라운드 1에서 A가 4, B가 5, C가 12, D가 12가 됩니다. 라운드 2에서는 C가 9, B가 1, D가 8로 줄어듭니다. 앞에서 확인한 B → C는 아직 d[B] = 5를 썼기 때문에 C를 9까지만 줄였습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>라운드 3~5</strong> — 라운드 3에서 C가 5, 라운드 4에서 D가 7이 되고, 5번째 확인 라운드에서는 갱신이 없습니다. 최단 거리는 S 0, A 4, B 1, C 5, D 7입니다. 최단 경로 S → A → B → C → D의 간선 4개가 경로 반대 순서로 놓여 있어 라운드마다 간선 하나씩만 진행하므로 V-1 = 4라운드가 모두 필요했습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>간선 순서</strong> — 같은 간선을 S → A, A → B, S → B, B → C, A → C, B → D, C → D 순서로 확인하면 2라운드(두 번째 라운드는 갱신 없음)에 끝납니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>음수 사이클</strong> — B → A(1) 간선을 더하면 A → B → A의 합이 -3 + 1 = -2입니다. 5번째 확인 라운드에서도 거리가 줄어들어 음수 사이클이 있다고 판단합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>코드 확인</strong> — 파이썬과 자바 구현 모두 같은 그래프에서 &#91;0, 4, 1, 5, 7&#93;을 돌려주고, B → A(1)을 더하면 음수 사이클을 알립니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>음수 간선이 있으면 최단 경로가 없다</strong> — 문제가 되는 것은 음수 간선이 아니라 음수 사이클입니다. 음수 간선만 있고 음수 사이클이 없으면 최단 경로가 정해지고 벨만-포드가 구합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>다익스트라에서 음수 간선만 조심하면 된다</strong> — 일반적인 다익스트라 구현은 거리를 한 번 확정하면 고치지 않기 때문에 음수 간선이 있으면 틀린 값을 낼 수 있습니다. 음수 간선이 있으면 벨만-포드 같은 알고리즘을 씁니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>무방향 그래프에서도 음수 간선을 쓸 수 있다</strong> — 벨만-포드는 무방향 간선을 양방향 간선 둘로 바꿔 다루므로 음수 간선 하나가 u → v → u의 음수 사이클이 됩니다. 그래서 음수 간선은 방향 그래프에서 다룹니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>V-1번 뒤 확인은 필요 없다</strong> — 음수 사이클이 없다는 보장이 있을 때만 생략할 수 있습니다. 음수 사이클이 있으면 V-1번을 돌려도 값은 끝없이 줄 수 있어서, 확인 라운드가 있어야 알 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>모든 라운드가 꼭 필요하다</strong> — 간선 순서가 좋으면 갱신이 일찍 멈춥니다. 한 라운드에서 갱신이 없으면 바로 끝내도 되지만, 최악의 경우는 여전히 V-1번입니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">벨만-포드가 다익스트라와 다른 점은?</h3>
+                            <p class="overview-card__desc">음수 가중치 간선을 처리하고 음수 사이클을 탐지합니다. 다익스트라는 거리를 확정하며 진행해서 음수 간선이 있으면 틀릴 수 있습니다. 대신 벨만-포드는 O(VE)로 더 느립니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">왜 V-1번만 반복하면 되나요?</h3>
+                            <p class="overview-card__desc">음수 사이클이 없으면 최단 경로는 정점을 중복해서 지나지 않아 간선을 많아야 V-1개 씁니다. 라운드를 i번 돌리면 간선 i개 이하의 최단 경로가 반영되므로 V-1번이면 모든 최단 거리가 확정됩니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">음수 사이클은 어떻게 찾나요?</h3>
+                            <p class="overview-card__desc">V-1번 완화한 뒤 한 번 더 모든 간선을 완화해 봅니다. 거리가 갱신되는 간선이 있으면 출발 정점에서 닿을 수 있는 음수 사이클이 있다는 뜻입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">환율 차익거래(arbitrage)를 찾으려면?</h3>
+                            <p class="overview-card__desc">환율에 로그를 취하고 부호를 바꾼 값을 간선 가중치로 두면 환율의 곱이 1보다 큰 순환이 가중치 합이 음수인 사이클이 됩니다. 벨만-포드의 음수 사이클 탐지로 찾습니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>거리 벡터 라우팅</strong> — RIP(Routing Information Protocol)는 벨만-포드(거리 벡터) 알고리즘에 기반한 라우팅 프로토콜로, 라우터가 이웃과 거리 정보를 주고받으며 각자 경로를 갱신합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>차익거래 탐지</strong> — 통화 사이의 환율을 그래프로 보고 음수 사이클을 찾는 문제가 알고리즘 교재의 문제로 나옵니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>존슨 알고리즘</strong> — 음수 간선이 있는 그래프에서 모든 쌍의 최단 거리를 구할 때, 먼저 벨만-포드로 정점 가중치(포텐셜)를 구해 간선 가중치를 음수가 없도록 바꾼 뒤 다익스트라를 돌립니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/dijkstra}">다익스트라</a> — 음수 간선이 없을 때 쓰는 더 빠른 최단 경로 알고리즘을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/ds/graph}">그래프</a> — 방향 그래프와 가중치 간선의 표현을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/dp-basic}">DP 기초</a> — 작은 부분 문제의 결과를 쌓아 가는 방식을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/routing}">라우팅</a> — 거리 벡터 방식 라우팅을 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>논문</strong> — Bellman, R., "On a routing problem", Quarterly of Applied Mathematics 16(1), 1958</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>논문</strong> — Ford, L. R., Jr., "Network flow theory", RAND Corporation Paper P-923, 1956</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>교재</strong> — Cormen, Leiserson, Rivest, Stein, "Introduction to Algorithms", 3rd ed., Section 24.1 The Bellman-Ford algorithm</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>표준 문서</strong> — <a href="https://www.rfc-editor.org/rfc/rfc2453" target="_blank" rel="noopener">RFC 2453 RIP Version 2</a></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/algo/11-20/bellman-ford-code :: code}"></th:block>
+            </div>
+
+            <!-- 탭 4: 퀴즈 -->
+            <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
+                <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+    <script th:src="@{/js/quiz.js}"></script>
+    <script th:src="@{/js/like.js}"></script>
+    <script th:src="@{/js/share.js}"></script>
+</body>
+</html>

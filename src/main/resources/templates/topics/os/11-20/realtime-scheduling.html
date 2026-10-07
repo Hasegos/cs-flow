@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">실시간 스케줄링(RM/EDF) | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/os/11-20/realtime-scheduling.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/os}" class="topic-breadcrumb__link">운영체제</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">실시간 스케줄링(RM/EDF)</span>
+                </nav>
+
+                <span class="topic-hero__slug">os · 19</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">실시간 스케줄링(RM/EDF)</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+                <button type="button" class="topic-like" th:classappend="${liked} ? ' topic-like--active' : ''" th:attr="data-topic-slug=${topic.slug}">
+                    <svg class="topic-like__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <span class="topic-like__count" th:text="${likeCount}">0</span>
+                </button>
+                <div class="topic-share">
+                    <button type="button" class="topic-share__btn topic-share__btn--copy" aria-label="링크 복사">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="topic-share__btn topic-share__btn--kakao" aria-label="카카오톡 공유">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                        </svg>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+                <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        일반 운영체제의 스케줄러는 평균 응답 시간이나 공정성을 높이는 데 초점을 둡니다. 반면 자동차 제동 제어나 항공기 제어, 오디오 재생 같은 <strong>실시간 시스템</strong>에서는 계산이 정해진 시간(마감, deadline) 안에 끝나는 것이 결과의 정확성만큼 중요합니다. 마감을 반드시 지켜야 하는 경우를 경성(hard) 실시간, 마감을 가끔 놓쳐도 응답 시간의 분포가 허용 범위 안이면 되는 경우를 연성(soft) 실시간이라고 부릅니다.
+                        그래서 실시간 시스템은 "평균적으로 빠른가"가 아니라 "최악의 경우에도 마감을 지키는가"를 따집니다.
+                    </p>
+                    <p class="overview-lead">
+                        이 토픽에서는 주기적으로 반복되는 작업(주기 작업)을 대상으로 한 두 가지 대표 알고리즘을 봅니다. <strong>RM(Rate Monotonic)</strong>은 주기가 짧을수록 높은 고정 우선순위를 주고, <strong>EDF(Earliest Deadline First)</strong>는 마감이 가장 가까운 작업에 가장 높은 우선순위를 줍니다. 같은 작업 집합을 두 방식으로 실행해 어느 쪽이 마감을 지키는지, 그리고 CPU 이용률이 어디까지 올라가도 보장되는지 비교합니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">경성 · 연성 실시간</h3>
+                            <p class="overview-card__desc">마감을 반드시 보장해야 하는 것이 경성, 응답 시간의 통계적 분포가 허용 범위 안이면 되는 것이 연성입니다. 경성 실시간일수록 최악의 경우를 미리 분석해야 합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">주기 작업 모델</h3>
+                            <p class="overview-card__desc">작업마다 한 번 실행에 필요한 최대 시간(C)과 반복 주기(P)가 있고, 마감은 흔히 다음 주기가 시작될 때로 둡니다. 이용률은 C/P를 모든 작업에 대해 더한 값입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">RM (Rate Monotonic)</h3>
+                            <p class="overview-card__desc">주기가 짧은(자주 실행되는) 작업일수록 높은 우선순위를 주는 고정 우선순위 방식입니다. 우선순위가 한 번 정해지면 바뀌지 않아 구현과 분석이 단순합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">EDF (Earliest Deadline First)</h3>
+                            <p class="overview-card__desc">실행 가능한 작업 가운데 마감이 가장 가까운 것을 먼저 실행합니다. 작업이 도착할 때마다 우선순위를 다시 정하는 동적 우선순위 방식입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">이용률 한계</h3>
+                            <p class="overview-card__desc">CPU 이용률이 한계 이하이면 마감을 보장할 수 있습니다. 주기와 마감이 같고 작업이 독립인 선점형 단일 프로세서에서 EDF의 한계는 100%이고, RM은 작업 수 n에 따라 n(2^(1/n) − 1)이며 작업이 많아지면 약 69%로 줄어듭니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">선점과 마감 실패</h3>
+                            <p class="overview-card__desc">실시간 스케줄링은 높은 우선순위 작업이 낮은 작업을 선점할 수 있다고 가정합니다. 선점으로도 감당하지 못하면 어떤 작업이 마감을 넘기게 됩니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>빠르다가 아니라 예측 가능하다</strong> — 실시간의 핵심은 최악의 경우에도 마감을 지키는 것이고, 평균 속도는 부차적입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>RM은 고정, EDF는 동적</strong> — RM의 우선순위는 주기로 한 번 정하면 끝이고, EDF는 시점마다 가까운 마감을 따라 바뀝니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>EDF가 더 높은 이용률을 쓴다</strong> — 이론적으로 EDF는 CPU를 100%까지 쓰는 작업 집합도 소화하지만 RM의 보장 한계는 그보다 낮습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>RM은 단순해서 널리 쓰입니다</strong> — 고정 우선순위만 지원해도 구현할 수 있어, 우선순위 스케줄러만 있는 시스템에서 자주 쓰는 방식입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "RM" 탭에서 같은 작업이 마감을 놓치는 과정을, "EDF" 탭에서 마감을 모두 지키는 과정을, "이용률 한계" 탭에서 두 알고리즘의 보장 한계를 STEP으로 확인하세요.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실시간 스케줄링의 배경</h2>
+                    <p class="overview-lead">
+                        RM과 EDF는 1973년 Liu와 Layland가 논문 "Scheduling Algorithms for Multiprogramming in a Hard-Real-Time Environment"에서 분석해 널리 알려졌습니다. 이 논문은 단일 프로세서에서 주기 작업을 대상으로 두 알고리즘의 최적성과 이용률 한계를 보였고(논문에서는 EDF를 deadline driven 알고리즘이라 불렀습니다), 이후 실시간 스케줄링 이론의 대표적인 기초가 되었습니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>작업 집합 예시</strong> — T1은 실행 시간 2에 주기 5, T2는 실행 시간 4에 주기 7입니다. 이용률은 2/5 + 4/7 ≈ 97.1%이고, 마감은 각 작업의 다음 주기 시작 시점입니다(시간 단위는 예시).</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>RM으로 실행</strong> — T1이 높은 우선순위라 t=0~2, t=5~7에 실행하고, T2는 t=2~5에 3단위만 끝낸 채 t=7이 마감입니다. 남은 1단위를 t=7~8에 늦게 끝내 t=14까지 마감 실패가 1번 생깁니다. 이용률 97.1%는 RM의 보장 한계인 약 82.8%(작업 2개)를 넘습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>EDF로 실행</strong> — t=5에 T1의 두 번째 작업이 도착해도 마감이 10이라 마감 7인 T2가 계속 실행되고, T2는 t=6에 끝나 마감을 지킵니다. t=14까지 마감 실패가 없습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>RM의 한계 값</strong> — n(2^(1/n) − 1)은 n=1이면 100%, n=2이면 약 82.8%, n=3이면 약 78.0%이고, n이 커지면 ln 2 ≈ 69.3%에 가까워집니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>실시간 시스템은 빠른 시스템이다</strong> — 빠른 것이 아니라 마감을 예측 가능하게 지키는 시스템입니다. 느린 장치라도 마감 안에 끝나면 실시간 요구를 만족합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>EDF가 항상 RM보다 낫다</strong> — 이용률 면에서는 EDF가 유리하지만, 마감 정보를 직접 다뤄야 해서 마감을 지원하지 않는 커널에서는 고정 우선순위만 있으면 되는 RM이 구현하기 쉽습니다. 과부하일 때 RM은 가장 높은 우선순위 작업이 낮은 작업의 초과 실행에 영향받지 않지만, EDF는 초과 실행이 어느 작업의 마감 실패로 이어질지 퍼집니다. 둘 다 과부하 대책이 따로 필요합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>RM 이용률 한계를 넘으면 반드시 마감을 놓친다</strong> — 한계는 보장하는 충분 조건이어서 넘어도 마감을 지킬 수 있습니다. 다만 한계를 넘으면 보장이 없어 별도의 분석(응답 시간 분석 등)이 필요합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>우선순위가 높으면 항상 먼저 끝난다</strong> — 락 같은 공유 자원을 쓰면 높은 작업이 낮은 작업을 기다리는 우선순위 역전이 생겨 이론의 가정이 깨질 수 있습니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">RM과 EDF의 차이는 무엇인가요?</h3>
+                            <p class="overview-card__desc">RM은 주기가 짧을수록 높은 우선순위를 고정으로 주고, EDF는 마감이 가까운 작업에 그때그때 높은 우선순위를 줍니다. EDF는 단일 프로세서에서 이용률 100%까지 보장하고 RM은 그보다 낮은 한계까지 보장합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">경성과 연성 실시간은 어떻게 다른가요?</h3>
+                            <p class="overview-card__desc">경성은 마감을 반드시 지켜야 하는 경우이고, 연성은 마감을 가끔 놓쳐도 응답 시간의 분포가 허용 범위이면 되는 경우입니다. 항공기 제어는 경성에, 영상 재생은 연성에 가깝습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">CPU 이용률은 어떻게 구하나요?</h3>
+                            <p class="overview-card__desc">각 작업의 실행 시간을 주기로 나눈 값(C/P)을 모든 작업에 대해 더합니다. 이 값을 알고리즘의 이용률 한계와 비교해 스케줄 가능성을 판단합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">일반 스케줄러와 무엇이 다른가요?</h3>
+                            <p class="overview-card__desc">일반 스케줄러는 평균 응답 시간과 공정성이 목표이고, 실시간 스케줄러는 최악의 경우에 마감을 지키는 것이 목표입니다. 그래서 실시간은 작업 시간과 주기를 알고 우선순위를 엄격하게 정합니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>리눅스 실시간 정책</strong> — SCHED_FIFO와 SCHED_RR은 정적 우선순위(1~99)를 쓰는 실시간 정책이어서, 개발자가 작업의 주기에 따라 우선순위를 정하면 RM을 구현할 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>리눅스 SCHED_DEADLINE</strong> — 작업마다 runtime · deadline · period를 지정하면 EDF(전역 EDF)와 CBS(Constant Bandwidth Server)를 기반으로 스케줄링하고, 요청한 대역폭이 수용 가능한지 검사한 뒤 받아들입니다(리눅스 3.14부터).</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>실시간 운영체제(RTOS)</strong> — FreeRTOS 같은 RTOS는 고정 우선순위 선점형 스케줄러를 제공합니다. 우선순위를 주기에 따라 정하면 RM 방식으로 쓸 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>PREEMPT_RT</strong> — 리눅스 커널 안에서 선점 가능한 구간을 늘려 최악의 지연을 줄이는 패치 계열이며, 리눅스 6.12부터 주류 커널에서 설정으로 켤 수 있습니다(지원 아키텍처 한정).</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/cpu-scheduling}">CPU 스케줄링</a> — 선점과 우선순위 스케줄링의 기본을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/priority-inversion}">우선순위 역전</a> — 실시간 시스템에서 락 때문에 마감이 깨지는 문제를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/context-switching}">컨텍스트 스위칭</a> — 선점이 일어날 때 드는 전환 비용을 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>논문</strong> — Liu, Layland, "Scheduling Algorithms for Multiprogramming in a Hard-Real-Time Environment", Journal of the ACM 20(1), 1973</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>리눅스</strong> — <a href="https://man7.org/linux/man-pages/man7/sched.7.html" target="_blank" rel="noopener">sched(7)</a>, <a href="https://docs.kernel.org/scheduler/sched-deadline.html" target="_blank" rel="noopener">Deadline Task Scheduling (커널 문서)</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>비교 연구</strong> — <a href="https://www.eecs.umich.edu/courses/eecs571/reading/rm-vs-edf.pdf" target="_blank" rel="noopener">Buttazzo, "Rate Monotonic vs. EDF: Judgment Day"</a>, Real-Time Systems 29, 2005</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/os/11-20/realtime-scheduling-code :: code}"></th:block>
+            </div>
+
+            <!-- 탭 4: 퀴즈 -->
+            <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
+                <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+    <script th:src="@{/js/quiz.js}"></script>
+    <script th:src="@{/js/like.js}"></script>
+    <script th:src="@{/js/share.js}"></script>
+</body>
+</html>

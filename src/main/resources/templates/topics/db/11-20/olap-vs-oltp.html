@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">OLAP vs OLTP | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/db/11-20/olap-vs-oltp.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/db}" class="topic-breadcrumb__link">데이터베이스</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">OLAP vs OLTP</span>
+                </nav>
+
+                <span class="topic-hero__slug">db · 19</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">OLAP vs OLTP</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+                <button type="button" class="topic-like" th:classappend="${liked} ? ' topic-like--active' : ''" th:attr="data-topic-slug=${topic.slug}">
+                    <svg class="topic-like__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <span class="topic-like__count" th:text="${likeCount}">0</span>
+                </button>
+                <div class="topic-share">
+                    <button type="button" class="topic-share__btn topic-share__btn--copy" aria-label="링크 복사">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="topic-share__btn topic-share__btn--kakao" aria-label="카카오톡 공유">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                        </svg>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+                <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        OLTP(Online Transaction Processing)는 주문, 결제, 재고 갱신처럼 짧고 빈번한 읽기·쓰기 트랜잭션을 빠르고 안정적으로 처리하는 업무입니다. 반대로 OLAP(Online Analytical Processing)은 대량의 이력 데이터를 여러 기준으로 집계하고 분석하는, 읽기 중심의 업무입니다.
+                    </p>
+                    <p class="overview-lead">
+                        두 업무는 쿼리의 모양이 달라서 데이터베이스의 설계와 저장 방식도 다르게 가져갑니다. OLTP는 행 하나를 다루는 일이 많아 정규화된 스키마와 인덱스, 행 지향 저장이 어울리고, OLAP은 일부 열을 많은 행에 걸쳐 읽는 일이 많아 컬럼 지향 저장이 유리합니다. 이 토픽에서는 두 업무의 차이와 저장 방식의 차이를 시각화로 확인합니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">OLTP</h3>
+                            <p class="overview-card__desc">짧은 읽기·쓰기 트랜잭션을 많은 사용자가 동시에 실행합니다. 행 단위 접근이 많고 일관성과 동시성이 중요합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">OLAP</h3>
+                            <p class="overview-card__desc">대량의 이력 데이터를 집계하고 분석합니다. 복잡한 읽기 쿼리가 중심이고 한 쿼리가 많은 행을 훑습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">데이터 웨어하우스</h3>
+                            <p class="overview-card__desc">여러 업무 시스템의 데이터를 모아 분석용으로 저장하는 저장소입니다. OLAP 분석이 주로 여기서 이루어집니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">행 지향 저장</h3>
+                            <p class="overview-card__desc">한 행의 값을 이어 붙여 저장합니다. 행 하나를 읽고 쓰기에 좋아 OLTP에 어울립니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">컬럼 지향 저장</h3>
+                            <p class="overview-card__desc">한 열의 값을 모아 저장합니다. 필요한 열만 읽고 같은 열끼리 압축이 잘 되어 OLAP에 유리합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">ETL</h3>
+                            <p class="overview-card__desc">업무 시스템의 데이터를 추출(Extract)하고 변환(Transform)해 웨어하우스에 적재(Load)하는 과정입니다. 분석 부하를 업무 DB와 분리합니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>쿼리의 모양이 다릅니다</strong> — OLTP는 소수의 행을 인덱스로 찾아 읽고 쓰고, OLAP은 많은 행을 훑어 소수의 요약 행을 만듭니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>분석이 업무를 방해할 수 있습니다</strong> — 오래 걸리는 집계 쿼리를 업무용 DB에서 돌리면 자원을 차지해 주문과 결제의 응답에 영향을 줄 수 있어, 분석을 따로 분리합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>저장 방식이 읽는 양을 바꿉니다</strong> — 필요한 열이 일부일 때 컬럼 지향은 그 열만 읽어 I/O를 줄이고, 행 하나만 다룰 때는 행 지향이 유리합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>정답은 둘 중 하나가 아닙니다</strong> — 실제 시스템은 업무 DB와 분석 저장소를 함께 두거나, 한 제품이 두 부하를 모두 다루도록 만들기도 합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "OLTP" 탭에서 INSERT, UPDATE, SELECT가 행 하나만 건드리는 모습을, "OLAP" 탭에서 모든 행의 region과 amount 열을 읽어 3행으로 집계하는 모습을, "행 vs 컬럼 저장" 탭에서 같은 쿼리가 행 지향에서는 30칸, 컬럼 지향에서는 12칸을 읽는 모습을 STEP으로 확인하세요.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">OLTP와 OLAP의 배경</h2>
+                    <p class="overview-lead">
+                        OLAP이라는 용어는 1993년 E. F. 코드(E. F. Codd) 등이 쓴 백서에서 사용되었습니다. 앞서 1992년에는 빌 인먼(Bill Inmon)이 『Building the Data Warehouse』에서 데이터 웨어하우스를 주제 지향, 통합, 시간 가변, 비휘발성 데이터 모음으로 정리했고, 이후 업무 처리와 분석을 나누는 구조가 널리 쓰였습니다.
+                    </p>
+                    <p class="overview-lead">
+                        컬럼 지향 저장은 분석 부하에 맞춰 발전했습니다. 2005년 스톤브레이커(M. Stonebraker) 등이 발표한 C-Store 논문이 읽기에 최적화한 컬럼 지향 DBMS의 설계를 제시했고(그 이전에도 컬럼 저장을 쓰는 제품이 있었습니다), 이후 분석용 데이터베이스와 저장 형식에 널리 쓰이고 있습니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>OLTP는 행 1개</strong> — 주문 6건이 든 표에서 INSERT, UPDATE, SELECT가 각각 건드리는 행은 6행 중 1행입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>OLAP은 전체 행</strong> — 지역별 합계는 6행 모두에서 region과 amount 2개 열을 읽어 KR 350, US 450, JP 80의 3행을 만듭니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>읽는 칸 30 대 12</strong> — 행 지향 저장은 행 전체인 6 × 5 = 30칸을 읽고 컬럼 지향은 필요한 2개 열의 6 × 2 = 12칸을 읽습니다. 실제 엔진은 칸이 아닌 블록 단위로 읽으므로 이 비율은 장난감 표의 수치입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>코드 확인</strong> — 파이썬 모델은 읽는 칸 30과 12, 집계 {'KR': 350, 'US': 450, 'JP': 80}을 출력하고, 자바 모델은 {JP=80, KR=350, US=450}과 amount 열 합계 880을 출력합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>OLAP은 쓰기를 전혀 하지 않는다</strong> — 읽기가 중심일 뿐이고, 웨어하우스에는 ETL(또는 ELT)이 보통 배치로 대량의 데이터를 적재합니다. 스트리밍으로 적재하는 시스템도 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>OLAP에는 인덱스가 필요 없다</strong> — 컬럼 지향과 파티셔닝 같은 방식이 중심이어도 쿼리에 따라 인덱스나 요약 구조를 쓸 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>컬럼 지향이 항상 더 좋다</strong> — 필요한 열이 일부이고 많은 행을 읽을 때 유리합니다. 행 하나를 읽고 쓰는 OLTP에서는 열마다 따로 접근해야 해서 불리합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>OLTP 데이터베이스로 분석까지 해도 된다</strong> — 작은 규모에서는 가능하지만 무거운 집계가 업무 쿼리와 자원을 다투면 응답이 느려질 수 있어 분리를 검토합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>OLAP은 정규화된 스키마를 쓴다</strong> — OLTP는 중복을 줄이려 정규화하지만 분석용 스키마는 조회와 집계를 쉽게 하려고 의도적으로 비정규화하는 경우가 많습니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">OLTP의 특징은?</h3>
+                            <p class="overview-card__desc">주문과 결제처럼 짧고 빈번한 트랜잭션을 빠르고 안정적으로 처리하는 데 초점을 둡니다. 정규화된 스키마와 인덱스를 사용합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">OLAP의 특징은?</h3>
+                            <p class="overview-card__desc">대량의 이력 데이터를 집계하고 분석하는 읽기 중심 쿼리를 다룹니다. 데이터 웨어하우스에서 주로 사용합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">컬럼 지향 저장이 OLAP에 유리한 이유는?</h3>
+                            <p class="overview-card__desc">분석 쿼리는 일부 열을 많은 행에 걸쳐 읽으므로 필요한 열만 읽어 I/O를 줄일 수 있고, 같은 열의 값끼리 압축 효율도 높일 수 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">분석 쿼리를 왜 업무 DB에서 따로 떼어 내나요?</h3>
+                            <p class="overview-card__desc">오래 걸리는 집계 쿼리가 업무 DB의 자원을 차지해 주문과 결제 응답에 영향을 줄 수 있어서, 분석 전용 저장소로 데이터를 옮겨 실행합니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">활용 분야</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>업무 시스템</strong> — 쇼핑몰의 주문, 결제, 재고, 은행의 이체처럼 정확성과 동시성이 중요한 서비스는 OLTP입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>리포트와 대시보드</strong> — 기간별, 지역별 매출 집계처럼 이력 데이터를 분석하는 작업은 OLAP입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>분석 파이프라인</strong> — ETL로 업무 DB의 데이터를 웨어하우스로 옮기고, 웨어하우스에서 집계해 의사 결정에 씁니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/transaction}">트랜잭션</a> — OLTP가 지켜야 하는 ACID를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/normalization}">정규화</a> — OLTP 스키마가 중복을 줄이는 방식을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/index}">인덱스</a> — OLTP에서 행 하나를 빨리 찾는 방법을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/table-partitioning}">테이블 파티셔닝</a> — 큰 이력 테이블을 나눠 분석 쿼리가 읽는 범위를 줄이는 방법을 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>논문</strong> — Stonebraker, M. et al., "C-Store: A Column-oriented DBMS", VLDB 2005</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>논문</strong> — Abadi, D. et al., "The Design and Implementation of Modern Column-Oriented Database Systems", Foundations and Trends in Databases 5(3), 2012 (© 2013), pp. 197–280</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>논문</strong> — Codd, E. F., Codd, S. B., Salley, C. T., "Providing OLAP (On-line Analytical Processing) to User-Analysts: An IT Mandate", 1993</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://www.postgresql.org/docs/current/tutorial-transactions.html" target="_blank" rel="noopener">PostgreSQL: Transactions (Tutorial)</a> (SQL 코드의 BEGIN과 COMMIT 근거)</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://learn.microsoft.com/en-us/azure/architecture/data-guide/relational-data/online-transaction-processing" target="_blank" rel="noopener">Microsoft Learn: Online transaction processing (OLTP)</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://learn.microsoft.com/en-us/azure/architecture/data-guide/relational-data/online-analytical-processing" target="_blank" rel="noopener">Microsoft Learn: Online analytical processing (OLAP)</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://docs.aws.amazon.com/redshift/latest/dg/c_columnar_storage_disk_mem_mgmnt.html" target="_blank" rel="noopener">Amazon Redshift: Columnar storage</a></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/db/11-20/olap-vs-oltp-code :: code}"></th:block>
+            </div>
+
+            <!-- 탭 4: 퀴즈 -->
+            <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
+                <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+    <script th:src="@{/js/quiz.js}"></script>
+    <script th:src="@{/js/like.js}"></script>
+    <script th:src="@{/js/share.js}"></script>
+</body>
+</html>

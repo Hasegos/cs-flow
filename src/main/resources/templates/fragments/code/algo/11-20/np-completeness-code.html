@@ -1,0 +1,99 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — 부분집합 합: 찾기와 검증</p>
+            <div class="code-block">
+<pre><span class="kw">from</span> collections <span class="kw">import</span> Counter
+
+<span class="kw">def</span> <span class="fn">verify</span>(nums, target, cert):                    <span class="cm"># 인증서 검증: 다항 시간</span>
+    <span class="kw">return not</span> (<span class="fn">Counter</span>(cert) - <span class="fn">Counter</span>(nums)) <span class="kw">and</span> <span class="fn">sum</span>(cert) == target
+
+<span class="kw">def</span> <span class="fn">find</span>(nums, target):                            <span class="cm"># 답 찾기: 부분집합 2^n개를 확인</span>
+    n = <span class="fn">len</span>(nums)
+    <span class="kw">for</span> mask <span class="kw">in</span> <span class="fn">range</span>(<span class="num">1</span> &lt;&lt; n):
+        sub = &#91;nums&#91;i&#93; <span class="kw">for</span> i <span class="kw">in</span> <span class="fn">range</span>(n) <span class="kw">if</span> mask &gt;&gt; i &amp; <span class="num">1</span>&#93;
+        <span class="kw">if</span> <span class="fn">sum</span>(sub) == target:
+            <span class="kw">return</span> sub, mask + <span class="num">1</span>                  <span class="cm"># (부분집합, 확인한 개수)</span>
+    <span class="kw">return</span> <span class="kw">None</span>, <span class="num">1</span> &lt;&lt; n
+
+nums = &#91;<span class="num">3</span>, <span class="num">34</span>, <span class="num">4</span>, <span class="num">12</span>, <span class="num">5</span>, <span class="num">2</span>&#93;
+<span class="fn">print</span>(<span class="fn">find</span>(nums, <span class="num">9</span>))                           <span class="cm"># (&#91;4, 5&#93;, 21)</span>
+<span class="fn">print</span>(<span class="fn">verify</span>(nums, <span class="num">9</span>, &#91;<span class="num">4</span>, <span class="num">5</span>&#93;), <span class="fn">verify</span>(nums, <span class="num">9</span>, &#91;<span class="num">3</span>, <span class="num">34</span>&#93;))   <span class="cm"># True False</span>
+<span class="fn">print</span>(<span class="fn">find</span>(nums, <span class="num">13</span>))                          <span class="cm"># (None, 64)</span></pre>
+            </div>
+            <p class="code-desc">
+                NP의 정의를 코드로 옮긴 예입니다. NP는 답(인증서)이 주어졌을 때 그 답이 맞는지 다항 시간에 검증할 수 있는 결정 문제의 집합입니다. verify는 인증서가 nums의 원소로만 이루어졌는지 확인하고 합을 목표와 비교하는 것이 전부라 입력 크기의 다항식 시간이면 됩니다.
+                find는 답을 직접 찾는 쪽으로, 원소가 n개이면 부분집합 2^n개를 하나씩 확인합니다(부분집합 하나를 만드는 O(n) 비용은 생략한 단순화입니다). 시각화의 순서로는 21번째에서 &#91;4, 5&#93;를 찾지만, 합이 13인 부분집합은 없어서 64개를 모두 확인하고서야 없다는 결론이 납니다. 여기서의 find는 가장 단순한 완전 탐색이며, 부분집합 합이 다항 시간에 풀리는지는 알려져 있지 않습니다. 시각화의 찾기와 검증 탭이 보여 주는 과정과 같습니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — 환원: 클리크를 정점 덮개로 바꾸기</p>
+            <div class="code-block">
+<pre><span class="kw">from</span> itertools <span class="kw">import</span> combinations
+
+V = {<span class="num">0</span>, <span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>, <span class="num">4</span>}
+E = {(<span class="num">0</span>, <span class="num">1</span>), (<span class="num">0</span>, <span class="num">2</span>), (<span class="num">1</span>, <span class="num">2</span>), (<span class="num">2</span>, <span class="num">3</span>), (<span class="num">3</span>, <span class="num">4</span>)}
+
+<span class="kw">def</span> <span class="fn">is_clique</span>(E, C):
+    <span class="kw">return</span> <span class="fn">all</span>((a, b) <span class="kw">in</span> E <span class="kw">or</span> (b, a) <span class="kw">in</span> E <span class="kw">for</span> a, b <span class="kw">in</span> combinations(<span class="fn">sorted</span>(C), <span class="num">2</span>))
+
+<span class="kw">def</span> <span class="fn">complement</span>(V, E):                          <span class="cm"># 입력 변환: 보완 그래프를 만든다</span>
+    <span class="kw">return</span> {(a, b) <span class="kw">for</span> a, b <span class="kw">in</span> combinations(<span class="fn">sorted</span>(V), <span class="num">2</span>) <span class="kw">if</span> (a, b) <span class="kw">not in</span> E <span class="kw">and</span> (b, a) <span class="kw">not in</span> E}
+
+<span class="kw">def</span> <span class="fn">is_vertex_cover</span>(E, S):
+    <span class="kw">return</span> <span class="fn">all</span>(a <span class="kw">in</span> S <span class="kw">or</span> b <span class="kw">in</span> S <span class="kw">for</span> a, b <span class="kw">in</span> E)
+
+Ec = <span class="fn">complement</span>(V, E)
+C = {<span class="num">0</span>, <span class="num">1</span>, <span class="num">2</span>}                                    <span class="cm"># 크기 3인 클리크</span>
+<span class="fn">print</span>(<span class="fn">is_clique</span>(E, C), <span class="fn">sorted</span>(Ec), <span class="fn">is_vertex_cover</span>(Ec, V - C), <span class="fn">len</span>(V) - <span class="fn">len</span>(C))
+<span class="cm"># True &#91;(0, 3), (0, 4), (1, 3), (1, 4), (2, 4)&#93; True 2</span>
+<span class="fn">print</span>(<span class="fn">is_clique</span>(E, {<span class="num">2</span>, <span class="num">3</span>, <span class="num">4</span>}), <span class="fn">is_vertex_cover</span>(Ec, V - {<span class="num">2</span>, <span class="num">3</span>, <span class="num">4</span>}))   <span class="cm"># False False</span></pre>
+            </div>
+            <p class="code-desc">
+                환원 A ≤p B는 A의 입력을 다항 시간에 B의 입력으로 바꾸어 B의 답이 곧 A의 답이 되게 하는 변환입니다. 여기서는 클리크를 정점 덮개로 바꿉니다. 그래프 G에서 정점 집합 C가 클리크라는 것은 보완 그래프(G에 없는 간선을 모은 그래프)에서 V - C가 정점 덮개라는 것과 같습니다. 5개 정점 그래프에서 C = {0, 1, 2}는 클리크이고 V - C = {3, 4}는 보완 그래프의 모든 간선을 덮으며, 크기도 |V| - |C| = 2입니다. {2, 3, 4}는 클리크가 아니고 V - C도 덮개가 아닙니다.
+                보완 그래프를 만드는 일은 정점 쌍을 한 번씩 보는 다항 시간이라 이 변환은 다항 시간입니다. 어느 한쪽이 다항 시간에 풀리면 다른 쪽도 풀리므로, 한쪽이 NP-완전이면 다른 쪽이 NP에 속하는 한 같이 NP-완전이 됩니다. 시각화의 환원 탭에서 클리크 다음에 정점 덮개가 나오는 화살표가 이 변환입니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 부분집합 합 찾기와 검증</p>
+            <div class="code-block">
+<pre><span class="kw">static boolean</span> <span class="fn">verify</span>(<span class="kw">int</span>&#91;&#93; nums, <span class="kw">int</span> target, <span class="kw">int</span>&#91;&#93; cert) {
+    List&lt;Integer&gt; pool = <span class="kw">new</span> ArrayList&lt;&gt;();
+    <span class="kw">for</span> (<span class="kw">int</span> x : nums) pool.<span class="fn">add</span>(x);
+    <span class="kw">int</span> sum = <span class="num">0</span>;
+    <span class="kw">for</span> (<span class="kw">int</span> c : cert) {
+        <span class="kw">if</span> (!pool.<span class="fn">remove</span>((Integer) c)) <span class="kw">return false</span>;   <span class="cm">// 집합에 없는 원소(또는 중복 사용)</span>
+        sum += c;
+    }
+    <span class="kw">return</span> sum == target;
+}
+
+<span class="kw">static int</span>&#91;&#93; <span class="fn">find</span>(<span class="kw">int</span>&#91;&#93; nums, <span class="kw">int</span> target, <span class="kw">int</span>&#91;&#93; checked) {
+    <span class="kw">int</span> n = nums.length;
+    <span class="kw">for</span> (<span class="kw">int</span> mask = <span class="num">0</span>; mask &lt; (<span class="num">1</span> &lt;&lt; n); mask++) {
+        <span class="kw">int</span> sum = <span class="num">0</span>;
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">0</span>; i &lt; n; i++) <span class="kw">if</span> ((mask &gt;&gt; i &amp; <span class="num">1</span>) == <span class="num">1</span>) sum += nums&#91;i&#93;;
+        checked&#91;<span class="num">0</span>&#93;++;
+        <span class="kw">if</span> (sum == target) <span class="kw">return</span> <span class="fn">pick</span>(nums, mask);
+    }
+    <span class="kw">return null</span>;
+}
+
+<span class="kw">static int</span>&#91;&#93; <span class="fn">pick</span>(<span class="kw">int</span>&#91;&#93; nums, <span class="kw">int</span> mask) {          <span class="cm">// 켜진 비트의 원소만 모은다</span>
+    <span class="kw">return</span> IntStream.<span class="fn">range</span>(<span class="num">0</span>, nums.length).<span class="fn">filter</span>(i -&gt; (mask &gt;&gt; i &amp; <span class="num">1</span>) == <span class="num">1</span>).<span class="fn">map</span>(i -&gt; nums&#91;i&#93;).<span class="fn">toArray</span>();
+}
+
+<span class="cm">// nums = {3, 34, 4, 12, 5, 2}: find(target 9) → &#91;4, 5&#93; (확인 21번), verify(nums, 9, {4, 5}) → true</span>
+<span class="cm">// find(target 13) → null (확인 64번)</span></pre>
+            </div>
+            <p class="code-desc">
+                같은 구조를 자바로 쓴 것입니다. 비트마스크의 각 비트가 원소를 넣을지 말지를 뜻하므로 1 &lt;&lt; n개의 부분집합을 차례로 만들 수 있습니다. pick은 켜진 비트에 해당하는 원소를 배열로 모으는 보조 함수입니다. 검증 verify는 인증서 원소를 풀에서 하나씩 빼며 더해 비교하는 반복문이고, 찾기 find는 그 앞에 부분집합 개수만큼의 바깥 반복이 있습니다.
+                n이 커질수록 find의 비용은 2^n으로 빠르게 늘지만 verify는 인증서 크기에 비례합니다. 이 차이가 NP 문제의 특징이며, 실무에서 NP-완전 문제를 만나면 근사 알고리즘, 휴리스틱, 입력이 작을 때의 완전 탐색 같은 방법을 고려합니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>

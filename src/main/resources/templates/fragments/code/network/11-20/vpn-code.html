@@ -1,0 +1,87 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">WireGuard — 클라이언트와 서버 설정 (개념 예시)</p>
+            <div class="code-block">
+<pre><span class="cm"># 클라이언트: /etc/wireguard/wg0.conf</span>
+&#91;Interface&#93;
+PrivateKey = &lt;클라이언트 개인키&gt;
+Address = <span class="num">10.8.0.2</span>/<span class="num">32</span>
+
+&#91;Peer&#93;
+PublicKey = &lt;서버 공개키&gt;
+Endpoint = <span class="num">198.51.100.1</span>:<span class="num">51820</span>
+AllowedIPs = <span class="num">192.168.10.0</span>/<span class="num">24</span>
+PersistentKeepalive = <span class="num">25</span>
+
+<span class="cm"># 서버: /etc/wireguard/wg0.conf</span>
+&#91;Interface&#93;
+PrivateKey = &lt;서버 개인키&gt;
+Address = <span class="num">10.8.0.1</span>/<span class="num">24</span>
+ListenPort = <span class="num">51820</span>
+
+&#91;Peer&#93;
+PublicKey = &lt;클라이언트 공개키&gt;
+AllowedIPs = <span class="num">10.8.0.2</span>/<span class="num">32</span></pre>
+            </div>
+            <p class="code-desc">
+                WireGuard는 설정 파일의 Interface 절에 이 기기의 개인키와 터널 안에서 쓸 가상 주소를 적고, Peer 절에 상대의 공개키와 접속 주소(Endpoint)를 적습니다. 클라이언트의 AllowedIPs에 적은 192.168.10.0/24로 가는 트래픽만 터널로 보내므로 분할 터널 구성입니다.
+                AllowedIPs는 보낼 때 목적지에 맞는 피어를 고르는 라우팅 표이고, 받을 때는 복호화한 패킷의 출발지가 범위 안인지 거르는 필터입니다. 서버 쪽에서는 클라이언트의 가상 주소 10.8.0.2만 허용합니다. PersistentKeepalive는 NAT 뒤에서 연결이 끊기지 않게 주기적으로 패킷을 보냅니다.
+                키는 wg genkey 같은 명령으로 만들며 개인키는 밖에 알리면 안 됩니다. 서버가 사내망으로 패킷을 전달하려면 패킷 전달(ip_forward)과 라우팅도 설정해야 하고, 위 설정은 구조를 보이는 최소 예시입니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">리눅스 셸 — 터널 상태와 암호화된 패킷 확인</p>
+            <div class="code-block">
+<pre><span class="cm"># 터널 켜기 / 상태 보기 (root 권한)</span>
+sudo wg-quick up wg0
+sudo wg show
+
+<span class="cm"># 터널 인터페이스와 경로 확인</span>
+ip addr show wg0
+ip route
+
+<span class="cm"># 사내 서버로 통신 확인</span>
+ping <span class="num">192.168.10.5</span>
+
+<span class="cm"># 인터넷 쪽 인터페이스에서 보이는 것 (암호문)</span>
+sudo tcpdump -n -i eth0 udp port <span class="num">51820</span></pre>
+            </div>
+            <p class="code-desc">
+                wg-quick up은 설정 파일대로 wg0 터널 인터페이스를 만들고 경로를 추가하며, wg show는 상대 피어, 마지막 핸드셰이크 시각, 주고받은 바이트 수를 보여 줍니다.
+                ip route에는 AllowedIPs 범위가 wg0 인터페이스로 가도록 경로가 생겨, 그 주소로 가는 패킷이 자동으로 터널에 들어갑니다. 터널이 정상이면 ping이 사내 서버에 닿습니다.
+                바깥 인터페이스에서 tcpdump를 하면 노트북과 게이트웨이 사이의 UDP 패킷만 보이고 안의 내용은 읽을 수 없는 암호문입니다. 이것이 캡슐화와 암호화의 효과입니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — 캡슐화와 암호화 흉내 내기</p>
+            <div class="code-block">
+<pre><span class="kw">import</span> json
+<span class="kw">from</span> cryptography.fernet <span class="kw">import</span> Fernet
+
+key = Fernet.<span class="fn">generate_key</span>()      <span class="cm"># 두 끝점이 미리 공유한 키라고 가정</span>
+tunnel = <span class="fn">Fernet</span>(key)
+
+inner = {<span class="st">"src"</span>: <span class="st">"10.8.0.2"</span>, <span class="st">"dst"</span>: <span class="st">"192.168.10.5"</span>, <span class="st">"data"</span>: <span class="st">"GET /"</span>}
+outer = {
+    <span class="st">"src"</span>: <span class="st">"203.0.113.20"</span>,
+    <span class="st">"dst"</span>: <span class="st">"198.51.100.1"</span>,
+    <span class="st">"payload"</span>: tunnel.<span class="fn">encrypt</span>(json.<span class="fn">dumps</span>(inner).<span class="fn">encode</span>()),   <span class="cm"># 내부 패킷 전체를 암호화</span>
+}
+<span class="fn">print</span>(outer&#91;<span class="st">"payload"</span>&#93;&#91;:<span class="num">20</span>&#93;)               <span class="cm"># 토큰 앞부분(base64): 내부 주소와 데이터는 보이지 않음</span>
+
+restored = json.<span class="fn">loads</span>(tunnel.<span class="fn">decrypt</span>(outer&#91;<span class="st">"payload"</span>&#93;))   <span class="cm"># 게이트웨이에서 복호화</span>
+<span class="fn">print</span>(restored&#91;<span class="st">"dst"</span>&#93;)                       <span class="cm"># 192.168.10.5</span></pre>
+            </div>
+            <p class="code-desc">
+                내부 패킷(inner)을 딕셔너리로 만들고 그 전체를 Fernet으로 암호화해 외부 패킷(outer)의 payload에 담는 모습으로 캡슐화와 암호화를 흉내 냅니다. 외부 패킷의 src와 dst는 공인 주소이고, 내부 패킷의 주소와 데이터는 암호문 안에 숨어 있습니다.
+                Fernet은 cryptography 라이브러리가 제공하는 대칭키 암호화 방식이어서 별도로 설치해야 합니다. 게이트웨이는 같은 키로 복호화해 원래의 내부 패킷을 얻습니다.
+                실제 VPN은 키 교환, 재전송 방지, 패킷 단위 암호화 같은 처리가 더 있으므로 이 코드는 원리만 보이는 최소 예시이며 실제 터널로 쓸 수 없습니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>

@@ -1,0 +1,78 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — ipaddress로 네트워크 정보 구하기</p>
+            <div class="code-block">
+<pre><span class="kw">import</span> ipaddress
+
+net = ipaddress.<span class="fn">ip_network</span>(<span class="st">"192.168.1.128/26"</span>)
+<span class="fn">print</span>(net.network_address)     <span class="cm"># 192.168.1.128</span>
+<span class="fn">print</span>(net.netmask)             <span class="cm"># 255.255.255.192</span>
+<span class="fn">print</span>(net.broadcast_address)   <span class="cm"># 192.168.1.191</span>
+<span class="fn">print</span>(net.num_addresses)       <span class="cm"># 64</span>
+
+hosts = <span class="fn">list</span>(net.<span class="fn">hosts</span>())
+<span class="fn">print</span>(hosts&#91;<span class="num">0</span>&#93;, hosts&#91;-<span class="num">1</span>&#93;, <span class="fn">len</span>(hosts))   <span class="cm"># 192.168.1.129 192.168.1.190 62</span>
+
+<span class="fn">print</span>(ipaddress.<span class="fn">ip_address</span>(<span class="st">"192.168.1.130"</span>) <span class="kw">in</span> net)   <span class="cm"># True</span></pre>
+            </div>
+            <p class="code-desc">
+                파이썬 표준 라이브러리 ipaddress의 ip_network는 주소와 접두사 길이로 네트워크 객체를 만들고, 네트워크 주소, 넷마스크, 브로드캐스트 주소, 주소 개수를 속성으로 줍니다.
+                hosts()는 보통 네트워크 주소와 브로드캐스트 주소를 뺀 호스트 주소(/31, /32는 예외)를 차례로 돌려주므로 /26에서는 62개입니다. in 연산자로 어떤 IP가 그 네트워크에 속하는지도 확인합니다.
+                접두사 뒤의 호스트 비트가 0이 아닌 주소(192.168.1.130/26)는 기본적으로 오류가 나며, strict=False를 주면 네트워크 주소로 맞춰서 받아 줍니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — 서브넷 나누기와 CIDR 요약</p>
+            <div class="code-block">
+<pre><span class="kw">import</span> ipaddress
+
+net = ipaddress.<span class="fn">ip_network</span>(<span class="st">"192.168.1.0/24"</span>)
+<span class="kw">for</span> sub <span class="kw">in</span> net.<span class="fn">subnets</span>(new_prefix=<span class="num">26</span>):
+    <span class="fn">print</span>(sub, sub.broadcast_address)
+<span class="cm"># 192.168.1.0/26 192.168.1.63 ... 192.168.1.192/26 192.168.1.255</span>
+
+a = ipaddress.<span class="fn">ip_network</span>(<span class="st">"192.168.0.0/24"</span>)
+b = ipaddress.<span class="fn">ip_network</span>(<span class="st">"192.168.1.0/24"</span>)
+c = ipaddress.<span class="fn">ip_network</span>(<span class="st">"192.168.2.0/24"</span>)
+
+<span class="fn">print</span>(<span class="fn">list</span>(ipaddress.<span class="fn">collapse_addresses</span>(&#91;a, b&#93;)))   <span class="cm"># 192.168.0.0/23 하나</span>
+<span class="fn">print</span>(<span class="fn">list</span>(ipaddress.<span class="fn">collapse_addresses</span>(&#91;b, c&#93;)))   <span class="cm"># 합쳐지지 않고 둘 그대로</span></pre>
+            </div>
+            <p class="code-desc">
+                subnets(new_prefix=26)은 /24를 /26 네 개로 나눠 하나씩 돌려줍니다. 시각화의 서브넷 나누기 탭과 같은 결과입니다.
+                collapse_addresses는 합칠 수 있는 네트워크를 가능한 한 적은 수의 네트워크로 합쳐 줍니다. 192.168.0.0/24와 192.168.1.0/24는 /23 하나가 되지만, 192.168.1.0/24와 192.168.2.0/24는 정렬이 맞지 않아 둘 그대로 남습니다.
+                이 함수는 정확히 같은 주소 범위만 합치므로 시각화에서 본 "원래 없던 네트워크까지 포함하는" 요약은 만들지 않습니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">C — 비트 연산으로 네트워크 주소 구하기</p>
+            <div class="code-block">
+<pre><span class="kw">#include</span> &lt;stdint.h&gt;
+<span class="kw">#include</span> &lt;stdio.h&gt;
+
+<span class="kw">int</span> <span class="fn">main</span>(<span class="kw">void</span>) {
+    uint32_t ip = (<span class="num">192u</span> &lt;&lt; <span class="num">24</span>) | (<span class="num">168u</span> &lt;&lt; <span class="num">16</span>) | (<span class="num">1u</span> &lt;&lt; <span class="num">8</span>) | <span class="num">130u</span>;
+    <span class="kw">int</span> prefix = <span class="num">26</span>;
+
+    uint32_t mask = prefix == <span class="num">0</span> ? <span class="num">0</span> : <span class="num">0xFFFFFFFFu</span> &lt;&lt; (<span class="num">32</span> - prefix);
+    uint32_t network = ip &amp; mask;
+    uint32_t broadcast = network | ~mask;
+
+    <span class="fn">printf</span>(<span class="st">"network %u.%u.%u.%u\n"</span>, network &gt;&gt; <span class="num">24</span>, (network &gt;&gt; <span class="num">16</span>) &amp; <span class="num">255</span>,
+           (network &gt;&gt; <span class="num">8</span>) &amp; <span class="num">255</span>, network &amp; <span class="num">255</span>);   <span class="cm">/* 192.168.1.128 */</span>
+    <span class="kw">return</span> broadcast == network + <span class="num">63</span> ? <span class="num">0</span> : <span class="num">1</span>;
+}</pre>
+            </div>
+            <p class="code-desc">
+                IPv4 주소를 32비트 정수로 보면, 마스크는 앞쪽 prefix개의 비트만 1인 값이고 네트워크 주소는 IP와 마스크의 AND, 브로드캐스트 주소는 네트워크 주소에 마스크를 뒤집은 값(~mask)을 OR한 것입니다.
+                prefix가 0일 때는 32비트 이동이 정의되지 않아 따로 처리해야 하고, 이동하는 값은 부호 없는 정수(u)로 써야 합니다.
+                이 계산은 시각화의 비트로 계산 탭과 같으며, 192.168.1.130/26에서 네트워크 주소 192.168.1.128과 브로드캐스트 192.168.1.191(= 128 + 63)을 얻습니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>

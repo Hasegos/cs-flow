@@ -330,11 +330,14 @@
             return;
         }
         var x = x0;
+        var maxX = GW() - x0;
+        var rowGap = chipH + (mob ? 8 : 10);
         list.forEach(function (item, idx) {
             var isNext = idx === 0;
             var lbl = '노드' + item.node + ' · ' + (item.dist === Infinity ? '∞' : item.dist);
             ctx.font = '700 ' + fLbl + 'px "JetBrains Mono",monospace';
             var w = ctx.measureText(lbl).width + (mob ? 18 : 22);
+            if (x + w > maxX && x > x0) { x = x0; chipY += rowGap; }
 
             if (isNext) {
                 tx('다음 확정 ↓', x + w / 2, chipY - (mob ? 10 : 11), mob ? 8 : 9, P.orange + 'ee', 'center', true);
@@ -354,7 +357,7 @@
             top:      mob ? 16 : 22,
             graphH:   mob ? 220 : 270,
             gapMid:   mob ? 12 : 16,
-            panelH:   mob ? 56 : 62,
+            panelH:   mob ? 96 : 62,
         };
     }
 

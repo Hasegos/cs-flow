@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">cgroups / namespace | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/os/11-20/cgroups-namespaces.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/os}" class="topic-breadcrumb__link">운영체제</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">cgroups / namespace</span>
+                </nav>
+
+                <span class="topic-hero__slug">os · 16</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">cgroups / namespace</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+                <button type="button" class="topic-like" th:classappend="${liked} ? ' topic-like--active' : ''" th:attr="data-topic-slug=${topic.slug}">
+                    <svg class="topic-like__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <span class="topic-like__count" th:text="${likeCount}">0</span>
+                </button>
+                <div class="topic-share">
+                    <button type="button" class="topic-share__btn topic-share__btn--copy" aria-label="링크 복사">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="topic-share__btn topic-share__btn--kakao" aria-label="카카오톡 공유">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                        </svg>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+                <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        컨테이너는 가상 머신처럼 운영체제를 따로 띄우지 않고도 프로세스를 독립된 환경처럼 보이게 만듭니다. 이 마법의 바탕에는 리눅스 커널의 두 가지 기능이 있습니다. <strong>namespace</strong>는 프로세스가 볼 수 있는 시스템 자원의 범위를 나누고, <strong>cgroups(control groups)</strong>는 프로세스 그룹이 쓸 수 있는 자원의 양을 제한하고 측정합니다.
+                        한마디로 namespace는 "무엇이 보이는가", cgroups는 "얼마나 쓸 수 있는가"를 다룹니다.
+                    </p>
+                    <p class="overview-lead">
+                        namespace 덕분에 컨테이너 안의 프로세스는 자기만의 프로세스 목록, 네트워크, 파일 시스템을 가진 것처럼 보입니다. cgroups 덕분에 한 컨테이너가 호스트의 CPU나 메모리를 독점하지 못합니다. 이 둘은 컨테이너 전용 기능이 아니라 리눅스 커널의 일반 기능이고, Docker 같은 도구가 이를 조합해 컨테이너를 만듭니다.
+                        이 토픽에서는 PID namespace가 보이는 범위를 나누는 방식, cgroups가 메모리와 CPU를 제한하는 방식, 둘이 합쳐져 컨테이너가 되는 과정을 봅니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">namespace</h3>
+                            <p class="overview-card__desc">커널의 전역 자원을 추상화해, 한 namespace 안의 프로세스에게는 그 자원이 자기만의 독립된 인스턴스처럼 보이게 합니다. 같은 namespace 안의 프로세스끼리만 그 변화를 봅니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">namespace의 종류</h3>
+                            <p class="overview-card__desc">PID(프로세스 번호), Mount(파일 시스템 마운트), Network(네트워크 인터페이스와 포트), UTS(호스트 이름), IPC(System V IPC, POSIX 메시지 큐), User(사용자와 그룹 ID), Cgroup, Time 등이 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">PID namespace</h3>
+                            <p class="overview-card__desc">프로세스 ID 공간을 분리합니다. 새 PID namespace의 첫 프로세스는 PID 1을 받고, 호스트에서는 같은 프로세스가 보통 다른 PID로 보입니다. 그 첫 프로세스가 끝나면 커널이 namespace 안의 나머지 프로세스를 종료합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">cgroups</h3>
+                            <p class="overview-card__desc">프로세스들을 계층적인 그룹으로 묶고, 그룹 단위로 CPU, 메모리, I/O 같은 자원의 사용량을 제한하고 계측합니다. 현재 리눅스는 통합 계층을 쓰는 cgroup v2를 권장합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">메모리 상한과 OOM</h3>
+                            <p class="overview-card__desc">그룹의 메모리 사용이 상한에 닿으면 커널은 먼저 메모리를 회수하려 하고, 줄일 수 없으면 그 그룹 안에서 OOM killer가 프로세스를 종료합니다. 종료 대상은 그 그룹 안에서 고르므로 다른 그룹의 프로세스는 보통 영향받지 않습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">CPU 상한</h3>
+                            <p class="overview-card__desc">주기마다 쓸 수 있는 CPU 시간(쿼터)을 정하면 그 이상 쓰려는 프로세스는 다음 주기까지 멈춥니다. 예를 들어 100,000µs 주기에 50,000µs면 코어 하나의 50%입니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>namespace는 시야를, cgroups는 사용량을 나눕니다</strong> — 서로 다른 문제를 푸는 기능이며, 컨테이너는 둘을 함께 씁니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>컨테이너는 커널 기능의 조합입니다</strong> — 별도의 "컨테이너"라는 커널 객체가 있는 것이 아니라, 프로세스에 여러 namespace와 cgroup을 적용한 결과입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>호스트에서는 일반 프로세스입니다</strong> — 컨테이너 안의 프로세스도 호스트에서 보면 호스트 PID를 가진 평범한 프로세스입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>자원 상한 없이는 이웃이 피해를 봅니다</strong> — 상한을 걸지 않은 컨테이너 하나가 메모리나 CPU를 다 써 같은 호스트의 다른 컨테이너를 느리게 하거나 종료시킬 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "namespace" 탭에서 PID가 컨테이너마다 1부터 매겨지는 모습을, "cgroups" 탭에서 메모리 상한 초과와 CPU 제한을, "컨테이너의 조합" 탭에서 일반 프로세스가 컨테이너가 되는 과정을 STEP으로 확인하세요.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">namespace와 cgroups의 배경</h2>
+                    <p class="overview-lead">
+                        namespace는 마운트 namespace를 시작으로 UTS, IPC, PID, 네트워크, 사용자 namespace 등이 리눅스 커널에 차례로 더해졌습니다. cgroups는 구글의 엔지니어(Paul Menage 등)가 시작해 리눅스 2.6.24에 처음 포함되었습니다. 이후 이 기능들을 조합해 쉽게 쓰게 해 주는 도구(LXC, Docker 등)가 나오면서 컨테이너가 널리 쓰이게 되었습니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>PID 번호</strong> — 호스트 PID가 3001, 3002인 컨테이너 A의 프로세스는 컨테이너 안에서 PID 1, 2로 보입니다. 호스트 PID 3101, 3102인 컨테이너 B의 프로세스도 B 안에서 PID 1, 2입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>메모리 상한</strong> — 상한 512MB인 그룹이 128MB씩 요청하면 4번째 요청까지 512MB로 상한에 닿고, 5번째 요청(640MB가 되는 시점)에서 회수가 되지 않으면 OOM killer가 그 그룹의 프로세스를 종료합니다(값은 예시).</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>CPU 상한</strong> — 주기 100,000µs마다 쿼터 50,000µs이면 50,000 ÷ 100,000 = 50%입니다. CPU를 100% 쓰려는 프로세스도 50%까지만 실행됩니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>namespace가 자원을 제한한다</strong> — namespace는 보이는 범위를 나눌 뿐 사용량을 제한하지 않습니다. 사용량 제한은 cgroups의 일입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>cgroups가 프로세스를 숨긴다</strong> — cgroups는 자원 사용량을 제한하고 계측할 뿐 다른 프로세스를 보이지 않게 하지 않습니다. 가리는 일은 namespace가 합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>컨테이너 안의 root는 호스트의 root와 똑같다</strong> — 기본 설정에서는 UID가 같게 보일 수 있지만, 컨테이너의 권한은 제한되고 사용자 namespace를 쓰면 안의 root를 호스트의 일반 사용자에 대응시킬 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>컨테이너는 Docker만의 기술이다</strong> — namespace와 cgroups는 리눅스 커널 기능이어서 Docker 없이도 쓸 수 있고, Docker 외의 컨테이너 런타임도 같은 기능을 씁니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">namespace와 cgroups의 차이는?</h3>
+                            <p class="overview-card__desc">namespace는 프로세스가 볼 수 있는 자원의 범위를 분리해 독립된 환경처럼 보이게 하고, cgroups는 프로세스 그룹이 쓸 수 있는 CPU, 메모리 등의 양을 제한하고 측정합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">컨테이너는 어떻게 격리되나요?</h3>
+                            <p class="overview-card__desc">호스트 커널의 PID, 마운트, 네트워크 같은 namespace로 시야를 나누고, cgroups로 자원 상한을 걸어 프로세스를 격리합니다. 별도의 게스트 커널은 없습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">컨테이너가 메모리 상한을 넘으면?</h3>
+                            <p class="overview-card__desc">커널이 먼저 메모리를 회수하려 하고, 줄일 수 없으면 그 cgroup 안에서 OOM killer가 프로세스를 종료합니다. 컨테이너가 예기치 않게 종료되는 대표 원인입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">컨테이너 안에서 PID 1은 무엇인가요?</h3>
+                            <p class="overview-card__desc">PID namespace의 첫 프로세스입니다. 이 프로세스가 종료되면 커널이 namespace 안의 나머지 프로세스를 종료하므로 컨테이너도 끝납니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Docker 옵션</strong> — docker run의 --memory와 --cpus 옵션은 컨테이너의 cgroup에 메모리와 CPU 상한을 설정합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>쿠버네티스</strong> — 파드의 resources.requests와 limits는 컨테이너 런타임을 거쳐 cgroup 설정으로 반영되고, 메모리 limit을 넘으면 OOM으로 종료될 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>관찰 도구</strong> — lsns는 시스템의 namespace 목록을, /proc/PID/ns는 프로세스가 속한 namespace를 보여 주고, cgroup v2는 /sys/fs/cgroup 아래 파일(memory.max, cpu.max 등)로 설정합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>systemd</strong> — systemd는 서비스마다 cgroup을 만들어 프로세스를 묶고, MemoryMax나 CPUQuota 같은 설정으로 자원 상한을 정합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/process}">프로세스</a> — namespace가 나누는 대상인 프로세스가 무엇인지 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/memory-management}">메모리 관리</a> — cgroups의 메모리 상한이 걸리는 바탕을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/cpu-scheduling}">CPU 스케줄링</a> — CPU 쿼터가 스케줄링과 어떻게 이어지는지 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/system-call}">시스템 콜</a> — clone, unshare 같은 시스템 콜로 namespace가 만들어지는 과정을 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>리눅스 man 페이지</strong> — <a href="https://man7.org/linux/man-pages/man7/namespaces.7.html" target="_blank" rel="noopener">namespaces(7)</a>, <a href="https://man7.org/linux/man-pages/man7/pid_namespaces.7.html" target="_blank" rel="noopener">pid_namespaces(7)</a>, <a href="https://man7.org/linux/man-pages/man7/cgroups.7.html" target="_blank" rel="noopener">cgroups(7)</a>, <a href="https://man7.org/linux/man-pages/man1/unshare.1.html" target="_blank" rel="noopener">unshare(1)</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>커널 문서</strong> — <a href="https://docs.kernel.org/admin-guide/cgroup-v2.html" target="_blank" rel="noopener">Control Group v2</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Docker·쿠버네티스</strong> — <a href="https://docs.docker.com/engine/containers/resource_constraints/" target="_blank" rel="noopener">Docker resource constraints</a>, <a href="https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/" target="_blank" rel="noopener">Resource management for Pods and containers</a></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/os/11-20/cgroups-namespaces-code :: code}"></th:block>
+            </div>
+
+            <!-- 탭 4: 퀴즈 -->
+            <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
+                <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+    <script th:src="@{/js/quiz.js}"></script>
+    <script th:src="@{/js/like.js}"></script>
+    <script th:src="@{/js/share.js}"></script>
+</body>
+</html>

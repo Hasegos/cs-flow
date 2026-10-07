@@ -1,0 +1,100 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">SQL — PostgreSQL 선언적 파티셔닝</p>
+            <div class="code-block">
+<pre><span class="kw">CREATE TABLE</span> orders (
+    id <span class="kw">bigint</span>, ordered_at <span class="kw">date NOT NULL</span>, region <span class="kw">text</span>, amount <span class="kw">int</span>
+) <span class="kw">PARTITION BY RANGE</span> (ordered_at);                 <span class="cm">-- 파티션 키 = ordered_at</span>
+
+<span class="kw">CREATE TABLE</span> orders_2024_01 <span class="kw">PARTITION OF</span> orders
+    <span class="kw">FOR VALUES FROM</span> (<span class="st">'2024-01-01'</span>) <span class="kw">TO</span> (<span class="st">'2024-02-01'</span>);   <span class="cm">-- 상한은 포함하지 않음</span>
+<span class="kw">CREATE TABLE</span> orders_2024_02 <span class="kw">PARTITION OF</span> orders
+    <span class="kw">FOR VALUES FROM</span> (<span class="st">'2024-02-01'</span>) <span class="kw">TO</span> (<span class="st">'2024-03-01'</span>);
+
+<span class="kw">EXPLAIN SELECT</span> * <span class="kw">FROM</span> orders
+<span class="kw">WHERE</span> ordered_at = <span class="st">'2024-02-15'</span>;                      <span class="cm">-- 계획에 orders_2024_02만 나온다 (프루닝)</span>
+
+<span class="kw">ALTER TABLE</span> orders <span class="kw">DETACH PARTITION</span> orders_2024_01;       <span class="cm">-- 오래된 파티션을 떼어 내고</span>
+<span class="kw">DROP TABLE</span> orders_2024_01;                              <span class="cm">-- 통째로 삭제 (대량 DELETE와 다름)</span>
+
+<span class="cm">-- List와 Hash도 같은 형태</span>
+<span class="cm">-- PARTITION BY LIST (region)   ... FOR VALUES IN ('KR')</span>
+<span class="cm">-- PARTITION BY HASH (id)       ... FOR VALUES WITH (MODULUS 4, REMAINDER 0)</span></pre>
+            </div>
+            <p class="code-desc">
+                PostgreSQL의 선언적 파티셔닝은 PARTITION BY로 방식(RANGE, LIST, HASH)과 키를 정하고, 파티션마다 PARTITION OF와 FOR VALUES로 담당 범위를 지정합니다. 파티션을 나눈 부모 테이블 orders 자체에는 행이 저장되지 않고, 행은 키 값에 맞는 파티션에 들어갑니다. Range의 FROM은 포함하고 TO는 포함하지 않으므로 1월 파티션과 2월 파티션의 범위가 겹치지 않습니다.
+                WHERE에 파티션 키 조건이 있으면 EXPLAIN 결과에 해당 파티션만 나오고, 시각화의 파티션 프루닝 탭이 보여 주는 동작과 같습니다. 오래된 기간의 데이터는 DETACH PARTITION으로 떼어 내 DROP TABLE로 지우면 대량 DELETE처럼 행마다 삭제하고 정리하는 부담이 없습니다. 다만 DROP이나 DETACH PARTITION은 부모 테이블에 강한 잠금이 필요하고(DETACH PARTITION ... CONCURRENTLY는 더 약한 잠금), 어느 파티션에도 맞지 않는 값의 INSERT는 오류이므로 필요하면 DEFAULT 파티션을 둡니다. 시각화의 month는 날짜의 월에 해당합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — 행 배정과 프루닝 흉내</p>
+            <div class="code-block">
+<pre><span class="kw">from</span> collections <span class="kw">import</span> defaultdict
+
+rg = (<span class="st">'KR'</span>, <span class="st">'KR'</span>, <span class="st">'US'</span>, <span class="st">'JP'</span>, <span class="st">'KR'</span>, <span class="st">'US'</span>)
+rows = &#91;{<span class="st">'id'</span>: i + <span class="num">1</span>, <span class="st">'month'</span>: <span class="num">1</span> <span class="kw">if</span> i &lt; <span class="num">6</span> <span class="kw">else</span> <span class="num">2</span> <span class="kw">if</span> i &lt; <span class="num">11</span> <span class="kw">else</span> <span class="num">3</span> <span class="kw">if</span> i &lt; <span class="num">18</span> <span class="kw">else</span> <span class="num">4</span>,
+         <span class="st">'region'</span>: rg&#91;i % <span class="num">6</span>&#93;} <span class="kw">for</span> i <span class="kw">in</span> <span class="fn">range</span>(<span class="num">24</span>)&#93;
+
+<span class="kw">def</span> <span class="fn">route</span>(row, scheme):
+    <span class="kw">if</span> scheme == <span class="st">'range'</span>: <span class="kw">return</span> <span class="st">f"p_2024_{row&#91;'month'&#93;:02d}"</span>   <span class="cm"># 값 범위</span>
+    <span class="kw">if</span> scheme == <span class="st">'list'</span>:  <span class="kw">return</span> <span class="st">f"p_{row&#91;'region'&#93;}"</span>           <span class="cm"># 값 목록</span>
+    <span class="kw">return</span> <span class="st">f"p_{row&#91;'id'&#93; % 4}"</span>                                 <span class="cm"># 해시 (id % 4로 단순화)</span>
+
+<span class="kw">def</span> <span class="fn">partitions</span>(scheme):
+    parts = <span class="fn">defaultdict</span>(<span class="fn">list</span>)
+    <span class="kw">for</span> r <span class="kw">in</span> rows:
+        parts&#91;<span class="fn">route</span>(r, scheme)&#93;.<span class="fn">append</span>(r)
+    <span class="kw">return</span> parts
+
+<span class="kw">def</span> <span class="fn">scan</span>(scheme, key, value):           <span class="cm"># 키 조건이면 프루닝, 아니면 전부 읽음</span>
+    parts = <span class="fn">partitions</span>(scheme)
+    names = &#91;<span class="st">f'p_2024_{value:02d}'</span>&#93; <span class="kw">if</span> (scheme, key) == (<span class="st">'range'</span>, <span class="st">'month'</span>) <span class="kw">else</span> <span class="fn">list</span>(parts)
+    <span class="kw">return</span> names, <span class="fn">sum</span>(<span class="fn">len</span>(parts&#91;n&#93;) <span class="kw">for</span> n <span class="kw">in</span> names)
+
+<span class="kw">for</span> s <span class="kw">in</span> (<span class="st">'range'</span>, <span class="st">'list'</span>, <span class="st">'hash'</span>):
+    <span class="fn">print</span>(s, {k: <span class="fn">len</span>(v) <span class="kw">for</span> k, v <span class="kw">in</span> <span class="fn">sorted</span>(<span class="fn">partitions</span>(s).<span class="fn">items</span>())})
+<span class="fn">print</span>(<span class="fn">scan</span>(<span class="st">'range'</span>, <span class="st">'month'</span>, <span class="num">3</span>))
+<span class="fn">print</span>(<span class="fn">scan</span>(<span class="st">'range'</span>, <span class="st">'region'</span>, <span class="st">'KR'</span>))
+<span class="cm"># range {'p_2024_01': 6, 'p_2024_02': 5, 'p_2024_03': 7, 'p_2024_04': 6}</span>
+<span class="cm"># list {'p_JP': 4, 'p_KR': 12, 'p_US': 8}</span>
+<span class="cm"># hash {'p_0': 6, 'p_1': 6, 'p_2': 6, 'p_3': 6}</span>
+<span class="cm"># (&#91;'p_2024_03'&#93;, 7)</span>
+<span class="cm"># (&#91;'p_2024_01', 'p_2024_02', 'p_2024_03', 'p_2024_04'&#93;, 24)</span></pre>
+            </div>
+            <p class="code-desc">
+                같은 24행을 세 방식으로 배정하는 장난감 모델입니다. route가 행마다 담당 파티션 이름을 정하고, 출력은 Range가 6, 5, 7, 6행, List가 JP 4행, KR 12행, US 8행, Hash가 6행씩입니다. 시각화의 분할 방식 탭과 같은 결과이고, 해시는 설명을 위해 id % 4로 단순화했습니다. 실제 데이터베이스의 해시 함수와 다릅니다.
+                scan은 프루닝을 흉내 냅니다. 파티션 키인 month 조건으로 찾으면 3월 파티션 하나에서 7행만 보지만, 키가 아닌 region으로 찾으면 파티션 4개 24행을 모두 훑습니다. 시각화의 파티션 프루닝 탭과 같은 결과입니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — TreeMap으로 Range 경계 찾기</p>
+            <div class="code-block">
+<pre>TreeMap&lt;Integer, String&gt; bounds = <span class="kw">new</span> TreeMap&lt;&gt;();       <span class="cm">// 키 = 파티션이 시작되는 month</span>
+bounds.<span class="fn">put</span>(<span class="num">1</span>, <span class="st">"p_2024_01"</span>);
+bounds.<span class="fn">put</span>(<span class="num">2</span>, <span class="st">"p_2024_02"</span>);
+bounds.<span class="fn">put</span>(<span class="num">3</span>, <span class="st">"p_2024_03"</span>);
+bounds.<span class="fn">put</span>(<span class="num">4</span>, <span class="st">"p_2024_04"</span>);
+
+<span class="kw">int</span>&#91;&#93; months = <span class="kw">new int</span>&#91;<span class="num">24</span>&#93;;
+<span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">0</span>; i &lt; <span class="num">24</span>; i++) months&#91;i&#93; = i &lt; <span class="num">6</span> ? <span class="num">1</span> : i &lt; <span class="num">11</span> ? <span class="num">2</span> : i &lt; <span class="num">18</span> ? <span class="num">3</span> : <span class="num">4</span>;
+
+Map&lt;String, Integer&gt; count = <span class="kw">new</span> TreeMap&lt;&gt;();
+<span class="kw">for</span> (<span class="kw">int</span> m : months) count.<span class="fn">merge</span>(bounds.<span class="fn">floorEntry</span>(m).<span class="fn">getValue</span>(), <span class="num">1</span>, Integer::sum);
+System.out.<span class="fn">println</span>(count);                          <span class="cm">// {p_2024_01=6, p_2024_02=5, p_2024_03=7, p_2024_04=6}</span>
+
+<span class="kw">int</span>&#91;&#93; hash = <span class="kw">new int</span>&#91;<span class="num">4</span>&#93;;
+<span class="kw">for</span> (<span class="kw">int</span> id = <span class="num">1</span>; id &lt;= <span class="num">24</span>; id++) hash&#91;id % <span class="num">4</span>&#93;++;
+System.out.<span class="fn">println</span>(Arrays.<span class="fn">toString</span>(hash));            <span class="cm">// &#91;6, 6, 6, 6&#93;</span></pre>
+            </div>
+            <p class="code-desc">
+                자바에서는 TreeMap의 floorEntry가 값 이하에서 가장 큰 경계를 찾아 주므로 Range 파티션의 경계 검색을 간단히 표현할 수 있습니다. month 1부터 4까지를 경계로 두고 24행을 배정하면 6, 5, 7, 6행이 나옵니다. 경계가 많아져도 TreeMap은 트리 구조라 O(log n)에 찾으므로 비용이 크게 늘지 않습니다.
+                아래쪽은 Hash 배정을 id % 4로 단순화한 것으로 4개 파티션에 6행씩 들어갑니다. 실제 파티셔닝은 데이터베이스가 직접 처리하며 응용 프로그램이 이렇게 경계를 찾는 일은 거의 없습니다. 이 코드는 개념 설명용입니다. 상한을 검사하지 않아 month 5 이상도 마지막 파티션으로 배정되고 1보다 작으면 null이라 오류가 나는데, 실제 PostgreSQL은 이런 값을 오류 또는 DEFAULT 파티션으로 처리합니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>

@@ -1,0 +1,91 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">C — 파이프로 부모가 자식에게 보내기</p>
+            <div class="code-block">
+<pre><span class="kw">#include</span> &lt;stdio.h&gt;
+<span class="kw">#include</span> &lt;unistd.h&gt;
+<span class="kw">#include</span> &lt;sys/wait.h&gt;
+
+<span class="kw">int</span> <span class="fn">main</span>(<span class="kw">void</span>) {
+    <span class="kw">int</span> fd[<span class="num">2</span>];
+    <span class="fn">pipe</span>(fd);                          <span class="cm">/* fd[0]=읽기 끝, fd[1]=쓰기 끝 */</span>
+
+    <span class="kw">if</span> (<span class="fn">fork</span>() == <span class="num">0</span>) {                <span class="cm">/* 자식: 읽는 쪽 */</span>
+        <span class="fn">close</span>(fd[<span class="num">1</span>]);
+        <span class="kw">char</span> buf[<span class="num">64</span>];
+        <span class="kw">ssize_t</span> n = <span class="fn">read</span>(fd[<span class="num">0</span>], buf, <span class="kw">sizeof</span>(buf) - <span class="num">1</span>);
+        <span class="kw">if</span> (n &lt; <span class="num">0</span>) <span class="kw">return</span> <span class="num">1</span>;
+        buf[n] = <span class="num">0</span>;
+        <span class="fn">printf</span>(<span class="st">"child got: %s\n"</span>, buf);
+        <span class="kw">return</span> <span class="num">0</span>;
+    }
+    <span class="fn">close</span>(fd[<span class="num">0</span>]);                       <span class="cm">/* 부모: 쓰는 쪽 */</span>
+    <span class="fn">write</span>(fd[<span class="num">1</span>], <span class="st">"hello"</span>, <span class="num">5</span>);
+    <span class="fn">close</span>(fd[<span class="num">1</span>]);
+    <span class="fn">wait</span>(<span class="kw">NULL</span>);
+}</pre>
+            </div>
+            <p class="code-desc">
+                pipe는 파일 디스크립터 두 개를 만듭니다. fd[0]은 읽기 끝, fd[1]은 쓰기 끝이며, fork하면 자식도 이 둘을 물려받아 부모와 자식이 같은 파이프를 사이에 두게 됩니다.
+                한 방향으로만 쓰도록 각자 쓰지 않는 끝을 닫습니다. 파이프가 비어 있는데 쓰는 끝이 열려 있으면 read는 데이터가 올 때까지 기다리고, 쓰는 끝이 모두 닫히면 0을 돌려줍니다.
+                양방향 통신이 필요하면 파이프를 하나 더 만들거나 소켓을 사용합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">C — POSIX 공유 메모리 (쓰는 쪽과 읽는 쪽)</p>
+            <div class="code-block">
+<pre><span class="cm">/* 쓰는 프로세스 */</span>
+<span class="kw">int</span> fd = <span class="fn">shm_open</span>(<span class="st">"/demo"</span>, O_CREAT | O_RDWR, <span class="num">0600</span>);
+<span class="fn">ftruncate</span>(fd, <span class="num">4096</span>);
+<span class="kw">char</span> *p = <span class="fn">mmap</span>(<span class="kw">NULL</span>, <span class="num">4096</span>, PROT_READ | PROT_WRITE, MAP_SHARED, fd, <span class="num">0</span>);
+<span class="fn">strcpy</span>(p, <span class="st">"hello"</span>);                  <span class="cm">/* 메모리에 쓰기만 하면 됨 */</span>
+
+<span class="cm">/* 읽는 프로세스 (같은 이름으로 열어서 같은 영역을 매핑) */</span>
+<span class="kw">int</span> fd2 = <span class="fn">shm_open</span>(<span class="st">"/demo"</span>, O_RDWR, <span class="num">0</span>);
+<span class="kw">char</span> *q = <span class="fn">mmap</span>(<span class="kw">NULL</span>, <span class="num">4096</span>, PROT_READ, MAP_SHARED, fd2, <span class="num">0</span>);
+<span class="fn">printf</span>(<span class="st">"%s\n"</span>, q);
+
+<span class="fn">shm_unlink</span>(<span class="st">"/demo"</span>);                 <span class="cm">/* 더 쓰지 않으면 이름 제거 */</span></pre>
+            </div>
+            <p class="code-desc">
+                shm_open이 이름 있는 공유 메모리 객체를 열고, ftruncate로 크기를 정한 뒤 mmap으로 각 프로세스의 주소 공간에 연결합니다. 연결 이후에는 일반 메모리처럼 포인터로 읽고 써서 시스템 콜 없이 데이터를 주고받습니다.
+                다만 쓰는 쪽이 다 쓰기 전에 읽는 쪽이 읽을 수 있으므로, 실제 코드에서는 세마포어나 프로세스 간 공유 뮤텍스로 순서를 맞춰야 합니다. 위 코드는 매핑 방법만 보여 주는 최소 예시입니다.
+                더 쓰지 않을 때 shm_unlink로 이름을 지웁니다. glibc 2.33 이하에서는 -lrt로 링크해야 하고, 2.34부터는 libc에 들어 있어 필요 없습니다(man 페이지에는 여전히 -lrt가 적혀 있습니다).
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">셸 · Python — FIFO와 multiprocessing</p>
+            <div class="code-block">
+<pre><span class="cm"># 셸: 이름 있는 파이프 (관련 없는 두 프로세스가 이름으로 연결)</span>
+mkfifo /tmp/demo.fifo
+cat /tmp/demo.fifo &amp;                 <span class="cm"># 읽는 쪽: 데이터가 올 때까지 대기</span>
+echo hello &gt; /tmp/demo.fifo          <span class="cm"># 쓰는 쪽</span>
+
+<span class="cm"># Python: 프로세스 사이에 파이프 / 공유 메모리</span>
+<span class="kw">from</span> multiprocessing <span class="kw">import</span> Process, Pipe, shared_memory
+
+<span class="kw">def</span> <span class="fn">child</span>(conn):
+    conn.<span class="fn">send</span>(<span class="st">"hi"</span>)
+
+<span class="kw">if</span> __name__ == <span class="st">"__main__"</span>:
+    parent, c = <span class="fn">Pipe</span>()
+    p = <span class="fn">Process</span>(target=child, args=(c,)); p.<span class="fn">start</span>()
+    <span class="fn">print</span>(parent.<span class="fn">recv</span>()); p.<span class="fn">join</span>()
+
+    shm = shared_memory.<span class="fn">SharedMemory</span>(create=<span class="kw">True</span>, size=<span class="num">16</span>)
+    shm.buf[:<span class="num">2</span>] = <span class="fn">b</span><span class="st">"ok"</span>
+    shm.<span class="fn">close</span>(); shm.<span class="fn">unlink</span>()</pre>
+            </div>
+            <p class="code-desc">
+                mkfifo가 파일 시스템에 이름 있는 파이프를 만들면 cat과 echo처럼 서로 관련 없는 프로세스도 같은 이름으로 열어 통신합니다. 읽는 쪽이 열릴 때까지 쓰는 쪽이 기다리는 식으로 한쪽이 상대를 기다립니다.
+                파이썬의 multiprocessing.Pipe는 두 프로세스 사이에 객체를 보내는 연결을 만들고(기본은 양방향이라 운영체제 파이프와는 다른 추상화입니다), 3.8에서 추가된 shared_memory.SharedMemory는 이름 있는 공유 메모리 블록을 만들어 buf로 직접 읽고 쓰게 합니다.
+                공유 메모리 블록은 다 쓴 뒤 close로 자기 쪽 연결을 닫고, 만든 쪽이 unlink로 블록 자체를 없애야 시스템에 남지 않습니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>

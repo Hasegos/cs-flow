@@ -1,0 +1,62 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">리눅스 셸 — DHCP로 받은 주소와 설정 확인</p>
+            <div class="code-block">
+<pre><span class="cm"># 받은 IPv4 주소와 남은 임대 시간 (dynamic 표시, valid_lft)</span>
+ip -4 addr show eth0
+
+<span class="cm"># NetworkManager가 DHCP로 받은 설정 보기</span>
+nmcli -f DHCP4 device show eth0
+
+<span class="cm"># DHCP 메시지(포트 67, 68) 캡처 (root 권한)</span>
+sudo tcpdump -i eth0 -n -v port <span class="num">67</span> or port <span class="num">68</span></pre>
+            </div>
+            <p class="code-desc">
+                ip -4 addr show는 인터페이스에 붙은 IPv4 주소를 보여 주며, DHCP 클라이언트는 임대 시간을 주소의 수명으로 설정하므로 dynamic 표시와 남은 수명(valid_lft)이 나옵니다. 임대 시간이 줄어들다가 갱신되면 다시 늘어납니다.
+                nmcli의 DHCP4 항목에는 NetworkManager가 서버에서 받은 주소, 서브넷 마스크, 게이트웨이(routers), DNS 서버, 임대 시간(dhcp_lease_time)과 만료 시각(expiry) 같은 항목이 나옵니다.
+                tcpdump로 포트 67, 68을 잡으면 DHCP 메시지가 오가는 모습을 볼 수 있고, -v를 붙이면 메시지 종류(Discover, Offer 등)가 함께 출력됩니다. 인터페이스 이름 eth0은 환경에 맞게 바꿔야 합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">dnsmasq — DHCP 서버 설정 (개념 예시)</p>
+            <div class="code-block">
+<pre><span class="cm"># 주소 풀: 시작, 끝, 서브넷 마스크, 임대 시간</span>
+dhcp-range=<span class="num">192.168.0.100</span>,<span class="num">192.168.0.200</span>,<span class="num">255.255.255.0</span>,<span class="num">8h</span>
+
+<span class="cm"># 클라이언트에 알려 줄 옵션</span>
+dhcp-option=option:router,<span class="num">192.168.0.1</span>
+dhcp-option=option:dns-server,<span class="num">8.8.8.8</span>
+
+<span class="cm"># 특정 MAC에는 항상 같은 IP 주기 (고정 할당)</span>
+dhcp-host=<span class="num">02:00:00:00:00:0c</span>,<span class="num">192.168.0.50</span></pre>
+            </div>
+            <p class="code-desc">
+                dnsmasq는 작은 네트워크에서 DHCP와 DNS 캐시를 함께 제공하는 서버이고, dhcp-range가 서버가 나눠 줄 주소 풀과 임대 시간을 정합니다. 위 예시는 192.168.0.100부터 200까지를 8시간 임대로 나눠 줍니다.
+                dhcp-option은 옵션 3(게이트웨이)과 옵션 6(DNS 서버)처럼 주소 외의 설정을 정하고, dhcp-host는 특정 MAC 주소에 항상 같은 IP를 예약합니다.
+                실제 환경에서는 풀 범위가 고정 IP를 쓰는 장치의 주소와 겹치지 않게 해야 하며, 위 코드는 설정 형식을 보이는 최소 예시입니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — 임대 시간에서 T1, T2 계산</p>
+            <div class="code-block">
+<pre>lease_h = <span class="num">8</span>                       <span class="cm"># 임대 시간(시간)</span>
+
+t1 = lease_h * <span class="num">0.5</span>                <span class="cm"># 갱신 타이머 기본값</span>
+t2 = lease_h * <span class="num">0.875</span>              <span class="cm"># 재바인딩 타이머 기본값</span>
+
+<span class="fn">print</span>(<span class="st">f"임대 {lease_h}시간: T1={t1}시간, T2={t2}시간"</span>)
+<span class="cm"># 임대 8시간: T1=4.0시간, T2=7.0시간</span></pre>
+            </div>
+            <p class="code-desc">
+                RFC 2131은 갱신 타이머 T1의 기본값을 임대 시간의 0.5배, 재바인딩 타이머 T2의 기본값을 0.875배로 정합니다. 임대 시간이 8시간이면 4시간에 서버에게 연장을 요청하고, 7시간까지 응답이 없으면 브로드캐스트로 요청합니다.
+                서버는 옵션으로 T1과 T2를 직접 지정할 수도 있어서, 위 계산은 기본값이 쓰일 때의 예시입니다.
+                이 값은 시각화의 임대와 갱신 탭에서 쓰는 숫자와 같은 방식으로 계산됩니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>

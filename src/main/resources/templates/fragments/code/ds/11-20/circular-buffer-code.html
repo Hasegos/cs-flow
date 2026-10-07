@@ -1,0 +1,130 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — head와 tail로 만든 원형 버퍼 큐</p>
+            <div class="code-block">
+<pre><span class="kw">from</span> queue <span class="kw">import</span> Full
+
+<span class="kw">class</span> <span class="fn">RingBuffer</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, capacity):
+        self.buf = &#91;<span class="kw">None</span>&#93; * capacity
+        self.cap = capacity
+        self.head = <span class="num">0</span>                          <span class="cm"># 읽을 위치</span>
+        self.tail = <span class="num">0</span>                          <span class="cm"># 쓸 위치</span>
+        self.size = <span class="num">0</span>                          <span class="cm"># 개수를 따로 센다</span>
+
+    <span class="kw">def</span> <span class="fn">enqueue</span>(self, v):
+        <span class="kw">if</span> self.size == self.cap:
+            <span class="kw">raise</span> <span class="fn">Full</span>(<span class="st">'buffer full'</span>)
+        self.buf&#91;self.tail&#93; = v
+        self.tail = (self.tail + <span class="num">1</span>) % self.cap     <span class="cm"># 끝에 닿으면 0으로 돌아간다</span>
+        self.size += <span class="num">1</span>
+
+    <span class="kw">def</span> <span class="fn">dequeue</span>(self):
+        <span class="kw">if</span> self.size == <span class="num">0</span>:
+            <span class="kw">raise</span> <span class="fn">IndexError</span>(<span class="st">'buffer empty'</span>)
+        v = self.buf&#91;self.head&#93;
+        self.buf&#91;self.head&#93; = <span class="kw">None</span>
+        self.head = (self.head + <span class="num">1</span>) % self.cap
+        self.size -= <span class="num">1</span>
+        <span class="kw">return</span> v
+
+rb = <span class="fn">RingBuffer</span>(<span class="num">4</span>)
+<span class="kw">for</span> v <span class="kw">in</span> <span class="st">'abc'</span>:
+    rb.<span class="fn">enqueue</span>(v)
+<span class="fn">print</span>(rb.<span class="fn">dequeue</span>(), rb.<span class="fn">dequeue</span>(), rb.head, rb.tail, rb.size)   <span class="cm"># a b 2 3 1</span>
+rb.<span class="fn">enqueue</span>(<span class="st">'d'</span>); rb.<span class="fn">enqueue</span>(<span class="st">'e'</span>); rb.<span class="fn">enqueue</span>(<span class="st">'f'</span>)
+<span class="fn">print</span>(rb.buf, rb.head, rb.tail, rb.size)       <span class="cm"># &#91;'e', 'f', 'c', 'd'&#93; 2 2 4</span>
+<span class="kw">try</span>:
+    rb.<span class="fn">enqueue</span>(<span class="st">'g'</span>)
+<span class="kw">except</span> <span class="fn">Full</span> <span class="kw">as</span> e:
+    <span class="fn">print</span>(e)                                 <span class="cm"># buffer full</span>
+<span class="fn">print</span>(&#91;rb.<span class="fn">dequeue</span>() <span class="kw">for</span> _ <span class="kw">in</span> <span class="fn">range</span>(<span class="num">4</span>)&#93;)        <span class="cm"># &#91;'c', 'd', 'e', 'f'&#93;</span></pre>
+            </div>
+            <p class="code-desc">
+                원소를 옮기지 않고 head와 tail 두 인덱스만 움직입니다. enqueue는 tail 칸에 값을 쓰고 tail을 (tail + 1) % cap으로 한 칸 앞으로 보내고, dequeue는 head 칸의 값을 읽고 head를 같은 식으로 보냅니다. 둘 다 배열을 훑지 않으므로 O(1)입니다. 시각화의 쓰기와 읽기 탭이 보여 주는 동작과 같습니다.
+                용량 4에서 a, b, c를 넣고 a, b를 꺼내면 head는 2, tail은 3이고 원소는 1개입니다. 이어서 d, e, f를 넣으면 tail이 배열 끝(칸 3)을 지나 0으로 돌아와 e가 칸 0에, f가 칸 1에 쓰이고, 버퍼 배열은 &#91;'e', 'f', 'c', 'd'&#93;가 됩니다. 이때 head와 tail이 모두 2로 같지만 원소가 4개인 가득 찬 상태입니다.
+                head == tail만으로는 비어 있음과 가득 참을 구분할 수 없어서, 이 코드는 size를 따로 세어 판단합니다. 가득 찬 상태에서 enqueue하면 예외(여기서는 표준 라이브러리 queue의 Full)를 던지고, dequeue는 쓴 순서대로 c, d, e, f가 나옵니다. 배열 안에서는 순서가 돌아가 있어도 읽는 순서는 먼저 쓴 것이 먼저(FIFO)입니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — 가득 차면 가장 오래된 값을 덮어쓰는 버퍼</p>
+            <div class="code-block">
+<pre><span class="kw">class</span> <span class="fn">OverwriteBuffer</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, capacity):
+        self.buf = &#91;<span class="kw">None</span>&#93; * capacity
+        self.cap = capacity
+        self.count = <span class="num">0</span>                         <span class="cm"># 지금까지 쓴 총 개수</span>
+
+    <span class="kw">def</span> <span class="fn">write</span>(self, v):
+        self.buf&#91;self.count % self.cap&#93; = v   <span class="cm"># 가장 오래된 값을 덮어쓴다</span>
+        self.count += <span class="num">1</span>
+
+    <span class="kw">def</span> <span class="fn">items</span>(self):
+        n = <span class="fn">min</span>(self.count, self.cap)
+        start = (self.count - n) % self.cap
+        <span class="kw">return</span> &#91;self.buf&#91;(start + i) % self.cap&#93; <span class="kw">for</span> i <span class="kw">in</span> <span class="fn">range</span>(n)&#93;
+
+ob = <span class="fn">OverwriteBuffer</span>(<span class="num">3</span>)
+<span class="kw">for</span> i <span class="kw">in</span> <span class="fn">range</span>(<span class="num">1</span>, <span class="num">6</span>):
+    ob.<span class="fn">write</span>(i)
+<span class="fn">print</span>(ob.<span class="fn">items</span>())                           <span class="cm"># &#91;3, 4, 5&#93;</span>
+
+<span class="kw">from</span> collections <span class="kw">import</span> deque
+dq = <span class="fn">deque</span>(maxlen=<span class="num">3</span>)
+<span class="kw">for</span> i <span class="kw">in</span> <span class="fn">range</span>(<span class="num">1</span>, <span class="num">6</span>):
+    dq.<span class="fn">append</span>(i)
+<span class="fn">print</span>(<span class="fn">list</span>(dq))                              <span class="cm"># &#91;3, 4, 5&#93;</span></pre>
+            </div>
+            <p class="code-desc">
+                로그나 센서 값처럼 최근 n개만 필요한 경우에는 가득 찼을 때 쓰기를 거부하지 않고 가장 오래된 값을 덮어씁니다. 여기서는 읽는 쪽 인덱스를 따로 두지 않고 지금까지 쓴 총 개수 count 하나로 위치를 계산합니다. count % cap이 다음에 쓸 칸이고, 가득 찬 뒤에는 그 칸에 있던 가장 오래된 값을 새 값이 덮어씁니다.
+                용량 3에 1부터 5까지 쓰면 1과 2가 차례로 덮어써져 최근 값 &#91;3, 4, 5&#93;만 남습니다. items는 가장 오래된 값부터 읽기 위해 (count - n) % cap 칸에서 시작합니다.
+                파이썬 표준 라이브러리의 deque에 maxlen을 주면 같은 동작을 합니다. maxlen이 있는 deque는 가득 찬 상태에서 한쪽 끝에 항목을 추가할 때 반대쪽 끝의 항목을 버리므로, 위 직접 구현과 같은 &#91;3, 4, 5&#93;가 나옵니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 용량을 2의 거듭제곱으로 잡고 나머지 연산을 비트 AND로 대신하기</p>
+            <div class="code-block">
+<pre><span class="kw">static class</span> <span class="fn">Ring</span> {
+    <span class="kw">private final int</span>&#91;&#93; buf;
+    <span class="kw">private final int</span> mask;
+    <span class="kw">private int</span> head = <span class="num">0</span>;
+    <span class="kw">private int</span> tail = <span class="num">0</span>;
+
+    <span class="fn">Ring</span>(<span class="kw">int</span> capacityPowerOfTwo) {
+        buf = <span class="kw">new int</span>&#91;capacityPowerOfTwo&#93;;
+        mask = capacityPowerOfTwo - <span class="num">1</span>;
+    }
+
+    <span class="kw">boolean</span> <span class="fn">offer</span>(<span class="kw">int</span> v) {
+        <span class="kw">if</span> (tail - head == buf.length) <span class="kw">return false</span>;   <span class="cm">// 가득 참</span>
+        buf&#91;tail &amp; mask&#93; = v;
+        tail++;
+        <span class="kw">return true</span>;
+    }
+
+    <span class="kw">int</span> <span class="fn">poll</span>() {
+        <span class="kw">if</span> (tail == head) <span class="kw">return</span> -<span class="num">1</span>;                  <span class="cm">// 비어 있음</span>
+        <span class="kw">return</span> buf&#91;head++ &amp; mask&#93;;
+    }
+}
+
+Ring r = <span class="kw">new</span> <span class="fn">Ring</span>(<span class="num">4</span>);
+<span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">1</span>; i &lt;= <span class="num">5</span>; i++) System.out.<span class="fn">print</span>(r.<span class="fn">offer</span>(i) + <span class="st">" "</span>);
+System.out.<span class="fn">println</span>();                                    <span class="cm">// true true true true false</span>
+System.out.<span class="fn">println</span>(r.<span class="fn">poll</span>() + <span class="st">" "</span> + r.<span class="fn">poll</span>());                          <span class="cm">// 1 2</span>
+r.<span class="fn">offer</span>(<span class="num">6</span>); r.<span class="fn">offer</span>(<span class="num">7</span>);
+System.out.<span class="fn">println</span>(r.<span class="fn">poll</span>() + <span class="st">" "</span> + r.<span class="fn">poll</span>() + <span class="st">" "</span> + r.<span class="fn">poll</span>() + <span class="st">" "</span> + r.<span class="fn">poll</span>());   <span class="cm">// 3 4 6 7</span></pre>
+            </div>
+            <p class="code-desc">
+                i가 0 이상이고 용량이 2의 거듭제곱이면 i % cap과 i &amp; (cap - 1)의 결과가 같아서, 나머지 연산 대신 보통 더 빠른 비트 AND 한 번으로 칸 번호를 구할 수 있습니다. 용량 4의 mask는 3(이진수 11)이고 7 &amp; 3은 3입니다. 이 방식은 용량을 2의 거듭제곱으로 제한하는 대신 계산이 단순해집니다.
+                여기서는 head와 tail을 0으로 되돌리지 않고 계속 증가시킵니다. 인덱스가 int 범위를 넘어 음수가 되어도 용량이 2의 거듭제곱이라서 tail &amp; mask와 tail - head가 계속 맞습니다. 원소 개수는 tail - head로 구하므로 size 변수가 따로 없고, tail - head가 0이면 비어 있고 용량과 같으면 가득 찬 것이라 head == tail의 모호함이 없습니다.
+                용량 4에 1부터 5를 넣으면 앞의 네 개만 들어가고 다섯 번째는 false입니다. 1, 2를 꺼낸 뒤 6, 7을 넣으면 6과 7이 칸 0과 1에 쓰이고, 남은 값을 꺼내면 쓴 순서대로 3, 4, 6, 7이 나옵니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>

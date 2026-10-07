@@ -484,6 +484,7 @@
 
         var x = x0;
         items.forEach(function (it) {
+            if (mob && x + sw + 5 + textWidth(it.label, fLbl, false) > GW() - 12 && x > x0) { x = x0; y += fLbl + 10; }
             circle(x, y, sw / 2, it.col + 'dd', it.col + 'ee', 1);
             x += sw + 5;
             tx(it.label, x, y, fLbl, P.text + 'cc', 'left', false);
@@ -495,7 +496,7 @@
     function getLayout(mob) {
         return {
             top:      mob ? 20 : 28,
-            legendH:  mob ? 24 : 28,
+            legendH:  mob ? 42 : 28,
             treeH:    mob ? 230 : 300,
             panelGap: mob ? 20  : 26,
             memoTableH: mob ? 100 : 118,

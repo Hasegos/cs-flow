@@ -1,0 +1,81 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Squid — 포워드 프록시 설정과 사용</p>
+            <div class="code-block">
+<pre><span class="cm"># squid.conf: 사내망(10.0.0.0/8)만 프록시를 쓰게 한다</span>
+http_port <span class="num">3128</span>
+
+acl localnet src <span class="num">10.0.0.0</span>/<span class="num">8</span>
+acl blocked dstdomain .blocked.example
+
+http_access deny blocked         <span class="cm"># 차단 목록을 먼저 검사</span>
+http_access allow localnet
+http_access deny all             <span class="cm"># 나머지는 모두 거부</span>
+
+<span class="cm"># 클라이언트에서 프록시를 거쳐 요청하기</span>
+curl -x http://<span class="num">10.0.0.1</span>:<span class="num">3128</span> http://example.com/ -I</pre>
+            </div>
+            <p class="code-desc">
+                Squid는 대표적인 포워드 프록시 소프트웨어로, http_port로 프록시가 요청을 받을 포트를 정합니다. http_access 규칙은 위에서부터 차례로 검사해 처음 일치한 규칙이 적용되므로, 차단 목록(blocked)을 허용 규칙보다 먼저 두어야 차단이 먹힙니다.
+                마지막 줄의 deny all은 앞의 규칙에 일치하지 않은 요청을 모두 거부하는 규칙이며, 이 줄이 없으면 Squid는 마지막 규칙의 반대 동작을 기본으로 삼아 의도와 다르게 동작할 수 있습니다. 시각화의 포워드 프록시 탭에서 차단 도메인 요청이 프록시에서 거절되는 것과 같은 동작입니다.
+                curl의 -x 옵션은 요청을 지정한 프록시로 보내며, 이때 요청 줄에는 전체 URL이 담겨 프록시가 어느 서버로 전달할지 알 수 있습니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">nginx — 리버스 프록시와 로드 밸런싱</p>
+            <div class="code-block">
+<pre>upstream backend {
+    server <span class="num">10.0.1.11</span>:<span class="num">8080</span>;
+    server <span class="num">10.0.1.12</span>:<span class="num">8080</span>;
+}
+
+server {
+    listen <span class="num">443</span> ssl;
+    server_name www.example.com;
+    ssl_certificate     /etc/ssl/example.crt;
+    ssl_certificate_key /etc/ssl/example.key;
+
+    location / {
+        proxy_pass http://backend;
+        proxy_set_header Host &#36;host;
+        proxy_set_header X-Forwarded-For &#36;proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto &#36;scheme;
+    }
+}</pre>
+            </div>
+            <p class="code-desc">
+                upstream 블록은 요청을 나눠 보낼 백엔드 서버 묶음이고, 별도 설정이 없으면 nginx는 요청을 서버에 번갈아 분배하는 라운드 로빈을 씁니다. server 블록은 443 포트에서 인증서로 HTTPS 연결을 끝맺고(TLS 종료), proxy_pass로 요청을 백엔드에 HTTP로 넘깁니다.
+                프록시를 거치면 백엔드는 모든 요청이 프록시에서 온 것으로 보게 됩니다. 그래서 proxy_set_header로 원래의 Host와, 클라이언트 주소를 담는 X-Forwarded-For, 원래의 접속 방식(http 또는 https)을 담는 X-Forwarded-Proto 헤더를 넘겨 줍니다.
+                X-Forwarded-For는 표준 헤더가 아니라 널리 쓰이는 관례이므로, 백엔드는 신뢰할 수 있는 프록시가 넣은 값만 믿어야 합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — 라운드 로빈 분배와 원본 주소 전달</p>
+            <div class="code-block">
+<pre><span class="kw">from</span> itertools <span class="kw">import</span> cycle
+
+BACKENDS = <span class="fn">cycle</span>(&#91;<span class="st">"10.0.1.11:8080"</span>, <span class="st">"10.0.1.12:8080"</span>&#93;)
+
+<span class="kw">def</span> <span class="fn">route</span>(client_ip, headers):
+    backend = <span class="fn">next</span>(BACKENDS)                   <span class="cm"># 서버를 번갈아 고른다</span>
+    out = <span class="fn">dict</span>(headers)
+    out&#91;<span class="st">"X-Forwarded-For"</span>&#93; = client_ip          <span class="cm"># 원래 클라이언트 주소를 전달</span>
+    <span class="kw">return</span> backend, out
+
+<span class="kw">for</span> i <span class="kw">in</span> <span class="fn">range</span>(<span class="num">3</span>):
+    <span class="fn">print</span>(<span class="fn">route</span>(<span class="st">"198.51.100.7"</span>, {<span class="st">"Host"</span>: <span class="st">"www.example.com"</span>}))
+<span class="cm"># 10.0.1.11, 10.0.1.12, 10.0.1.11 순서로 선택</span></pre>
+            </div>
+            <p class="code-desc">
+                itertools.cycle은 목록을 끝없이 되풀이하는 반복자여서, next를 부를 때마다 백엔드 A, B, A 순서로 고르는 라운드 로빈을 한 줄로 흉내 냅니다. 시각화의 리버스 프록시 탭에서 요청 1이 A로, 요청 2가 B로 가는 것과 같은 동작입니다.
+                route 함수는 선택한 백엔드와 함께 원래 클라이언트 주소를 X-Forwarded-For 헤더에 담아 돌려줍니다. 실제 프록시에는 이미 들어 있는 X-Forwarded-For에 주소를 덧붙이는 처리가 필요합니다.
+                실제 프록시는 서버의 상태 검사, 연결 재사용, 실패 시 재시도, 가중치를 함께 다루므로 이 코드는 분배 원리만 보이는 최소 예시입니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>

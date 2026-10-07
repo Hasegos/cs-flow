@@ -80,6 +80,7 @@
         const rowH  = cellH + cellGap;
         const clkBh = Math.max(38, Math.round(48 * sc));
         const minH  = pad + hdrH + 10 + 4 * rowH + 10 + clkBh + pad + 10;
+        canvasWrap.style.minHeight = minH + 'px';
         const h = Math.max(canvasWrap.offsetHeight, minH);
         canvas.width  = w * dpr;
         canvas.height = h * dpr;

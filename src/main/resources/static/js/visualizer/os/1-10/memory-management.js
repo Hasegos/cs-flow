@@ -63,7 +63,9 @@
 
     function resize() {
         const w = canvasWrap.offsetWidth;
-        const h = Math.max(canvasWrap.offsetHeight, w < 520 ? 500 : 460);
+        const minH = w < 520 ? 500 : 460;
+        canvasWrap.style.minHeight = minH + 'px';
+        const h = Math.max(canvasWrap.offsetHeight, minH);
         canvas.width  = w * dpr;
         canvas.height = h * dpr;
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);

@@ -1,0 +1,68 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">C — 내 컴퓨터의 엔디언과 바이트 배치 확인</p>
+            <div class="code-block">
+<pre><span class="kw">#include</span> &lt;stdio.h&gt;
+<span class="kw">#include</span> &lt;stdint.h&gt;
+
+<span class="kw">int</span> <span class="fn">main</span>(<span class="kw">void</span>) {
+    uint32_t v = <span class="num">0x12345678</span>;
+    <span class="kw">unsigned char</span> *p = (<span class="kw">unsigned char</span> *)&amp;v;
+
+    <span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">0</span>; i &lt; <span class="num">4</span>; i++)
+        <span class="fn">printf</span>(<span class="st">"p[%d] = %02x\n"</span>, i, p[i]);
+    <span class="fn">puts</span>(p[<span class="num">0</span>] == <span class="num">0x78</span> ? <span class="st">"little endian"</span> : <span class="st">"big endian"</span>);
+}</pre>
+            </div>
+            <p class="code-desc">
+                정수 v의 첫 바이트부터 차례로 읽어 메모리에 놓인 순서를 출력합니다. 리틀 엔디언이면 p[0]이 가장 작은 자릿수 바이트인 78이고, 빅 엔디언이면 12입니다.
+                char 포인터로 읽는 접근은 C에서 객체의 바이트를 들여다보는 허용된 방법이라서, 이 코드가 가리키는 값이 바이트 배치를 정확히 보여 줍니다.
+                x86이나 x86-64 컴퓨터에서 돌리면 78 56 34 12 순서와 little endian이 나옵니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">C — 소켓에 포트를 넣을 때 네트워크 순서로 변환</p>
+            <div class="code-block">
+<pre><span class="kw">#include</span> &lt;arpa/inet.h&gt;
+<span class="kw">#include</span> &lt;netinet/in.h&gt;
+
+<span class="kw">struct</span> sockaddr_in addr = {<span class="num">0</span>};
+addr.sin_family      = AF_INET;
+addr.sin_port        = <span class="fn">htons</span>(<span class="num">8080</span>);          <span class="cm">/* 호스트 → 네트워크 */</span>
+addr.sin_addr.s_addr = <span class="fn">htonl</span>(INADDR_ANY);
+
+<span class="cm">/* 받은 값을 호스트 순서로 되돌릴 때 */</span>
+uint16_t port = <span class="fn">ntohs</span>(addr.sin_port);</pre>
+            </div>
+            <p class="code-desc">
+                sockaddr_in 구조체의 포트와 주소 필드는 네트워크 바이트 순서로 채워야 합니다. htons는 16비트 포트를, htonl은 32비트 주소를 호스트 순서에서 네트워크 순서로 바꿉니다.
+                호스트가 이미 빅 엔디언이라면 이 함수들은 값을 바꾸지 않으므로 항상 호출해 두면 어떤 플랫폼에서도 같은 코드로 동작합니다.
+                INADDR_ANY는 값이 0이라 순서와 무관하지만 관례로 htonl을 씁니다. 받은 값을 읽을 때는 반대 방향의 ntohs, ntohl을 씁니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python · Java — 바이트 순서를 직접 지정</p>
+            <div class="code-block">
+<pre><span class="cm"># Python: struct 형식 앞의 문자로 순서 지정  &gt; 빅, &lt; 리틀</span>
+<span class="kw">import</span> struct
+struct.<span class="fn">pack</span>(<span class="st">"&gt;I"</span>, <span class="num">0x12345678</span>).<span class="fn">hex</span>()   <span class="cm"># '12345678'</span>
+struct.<span class="fn">pack</span>(<span class="st">"&lt;I"</span>, <span class="num">0x12345678</span>).<span class="fn">hex</span>()   <span class="cm"># '78563412'</span>
+(<span class="num">0x12345678</span>).<span class="fn">to_bytes</span>(<span class="num">4</span>, <span class="st">"big"</span>).<span class="fn">hex</span>()  <span class="cm"># '12345678'</span>
+
+<span class="cm">// Java: ByteBuffer는 기본이 빅 엔디언</span>
+ByteBuffer buf = ByteBuffer.<span class="fn">allocate</span>(<span class="num">4</span>);
+buf.<span class="fn">order</span>(ByteOrder.LITTLE_ENDIAN).<span class="fn">putInt</span>(<span class="num">0x12345678</span>);</pre>
+            </div>
+            <p class="code-desc">
+                Python의 struct.pack은 형식 문자열의 첫 글자로 바이트 순서를 정합니다. 큰 부등호는 빅 엔디언, 작은 부등호는 리틀 엔디언이라 같은 값이 서로 다른 바이트열로 직렬화됩니다.
+                정수의 to_bytes도 "big"과 "little"로 순서를 직접 고릅니다. 바이트 순서를 코드에 명시해 두면 어느 플랫폼에서 돌려도 같은 결과가 나옵니다.
+                Java의 ByteBuffer는 기본이 빅 엔디언이고, order 메서드로 리틀 엔디언으로 바꾼 뒤 putInt를 호출하면 바이트가 뒤집혀 기록됩니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>

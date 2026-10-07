@@ -63,6 +63,7 @@
         var mob = w < 520;
         var rowH = mob ? 44 : 52;
         var minH = rowH * 10 + (mob ? 44 : 52) + (mob ? 20 : 26) + 8 + 20;
+        canvasWrap.style.minHeight = minH + 'px';
         var h = Math.max(canvasWrap.offsetHeight || 0, minH);
         canvas.width  = w * dpr;
         canvas.height = h * dpr;

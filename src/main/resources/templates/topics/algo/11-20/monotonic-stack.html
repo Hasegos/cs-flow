@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">모노토닉 스택 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/algo/11-20/monotonic-stack.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/algo}" class="topic-breadcrumb__link">알고리즘</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">모노토닉 스택</span>
+                </nav>
+
+                <span class="topic-hero__slug">algo · 17</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">모노토닉 스택</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+                <button type="button" class="topic-like" th:classappend="${liked} ? ' topic-like--active' : ''" th:attr="data-topic-slug=${topic.slug}">
+                    <svg class="topic-like__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <span class="topic-like__count" th:text="${likeCount}">0</span>
+                </button>
+                <div class="topic-share">
+                    <button type="button" class="topic-share__btn topic-share__btn--copy" aria-label="링크 복사">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="topic-share__btn topic-share__btn--kakao" aria-label="카카오톡 공유">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                        </svg>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+                <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        모노토닉 스택(monotonic stack)은 스택 안의 값이 항상 한 방향으로만 변하도록, 곧 <strong>단조 증가 또는 단조 감소</strong> 순서를 유지하며 쓰는 스택입니다. 새 원소가 들어올 때 순서를 깨는 원소들을 먼저 꺼낸 뒤에 넣는 것이 핵심입니다. 자료구조가 새로운 것은 아니고 일반 스택에 규칙 하나를 더한 사용법입니다.
+                    </p>
+                    <p class="overview-lead">
+                        이 규칙 덕분에 "오른쪽에서 처음 나오는 더 큰 값"처럼 이중 반복문으로 O(n²)이 걸릴 문제를 <strong>O(n)</strong>에 풉니다. 반복문 안에 while이 있어서 이중 반복처럼 보여도 각 원소가 스택에 한 번 들어가고 한 번만 나오기 때문입니다. 이 토픽에서는 다음 큰 원소, 히스토그램의 가장 큰 직사각형, 주가 스팬을 같은 스택으로 풀어 봅니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">단조 스택</h3>
+                            <p class="overview-card__desc">바닥에서 맨 위로 갈수록 값이 한 방향으로만 변하는 스택입니다. 다음 큰 원소를 찾을 때는 값이 줄어드는 단조 감소 순서를 유지합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">꺼내며 답 확정</h3>
+                            <p class="overview-card__desc">새 원소가 top보다 크면 top의 다음 큰 원소가 바로 그 새 원소로 정해집니다. 답이 정해진 원소는 스택에서 꺼내고 더 이상 보지 않습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">인덱스를 쌓는다</h3>
+                            <p class="overview-card__desc">값 대신 인덱스를 넣으면 값은 배열에서 읽고, 거리나 너비 같은 위치 정보도 함께 얻습니다. 히스토그램과 주가 스팬이 이 정보를 씁니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">다음 큰 원소</h3>
+                            <p class="overview-card__desc">각 원소의 오른쪽에서 처음 나오는 더 큰 값입니다. 없으면 -1로 둡니다. 모노토닉 스택의 가장 기본적인 문제입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">상각 O(n)</h3>
+                            <p class="overview-card__desc">while이 반복되어도 각 원소가 한 번 들어가고 최대 한 번 나오므로 전체 연산이 2n 이하입니다. 한 번의 반복이 길어도 n번 전체 비용을 n으로 나누면 원소당 상수 시간입니다(상각).</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">경계 찾기</h3>
+                            <p class="overview-card__desc">원소를 꺼낸 뒤 남은 top이 왼쪽에서 가장 가까운 더 큰(또는 더 작은) 원소입니다. 같은 값을 포함할지는 비교 조건에 따릅니다. 이 경계로 직사각형의 너비나 스팬 같은 범위를 계산합니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>시간은 O(n)입니다</strong> — 원소마다 한 번 넣고 한 번 꺼내는 것이 전부라서 전체 push와 pop은 많아야 2n번입니다. 이중 반복문의 O(n²)을 줄입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공간은 O(n)입니다</strong> — 최악에는 모든 원소가 스택에 남습니다. 예를 들어 값이 줄어드는 배열에서는 다음 큰 원소를 찾는 스택에서 아무것도 꺼내지 못합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>방향은 문제가 정합니다</strong> — 다음 큰 원소는 단조 감소, 다음 작은 원소는 단조 증가 스택입니다. 순서를 깨는 방향이 정반대입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>같은 값은 조건으로 정합니다</strong> — 새 값이 top보다 &quot;크면&quot; 꺼낼지 &quot;크거나 같으면&quot; 꺼낼지에 따라 같은 값이 어떻게 처리되는지가 달라집니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "다음 큰 원소" 탭에서 큰 값이 오면 작은 값들이 꺼내지며 답이 채워지는 모습을, "히스토그램 직사각형" 탭에서 낮은 막대를 만나면 높은 막대부터 꺼내며 넓이를 계산하는 모습을, "주가 스팬" 탭에서 오늘 이하인 날들이 한꺼번에 빠지는 모습을 STEP으로 확인하세요.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">모노토닉 스택의 배경</h2>
+                    <p class="overview-lead">
+                        모노토닉 스택은 교재나 논문의 정식 용어라기보다 알고리즘 문제 풀이에서 흔히 쓰는 이름이고, 특정 알고리즘 하나가 아니라 "각 원소에 대해 가장 가까운 더 작은(또는 더 큰) 원소를 찾는 문제"를 푸는 스택 기법을 가리킵니다. 이 문제는 전체 가장 가까운 작은 값(all nearest smaller values) 문제로 연구되었고, 병렬 알고리즘 분야에서 베르크만(Berkman), 쉬버(Schieber), 비슈킨(Vishkin)이 1993년 이 문제를 바탕으로 한 알고리즘을 발표했습니다. 비슷한 스택 기법은 배열에서 카르테시안 트리(Cartesian tree)를 선형 시간에 만드는 데에도 쓰입니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>다음 큰 원소</strong> — 배열 &#91;2, 7, 3, 5, 4, 6, 8&#93;의 답은 &#91;7, 8, 5, 6, 6, 8, -1&#93;입니다. 7이 오면 2가 꺼내지고, 5가 오면 3이, 6이 오면 4와 5가, 8이 오면 6과 7이 꺼내집니다. 8은 끝까지 남아 답이 -1입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>연산 횟수</strong> — 원소 7개에 넣기 7번, 꺼내기 6번으로 모두 13번이고 2n = 14번 이하입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>히스토그램</strong> — 높이 &#91;2, 1, 5, 6, 2, 3&#93;에서 가장 큰 직사각형은 높이 5인 막대와 높이 6인 막대를 포함해 높이 5, 너비 2로 만든 넓이 10입니다. 높이 2의 막대를 만나는 순간 높이 6(넓이 6)과 높이 5(넓이 10)가 차례로 꺼내집니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>주가 스팬</strong> — 가격 &#91;100, 80, 60, 70, 60, 75, 85&#93;의 스팬은 &#91;1, 1, 1, 2, 1, 4, 6&#93;입니다. 가격 85가 오면 75와 80이 꺼내지고 남은 100과의 거리가 6입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>코드 확인</strong> — 파이썬과 자바가 같은 입력에서 같은 다음 큰 원소를 냅니다. 히스토그램 코드는 10을, 주가 스팬 코드는 위의 배열을 돌려줍니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>while 안의 반복 때문에 O(n²)이다</strong> — 안쪽 while이 원소를 꺼내는 횟수를 모두 더해도 각 원소가 한 번만 나오므로 전체는 O(n)입니다. 반복문의 겉모양이 아니라 총 push와 pop 횟수로 셉니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>스택에는 값을 넣어야 한다</strong> — 거리나 너비를 구해야 하는 문제는 값만으로는 위치를 알 수 없습니다. 인덱스를 넣고 값은 배열에서 읽는 편이 일반적입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>항상 단조 감소 스택이다</strong> — 문제에 따라 방향이 달라집니다. 다음 작은 원소를 찾으면 값이 늘어나는 단조 증가 스택을 씁니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>같은 값은 신경 쓰지 않아도 된다</strong> — 비교를 &quot;&lt;&quot;로 할지 &quot;&lt;=&quot;로 할지에 따라 같은 값이 서로의 답이 되는지가 달라집니다. 문제의 정의(strictly 더 큰가, 같거나 큰가)를 먼저 확인해야 합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>모든 구간 문제에 쓸 수 있다</strong> — 각 원소의 가장 가까운 더 크거나 작은 원소를 찾는 구조의 문제에 알맞습니다. 구간 합이나 임의의 구간 질의에는 다른 구조가 필요합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">다음 큰 원소를 O(n)에 구하려면?</h3>
+                            <p class="overview-card__desc">값이 줄어드는 순서로 인덱스를 쌓는 스택을 씁니다. 새 원소가 top보다 크면 top을 꺼내며 그 원소의 답을 새 원소로 정하고, 마지막에 새 인덱스를 넣습니다. 끝에 남은 원소는 -1입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">while이 있는데 왜 O(n)인가요?</h3>
+                            <p class="overview-card__desc">각 원소가 스택에 한 번 들어가고 최대 한 번 나옵니다. 모든 반복에서 꺼낸 횟수를 합쳐도 n을 넘지 않으므로 전체 연산은 2n 이하입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">히스토그램의 가장 큰 직사각형은 어떻게 구하나요?</h3>
+                            <p class="overview-card__desc">높이가 줄지 않는(같거나 늘어나는) 순서로 인덱스를 쌓고, 더 낮은 막대를 만나면 꺼내며 높이와 너비를 곱해 넓이를 계산합니다. 왼쪽 경계는 꺼낸 뒤의 top 다음 칸이고 오른쪽 경계는 현재 위치 직전입니다. 끝에 높이 0을 붙여 남은 막대를 모두 처리합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">스택에 값이 아닌 인덱스를 넣는 이유는?</h3>
+                            <p class="overview-card__desc">값은 인덱스로 배열에서 다시 읽을 수 있습니다. 반대로 같은 값이 여러 번 나올 수 있어 값만으로는 위치를 알 수 없고, 거리와 너비를 계산하려면 위치가 필요합니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">활용 분야</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>가장 큰 직사각형</strong> — 0과 1로 된 행렬에서 1로만 이루어진 가장 큰 직사각형을 찾을 때, 행마다 쌓인 높이를 히스토그램으로 보고 같은 스택을 적용하는 풀이가 알려져 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>카르테시안 트리</strong> — 배열 순서가 중위 순회 순서가 되고 값은 힙 순서를 이루는 이진 트리(카르테시안 트리)를 스택으로 선형 시간에 만들 수 있습니다. 구간 최솟값 질의는 이 트리의 최소 공통 조상 문제로 바뀝니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>주가 스팬</strong> — 시간 순서로 들어오는 가격에서 이전에 더 큰 가격이 언제였는지, 며칠 동안 오늘 이하였는지를 한 번 훑어 구하는 스팬 문제에 씁니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/ds/stack-queue}">스택과 큐</a> — 후입선출 스택의 기본 연산을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/two-pointer}">투 포인터</a> — 이중 반복을 한 번의 훑기로 줄이는 또 다른 기법을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/complexity}">시간 복잡도</a> — 상각 분석과 O(n)의 의미를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/ds/segment-tree}">세그먼트 트리</a> — 구간 질의를 다루는 다른 자료구조를 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>논문</strong> — Berkman, O., Schieber, B., Vishkin, U., "Optimal doubly logarithmic parallel algorithms based on finding all nearest smaller values", Journal of Algorithms 14(3), 1993</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>논문</strong> — Vuillemin, J., "A unifying look at data structures", Communications of the ACM 23(4), 1980 (카르테시안 트리를 소개한 논문)</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>논문</strong> — Gabow, H., Bentley, J., Tarjan, R., "Scaling and related techniques for geometry problems", STOC 1984 (카르테시안 트리의 선형 시간 구성)</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>교재</strong> — Cormen, Leiserson, Rivest, Stein, "Introduction to Algorithms", 3rd ed., Section 10.1 Stacks and queues, Chapter 17 Amortized Analysis</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Deque.html" target="_blank" rel="noopener">Java Deque</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Stack.html" target="_blank" rel="noopener">Java Stack</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://docs.python.org/3/tutorial/datastructures.html#using-lists-as-stacks" target="_blank" rel="noopener">Python Using Lists as Stacks</a></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/algo/11-20/monotonic-stack-code :: code}"></th:block>
+            </div>
+
+            <!-- 탭 4: 퀴즈 -->
+            <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
+                <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+    <script th:src="@{/js/quiz.js}"></script>
+    <script th:src="@{/js/like.js}"></script>
+    <script th:src="@{/js/share.js}"></script>
+</body>
+</html>

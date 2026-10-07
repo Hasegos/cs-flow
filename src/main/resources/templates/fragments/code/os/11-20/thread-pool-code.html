@@ -1,0 +1,69 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 고정 크기 스레드 풀에 작업 제출</p>
+            <div class="code-block">
+<pre>ExecutorService pool = Executors.<span class="fn">newFixedThreadPool</span>(<span class="num">4</span>);
+
+<span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">1</span>; i &lt;= <span class="num">10</span>; i++) {
+    <span class="kw">int</span> id = i;
+    pool.<span class="fn">submit</span>(() -&gt; {
+        System.out.<span class="fn">println</span>(<span class="st">"작업 "</span> + id + <span class="st">" - "</span> + Thread.<span class="fn">currentThread</span>().<span class="fn">getName</span>());
+    });
+}
+
+pool.<span class="fn">shutdown</span>();                       <span class="cm">// 새 작업은 받지 않고, 제출된 작업은 끝까지 실행</span>
+pool.<span class="fn">awaitTermination</span>(<span class="num">10</span>, TimeUnit.SECONDS);</pre>
+            </div>
+            <p class="code-desc">
+                스레드 4개짜리 풀에 작업 10개를 제출하면 출력의 스레드 이름이 pool-1-thread-1부터 4까지 반복됩니다. 스레드가 작업마다 새로 생기는 것이 아니라 4개를 돌려 쓴다는 뜻입니다.
+                스레드가 모두 일하는 동안 들어온 작업은 풀 안의 작업 큐에서 기다립니다. newFixedThreadPool은 길이 제한이 없는 큐를 쓰기 때문에, 작업이 처리 속도보다 빨리 들어오면 큐가 계속 길어질 수 있습니다.
+                풀을 다 쓰면 shutdown으로 닫아야 하며, 닫지 않으면 풀의 스레드가 남아 프로그램이 끝나지 않을 수 있습니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — 큐 길이와 거부 정책을 직접 설정</p>
+            <div class="code-block">
+<pre>ThreadPoolExecutor pool = <span class="kw">new</span> <span class="fn">ThreadPoolExecutor</span>(
+    <span class="num">4</span>,                                   <span class="cm">// corePoolSize: 기본 스레드 수</span>
+    <span class="num">8</span>,                                   <span class="cm">// maximumPoolSize: 최대 스레드 수</span>
+    <span class="num">30</span>, TimeUnit.SECONDS,                <span class="cm">// 코어 수를 넘은 스레드가 쉬어도 되는 시간</span>
+    <span class="kw">new</span> <span class="fn">ArrayBlockingQueue</span>&lt;&gt;(<span class="num">100</span>),      <span class="cm">// 길이를 제한한 작업 큐</span>
+    <span class="kw">new</span> ThreadPoolExecutor.<span class="fn">CallerRunsPolicy</span>() <span class="cm">// 가득 차면 호출한 스레드가 직접 실행</span>
+);</pre>
+            </div>
+            <p class="code-desc">
+                ThreadPoolExecutor는 코어 스레드가 모두 일하면 먼저 작업을 큐에 넣고, 큐까지 가득 차야 최대 스레드 수까지 새 스레드를 만듭니다. 그래서 큐를 크게 잡으면 최대 스레드 수에 닿기 전에 작업이 큐에 오래 머뭅니다.
+                큐 길이를 100으로 제한하면 과부하가 일찍 드러나고, 스레드도 최대에 닿았을 때 거부 정책이 동작합니다. 기본은 예외를 던지는 AbortPolicy이고, CallerRunsPolicy는 작업을 낸 스레드가 직접 실행해 제출 속도를 늦춥니다.
+                코어 수를 넘어 만들어진 스레드는 지정한 시간 동안 일감이 없으면 정리되어 풀이 다시 줄어듭니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python · Spring Boot — 풀 크기 지정</p>
+            <div class="code-block">
+<pre><span class="cm"># Python: I/O 위주 작업에 스레드 풀</span>
+<span class="kw">from</span> concurrent.futures <span class="kw">import</span> ThreadPoolExecutor
+<span class="kw">import</span> urllib.request
+
+<span class="kw">def</span> <span class="fn">fetch</span>(url):
+    <span class="kw">with</span> urllib.request.<span class="fn">urlopen</span>(url) <span class="kw">as</span> r:
+        <span class="kw">return</span> <span class="fn">len</span>(r.<span class="fn">read</span>())
+
+<span class="kw">with</span> <span class="fn">ThreadPoolExecutor</span>(max_workers=<span class="num">16</span>) <span class="kw">as</span> ex:
+    sizes = <span class="fn">list</span>(ex.<span class="fn">map</span>(fetch, urls))
+
+<span class="cm"># Spring Boot application.properties: 내장 톰캣의 요청 처리 스레드 상한</span>
+server.tomcat.threads.max=<span class="num">200</span></pre>
+            </div>
+            <p class="code-desc">
+                파이썬의 ThreadPoolExecutor는 with 블록을 벗어나면 풀을 닫고 작업이 끝나기를 기다립니다. 네트워크 요청처럼 대기 시간이 긴 I/O 위주 작업이라 코어 수보다 큰 16개를 썼습니다.
+                계산 중심 작업이라면 기본 CPython 빌드에서는 전역 인터프리터 락(GIL) 때문에 스레드를 늘려도 계산이 병렬로 빨라지지 않을 수 있어, 프로세스 풀을 검토합니다.
+                스프링 부트의 server.tomcat.threads.max는 내장 톰캣이 요청을 처리하는 스레드의 상한이고, 풀 크기는 설정만 보지 말고 실제 부하에서 측정해 조정합니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>

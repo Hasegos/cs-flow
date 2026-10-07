@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">플로이드-워셜 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/algo/11-20/floyd-warshall.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/algo}" class="topic-breadcrumb__link">알고리즘</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">플로이드-워셜</span>
+                </nav>
+
+                <span class="topic-hero__slug">algo · 13</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">플로이드-워셜</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+                <button type="button" class="topic-like" th:classappend="${liked} ? ' topic-like--active' : ''" th:attr="data-topic-slug=${topic.slug}">
+                    <svg class="topic-like__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <span class="topic-like__count" th:text="${likeCount}">0</span>
+                </button>
+                <div class="topic-share">
+                    <button type="button" class="topic-share__btn topic-share__btn--copy" aria-label="링크 복사">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="topic-share__btn topic-share__btn--kakao" aria-label="카카오톡 공유">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                        </svg>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+                <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        플로이드-워셜(Floyd-Warshall) 알고리즘은 그래프의 <strong>모든 정점 쌍 사이의 최단 거리</strong>를 한 번에 구하는 알고리즘입니다. 다익스트라나 벨만-포드가 한 출발점에서 모든 정점까지를 구하는 것과 달리, 출발점을 고르지 않고 "어느 정점에서 어느 정점까지든" 거리를 표로 만들어 둡니다. 코드는 삼중 반복문 하나로 끝날 만큼 짧습니다.
+                    </p>
+                    <p class="overview-lead">
+                        핵심 생각은 경유지를 하나씩 허용하는 것입니다. 처음에는 직접 이어진 간선만 쓰고, 정점 1번을 거치는 경로를 허용하고, 다음에 2번까지 거치는 경로를 허용하는 식으로 늘려 갑니다. 정점 k를 새로 허용할 때 i에서 j로 가는 최단 거리는 "k를 거치지 않는 기존 거리"와 "i에서 k까지 더하기 k에서 j까지" 중 작은 쪽입니다. 이 토픽에서는 거리 행렬이 경유지마다 갱신되는 모습, 한 칸을 비교하는 순간, 경로를 복원하는 방법을 봅니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">모든 쌍 최단 경로</h3>
+                            <p class="overview-card__desc">정점 쌍 (i, j) 전부에 대해 최단 거리를 구하는 문제(All-Pairs Shortest Path)입니다. 결과는 V × V 크기의 거리 행렬입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">경유지 k</h3>
+                            <p class="overview-card__desc">경로 중간에 거치는 정점입니다. k 단계가 끝나면 경유지를 정점 1번부터 k번까지만 써서 구할 수 있는 최단 거리가 행렬에 들어 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">점화식</h3>
+                            <p class="overview-card__desc">d[i][j] = min(d[i][j], d[i][k] + d[k][j])입니다. k를 거치는 쪽이 더 짧으면 그 값으로 바꿉니다. 이전 단계의 결과를 쌓아 가는 동적 계획법입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">삼중 반복문</h3>
+                            <p class="overview-card__desc">경유지 k, 출발지 i, 도착지 j를 모두 도는 세 겹 반복문입니다. 바깥이 반드시 경유지 k여야 점화식이 성립합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">경로 복원</h3>
+                            <p class="overview-card__desc">거리를 갱신할 때 next[i][j]도 함께 갱신해 두면, 거리 행렬만큼의 공간으로 모든 쌍의 실제 경로를 따라갈 수 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">음수 사이클 탐지</h3>
+                            <p class="overview-card__desc">계산 후 대각선 d[i][i]가 0보다 작은 칸이 있으면 그래프에 음수 사이클이 있다는 신호입니다. 음수 간선 자체는 허용됩니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>시간은 O(V³)입니다</strong> — 경유지, 출발지, 도착지 세 값이 각각 V가지이므로 간선 수와 상관없이 일정합니다. 정점 수가 크지 않아 V³ 연산을 감당할 수 있을 때 실용적입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공간은 O(V²)입니다</strong> — V × V 거리 행렬 하나입니다. 같은 행렬을 제자리에서 갱신하면 단계마다 새 행렬이 필요하지 않습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>제자리 갱신이 안전합니다</strong> — 경유지 k 단계에서 k 행과 k 열은 바뀌지 않으므로(음수 사이클이 없을 때) 읽는 값이 같은 단계에서 오염되지 않습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>조밀한 그래프에 잘 맞습니다</strong> — 간선이 많은 그래프에서 다익스트라를 모든 정점에서 돌리는 것보다 단순하고 비슷하거나 빠릅니다. 간선이 적은 희소 그래프에서는 다른 방법이 더 빠를 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "거리 행렬 갱신" 탭에서 경유지가 늘 때마다 행렬 칸이 노란색으로 갱신되는 모습을, "한 칸 계산" 탭에서 d[i][k] + d[k][j]와 기존 값을 비교하는 순간을, "경로 복원" 탭에서 next를 따라 실제 경로를 얻는 과정을 STEP으로 확인하세요.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">플로이드-워셜의 배경</h2>
+                    <p class="overview-lead">
+                        1962년 로버트 플로이드(Robert W. Floyd)가 ACM 통신(Communications of the ACM)에 "Algorithm 97: Shortest path"라는 짧은 글로 이 알고리즘을 실었습니다. 같은 해 스티븐 워셜(Stephen Warshall)은 "A theorem on Boolean matrices"에서 불리언 행렬의 전이적 폐쇄(transitive closure)를 구하는 방법을 발표했는데, 반복 구조가 같아서 두 이름을 붙여 부릅니다. 워셜의 방법은 거리 대신 도달 가능 여부를 다룹니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>예시 그래프</strong> — 정점 A, B, C, D 4개와 방향 간선 7개(A → B 3, A → D 7, B → A 8, B → C 2, C → A 5, C → D 1, D → A 2)입니다. 처음 거리 행렬은 직접 이어진 칸만 값이 있고 나머지는 ∞입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>경유지 A, B</strong> — A를 허용하면 B → D 15, C → B 8, D → B 5가 새로 생기고, B를 허용하면 A → C 5와 D → C 7이 생깁니다. 아직 닿지 못하던 칸이 채워지는 단계입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>경유지 C, D</strong> — C를 허용하면 A → D가 7에서 6으로, B → A가 8에서 7로, B → D가 15에서 3으로 줄어듭니다. D를 허용하면 B → A 5, C → A 3, C → B 6으로 더 줄어듭니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>최종 행렬</strong> — 행이 출발, 열이 도착일 때 A는 0, 3, 5, 6, B는 5, 0, 2, 3, C는 3, 6, 0, 1, D는 2, 5, 7, 0입니다. 총 11칸이 갱신되었습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>경로 복원</strong> — next 행렬을 따라가면 A에서 D까지 경로는 A, B, C, D이고 간선 가중치 합이 3 + 2 + 1 = 6으로 d[A][D]와 같습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>코드 확인</strong> — 파이썬과 자바 구현이 같은 그래프에서 같은 행렬을 돌려줍니다. B → D(-20) 간선을 더하면 B → D → A → B의 합이 -15인 음수 사이클이 생겨 대각선에 음수가 나타납니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>반복문 순서는 상관없다</strong> — 경유지 k가 가장 바깥이어야 합니다. i, j를 바깥에 두면 "k까지 허용했을 때의 최단 거리"라는 점화식의 의미가 깨져 결과가 틀릴 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>음수 간선이 있으면 쓸 수 없다</strong> — 음수 사이클이 없다면 음수 간선이 있어도 올바른 최단 거리를 구합니다. 문제가 되는 것은 음수 사이클입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>다익스트라를 V번 돌리는 것보다 항상 느리다</strong> — 이진 힙 다익스트라를 모든 정점에서 돌리면 조밀한 그래프에서 O(V³ log V)라 점근적으로 플로이드-워셜이 낫고, 피보나치 힙을 쓰면 같은 O(V³)입니다. 다익스트라는 음수 간선이 없을 때만 쓸 수 있고, 희소한 그래프에서는 다익스트라 쪽이 빠를 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>경로까지 구하려면 공간이 크게 늘어난다</strong> — next 행렬도 V × V이므로 공간은 여전히 O(V²)입니다. 경로를 통째로 저장하지 않고 다음 정점만 저장합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>INF에 아무 값이나 더해도 된다</strong> — 정수 최댓값을 INF로 쓰면 INF에 양수를 더할 때 넘쳐 음수가 됩니다. 두 거리가 모두 INF가 아닐 때만 더합니다. 넘치지 않을 만큼 작은 INF를 쓰더라도 음수 간선이 있으면 INF 여부를 함께 검사해야 합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">플로이드-워셜의 점화식은?</h3>
+                            <p class="overview-card__desc">d[i][j] = min(d[i][j], d[i][k] + d[k][j])입니다. 경유지 k를 하나씩 늘려 가며 "k를 거치는 경로가 더 짧은가"를 모든 칸에서 확인하는 동적 계획법입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">시간·공간 복잡도는?</h3>
+                            <p class="overview-card__desc">시간은 O(V³), 공간은 O(V²)입니다. 경유지, 출발지, 도착지 세 겹 반복문과 V × V 행렬 하나가 그 이유입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">다익스트라, 벨만-포드와는 언제 구분해 쓰나요?</h3>
+                            <p class="overview-card__desc">한 출발점에서의 거리만 필요하면 다익스트라(음수 간선이 없을 때)나 벨만-포드(음수 간선이 있을 때)를 씁니다. 모든 쌍이 필요하고 정점 수가 크지 않으면 플로이드-워셜이 간단합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">음수 사이클은 어떻게 알 수 있나요?</h3>
+                            <p class="overview-card__desc">계산이 끝난 뒤 대각선 d[i][i]에 음수가 있으면 그래프에 음수 사이클이 있습니다. i에서 출발해 i로 돌아오는 경로의 합이 0보다 작아졌다는 뜻이고 그 경로는 음수 사이클을 포함합니다. 음수가 나온 정점이 꼭 그 사이클 위에 있는 것은 아닙니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>전이적 폐쇄</strong> — 워셜의 방법은 합과 최소 대신 논리합과 논리곱으로 "i에서 j로 갈 수 있는가"를 모든 쌍에 대해 구합니다. 간접적으로라도 이어진 항목을 모두 찾는 개념입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>그래프 지표 계산</strong> — 모든 쌍의 최단 거리가 있으면 (모든 쌍이 서로 닿을 때) 그래프의 지름(가장 먼 쌍의 거리)이나 정점이 다른 정점들에 얼마나 가까운지를 재는 지표를 바로 계산할 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>라이브러리</strong> — NetworkX의 floyd_warshall 함수와 SciPy의 scipy.sparse.csgraph.floyd_warshall이 이 알고리즘을 제공합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/dijkstra}">다익스트라</a> — 한 출발점에서의 최단 경로를 구하는 방법을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/bellman-ford}">벨만-포드</a> — 음수 간선과 음수 사이클을 다루는 최단 경로 알고리즘을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/algo/dp-basic}">DP 기초</a> — 작은 단계의 결과를 쌓아 가는 동적 계획법을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/ds/graph}">그래프</a> — 인접 행렬과 인접 리스트 표현을 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>논문</strong> — Floyd, R. W., "Algorithm 97: Shortest path", Communications of the ACM 5(6), 1962</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>논문</strong> — Warshall, S., "A theorem on Boolean matrices", Journal of the ACM 9(1), 1962</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>교재</strong> — Cormen, Leiserson, Rivest, Stein, "Introduction to Algorithms", 3rd ed., Section 25.2 The Floyd-Warshall algorithm</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://networkx.org/documentation/stable/reference/algorithms/generated/networkx.algorithms.shortest_paths.dense.floyd_warshall.html" target="_blank" rel="noopener">NetworkX floyd_warshall</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 문서</strong> — <a href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.csgraph.floyd_warshall.html" target="_blank" rel="noopener">SciPy csgraph.floyd_warshall</a></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/algo/11-20/floyd-warshall-code :: code}"></th:block>
+            </div>
+
+            <!-- 탭 4: 퀴즈 -->
+            <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
+                <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+    <script th:src="@{/js/quiz.js}"></script>
+    <script th:src="@{/js/like.js}"></script>
+    <script th:src="@{/js/share.js}"></script>
+</body>
+</html>

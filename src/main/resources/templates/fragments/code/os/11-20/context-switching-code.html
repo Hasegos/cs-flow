@@ -1,0 +1,70 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">개념 코드 — 상태 저장과 복원 (단순화)</p>
+            <div class="code-block">
+<pre><span class="cm">// 실제 커널은 이 부분을 어셈블리로 구현한다. 개념만 보여 주는 단순화한 코드.</span>
+<span class="kw">struct</span> pcb {
+    <span class="kw">unsigned long</span> pc;        <span class="cm">// 프로그램 카운터</span>
+    <span class="kw">unsigned long</span> sp;        <span class="cm">// 스택 포인터</span>
+    <span class="kw">unsigned long</span> regs[<span class="num">16</span>];   <span class="cm">// 범용 레지스터</span>
+    <span class="kw">int</span> state;               <span class="cm">// READY, RUNNING, WAITING ...</span>
+};
+
+<span class="kw">void</span> <span class="fn">context_switch</span>(<span class="kw">struct</span> pcb *prev, <span class="kw">struct</span> pcb *next) {
+    <span class="fn">save_cpu_state</span>(prev);       <span class="cm">// CPU 레지스터 → prev의 PCB</span>
+    prev-&gt;state = READY;      <span class="cm">// 선점된 경우. 입출력 대기로 내놓으면 WAITING</span>
+    <span class="fn">switch_address_space</span>(next); <span class="cm">// 다른 프로세스일 때만 페이지 테이블 교체</span>
+    next-&gt;state = RUNNING;
+    <span class="fn">load_cpu_state</span>(next);       <span class="cm">// next의 PCB → CPU 레지스터, 이후 next가 이어서 실행</span>
+}</pre>
+            </div>
+            <p class="code-desc">
+                전환의 핵심은 두 동작입니다. 지금 CPU에 있는 레지스터 값을 prev의 PCB에 저장하고, next의 PCB에 있던 값을 CPU에 채워 넣으면 next가 멈췄던 곳부터 이어서 실행됩니다.
+                주소 공간 전환은 다른 프로세스로 바꿀 때만 일어나고, 같은 프로세스의 스레드끼리 바꿀 때는 건너뜁니다. 이 차이가 스레드 전환이 보통 더 가벼운 이유입니다.
+                위 코드는 이해를 위한 개념도이며, 실제 운영체제는 아키텍처마다 저장해야 할 레지스터 집합과 전환 순서가 다르고 이 구간을 어셈블리로 작성합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">리눅스 — 컨텍스트 스위치 횟수 확인</p>
+            <div class="code-block">
+<pre><span class="cm"># 시스템 전체: 1초마다 출력, cs 열이 초당 컨텍스트 스위치 수</span>
+vmstat <span class="num">1</span>
+
+<span class="cm"># 스레드 단위 누적 횟수 (PID는 메인 스레드)</span>
+grep ctxt /proc/<span class="num">1234</span>/status
+<span class="cm"># voluntary_ctxt_switches:     120      (스스로 CPU를 내놓은 전환)</span>
+<span class="cm"># nonvoluntary_ctxt_switches:  35       (시간이 끝나거나 우선순위 높은 작업에 선점된 전환)</span></pre>
+            </div>
+            <p class="code-desc">
+                vmstat의 cs 열은 시스템 전체에서 초당 일어난 컨텍스트 스위치 수입니다. 값이 평소보다 크게 늘었다면 실행 가능한 스레드가 코어보다 많거나 락 경합으로 블로킹이 잦은지 의심해 볼 수 있습니다.
+                /proc/PID/status의 두 값은 PID가 가리키는 메인 스레드의 누적 횟수이고 스레드별 값은 /proc/PID/task/TID/status에서 보며, 자발적 전환이 많으면 입출력이나 락 대기가 많다는 뜻이며 비자발적 전환이 많으면 CPU를 두고 다른 작업과 경쟁한다는 신호입니다.
+                위 숫자는 설명을 위한 예이고 PID와 값은 시스템마다 다릅니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">C · Python — 내 프로세스의 전환 횟수</p>
+            <div class="code-block">
+<pre><span class="cm">/* C: getrusage로 자발적/비자발적 전환 횟수 */</span>
+<span class="kw">#include</span> &lt;sys/resource.h&gt;
+<span class="kw">struct</span> rusage ru;
+<span class="fn">getrusage</span>(RUSAGE_SELF, &amp;ru);
+<span class="fn">printf</span>(<span class="st">"voluntary=%ld involuntary=%ld\n"</span>, ru.ru_nvcsw, ru.ru_nivcsw);
+
+<span class="cm"># Python: 같은 값을 resource 모듈로</span>
+<span class="kw">import</span> resource
+ru = resource.<span class="fn">getrusage</span>(resource.RUSAGE_SELF)
+<span class="fn">print</span>(ru.ru_nvcsw, ru.ru_nivcsw)</pre>
+            </div>
+            <p class="code-desc">
+                getrusage는 프로세스가 지금까지 겪은 컨텍스트 스위치 횟수를 돌려줍니다. ru_nvcsw는 자발적 전환, ru_nivcsw는 비자발적 전환의 횟수입니다.
+                작업 전후에 값을 한 번씩 읽어 차이를 보면 그 작업 중 몇 번 전환되었는지 알 수 있어, 스레드 수를 바꿔 가며 비교하는 실험에 쓸 수 있습니다.
+                이 두 필드는 리눅스 같은 유닉스 계열에서 제공되며, 모든 플랫폼에서 의미 있는 값이 채워지는 것은 아닙니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>

@@ -1,0 +1,73 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">셸 — PID namespace 만들어 보기 (unshare)</p>
+            <div class="code-block">
+<pre><span class="cm"># 새 PID, mount namespace 안에서 셸 실행 (root 권한 필요)</span>
+sudo unshare --pid --fork --mount-proc bash
+
+<span class="cm"># 이 셸 안에서</span>
+echo &#36;&#36;             <span class="cm"># 1  ← 새 namespace의 첫 프로세스</span>
+ps aux              <span class="cm"># 이 namespace 안의 프로세스만 보임</span>
+
+<span class="cm"># 다른 터미널(호스트)에서 namespace 목록</span>
+lsns -t pid</pre>
+            </div>
+            <p class="code-desc">
+                unshare는 새 namespace를 만들어 그 안에서 명령을 실행합니다. --pid와 --fork로 만든 셸은 새 PID namespace의 첫 프로세스라서 자기 PID가 1로 보입니다.
+                --mount-proc은 이 namespace 전용으로 /proc을 다시 마운트해서, ps가 호스트 전체가 아니라 namespace 안의 프로세스만 보여 주게 합니다.
+                호스트의 다른 터미널에서 lsns -t pid를 실행하면 같은 셸이 호스트 PID로 보이는 것도 확인할 수 있습니다. 셸을 종료하면 namespace도 함께 사라집니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">셸 — cgroup v2로 메모리와 CPU 상한 걸기</p>
+            <div class="code-block">
+<pre><span class="cm"># cgroup v2 계층에 그룹 만들기 (root 권한, memory와 cpu 컨트롤러가 활성이어야 함)</span>
+sudo mkdir /sys/fs/cgroup/demo
+
+echo <span class="num">536870912</span>   | sudo tee /sys/fs/cgroup/demo/memory.max   <span class="cm"># 512MiB</span>
+echo <span class="st">"50000 100000"</span> | sudo tee /sys/fs/cgroup/demo/cpu.max        <span class="cm"># 주기 100ms당 50ms = 50%</span>
+
+<span class="cm"># 현재 셸을 이 그룹에 넣기</span>
+echo &#36;&#36; | sudo tee /sys/fs/cgroup/demo/cgroup.procs
+
+<span class="cm"># 사용량과 제한 횟수 확인</span>
+cat /sys/fs/cgroup/demo/memory.current
+cat /sys/fs/cgroup/demo/cpu.stat</pre>
+            </div>
+            <p class="code-desc">
+                cgroup v2에서는 /sys/fs/cgroup 아래에 디렉터리를 만드는 것이 그룹을 만드는 일이고, 그 안의 파일에 값을 써서 설정합니다. memory.max는 바이트 단위의 메모리 상한이고, cpu.max는 쿼터와 주기를 마이크로초로 적습니다.
+                cgroup.procs에 PID를 쓰면 그 프로세스가 그룹으로 옮겨져 상한을 적용받습니다. memory.current는 현재 메모리 사용량이고, cpu.stat에는 CPU 쿼터 때문에 멈춘 횟수(nr_throttled) 같은 통계가 있습니다.
+                하위 그룹에 컨트롤러를 켜려면 상위 그룹의 cgroup.subtree_control 설정이 필요할 수 있고, 배포판에서는 systemd가 이 계층을 관리하므로 환경에 따라 직접 쓰기 전에 확인해야 합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Docker · 쿠버네티스 — 자원 상한 설정</p>
+            <div class="code-block">
+<pre><span class="cm"># Docker: 메모리 512MB, CPU 0.5개</span>
+docker run -d --name web --memory 512m --cpus <span class="num">0.5</span> nginx
+
+<span class="cm"># 컨테이너 안의 PID 1 확인</span>
+docker exec web cat /proc/<span class="num">1</span>/comm
+
+<span class="cm"># 쿠버네티스 파드의 자원 요청과 상한</span>
+<span class="kw">resources</span>:
+  <span class="kw">requests</span>:
+    <span class="kw">cpu</span>: <span class="st">"250m"</span>
+    <span class="kw">memory</span>: <span class="st">"256Mi"</span>
+  <span class="kw">limits</span>:
+    <span class="kw">cpu</span>: <span class="st">"500m"</span>
+    <span class="kw">memory</span>: <span class="st">"512Mi"</span></pre>
+            </div>
+            <p class="code-desc">
+                docker run의 --memory와 --cpus는 컨테이너의 cgroup에 메모리 상한과 CPU 상한을 설정하며, 상한을 넘는 메모리를 쓰면 컨테이너 안의 프로세스가 OOM으로 종료될 수 있습니다.
+                docker exec로 컨테이너 안에서 PID 1이 무엇인지 보면 컨테이너의 첫 프로세스가 PID namespace의 PID 1임을 확인할 수 있습니다.
+                쿠버네티스에서 requests는 스케줄러가 파드를 배치할 때 쓰는 값이며(CPU request는 경합 시 가중치로도 쓰입니다), limits는 런타임이 지키는 상한입니다. 메모리 limit을 넘으려 하면 OOM으로 종료될 수 있고, CPU limit은 throttling으로 제한됩니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>

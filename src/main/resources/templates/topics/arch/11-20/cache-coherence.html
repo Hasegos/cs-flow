@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">캐시 일관성(MESI) | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/arch/11-20/cache-coherence.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/arch}" class="topic-breadcrumb__link">컴퓨터 구조</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">캐시 일관성(MESI)</span>
+                </nav>
+
+                <span class="topic-hero__slug">arch · 15</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">캐시 일관성(MESI)</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+                <button type="button" class="topic-like" th:classappend="${liked} ? ' topic-like--active' : ''" th:attr="data-topic-slug=${topic.slug}">
+                    <svg class="topic-like__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <span class="topic-like__count" th:text="${likeCount}">0</span>
+                </button>
+                <div class="topic-share">
+                    <button type="button" class="topic-share__btn topic-share__btn--copy" aria-label="링크 복사">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="topic-share__btn topic-share__btn--kakao" aria-label="카카오톡 공유">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                        </svg>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+                <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        멀티코어 CPU에서는 코어마다 자기 캐시를 가지고 있어서, 같은 메모리 주소의 복사본이 여러 캐시에 동시에 들어 있을 수 있습니다.
+                        한 코어가 그 값을 바꿨는데 다른 코어의 캐시에는 예전 값이 남아 있다면, 코어마다 같은 변수를 다른 값으로 읽게 됩니다.
+                        이 문제를 막는 하드웨어 규칙이 <strong>캐시 일관성(cache coherence) 프로토콜</strong>입니다.
+                        프로그래머가 따로 코드를 쓰지 않아도 하드웨어가 알아서 유지하지만, 공짜는 아닙니다. 여러 코어가 같은 데이터를 자주 쓰면 캐시 라인이 코어 사이를 오가며 지연이 생깁니다.
+                    </p>
+                    <p class="overview-lead">
+                        대표적인 프로토콜이 <strong>MESI</strong>입니다. 캐시 라인을 Modified(수정됨), Exclusive(단독), Shared(공유), Invalid(무효) 네 상태 중 하나로 두고,
+                        읽기와 쓰기가 일어날 때마다 상태를 바꾸며 다른 캐시와 신호를 주고받습니다. 한 코어가 쓰기 전에 다른 코어의 복사본을 무효화하는 것이 핵심입니다.
+                        코어 수가 많아지면 모든 캐시가 버스를 지켜보는 방식(스누핑) 대신 라인마다 누가 가지고 있는지 기록해 두는 디렉터리 방식이 쓰이기도 합니다.
+                        이 구조 때문에 서로 다른 변수가 우연히 같은 캐시 라인에 놓이면 성능이 크게 떨어지는 <strong>거짓 공유(false sharing)</strong>가 생깁니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">캐시 일관성</h3>
+                            <p class="overview-card__desc">같은 주소에 대해 (1) 한 코어가 쓴 값은 그 코어가 이어서 읽으면 그대로 읽히고, (2) 다른 코어가 쓴 값은 충분한 시간이 지난 뒤 읽히며, (3) 같은 주소에 대한 쓰기는 모든 코어에서 같은 순서로 보이는 성질입니다(Hennessy &amp; Patterson). 코어마다 복사본이 있어도 하나의 메모리처럼 보이게 합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">MESI 네 가지 상태</h3>
+                            <p class="overview-card__desc">M(수정됨)은 이 캐시만 가지고 있고 메모리보다 최신인 상태, E(단독)는 이 캐시만 가지고 있고 메모리와 같은 상태, S(공유)는 여러 캐시가 가지고 있고 메모리와 같은 상태, I(무효)는 쓸 수 없는 상태입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">스누핑과 디렉터리</h3>
+                            <p class="overview-card__desc">스누핑은 모든 캐시가 공용 버스 같은 브로드캐스트 매체에서 다른 코어의 요청을 엿보고 자기 상태를 바꾸는 방식입니다. 디렉터리 방식은 캐시 라인마다 어느 캐시가 복사본을 가졌는지 기록해 두고 필요한 캐시에만 신호를 보내므로 코어 수가 많은 시스템에 알맞습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">무효화와 갱신</h3>
+                            <p class="overview-card__desc">한 코어가 쓸 때 다른 복사본을 무효로 만드는 방식(write-invalidate)과 새 값으로 갱신하는 방식(write-update)이 있습니다. 교재는 최근 멀티프로세서가 무효화 방식을 택했다고 설명하며, 이 시각화도 무효화 방식입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">캐시 라인 단위 관리</h3>
+                            <p class="overview-card__desc">일관성은 변수 하나가 아니라 캐시 라인(x86에서 흔히 64바이트) 단위로 관리됩니다. 라인 안의 어느 바이트를 쓰든 그 라인 전체의 상태가 바뀝니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">거짓 공유</h3>
+                            <p class="overview-card__desc">코어들이 서로 다른 변수를 쓰는데 그 변수들이 같은 캐시 라인에 있으면, 한 코어의 쓰기가 다른 코어의 라인을 무효화해 라인이 계속 오갑니다. 공유하는 데이터가 없는데도 공유한 것처럼 느려집니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>일관성은 하드웨어가 자동으로 유지합니다</strong> — 소프트웨어는 캐시가 몇 개인지 신경 쓰지 않고 같은 주소를 읽고 쓸 수 있습니다. 대신 그 비용은 코어 사이에 캐시 라인을 옮기는 지연으로 나타납니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>읽기 공유는 저렴하고 쓰기 공유는 비쌉니다</strong> — 읽기만 한다면 여러 코어가 공유(S) 상태로 복사본을 나눠 가지면 됩니다. 한 코어가 쓰면 다른 복사본이 무효화되고, 다른 코어가 다시 읽을 때 라인을 새로 가져와야 합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>거짓 공유는 코드에 드러나지 않는 함정입니다</strong> — 소스에는 공유 변수가 없는데 성능이 떨어집니다. 변수 사이에 패딩을 넣거나 정렬해 라인을 분리하고, 스레드마다 지역 값을 모았다가 합치는 방식으로 피합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>캐시 일관성과 메모리 일관성 모델은 다른 이야기입니다</strong> — 캐시 일관성은 같은 주소에 대한 규칙이고, 메모리 모델은 서로 다른 주소에 대한 읽기·쓰기가 다른 코어에 어떤 순서로 보이는지에 대한 규칙입니다. 그래서 일관성 프로토콜이 있어도 동기화가 필요합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "일관성 문제" 탭에서 프로토콜이 없을 때 낡은 값이 생기는 과정을, "MESI 상태 전이" 탭에서 읽기와 쓰기에 따른 상태 변화를, "거짓 공유" 탭에서 같은 라인에 놓인 변수 때문에 라인이 오가는 횟수를 STEP으로 확인하세요.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">캐시 일관성의 배경</h2>
+                    <p class="overview-lead">
+                        캐시 일관성 문제는 프로세서마다 개인 캐시를 두는 멀티프로세서에서 생겼습니다. 코어가 하나일 때는 값을 쓰고 읽는 주체가 한 곳이라 하드웨어가 캐시 계층을 하나의 일관된 메모리처럼 보이게 하기 쉽지만(DMA 같은 장치가 메모리에 직접 쓰는 경우는 별도의 문제입니다), 코어마다 개인 캐시가 있으면 같은 주소의 복사본들이 서로 어긋날 수 있기 때문입니다.
+                        MESI 같은 상태 기반 프로토콜은 이런 복사본을 개별 라인의 상태로 추적해 어긋남을 막습니다. 제품마다 이름이 조금씩 다른 변형(예: Owned 상태를 더한 MOESI, Forward 상태를 더한 MESIF)이 쓰이므로, 이 토픽의 MESI는 기본 형태로 이해하면 됩니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>라인 안의 변수 개수</strong> — 캐시 라인이 64바이트이고 배열이 라인 경계에 맞춰져 있다면 long(8바이트) 8개가 한 라인을 채웁니다. 연속된 long 배열에서 두 스레드가 서로 이웃한 원소를 쓰면 같은 라인을 두고 다투게 됩니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>라인을 분리하는 간격</strong> — 같은 가정에서 배열의 0번과 8번 원소는 64바이트 떨어져 있어 서로 다른 라인에 놓입니다. 간격이 라인 크기 이상이면 서로의 쓰기가 상대 라인을 무효화하지 않습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화의 거짓 공유</strong> — 코어 0과 1이 번갈아 4번 쓰면 같은 라인에서는 라인 이동이 3회, 라인을 분리하면 0회입니다. 첫 쓰기는 메모리에서 가져오는 것이라 이동으로 세지 않았습니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>캐시 일관성이 있으니 락이나 volatile은 필요 없다</strong> — 일관성은 한 주소의 복사본을 맞추는 규칙일 뿐입니다. 여러 단계로 이뤄진 연산의 원자성과, 컴파일러·CPU의 재배치 때문에 생기는 순서 문제는 동기화로 해결해야 합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>거짓 공유는 같은 변수를 쓸 때만 생긴다</strong> — 반대입니다. 서로 다른 변수가 같은 캐시 라인에 있을 때 생깁니다. 변수를 공유하지 않는다는 점이 오히려 원인을 찾기 어렵게 만듭니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>쓰기는 바로 메모리에 반영된다</strong> — 수정됨(M) 상태의 라인은 메모리보다 최신입니다. 다른 코어가 읽거나 라인이 캐시에서 밀려날 때 비로소 메모리에 반영됩니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>모든 CPU가 같은 MESI를 쓴다</strong> — MESI는 기본 형태이고, 실제 CPU는 상태를 더하거나 방식을 바꾼 변형을 씁니다. 일관성이 유지된다는 결과는 같지만 상태 전이는 제품마다 다를 수 있습니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">캐시 일관성 문제란 무엇인가요?</h3>
+                            <p class="overview-card__desc">코어마다 캐시가 따로 있어 같은 주소의 복사본이 여러 개일 때, 한 코어가 값을 바꾸면 다른 코어의 복사본이 낡은 값이 되는 문제입니다. 프로토콜이 쓰기를 다른 캐시에 알려 복사본을 무효화하거나 갱신합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">MESI에서 공유(S) 라인에 쓰면 어떻게 되나요?</h3>
+                            <p class="overview-card__desc">먼저 다른 캐시에 무효화 신호를 보내 그쪽 복사본을 무효(I)로 만들고, 자신의 라인을 수정됨(M)으로 바꾼 뒤 씁니다. 그래서 수정됨(M) 라인은 한 시점에 한 캐시에만 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">거짓 공유란 무엇이고 어떻게 피하나요?</h3>
+                            <p class="overview-card__desc">서로 다른 변수가 같은 캐시 라인에 있어 한 코어의 쓰기가 다른 코어의 라인을 무효화하는 현상입니다. 변수를 라인 단위로 띄워 놓거나(패딩, 정렬), 스레드별 지역 값을 모았다가 합쳐서 피합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">캐시 일관성과 메모리 일관성 모델은 어떻게 다른가요?</h3>
+                            <p class="overview-card__desc">캐시 일관성은 같은 주소에 대한 접근 규칙이고, 메모리 일관성 모델은 서로 다른 주소에 대한 접근이 다른 코어에 어떤 순서로 보이는지를 정합니다. 둘은 별개이며 동기화 코드는 후자를 다룹니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>자바 LongAdder</strong> — 자바 문서는 LongAdder가 여러 변수로 합계를 나눠 갖고, 갱신이 여러 스레드에서 경합하면 변수 집합이 늘어나 경합을 줄인다고 설명합니다. 통계 수집처럼 여러 스레드가 공통 합계를 갱신하는 용도에서는 보통 AtomicLong보다 낫다고 하며, sum()은 원자적 스냅샷이 아닙니다. OpenJDK 소스에서 각 변수(Cell)는 거짓 공유를 줄이려고 @Contended로 패딩돼 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>리눅스 perf c2c</strong> — 리눅스 perf의 c2c 명령은 캐시 라인 경합을 분석해, 서로 다른 데이터가 같은 라인에서 경합하는 거짓 공유 후보를 찾는 데 쓰입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>C++ 표준</strong> — C++17은 거짓 공유를 피하기 위해 객체 사이에 둘 최소 간격의 힌트로 std::hardware_destructive_interference_size라는 이름을 정의하고, 값은 구현이 정합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>캐시와의 관계</strong> — 일관성은 <a th:href="@{/arch/cache-memory}">캐시 메모리</a>가 코어마다 따로 있기 때문에 필요한 규칙입니다. 캐시가 무엇이고 라인 단위로 동작하는 이유는 그 토픽에서 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/arch/cache-memory}">캐시 메모리</a> — 캐시 라인과 적중·미스의 기본을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/arch/memory-hierarchy}">메모리 계층</a> — 캐시가 계층의 어디에 놓이는지 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/arch/out-of-order-execution}">비순차 실행</a> — 코어 안에서 메모리 접근 순서가 바뀌는 이유를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/process-sync}">프로세스 동기화</a> — 일관성 프로토콜 위에서도 동기화가 필요한 이유를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/thread}">스레드</a> — 코어마다 스레드가 같은 메모리를 쓰는 모델을 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>자바</strong> — <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/atomic/LongAdder.html" target="_blank" rel="noopener">LongAdder — Java SE 21 API</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>리눅스와 C++</strong> — <a href="https://man7.org/linux/man-pages/man1/perf-c2c.1.html" target="_blank" rel="noopener">perf-c2c(1) — Linux manual page</a>, <a href="https://eel.is/c++draft/hardware.interference" target="_blank" rel="noopener">C++ draft standard — Hardware interference size</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>논문</strong> — Papamarcos, Patel, "A Low-Overhead Coherence Solution for Multiprocessors with Private Cache Memories", ISCA 1984</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>교재</strong> — Hennessy, Patterson, "Computer Architecture: A Quantitative Approach", "Thread-Level Parallelism" 장</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/arch/11-20/cache-coherence-code :: code}"></th:block>
+            </div>
+
+            <!-- 탭 4: 퀴즈 -->
+            <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
+                <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+    <script th:src="@{/js/quiz.js}"></script>
+    <script th:src="@{/js/like.js}"></script>
+    <script th:src="@{/js/share.js}"></script>
+</body>
+</html>

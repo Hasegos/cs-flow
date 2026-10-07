@@ -1,0 +1,118 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — 실패 함수와 KMP 검색</p>
+            <div class="code-block">
+<pre><span class="kw">def</span> <span class="fn">prefix_function</span>(p):
+    pi = &#91;<span class="num">0</span>&#93; * <span class="fn">len</span>(p)
+    j = <span class="num">0</span>
+    <span class="kw">for</span> i <span class="kw">in</span> <span class="fn">range</span>(<span class="num">1</span>, <span class="fn">len</span>(p)):
+        <span class="kw">while</span> j &gt; <span class="num">0</span> <span class="kw">and</span> p&#91;i&#93; != p&#91;j&#93;:
+            j = pi&#91;j - <span class="num">1</span>&#93;                    <span class="cm"># 더 짧은 접두사로 되돌린다</span>
+        <span class="kw">if</span> p&#91;i&#93; == p&#91;j&#93;:
+            j += <span class="num">1</span>
+        pi&#91;i&#93; = j
+    <span class="kw">return</span> pi
+
+<span class="kw">def</span> <span class="fn">kmp_search</span>(t, p):
+    pi = <span class="fn">prefix_function</span>(p)
+    found = &#91;&#93;
+    j = <span class="num">0</span>
+    <span class="kw">for</span> i, c <span class="kw">in</span> <span class="fn">enumerate</span>(t):               <span class="cm"># i는 한 번도 뒤로 가지 않는다</span>
+        <span class="kw">while</span> j &gt; <span class="num">0</span> <span class="kw">and</span> c != p&#91;j&#93;:
+            j = pi&#91;j - <span class="num">1</span>&#93;                    <span class="cm"># 패턴만 민다</span>
+        <span class="kw">if</span> c == p&#91;j&#93;:
+            j += <span class="num">1</span>
+        <span class="kw">if</span> j == <span class="fn">len</span>(p):
+            found.<span class="fn">append</span>(i - j + <span class="num">1</span>)       <span class="cm"># 일치 시작 위치</span>
+            j = pi&#91;j - <span class="num">1</span>&#93;                    <span class="cm"># 겹치는 일치도 찾는다</span>
+    <span class="kw">return</span> found
+
+<span class="fn">print</span>(<span class="fn">prefix_function</span>(<span class="st">'ABABC'</span>))                    <span class="cm"># &#91;0, 0, 1, 2, 0&#93;</span>
+<span class="fn">print</span>(<span class="fn">kmp_search</span>(<span class="st">'ABABABCABABC'</span>, <span class="st">'ABABC'</span>))       <span class="cm"># &#91;2, 7&#93;</span></pre>
+            </div>
+            <p class="code-desc">
+                실패 함수 pi&#91;i&#93;는 패턴의 앞 i+1글자에서 자기 자신을 제외하고 접두사이면서 접미사이기도 한 가장 긴 문자열의 길이입니다. ABABC에서는 ABAB의 끝 AB가 앞 AB와 같아 pi&#91;3&#93; = 2이고, 나머지는 겹치는 부분이 없거나 1입니다. 패턴을 자기 자신 위에 겹쳐 밀며 구하므로 O(m)입니다.
+                검색에서는 텍스트 위치 i와 패턴 위치 j를 함께 움직입니다. 글자가 같으면 j를 늘리고, 다르면 i는 그대로 두고 j만 pi&#91;j - 1&#93;로 줄입니다. 이미 맞춘 ABAB 중 앞 AB는 다시 비교하지 않아도 되기 때문입니다. j가 패턴 길이에 닿으면 일치 하나를 찾은 것이고, 이어서 j를 pi&#91;j - 1&#93;로 줄여 겹치는 일치도 찾습니다. 위 텍스트에서는 위치 2와 7에서 일치합니다. 시각화의 실패 함수 만들기 탭과 KMP 검색 탭이 보여 주는 과정과 같습니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — 단순 검색과 비교 횟수</p>
+            <div class="code-block">
+<pre><span class="kw">def</span> <span class="fn">naive_count</span>(t, p):
+    cmp = <span class="num">0</span>
+    <span class="kw">for</span> s <span class="kw">in</span> <span class="fn">range</span>(<span class="fn">len</span>(t) - <span class="fn">len</span>(p) + <span class="num">1</span>):
+        <span class="kw">for</span> k <span class="kw">in</span> <span class="fn">range</span>(<span class="fn">len</span>(p)):
+            cmp += <span class="num">1</span>
+            <span class="kw">if</span> t&#91;s + k&#93; != p&#91;k&#93;:
+                <span class="kw">break</span>
+    <span class="kw">return</span> cmp
+
+<span class="kw">def</span> <span class="fn">kmp_count</span>(t, p):
+    pi = <span class="fn">prefix_function</span>(p)
+    cmp = <span class="num">0</span>
+    j = <span class="num">0</span>
+    <span class="kw">for</span> c <span class="kw">in</span> t:
+        <span class="kw">while</span> j &gt; <span class="num">0</span> <span class="kw">and</span> c != p&#91;j&#93;:
+            cmp += <span class="num">1</span>
+            j = pi&#91;j - <span class="num">1</span>&#93;
+        cmp += <span class="num">1</span>
+        <span class="kw">if</span> c == p&#91;j&#93;:
+            j += <span class="num">1</span>
+        <span class="kw">if</span> j == <span class="fn">len</span>(p):
+            j = pi&#91;j - <span class="num">1</span>&#93;
+    <span class="kw">return</span> cmp
+
+<span class="fn">print</span>(<span class="fn">naive_count</span>(<span class="st">'ABABABCABABC'</span>, <span class="st">'ABABC'</span>), <span class="fn">kmp_count</span>(<span class="st">'ABABABCABABC'</span>, <span class="st">'ABABC'</span>))   <span class="cm"># 22 13</span>
+t = <span class="st">'A'</span> * <span class="num">100</span> + <span class="st">'B'</span>
+p = <span class="st">'A'</span> * <span class="num">20</span> + <span class="st">'B'</span>
+<span class="fn">print</span>(<span class="fn">naive_count</span>(t, p), <span class="fn">kmp_count</span>(t, p))              <span class="cm"># 1701 181</span></pre>
+            </div>
+            <p class="code-desc">
+                단순 검색은 모든 시작 위치에서 패턴의 처음부터 비교하고, 불일치가 나면 한 칸 밀어 처음부터 다시 비교합니다. 위의 짧은 예에서는 글자 비교가 22번 대 13번으로 KMP가 적지만 차이가 크지 않습니다.
+                같은 글자가 길게 반복되는 입력에서는 차이가 커집니다. A가 100개 뒤에 B가 하나 있는 텍스트에서 A 20개와 B로 이루어진 패턴을 찾으면 단순 검색은 1701번, KMP는 181번 비교합니다. 단순 검색은 최악에 O(n × m)이고 KMP는 텍스트를 한 번만 훑어 O(n + m)이기 때문입니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — KMP 검색</p>
+            <div class="code-block">
+<pre><span class="kw">static int</span>&#91;&#93; <span class="fn">prefixFunction</span>(String p) {
+    <span class="kw">int</span>&#91;&#93; pi = <span class="kw">new int</span>&#91;p.<span class="fn">length</span>()&#93;;
+    <span class="kw">int</span> j = <span class="num">0</span>;
+    <span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">1</span>; i &lt; p.<span class="fn">length</span>(); i++) {
+        <span class="kw">while</span> (j &gt; <span class="num">0</span> &amp;&amp; p.<span class="fn">charAt</span>(i) != p.<span class="fn">charAt</span>(j)) j = pi&#91;j - <span class="num">1</span>&#93;;
+        <span class="kw">if</span> (p.<span class="fn">charAt</span>(i) == p.<span class="fn">charAt</span>(j)) j++;
+        pi&#91;i&#93; = j;
+    }
+    <span class="kw">return</span> pi;
+}
+
+<span class="kw">static</span> List&lt;Integer&gt; <span class="fn">search</span>(String t, String p) {
+    <span class="kw">int</span>&#91;&#93; pi = <span class="fn">prefixFunction</span>(p);
+    List&lt;Integer&gt; res = <span class="kw">new</span> ArrayList&lt;&gt;();
+    <span class="kw">int</span> j = <span class="num">0</span>;
+    <span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">0</span>; i &lt; t.<span class="fn">length</span>(); i++) {
+        <span class="kw">while</span> (j &gt; <span class="num">0</span> &amp;&amp; t.<span class="fn">charAt</span>(i) != p.<span class="fn">charAt</span>(j)) j = pi&#91;j - <span class="num">1</span>&#93;;
+        <span class="kw">if</span> (t.<span class="fn">charAt</span>(i) == p.<span class="fn">charAt</span>(j)) j++;
+        <span class="kw">if</span> (j == p.<span class="fn">length</span>()) {
+            res.<span class="fn">add</span>(i - j + <span class="num">1</span>);
+            j = pi&#91;j - <span class="num">1</span>&#93;;
+        }
+    }
+    <span class="kw">return</span> res;
+}
+
+<span class="cm">// prefixFunction("ABABC") → &#91;0, 0, 1, 2, 0&#93;</span>
+<span class="cm">// search("ABABABCABABC", "ABABC") → &#91;2, 7&#93;</span></pre>
+            </div>
+            <p class="code-desc">
+                자바 버전도 같은 구조입니다. 실패 함수를 한 번 만들어 두면 같은 패턴으로 여러 텍스트를 검색할 때 다시 계산하지 않아도 됩니다. 이 구현은 패턴이 빈 문자열이 아니라고 가정하므로, 실무에서는 빈 패턴을 먼저 걸러야 합니다.
+                자바 String.indexOf나 파이썬 str.find 같은 표준 함수로 단순한 검색은 해결됩니다. KMP는 알고리즘 교재의 표준 주제이고, 한 글자씩 들어오는 입력에서 j와 π 배열만으로 검색하거나 π 배열을 응용하는 문제에서 그 원리를 씁니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>

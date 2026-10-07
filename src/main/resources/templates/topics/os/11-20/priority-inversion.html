@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">우선순위 역전 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/os/11-20/priority-inversion.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/os}" class="topic-breadcrumb__link">운영체제</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">우선순위 역전</span>
+                </nav>
+
+                <span class="topic-hero__slug">os · 18</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">우선순위 역전</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+                <button type="button" class="topic-like" th:classappend="${liked} ? ' topic-like--active' : ''" th:attr="data-topic-slug=${topic.slug}">
+                    <svg class="topic-like__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <span class="topic-like__count" th:text="${likeCount}">0</span>
+                </button>
+                <div class="topic-share">
+                    <button type="button" class="topic-share__btn topic-share__btn--copy" aria-label="링크 복사">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="topic-share__btn topic-share__btn--kakao" aria-label="카카오톡 공유">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                        </svg>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+                <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        우선순위 스케줄링에서는 우선순위가 높은 작업이 낮은 작업보다 먼저 CPU를 받습니다. 그런데 두 작업이 락(자물쇠)으로 보호된 같은 자원을 함께 쓰면 이 질서가 뒤집힐 수 있습니다. 낮은 우선순위 작업이 락을 쥔 채 실행되고 있을 때 높은 우선순위 작업이 같은 락을 기다리게 되면, 높은 작업은 낮은 작업이 락을 풀 때까지 진행하지 못합니다.
+                        여기에 락과 상관없는 <strong>중간 우선순위 작업</strong>이 끼어들어 낮은 작업을 계속 밀어내면, 낮은 작업은 락을 풀지 못하고 높은 작업은 중간 작업이 끝날 때까지 기다리게 됩니다. 우선순위가 가장 높은 작업이 가장 늦게 진행하는 이 현상을 <strong>우선순위 역전(priority inversion)</strong>이라고 부릅니다.
+                    </p>
+                    <p class="overview-lead">
+                        우선순위 역전은 제때 끝나야 하는 실시간 시스템에서 특히 위험합니다. 대표적인 해결책은 <strong>우선순위 상속(priority inheritance)</strong>으로, 락을 쥔 낮은 작업이 그 락을 기다리는 높은 작업의 우선순위를 임시로 물려받아 중간 작업에 밀리지 않고 빨리 락을 풀게 합니다.
+                        이 토픽에서는 역전이 생기는 과정, 상속이 이를 막는 과정, 두 경우 높은 작업의 응답 시간 차이를 봅니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">우선순위 스케줄링</h3>
+                            <p class="overview-card__desc">실행 가능한 작업 가운데 우선순위가 가장 높은 것을 먼저 실행합니다. 선점형이면 더 높은 작업이 도착하는 순간 낮은 작업은 CPU를 빼앗깁니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">락과 임계 구역</h3>
+                            <p class="overview-card__desc">공유 자원을 한 번에 한 작업만 쓰게 하려고 락을 잡고 임계 구역을 실행합니다. 락을 쥔 작업이 CPU를 얻지 못하면 락이 풀리지 않아 기다리는 작업도 진행하지 못합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">우선순위 역전</h3>
+                            <p class="overview-card__desc">높은 우선순위 작업이 낮은 우선순위 작업이 쥔 락을 기다리는 동안, 락과 무관한 중간 우선순위 작업이 낮은 작업을 선점해 높은 작업이 더 오래 지연되는 현상입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">우선순위 상속</h3>
+                            <p class="overview-card__desc">락을 쥔 작업이 그 락을 기다리는 가장 높은 우선순위를 임시로 물려받는 프로토콜입니다. 락을 풀면 원래 우선순위로 돌아가고, 중간 작업이 끼어들지 못하게 막습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">우선순위 상한 프로토콜</h3>
+                            <p class="overview-card__desc">락마다 상한을 정해 두고 락을 쥔 동안 소유자를 그 상한 우선순위로 실행하는 방식입니다(즉시 상한 방식, POSIX PTHREAD_PRIO_PROTECT). 상한은 그 락을 쓸 작업 중 가장 높은 우선순위로 정합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">제한된 역전과 제한 없는 역전</h3>
+                            <p class="overview-card__desc">낮은 작업의 임계 구역이 끝나기만 기다리는 정도는 길이가 정해진 지연입니다. 중간 작업이 끼어들면 그 작업이 끝날 때까지 지연이 늘어 상한을 알기 어려워지고, 이것이 문제의 핵심입니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>셋이 모여야 생깁니다</strong> — 낮은 작업이 쥔 락, 그 락을 기다리는 높은 작업, 락과 무관하게 실행 가능한 중간 작업이 함께 있어야 합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>중간 작업이 지연을 키웁니다</strong> — 높은 작업은 락을 쥔 낮은 작업을 기다리는 것이 원래의 대기이고, 중간 작업이 낮은 작업을 막아 이 대기가 늘어나는 것이 문제입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>상속은 락을 쥔 작업을 서둘러 끝나게 합니다</strong> — 락을 쥔 동안만 우선순위를 올려 높은 작업의 지연을 임계 구역 길이 정도로 줄입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>실시간 시스템에서 중요합니다</strong> — 마감 시간을 지켜야 하는 시스템에서는 높은 작업의 지연이 정해진 범위 안에 있어야 합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "우선순위 역전" 탭에서 중간 작업이 끼어들어 높은 작업이 늦어지는 과정을, "우선순위 상속" 탭에서 낮은 작업이 우선순위를 물려받는 과정을, "비교" 탭에서 응답 시간의 차이를 STEP으로 확인하세요.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">우선순위 역전의 배경</h2>
+                    <p class="overview-lead">
+                        우선순위 역전은 락을 쓰는 우선순위 기반 스케줄링에서 오래전부터 알려진 문제입니다. 1990년 Sha, Rajkumar, Lehoczky가 IEEE Transactions on Computers 논문에서 우선순위 상속 프로토콜과 우선순위 상한 프로토콜을 분석·정리했고, 1997년 화성 탐사선 패스파인더에서 이 문제로 시스템이 반복해서 재설정된 사례가 널리 알려지면서 실시간 시스템 설계의 대표 교훈이 되었습니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>시간 단위 예시</strong> — 낮은 작업 L이 t=0에 시작해 t=1에 락을 잡고, 높은 작업 H가 t=2에 도착해 t=3에 같은 락을 기다리고, 중간 작업 M이 t=3에 도착합니다(시간 단위는 예시이고, 칸 번호 t에서 실행한 작업은 t+1 시점에 끝납니다).</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>상속이 없을 때</strong> — M이 t=3부터 6까지 4단위 동안 CPU를 차지하고, L이 t=7~8에 락을 풀어 H가 t=9에 락을 얻어 t=11에 끝납니다. H의 응답 시간은 11 − 2 = 9입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>상속이 있을 때</strong> — L이 H의 우선순위를 물려받아 t=3~4에 락을 풀고 H가 t=5에 락을 얻어 t=7에 끝납니다. H의 응답 시간은 7 − 2 = 5로 줄어듭니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>락만 있으면 우선순위 역전이 생긴다</strong> — 락을 기다리는 동안 낮은 작업 때문에 느려지는 것은 길이가 정해진 대기(제한된 역전)라 피할 수 없고, 중간 작업이 끼어 지연이 제한 없이 늘어날 때 심각한 문제가 됩니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>우선순위 상속은 영구히 우선순위를 올린다</strong> — 락을 쥔 동안, 더 높은 작업이 기다리는 동안만 임시로 올리고 락을 풀면 원래로 돌아갑니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>우선순위 역전은 실시간 시스템에서만 생긴다</strong> — 우선순위를 쓰는 스케줄러와 락이 있는 환경이면 일반 운영체제에서도 일어날 수 있습니다. 다만 영향이 가장 크게 드러나는 곳이 실시간 시스템입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>우선순위를 더 높이면 해결된다</strong> — 모든 작업의 우선순위를 올리면 상대적인 순서는 그대로여서 역전이 사라지지 않습니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">우선순위 역전이 무엇인가요?</h3>
+                            <p class="overview-card__desc">낮은 우선순위 작업이 쥔 락을 높은 우선순위 작업이 기다리는 동안, 중간 우선순위 작업이 CPU를 차지해 높은 작업이 중간 작업보다도 늦게 실행되는 현상입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">어떻게 해결하나요?</h3>
+                            <p class="overview-card__desc">우선순위 상속으로 락을 쥔 낮은 작업이 기다리는 높은 작업의 우선순위를 임시로 받게 하거나, 우선순위 상한 프로토콜로 락을 쥔 작업의 우선순위를 상한으로 올립니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">패스파인더에서 무슨 일이 있었나요?</h3>
+                            <p class="overview-card__desc">1997년 화성 탐사선에서 높은 우선순위 작업이 낮은 작업이 쥔 뮤텍스를 기다리는 사이 중간 우선순위 작업들이 낮은 작업을 계속 선점했고, 높은 작업이 제때 끝나지 않은 것을 감지한 소프트웨어가 시스템을 재설정했습니다. 해당 뮤텍스 세마포어의 우선순위 상속 옵션을 켜는 패치로 해결했습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">락 없이 피할 수 있나요?</h3>
+                            <p class="overview-card__desc">락을 쓰지 않는 자료 구조를 쓰거나 임계 구역을 짧게 하고, 락을 공유하는 작업의 우선순위 차이를 줄이는 설계로 위험을 줄일 수 있습니다. 락이 필요하다면 우선순위 상속을 지원하는 뮤텍스를 씁니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>POSIX 스레드</strong> — pthread_mutexattr_setprotocol로 뮤텍스의 프로토콜을 PTHREAD_PRIO_INHERIT(우선순위 상속)나 PTHREAD_PRIO_PROTECT(우선순위 상한)로 정할 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>리눅스</strong> — 리눅스 커널의 퓨텍스는 우선순위 상속을 지원하는 연산(FUTEX_LOCK_PI)을 제공하고, PTHREAD_PRIO_INHERIT 뮤텍스는 이런 PI 퓨텍스를 기반으로 구현됩니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>패스파인더의 VxWorks</strong> — 탐사선의 실시간 운영체제 VxWorks는 뮤텍스 세마포어를 만들 때 우선순위 상속 옵션(SEM_INVERSION_SAFE)을 줄 수 있고, 패스파인더는 이를 켜서 해결했다고 알려져 있으며, 문제의 세마포어는 select 라이브러리 내부의 것이었다고 합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>일반 운영체제</strong> — 일반적인 시분할 스케줄러(리눅스 SCHED_OTHER)는 우선순위가 낮은 작업에도 CPU 시간을 나눠 주므로 락 소유자가 오래 굶는 상황은 실시간 정책보다 드뭅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/cpu-scheduling}">CPU 스케줄링</a> — 우선순위 스케줄링과 선점의 기본을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/process-sync}">프로세스 동기화</a> — 락과 뮤텍스, 임계 구역이 무엇인지 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/deadlock}">교착 상태</a> — 락을 둘러싼 또 다른 문제인 교착 상태와 비교해 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/thread}">스레드</a> — 락을 공유하는 스레드의 동작을 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>논문</strong> — Sha, Rajkumar, Lehoczky, "Priority Inheritance Protocols: An Approach to Real-Time Synchronization", IEEE Transactions on Computers 39(9), 1990</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>패스파인더</strong> — <a href="https://retis.santannapisa.it/~giorgio/mars/jones.html" target="_blank" rel="noopener">Mike Jones, What really happened on Mars?</a>, <a href="https://catless.ncl.ac.uk/Risks/19.54.html" target="_blank" rel="noopener">Glenn Reeves의 설명 (RISKS Digest 19.54)</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>POSIX·리눅스</strong> — <a href="https://pubs.opengroup.org/onlinepubs/9799919799/functions/pthread_mutexattr_getprotocol.html" target="_blank" rel="noopener">pthread_mutexattr_setprotocol</a>, <a href="https://man7.org/linux/man-pages/man2/futex.2.html" target="_blank" rel="noopener">futex(2)</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>교재</strong> — Silberschatz 외, "Operating System Concepts"의 우선순위 역전 절</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/os/11-20/priority-inversion-code :: code}"></th:block>
+            </div>
+
+            <!-- 탭 4: 퀴즈 -->
+            <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
+                <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+    <script th:src="@{/js/quiz.js}"></script>
+    <script th:src="@{/js/like.js}"></script>
+    <script th:src="@{/js/share.js}"></script>
+</body>
+</html>

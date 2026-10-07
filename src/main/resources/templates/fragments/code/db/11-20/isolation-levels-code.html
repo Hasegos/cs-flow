@@ -1,0 +1,92 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">SQL — PostgreSQL에서 격리 수준 지정과 확인</p>
+            <div class="code-block">
+<pre><span class="kw">SHOW</span> transaction_isolation;                          <span class="cm">-- read committed (기본값)</span>
+
+<span class="kw">BEGIN ISOLATION LEVEL REPEATABLE READ</span>;
+<span class="kw">SELECT</span> balance <span class="kw">FROM</span> account <span class="kw">WHERE</span> id = <span class="num">1</span>;         <span class="cm">-- 1000</span>
+<span class="cm">-- (다른 세션이 balance를 500으로 UPDATE하고 COMMIT)</span>
+<span class="kw">SELECT</span> balance <span class="kw">FROM</span> account <span class="kw">WHERE</span> id = <span class="num">1</span>;         <span class="cm">-- 1000 (트랜잭션 동안 같은 스냅샷)</span>
+<span class="kw">COMMIT</span>;
+
+<span class="kw">BEGIN</span>;                                         <span class="cm">-- 기본 Read Committed</span>
+<span class="kw">SELECT</span> balance <span class="kw">FROM</span> account <span class="kw">WHERE</span> id = <span class="num">1</span>;         <span class="cm">-- 1000</span>
+<span class="cm">-- (다른 세션이 balance를 500으로 UPDATE하고 COMMIT)</span>
+<span class="kw">SELECT</span> balance <span class="kw">FROM</span> account <span class="kw">WHERE</span> id = <span class="num">1</span>;         <span class="cm">-- 500 (문장마다 새 스냅샷)</span>
+<span class="kw">COMMIT</span>;
+
+<span class="kw">BEGIN ISOLATION LEVEL SERIALIZABLE</span>;
+<span class="cm">-- 충돌이 감지되면 ERROR (SQLSTATE 40001, 직렬화 실패) → 트랜잭션을 처음부터 다시 실행</span></pre>
+            </div>
+            <p class="code-desc">
+                PostgreSQL은 BEGIN에 ISOLATION LEVEL을 붙이거나 SET TRANSACTION으로 트랜잭션마다 격리 수준을 정합니다. 따로 정하지 않으면 Read Committed입니다. 위 두 번째 예처럼 Read Committed에서는 같은 행을 두 번 읽는 사이에 다른 세션이 커밋하면 두 번째 읽기가 새 값 500을 봅니다. 첫 번째 예의 Repeatable Read는 트랜잭션 동안 같은 스냅샷을 유지하므로 두 번 모두 1000입니다.
+                Repeatable Read와 Serializable에서는 다른 트랜잭션과 충돌하는 수정이 직렬화 실패(SQLSTATE 40001)로 중단될 수 있습니다. 이때 오류를 무시하지 않고 트랜잭션 전체를 다시 실행해야 합니다. 시각화의 Non-repeatable Read 탭과 격리 수준 표 탭이 보여 주는 동작과 같습니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — 스냅샷 읽기를 흉내 낸 장난감 모델</p>
+            <div class="code-block">
+<pre><span class="kw">class</span> <span class="fn">Store</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, value):
+        self.committed = &#91;(<span class="num">0</span>, value)&#93;        <span class="cm"># (커밋 시각, 값) 버전 목록</span>
+        self.pending = <span class="kw">None</span>                  <span class="cm"># 아직 커밋하지 않은 변경</span>
+        self.clock = <span class="num">0</span>
+
+    <span class="kw">def</span> <span class="fn">write</span>(self, value): self.pending = value
+    <span class="kw">def</span> <span class="fn">rollback</span>(self): self.pending = <span class="kw">None</span>
+    <span class="kw">def</span> <span class="fn">commit</span>(self):
+        self.clock += <span class="num">1</span>
+        self.committed.<span class="fn">append</span>((self.clock, self.pending))
+        self.pending = <span class="kw">None</span>
+
+    <span class="kw">def</span> <span class="fn">read</span>(self, level, snapshot=<span class="kw">None</span>):
+        <span class="kw">if</span> level == <span class="st">'RU'</span> <span class="kw">and</span> self.pending <span class="kw">is not None</span>:
+            <span class="kw">return</span> self.pending              <span class="cm"># 커밋되지 않은 값도 읽는다</span>
+        ts = snapshot <span class="kw">if</span> level == <span class="st">'RR'</span> <span class="kw">and</span> snapshot <span class="kw">is not None else</span> self.clock
+        <span class="kw">return</span> <span class="fn">max</span>(v <span class="kw">for</span> v <span class="kw">in</span> self.committed <span class="kw">if</span> v&#91;<span class="num">0</span>&#93; &lt;= ts)&#91;<span class="num">1</span>&#93;
+
+<span class="kw">for</span> level <span class="kw">in</span> (<span class="st">'RU'</span>, <span class="st">'RC'</span>, <span class="st">'RR'</span>):
+    s = <span class="fn">Store</span>(<span class="num">1000</span>); s.<span class="fn">write</span>(<span class="num">500</span>)
+    dirty = s.<span class="fn">read</span>(level); s.<span class="fn">rollback</span>()           <span class="cm"># 롤백될 값을 읽었나</span>
+    s = <span class="fn">Store</span>(<span class="num">1000</span>); snap = s.clock
+    first = s.<span class="fn">read</span>(level, snap)
+    s.<span class="fn">write</span>(<span class="num">500</span>); s.<span class="fn">commit</span>()
+    second = s.<span class="fn">read</span>(level, snap)             <span class="cm"># 사이에 커밋된 변경이 보이나</span>
+    <span class="fn">print</span>(level, dirty, (first, second))
+<span class="cm"># RU 500 (1000, 500) / RC 1000 (1000, 500) / RR 1000 (1000, 1000)</span></pre>
+            </div>
+            <p class="code-desc">
+                데이터베이스 엔진이 아니라 개념을 보여 주는 장난감 모델입니다. 값마다 (커밋 시각, 값) 버전을 쌓아 두고, 읽을 때 어느 시각의 커밋까지 볼지가 격리 수준마다 다르다는 점만 흉내 냅니다. RU는 아직 커밋되지 않은 pending 값까지 읽고, RC는 읽는 시점의 최신 커밋을 읽으며, RR은 트랜잭션이 시작할 때 잡은 스냅샷 시각까지의 커밋만 읽습니다.
+                출력의 첫 값은 롤백될 변경을 읽었는지입니다. RU만 500(Dirty Read)을 읽고 나머지는 1000입니다. 둘째 값은 같은 행을 두 번 읽은 결과로, RC는 (1000, 500)으로 값이 달라지고(Non-repeatable Read) RR은 (1000, 1000)으로 같습니다. 실제 엔진의 잠금과 버전 관리는 훨씬 복잡합니다. 시각화의 Dirty Read, Non-repeatable Read 탭과 같은 결과입니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — JDBC와 Spring에서 격리 수준 지정</p>
+            <div class="code-block">
+<pre><span class="kw">try</span> (Connection conn = dataSource.<span class="fn">getConnection</span>()) {
+    conn.<span class="fn">setAutoCommit</span>(<span class="kw">false</span>);
+    conn.<span class="fn">setTransactionIsolation</span>(Connection.TRANSACTION_REPEATABLE_READ);
+    <span class="cm">// ... 쿼리 실행 ...</span>
+    conn.<span class="fn">commit</span>();
+} <span class="kw">catch</span> (SQLException e) {
+    <span class="kw">if</span> (<span class="st">"40001"</span>.<span class="fn">equals</span>(e.<span class="fn">getSQLState</span>())) {
+        <span class="cm">// 직렬화 실패: 트랜잭션 전체를 다시 시도한다</span>
+    }
+}
+
+<span class="cm">// Spring: @Transactional(isolation = Isolation.REPEATABLE_READ)</span>
+<span class="cm">// Connection.TRANSACTION_READ_UNCOMMITTED, READ_COMMITTED, REPEATABLE_READ, SERIALIZABLE 상수 값 → 1, 2, 4, 8</span></pre>
+            </div>
+            <p class="code-desc">
+                JDBC는 java.sql.Connection의 setTransactionIsolation에 TRANSACTION_ 상수를 넘겨 격리 수준을 정합니다. 네 상수의 값은 각각 1, 2, 4, 8입니다. 스프링에서는 @Transactional의 isolation 속성으로 같은 일을 하고, 지정하지 않으면 데이터베이스의 기본값을 따릅니다.
+                직렬화 실패는 SQLSTATE 40001로 올라옵니다. 이 오류는 데이터가 잘못되었다는 뜻이 아니라 동시 실행 순서를 맞추기 위해 데이터베이스가 한 트랜잭션을 되돌렸다는 신호이므로, 업무 로직 전체를 새 트랜잭션으로 재시도하도록 만들어야 합니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>

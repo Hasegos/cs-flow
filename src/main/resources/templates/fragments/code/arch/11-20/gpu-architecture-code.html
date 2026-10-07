@@ -1,0 +1,61 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">CUDA 벡터 덧셈 — 스레드 하나가 원소 하나</p>
+            <div class="code-block">
+<pre><span class="cm">// 커널: 스레드마다 원소 하나를 더함</span>
+__global__ <span class="kw">void</span> <span class="fn">add</span>(<span class="kw">const</span> <span class="kw">float</span> *a, <span class="kw">const</span> <span class="kw">float</span> *b, <span class="kw">float</span> *c, <span class="kw">int</span> n) {
+    <span class="kw">int</span> i = blockIdx.x * blockDim.x + threadIdx.x;
+    <span class="kw">if</span> (i &lt; n) c[i] = a[i] + b[i];
+}
+
+<span class="cm">// 호스트: 블록 256개 스레드, 원소 수에 맞춰 블록 수를 계산해 실행</span>
+<span class="kw">int</span> threads = <span class="num">256</span>;
+<span class="kw">int</span> blocks  = (n + threads - <span class="num">1</span>) / threads;
+<span class="fn">add</span>&lt;&lt;&lt;blocks, threads&gt;&gt;&gt;(d_a, d_b, d_c, n);</pre>
+            </div>
+            <p class="code-desc">
+                커널은 모든 스레드가 같은 코드를 실행하고, <span class="st">blockIdx</span>와 <span class="st">threadIdx</span>로 자기가 맡을 원소 번호 i를 계산합니다. 원소마다 하는 일이 같고 서로 독립이라서 GPU의 데이터 병렬 구조에 잘 맞습니다.
+                원소 수 n이 블록 크기의 배수가 아닐 수 있어서 마지막 블록의 남는 스레드를 <span class="st">if (i &lt; n)</span>으로 막습니다. n이 32의 배수가 아니면 경계에 걸친 워프 하나에서만 분기가 생기고, 나머지 워프는 모두 같은 경로를 탑니다.
+                <span class="st">&lt;&lt;&lt;blocks, threads&gt;&gt;&gt;</span>는 CUDA의 실행 구성 문법으로, 한 블록의 스레드 수는 하드웨어 한계(보통 1024개) 이하여야 합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">워프 분기 — 같은 워프가 다른 경로를 탈 때</p>
+            <div class="code-block">
+<pre><span class="cm">// 나쁜 예: 같은 워프 안에서 홀수/짝수 스레드가 서로 다른 경로</span>
+<span class="kw">if</span> (threadIdx.x % <span class="num">2</span> == <span class="num">0</span>) { <span class="fn">pathA</span>(); } <span class="kw">else</span> { <span class="fn">pathB</span>(); }
+
+<span class="cm">// 나은 예: 워프(32개) 단위로 경로가 갈림 → 워프 안에서는 모두 같은 경로</span>
+<span class="kw">if</span> ((threadIdx.x / <span class="num">32</span>) % <span class="num">2</span> == <span class="num">0</span>) { <span class="fn">pathA</span>(); } <span class="kw">else</span> { <span class="fn">pathB</span>(); }</pre>
+            </div>
+            <p class="code-desc">
+                첫 조건은 같은 워프의 스레드 32개 중 절반은 pathA, 절반은 pathB로 갈립니다. 워프는 두 경로를 차례로 실행하고 해당하지 않는 스레드는 꺼 두므로 실행이 두 번으로 늘어납니다.
+                둘째 조건은 스레드 번호를 32로 나눈 몫으로 경로를 정해 한 워프의 스레드가 모두 같은 경로를 탑니다. 워프 안에서는 분기가 갈리지 않으므로 한 경로만 실행됩니다.
+                이처럼 데이터나 스레드 번호를 정리해 같은 워프가 같은 경로를 타게 만드는 것이 GPU 코드를 빠르게 하는 일반적인 방법입니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">PyTorch — 텐서를 GPU로 옮겨 계산</p>
+            <div class="code-block">
+<pre><span class="kw">import</span> torch
+
+device = <span class="st">"cuda"</span> <span class="kw">if</span> torch.cuda.<span class="fn">is_available</span>() <span class="kw">else</span> <span class="st">"cpu"</span>
+
+a = torch.<span class="fn">randn</span>(<span class="num">4096</span>, <span class="num">4096</span>).<span class="fn">to</span>(device)
+b = torch.<span class="fn">randn</span>(<span class="num">4096</span>, <span class="num">4096</span>).<span class="fn">to</span>(device)
+c = a @ b                      <span class="cm"># 행렬 곱셈이 GPU에서 실행됨</span>
+torch.cuda.<span class="fn">synchronize</span>()      <span class="cm"># GPU 작업이 끝날 때까지 기다림(시간 측정 시)</span></pre>
+            </div>
+            <p class="code-desc">
+                행렬 곱셈은 원소마다 독립적인 곱셈과 덧셈이 많아 GPU에 알맞은 계산입니다. <span class="st">to(device)</span>는 CPU 메모리의 텐서를 GPU 메모리로 옮기는 호출로, 이 전송에는 시간이 듭니다.
+                작은 텐서에서는 전송과 실행 시작 비용이 계산보다 커서 CPU가 더 빠를 수 있으므로 크기가 충분히 큰지 확인해야 합니다.
+                CUDA 연산은 호출이 먼저 반환되고 GPU에서 비동기로 실행되기 때문에, 시간을 잴 때는 <span class="st">torch.cuda.synchronize()</span>로 작업 완료를 기다린 뒤 재야 정확합니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>

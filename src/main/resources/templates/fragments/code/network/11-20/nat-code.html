@@ -1,0 +1,75 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">리눅스 — 출발지 NAT(MASQUERADE)로 내부망 공유</p>
+            <div class="code-block">
+<pre><span class="cm"># 이 장비가 패킷을 전달(라우팅)하도록 켜기</span>
+sudo sysctl -w net.ipv4.ip_forward=<span class="num">1</span>
+
+<span class="cm"># eth0(외부 쪽)으로 나가는 패킷의 출발지를 eth0의 주소로 바꾸기</span>
+sudo iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+
+<span class="cm"># nat 표의 규칙 확인</span>
+sudo iptables -t nat -L -n -v</pre>
+            </div>
+            <p class="code-desc">
+                리눅스를 공유기처럼 쓰려면 먼저 ip_forward로 패킷 전달을 켭니다. nat 표의 POSTROUTING 사슬은 패킷이 나가기 직전에 적용되고, MASQUERADE 대상은 출발지 주소를 나가는 인터페이스(여기서는 eth0)의 현재 주소로 바꿉니다.
+                MASQUERADE는 출발지 주소를 나가는 인터페이스 주소로 바꾸며, 여러 내부 호스트의 포트가 겹치면 포트도 바꿔 PAT처럼 동작합니다. 외부 주소가 DHCP로 바뀌는 환경에서 편리합니다. 주소가 고정이면 SNAT 대상으로 직접 지정할 수도 있습니다.
+                -o eth0 같은 인터페이스 이름은 환경에 맞게 바꿔야 하고, 위 명령은 재부팅하면 사라지므로 영구 설정은 배포판의 방법을 따라야 합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">리눅스 — 포트 포워딩(DNAT)과 변환 표 확인</p>
+            <div class="code-block">
+<pre><span class="cm"># 공인 쪽 8080 포트로 오는 TCP를 내부 192.168.0.20:80으로 보내기</span>
+sudo iptables -t nat -A PREROUTING -i eth0 -p tcp --dport <span class="num">8080</span> \
+    -j DNAT --to-destination <span class="num">192.168.0.20</span>:<span class="num">80</span>
+
+<span class="cm"># 연결 추적 표 보기 (conntrack 도구 필요)</span>
+sudo conntrack -L</pre>
+            </div>
+            <p class="code-desc">
+                nat 표의 PREROUTING 사슬은 패킷이 들어오자마자 적용되어, DNAT 대상이 목적지를 내부 서버의 주소와 포트로 바꿉니다. 응답 패킷의 출발지는 커널의 연결 추적이 자동으로 되돌려 주므로 응답 방향 규칙은 따로 쓰지 않습니다.
+                conntrack -L은 커널이 기억하고 있는 연결 목록을 보여 주며, 각 항목에 원래 방향과 응답 방향의 주소 · 포트가 함께 나와 NAT가 어떻게 바꿨는지 확인할 수 있습니다.
+                포워딩된 패킷이 통과하도록 FORWARD 사슬의 규칙이 막지 않는지도 확인해야 하며, 위 코드는 개념을 보이는 최소 예시입니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — PAT 변환 표 흉내 내기</p>
+            <div class="code-block">
+<pre><span class="kw">class</span> <span class="fn">Nat</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, public_ip, first_port=<span class="num">40001</span>):
+        self.public_ip = public_ip
+        self.next_port = first_port
+        self.out = {}    <span class="cm"># (내부 IP, 내부 포트) -&gt; 외부 포트</span>
+        self.back = {}   <span class="cm"># 외부 포트 -&gt; (내부 IP, 내부 포트)</span>
+
+    <span class="kw">def</span> <span class="fn">outbound</span>(self, src_ip, src_port):
+        key = (src_ip, src_port)
+        <span class="kw">if</span> key <span class="kw">not in</span> self.out:
+            self.out&#91;key&#93; = self.next_port
+            self.back&#91;self.next_port&#93; = key
+            self.next_port += <span class="num">1</span>
+        <span class="kw">return</span> self.public_ip, self.out&#91;key&#93;
+
+    <span class="kw">def</span> <span class="fn">inbound</span>(self, dst_port):
+        <span class="kw">return</span> self.back.<span class="fn">get</span>(dst_port)   <span class="cm"># 표에 없으면 None (버림)</span>
+
+nat = <span class="fn">Nat</span>(<span class="st">"203.0.113.5"</span>)
+<span class="fn">print</span>(nat.<span class="fn">outbound</span>(<span class="st">"192.168.0.10"</span>, <span class="num">51000</span>))   <span class="cm"># ('203.0.113.5', 40001)</span>
+<span class="fn">print</span>(nat.<span class="fn">outbound</span>(<span class="st">"192.168.0.20"</span>, <span class="num">51000</span>))   <span class="cm"># ('203.0.113.5', 40002)</span>
+<span class="fn">print</span>(nat.<span class="fn">inbound</span>(<span class="num">40001</span>))                    <span class="cm"># ('192.168.0.10', 51000)</span>
+<span class="fn">print</span>(nat.<span class="fn">inbound</span>(<span class="num">40009</span>))                    <span class="cm"># None</span></pre>
+            </div>
+            <p class="code-desc">
+                이 클래스는 PAT의 핵심인 변환 표를 딕셔너리 두 개로 흉내 냅니다. outbound는 안에서 밖으로 나가는 연결에 새 외부 포트를 할당하고 표에 기록하며, 이미 있는 연결이면 같은 외부 포트를 다시 씁니다.
+                inbound는 들어오는 패킷의 목적지 포트로 표를 찾아 원래의 내부 주소와 포트를 돌려주고, 표에 없으면 None을 돌려줍니다. 시각화에서 외부의 먼저 시작한 접속이 버려지는 이유입니다.
+                실제 NAT는 프로토콜별 상태 추적, 항목 만료, 포트 재사용 같은 처리가 더 있으므로 이 코드는 원리만 보이는 최소 예시입니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
