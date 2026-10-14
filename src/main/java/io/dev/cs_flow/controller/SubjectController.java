@@ -33,6 +33,7 @@ public class SubjectController {
      * 과목 홈 페이지를 렌더링한다.
      * 과목 정보와 해당 과목의 공개된 토픽 목록을 페이지 단위로 전달한다.
      * 검색어(q)·태그(tag)가 있으면 조건에 맞는 토픽만 보여주고, 검색엔진 색인에서 제외(noindex)한다.
+     * 2페이지 이후는 자기 자신을 canonical로 지정해 해당 페이지의 토픽 링크가 색인 경로에서 빠지지 않게 한다.
      *
      * @param subjectSlug 과목 영문 식별자
      * @param page        페이지 번호 (0-based, 기본값 0)
@@ -71,7 +72,11 @@ public class SubjectController {
         model.addAttribute("qQs", queryString("q", condition.query()));
         model.addAttribute("filterQs", queryString("q", condition.query()) + queryString("tag", condition.tag()));
         model.addAttribute("noindex", condition.isFiltered());
-        model.addAttribute("canonicalUrl", "https://csflow.kr/" + subjectSlug);
+        String canonicalUrl = "https://csflow.kr/" + subjectSlug;
+        if (topicPage.getNumber() > 0) {
+            canonicalUrl += "?page=" + topicPage.getNumber();
+        }
+        model.addAttribute("canonicalUrl", canonicalUrl);
         return "subject/subject";
     }
 
