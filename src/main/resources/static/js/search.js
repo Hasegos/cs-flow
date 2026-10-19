@@ -11,6 +11,7 @@
     var DELAY_MS   = 300;
     var timer      = null;
     var controller = null;
+    var notified   = false;
 
     /* ===================== URL ===================== */
     function buildUrl() {
@@ -46,8 +47,13 @@
                 swap(doc, '.subject-hero__count');
                 document.title = doc.title;
                 history.replaceState(null, '', url);
+                notified = false;
             })
-            .catch(function () { });
+            .catch(function (err) {
+                if (err.name === 'AbortError' || notified) return;
+                notified = true;
+                window.CsFlow.showToast('지금은 검색 결과를 불러올 수 없습니다. 잠시 후 다시 시도해 주세요');
+            });
     }
 
     /* ===================== 이벤트 ===================== */
