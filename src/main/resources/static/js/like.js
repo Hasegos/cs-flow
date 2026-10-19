@@ -19,7 +19,7 @@
                 if (countEl && typeof data.count === 'number') countEl.textContent = String(data.count);
             })
             .catch(function () {
-                window.CsFlow.showToast('잠시 후 다시 시도해 주세요');
+                window.CsFlow.showToast('지금은 추천을 반영할 수 없습니다. 잠시 후 다시 시도해 주세요');
             })
             .finally(function () {
                 btn.disabled = false;

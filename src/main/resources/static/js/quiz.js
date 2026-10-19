@@ -117,7 +117,7 @@
             .catch(function () {
                 question.setAttribute('data-attempt', String(attempt - 1));
                 setOptionsDisabled(question, false);
-                window.CsFlow.showToast('잠시 후 다시 시도해 주세요');
+                window.CsFlow.showToast('지금은 채점할 수 없습니다. 잠시 후 다시 시도해 주세요');
             });
     }
 
