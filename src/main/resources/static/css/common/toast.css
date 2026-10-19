@@ -9,6 +9,10 @@
   font-family: var(--font-mono);
   font-size: 0.82rem;
   padding: 0.6rem 1.1rem;
+  width: max-content;
+  max-width: calc(100vw - 2rem);
+  text-align: center;
+  line-height: 1.4;
   border-radius: 999px;
   opacity: 0;
   pointer-events: none;
