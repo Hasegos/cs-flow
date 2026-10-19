@@ -268,29 +268,6 @@
   color: var(--subject-accent, var(--color-purple));
 }
 
-/* === 복사 완료 토스트 === */
-.share-toast {
-  position: fixed;
-  left: 50%;
-  bottom: 2rem;
-  transform: translate(-50%, 12px);
-  background: var(--color-text);
-  color: var(--color-bg);
-  font-family: var(--font-mono);
-  font-size: 0.82rem;
-  padding: 0.6rem 1.1rem;
-  border-radius: 999px;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity var(--transition), transform var(--transition);
-  z-index: 999;
-}
-
-.share-toast--visible {
-  opacity: 1;
-  transform: translate(-50%, 0);
-}
-
 /* === 탭 네비게이션 === */
 .topic-tabs {
   position: sticky;
