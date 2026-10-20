@@ -38,9 +38,9 @@ errors: list[str] = []
 
 
 def fetch(path: str) -> tuple[int, bytes]:
-    """원본이 응답한 결과만 돌려준다. 폴백 응답이나 네트워크 오류는 세 번 시도하고 실패로 기록한다."""
+    """원본이 응답한 결과만 돌려준다. 폴백 응답이나 네트워크 오류는 세 번 시도하고 실패로 기록한다. 429(요청 제한)는 `Retry-After`나 점점 늘리는 대기 뒤에 다섯 번까지 다시 시도한다."""
     req = urllib.request.Request(BASE + path, headers={"User-Agent": UA, "Cookie": VISITOR_COOKIE})
-    for attempt in range(3):
+    for attempt in range(5):
         try:
             with urllib.request.urlopen(req, timeout=30) as resp:
                 status, headers, body = resp.status, resp.headers, resp.read()
@@ -49,6 +49,12 @@ def fetch(path: str) -> tuple[int, bytes]:
         except Exception:
             time.sleep(1 + attempt)
             continue
+        if status == 429:
+            retry_after = headers.get("Retry-After", "")
+            time.sleep(min(int(retry_after), 30) if retry_after.isdigit() else 5 * (attempt + 1))
+            continue
+        if attempt >= 3 and (headers.get("X-Served-By") or status >= 500):
+            break
         if headers.get("X-Served-By") or status >= 500:
             time.sleep(2 + attempt)
             continue
