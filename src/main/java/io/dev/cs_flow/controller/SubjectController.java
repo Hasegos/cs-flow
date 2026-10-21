@@ -1,6 +1,7 @@
 package io.dev.cs_flow.controller;
 
 import io.dev.cs_flow.common.util.PageRangeUtil;
+import io.dev.cs_flow.common.util.SubjectSlugs;
 import io.dev.cs_flow.dto.TopicSearchCondition;
 import io.dev.cs_flow.model.Subject;
 import io.dev.cs_flow.model.Topic;
@@ -44,7 +45,7 @@ public class SubjectController {
      * @param model       뷰에 전달할 데이터 모델
      * @return 과목 홈 페이지 뷰 이름
      */
-    @GetMapping("/{subjectSlug:arch|os|network|ds|algo|db}")
+    @GetMapping("/{subjectSlug:" + SubjectSlugs.PATTERN + "}")
     public String subjectHome(
             @PathVariable String subjectSlug,
             @RequestParam(defaultValue = "0") int page,

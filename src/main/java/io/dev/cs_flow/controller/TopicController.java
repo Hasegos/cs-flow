@@ -1,6 +1,7 @@
 package io.dev.cs_flow.controller;
 
 import io.dev.cs_flow.common.interceptor.VisitorCookieInterceptor;
+import io.dev.cs_flow.common.util.SubjectSlugs;
 import io.dev.cs_flow.dto.TopicViewPath;
 import io.dev.cs_flow.model.Topic;
 import io.dev.cs_flow.service.QuizService;
@@ -45,7 +46,7 @@ public class TopicController {
      * @param model       뷰에 전달할 데이터 모델
      * @return 토픽 학습 페이지 뷰 이름 (topics/{subjectSlug}/{assetGroup}/{templateName})
      */
-    @GetMapping("/{subjectSlug:arch|os|network|ds|algo|db}/{topicSlug:[a-z0-9\\-]+}")
+    @GetMapping("/{subjectSlug:" + SubjectSlugs.PATTERN + "}/{topicSlug:[a-z0-9\\-]+}")
     public String topicDetail(@PathVariable String subjectSlug,
                               @PathVariable String topicSlug,
                               HttpServletRequest request,
