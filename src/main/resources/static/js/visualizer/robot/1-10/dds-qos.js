@@ -72,11 +72,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'match';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 데이터: 참여자와 단계 ===================== */
     var ACTORS = [
@@ -142,176 +209,205 @@
             { label: '내구성의 쓰임', msg: [Y('TRANSIENT_LOCAL: 지도, 정적 설정'), Y('VOLATILE: 계속 흐르는 센서 값')], hl: { P: ['발행자가 보관', 'yellow'] }, cli: [S('발행자 종료 시 보관분도 사라짐')], srv: [S('보관 개수 = depth')] })
     ];
 
-    /* ===================== 상태 ===================== */
-    var mode    = 'match';
-    var stepIdx = -1;
-    var running = false;
-    var timer   = null;
-    var rafId   = null;
-    var speed   = 1900;
+    /* ===================== 장면 데이터: 제공 vs 요청 비교표 ===================== */
+    function ann(steps, list) {
+        steps.forEach(function (s, i) { var a = list[i] || {}; for (var k in a) s[k] = a[k]; });
+    }
+    function Q(r, d, h) { return { r: r, d: d, h: h }; }
+    function VD(t, c) { return { t: t, c: c }; }
+    var DEF = Q('RELIABLE', 'VOLATILE', 'KEEP_LAST 10');
+    var SENSOR = Q('BEST_EFFORT', 'VOLATILE', 'KEEP_LAST 5');
+    var MAPQ = Q('RELIABLE', 'TRANSIENT_LOCAL', 'KEEP_LAST 1');
 
+    ann(MATCH_STEPS, [
+        { pub: null, sub: null, vd: VD('요청 ≤ 제공 이면 연결', 'yellow') },
+        { pub: DEF, sub: null, vd: VD('발행자가 제공할 QoS를 정함', 'yellow') },
+        { pub: DEF, sub: DEF, vd: VD('호환 → 연결됨', 'green'), link: true },
+        { pub: DEF, sub: Q('BEST_EFFORT', 'VOLATILE', 'KEEP_LAST 10'), vd: VD('제공 RELIABLE ≥ 요청 BEST_EFFORT → 연결됨', 'green'), link: true },
+        { pub: DEF, sub: Q('BEST_EFFORT', 'VOLATILE', 'KEEP_LAST 10'), vd: VD('이 구독자에게는 유실돼도 재전송하지 않음', 'yellow'), link: true, flow: true }
+    ]);
+    ann(MISMATCH_STEPS, [
+        { pub: null, sub: null, vd: VD('요청이 제공보다 강하면 연결 안 됨', 'yellow') },
+        { pub: SENSOR, sub: null, vd: VD('센서용 프로파일로 발행하는 예', 'yellow') },
+        { pub: SENSOR, sub: DEF, vd: VD('제공 BEST_EFFORT < 요청 RELIABLE → 연결 안 됨', 'red'), link: false },
+        { pub: SENSOR, sub: DEF, vd: VD('경고 로그만 남고 데이터는 오지 않음', 'red'), link: false, warn: 'WARN: incompatible QoS … RELIABILITY' },
+        { pub: SENSOR, sub: Q('BEST_EFFORT', 'VOLATILE', 'KEEP_LAST 10'), vd: VD('요청을 BEST_EFFORT로 낮추면 연결됨', 'green'), link: true },
+        { pub: DEF, sub: Q('RELIABLE', 'TRANSIENT_LOCAL', 'KEEP_LAST 10'), vd: VD('제공 VOLATILE < 요청 TRANSIENT_LOCAL → 연결 안 됨', 'red'), link: false }
+    ]);
+    ann(LATE_STEPS, [
+        { pub: null, sub: null, vd: VD('늦게 시작한 구독자는 지난 메시지를 받을까?', 'yellow'), mem: [], lateSub: false },
+        { pub: MAPQ, sub: null, vd: VD('최근 1개를 발행자가 보관하겠다는 약속', 'yellow'), mem: [], lateSub: false },
+        { pub: MAPQ, sub: null, vd: VD('구독자는 아직 없음 — 발행자가 map #1을 보관', 'green'), mem: ['map #1'], lateSub: false, put: true },
+        { pub: MAPQ, sub: DEF, vd: VD('연결은 되지만 지난 map #1은 받지 못함', 'red'), link: true, mem: ['map #1'], lateSub: true, rcv: [], bad: true },
+        { pub: MAPQ, sub: Q('RELIABLE', 'TRANSIENT_LOCAL', 'KEEP_LAST 1'), vd: VD('연결되는 순간 보관된 map #1을 전달', 'green'), link: true, mem: ['map #1'], lateSub: true, rcv: ['map #1'], xfer: true },
+        { pub: MAPQ, sub: Q('RELIABLE', 'TRANSIENT_LOCAL', 'KEEP_LAST 1'), vd: VD('발행자가 종료되면 보관분도 사라짐 · 보관 개수 = depth', 'yellow'), link: true, mem: ['map #1'], lateSub: true, rcv: ['map #1'] }
+    ]);
+
+    /* ===================== 상태 ===================== */
     function currentSteps() {
         if (mode === 'mismatch') return MISMATCH_STEPS;
         if (mode === 'late') return LATE_STEPS;
         return MATCH_STEPS;
     }
-
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        var rad = Math.min(r, w / 2, h / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + rad, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, rad);
-        ctx.arcTo(x + w, y + h, x,     y + h, rad);
-        ctx.arcTo(x,     y + h, x,     y,     rad);
-        ctx.arcTo(x,     y,     x + w, y,     rad);
-        ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    function defaultLog() {
+        if (mode === 'mismatch') return '센서용 발행자와 기본 구독자처럼 QoS가 맞지 않아 연결되지 않는 경우를 봅니다.';
+        if (mode === 'late') return '내구성 설정에 따라 늦게 시작한 구독자가 지난 메시지를 받는지 가르는 과정을 봅니다.';
+        return '발행자가 제공하고 구독자가 요청하는 QoS가 호환돼 연결되는 과정을 봅니다.';
     }
-    function tx(str, x, y, sz, color, align, bold) {
-        if (sz < 9.5) sz = 9.5;
-        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
-    }
-    function colorOf(key) {
-        return P[key] || P.muted;
-    }
+    var RANK = { 'BEST_EFFORT': 0, 'RELIABLE': 1, 'VOLATILE': 0, 'TRANSIENT_LOCAL': 1 };
 
     /* ===================== 레이아웃 ===================== */
-    var BOX_H = 60;
-    var SEC_GAP = 10;
-
-    function sectionsOf(step, w, mob) {
+    function layout(w, mob) {
         var fs = mob ? 11 : 12;
-        var lh = Math.round(fs * 1.5);
-        var inner = w - 20;
-        var defs = [
-            { title: 'QoS 설정', rows: step ? step.msg : [], empty: step ? '(내용 없음)' : '(STEP 또는 PLAY로 시작하세요)' },
-            { title: '발행자 쪽', rows: step ? step.cli : [], empty: '(없음)' },
-            { title: '구독자 쪽', rows: step ? step.srv : [], empty: '(없음)' }
-        ];
-        defs.forEach(function (d) {
-            var out = [];
-            d.rows.forEach(function (r) {
-                ctx.font = '500 ' + (fs - 1) + 'px "JetBrains Mono",monospace';
-                window.CsFlow.wrapText(ctx, r[0], inner).forEach(function (t) { out.push([t, r[1]]); });
-            });
-            d.lines = out;
-            d.h = 26 + Math.max(1, out.length) * lh;
-            d.lh = lh;
+        var gap = mob ? 44 : 78;
+        var cardW = (w - gap) / 2;
+        var memH = mode === 'late' ? 86 : 0;
+        var vdH = 54;
+        return { fs: fs, gap: gap, cardW: cardW, cardH: 188, memH: memH, vdH: vdH, total: 188 + 14 + memH + vdH + (mode === 'mismatch' ? 24 : 0) + 8 };
+    }
+    function sceneH(w, mob) { return layout(w, mob).total; }
+
+    /* ===================== 그리기 조각 ===================== */
+    function pill(cx, cy, label, col, maxW, dim) {
+        ctx.font = '700 11px "JetBrains Mono",monospace';
+        var pw = Math.min(maxW, ctx.measureText(label).width + 20);
+        rr(cx - pw / 2, cy - 12, pw, 24, 12, col + (dim ? '10' : '2a'), col + (dim ? '66' : 'ff'), 1.6);
+        tx(label, cx, cy, 11, col + (dim ? '88' : 'ff'), 'center', true);
+    }
+    function strengthDots(cx, cy, rank, col) {
+        circ(cx - 6, cy, 3.5, rank >= 0 ? col + 'ff' : 'none', col + 'ff', 1.2);
+        circ(cx + 6, cy, 3.5, rank >= 1 ? col + 'ff' : 'none', col + 'ff', 1.2);
+    }
+
+    function drawCard(x, y, L, title, col, q, fs, hot) {
+        rr(x, y, L.cardW, L.cardH, 10, colorOf(col) + '0f', colorOf(col) + (q ? 'cc' : '66'), q ? 1.8 : 1.2);
+        tx(title, x + L.cardW / 2, y + 16, fs, colorOf(col) + 'ff', 'center', true);
+        var rows = [['reliability', q && q.r], ['durability', q && q.d], ['history', q && q.h]];
+        rows.forEach(function (r, i) {
+            var ry = y + 34 + i * 50;
+            tx(r[0], x + 10, ry + 6, fs - 2, P.sub + 'ff', 'left', true);
+            if (r[1]) pill(x + L.cardW / 2, ry + 28, r[1], colorOf(col), L.cardW - 8, false);
+            else tx('—', x + L.cardW / 2, ry + 28, fs, P.muted + 'ff', 'center', false);
         });
-        return defs;
-    }
-    function topBlockH() {
-        return BOX_H + 24 + 34;
-    }
-    function totalHeight(step, w, mob, top) {
-        var h = top + topBlockH();
-        sectionsOf(step, w, mob).forEach(function (d) { h += d.h + SEC_GAP; });
-        return h + 6;
     }
 
     /* ===================== 장면 그리기 ===================== */
-    function drawScene(x0, top, w, mob, step) {
-        var fs = mob ? 11 : 12;
-        var gap = mob ? 8 : 16;
-        var bw = (w - gap * 2) / 3;
-        var busY = top + BOX_H + 24;
-        var s = step || { from: null, to: null, kind: '', label: '', hl: {}, msg: [], cli: [], srv: [] };
-        var cx = [];
-        ACTORS.forEach(function (a, i) { cx.push(x0 + i * (bw + gap) + bw / 2); });
-        var idxOf = { P: 0, M: 1, S: 2 };
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var L = layout(w, mob);
+        var fs = L.fs;
+        var s = step || { pub: null, sub: null, vd: null, mem: [] };
+        var e = clamp01(t);
+        var px = x0, sx = x0 + L.cardW + L.gap;
+        drawCard(px, top, L, '발행자 — 제공', 'orange', s.pub, fs);
+        drawCard(sx, top, L, '구독자 — 요청', 'teal', s.sub, fs);
 
-        ctx.beginPath();
-        ctx.moveTo(cx[0], busY);
-        ctx.lineTo(cx[2], busY);
-        ctx.strokeStyle = P.muted + '55';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        var pulse = s.kind === 'err' ? P.red : (s.kind === 'res' ? P.teal : P.yellow);
-        ACTORS.forEach(function (a, i) {
-            var x = x0 + i * (bw + gap);
-            var c = colorOf(a.col);
-            var badge = s.hl[a.id];
-            var bc = badge ? colorOf(badge[1]) : c;
-            var faded = badge && badge[1] === 'muted';
-            var on = s.from === a.id || s.to === a.id;
-            ctx.beginPath();
-            ctx.moveTo(cx[i], top + BOX_H);
-            ctx.lineTo(cx[i], busY);
-            ctx.strokeStyle = on ? pulse + 'ff' : P.muted + '55';
-            ctx.lineWidth = on ? 2.4 : 1.4;
-            ctx.stroke();
-            rr(x, top, bw, BOX_H, 6, (faded ? P.muted : bc) + '18', (badge ? bc : c) + (badge || on ? 'ff' : '77'), badge || on ? 1.8 : 1.2);
-            tx(a.name, x + bw / 2, top + 14, fs, c + 'ee', 'center', true);
-            tx(a.sub, x + bw / 2, top + 31, fs - 1.5, P.muted + 'ee', 'center', false);
-            if (badge) tx(badge[0], x + bw / 2, top + 48, fs - 1, bc + 'ff', 'center', true);
-        });
-
-        if (s.from && s.to) {
-            var a = cx[idxOf[s.from]];
-            var b = cx[idxOf[s.to]];
-            var dir = b > a ? 1 : -1;
-            var ax = a + dir * 6;
-            var bx = b - dir * 6;
-            ctx.beginPath();
-            ctx.moveTo(ax, busY);
-            ctx.lineTo(bx, busY);
-            ctx.strokeStyle = pulse + 'ff';
-            ctx.lineWidth = 3;
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(bx, busY);
-            ctx.lineTo(bx - dir * 9, busY - 6);
-            ctx.lineTo(bx - dir * 9, busY + 6);
-            ctx.closePath();
-            ctx.fillStyle = pulse + 'ff';
-            ctx.fill();
+        /* 행별 비교 기호 */
+        var cmpX = x0 + L.cardW + L.gap / 2;
+        for (var i = 0; i < 3; i++) {
+            var ry = top + 34 + i * 50 + 28;
+            if (!s.pub || !s.sub) continue;
+            if (i === 2) { tx('–', cmpX, ry, fs + 2, P.muted + 'ff', 'center', false); continue; }
+            var a = i === 0 ? RANK[s.pub.r] : RANK[s.pub.d];
+            var b = i === 0 ? RANK[s.sub.r] : RANK[s.sub.d];
+            var ok = a >= b;
+            var c = ok ? P.green : P.red;
+            var sym = ok ? (a > b ? '>' : '=') : '<';
+            ctx.globalAlpha = clamp01(e * 2);
+            circ(cmpX, ry, 14, c + '22', c + 'ff', 1.8);
+            tx(ok ? '✓' : '✕', cmpX, ry, fs + 3, c + 'ff', 'center', true);
+            ctx.globalAlpha = 1;
         }
-        tx(s.label || '요청과 응답을 오가는 경로', x0 + w / 2, busY + 16, fs - 0.5, (s.label ? pulse : P.muted) + 'ee', 'center', true);
+        if (s.pub && s.sub && !mob) {
+            tx('제공≥요청', cmpX, top + 18, 11, P.sub + 'ff', 'center', true);
+        }
 
-        var y = top + topBlockH();
-        sectionsOf(step, w, mob).forEach(function (d) {
-            rr(x0, y, w, d.h, 6, 'none', P.muted + '55', 1.2);
-            tx(d.title, x0 + 10, y + 12, fs - 1.5, P.muted + 'ee', 'left', true);
-            if (!d.lines.length) {
-                tx(d.empty, x0 + 10, y + 30, fs - 1, P.muted + 'cc', 'left', false);
+        /* 연결선 / 메시지 */
+        var ly = top + L.cardH + 6;
+        if (s.pub && s.sub) {
+            var okLink = s.link !== false;
+            var c2 = okLink ? P.green : P.red;
+            ln(px + L.cardW / 2, ly, sx + L.cardW / 2, ly, c2 + (okLink ? 'ff' : '99'), okLink ? 3 : 2, okLink ? undefined : [6, 5]);
+            if (!okLink) tx('✕', (px + sx + L.cardW) / 2, ly, fs + 6, P.red + 'ff', 'center', true);
+            if (s.flow) {
+                var fx = lerp(px + L.cardW / 2, sx + L.cardW / 2, e);
+                circ(fx, ly, 7, P.yellow + 'ff', 'none');
             }
-            d.lines.forEach(function (ln, i) {
-                tx(ln[0], x0 + 10, y + 30 + i * d.lh, fs - 1, colorOf(ln[1]) + 'ee', 'left', false);
-            });
-            y += d.h + SEC_GAP;
-        });
+        }
+
+        /* late: 발행자 보관 + 구독자 수신 */
+        var cy = top + L.cardH + 14;
+        if (L.memH) {
+            var s2 = s;
+            tx('발행자 메모리 (보관)', px + 2, cy + 8, fs - 1.5, P.sub + 'ff', 'left', true);
+            var depth = 1;
+            for (var m = 0; m < depth; m++) {
+                var mx = px + 4 + m * 76;
+                var item = s2.mem && s2.mem[m];
+                var put = s2.put && item;
+                ctx.globalAlpha = put ? e : 1;
+                rr(mx, cy + 20, 70, 34, 7, item ? P.orange + '33' : 'none', item ? P.orange + 'ff' : P.muted + '99', 1.6);
+                if (item) tx(item, mx + 35, cy + 37, fs - 0.5, P.orange + 'ff', 'center', true);
+                else tx('비어 있음', mx + 35, cy + 37, fs - 1.5, P.sub + 'ff', 'center', false);
+                ctx.globalAlpha = 1;
+            }
+            tx('구독자가 받은 것', sx + 2, cy + 8, fs - 1.5, P.sub + 'ff', 'left', true);
+            var got = s2.rcv;
+            var rxp = sx + 4;
+            if (s2.lateSub) {
+                var have = got && got.length;
+                rr(rxp, cy + 20, 70, 34, 7, have ? P.teal + '33' : 'none', have ? P.teal + 'ff' : P.red + 'cc', 1.6);
+                if (have) {
+                    ctx.globalAlpha = s2.xfer ? clamp01((e - 0.4) / 0.6) : 1;
+                    tx(got[0], rxp + 35, cy + 37, fs - 0.5, P.teal + 'ff', 'center', true);
+                    ctx.globalAlpha = 1;
+                } else {
+                    tx('없음', rxp + 35, cy + 37, fs - 1.5, P.red + 'ff', 'center', true);
+                }
+            } else {
+                tx('(구독자 없음)', rxp, cy + 37, fs - 1, P.muted + 'ff', 'left', false);
+            }
+            if (s2.xfer) {
+                var ax = lerp(px + 76, sx - 4, e);
+                circ(ax, cy + 37, 8, P.orange + 'ff', 'none');
+                tx('map #1', ax, cy + 20, fs - 2, P.orange + 'ff', 'center', true);
+            }
+        }
+
+        /* 판정 배너 */
+        var by = top + L.cardH + 14 + L.memH;
+        if (s.vd) {
+            var vc = colorOf(s.vd.c);
+            var vl = lines(s.vd.t, w - 28, fs);
+            var bh = vl.length * (fs + 6) + 14;
+            rr(x0, by, w, bh, 10, vc + '1c', vc + 'ff', 1.8);
+            vl.forEach(function (l2, k) { tx(l2, x0 + w / 2, by + 7 + (fs + 6) / 2 + k * (fs + 6), fs, vc + 'ff', 'center', true); });
+            if (s.warn) {
+                lines(s.warn, w - 8, fs - 1).forEach(function (l3, k) { tx(l3, x0 + w / 2, by + bh + 14 + k * (fs + 3), fs - 1, P.yellow + 'ff', 'center', true); });
+            }
+        }
     }
 
     /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
     function draw() {
         P = window.CsFlow.getP();
         ctx.clearRect(0, 0, GW(), GH());
         var W = GW(); var mob = W < 600;
-        var padX = mob ? 16 : 26;
-        var top = mob ? 16 : 22;
         var steps = currentSteps();
         var step = stepIdx >= 0 ? steps[stepIdx] : null;
-        drawScene(padX, top, W - padX * 2, mob, step);
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
         var mob = w < 600;
-        var padX = mob ? 16 : 26;
-        var top = mob ? 16 : 22;
-        var neededH = 300;
-        currentSteps().forEach(function (s) {
-            var h = totalHeight(s, w - padX * 2, mob, top);
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
             if (h > neededH) neededH = h;
         });
         canvasWrap.style.height    = 'auto';
@@ -327,17 +423,22 @@
     /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        draw();
-        rafId = requestAnimationFrame(function () { rafId = null; if (onDone) onDone(); });
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
     function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
-    function defaultLog() {
-        if (mode === 'mismatch') return '센서용 발행자와 기본 구독자처럼 QoS가 맞지 않아 연결되지 않는 경우를 봅니다.';
-        if (mode === 'late') return '내구성 설정에 따라 늦게 시작한 구독자가 지난 메시지를 받는지 가르는 과정을 봅니다.';
-        return '발행자가 제공하고 구독자가 요청하는 QoS가 호환돼 연결되는 과정을 봅니다.';
-    }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -376,7 +477,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);
