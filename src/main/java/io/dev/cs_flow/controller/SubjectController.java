@@ -2,6 +2,7 @@ package io.dev.cs_flow.controller;
 
 import io.dev.cs_flow.common.util.PageRangeUtil;
 import io.dev.cs_flow.dto.TopicSearchCondition;
+import io.dev.cs_flow.model.Subject;
 import io.dev.cs_flow.model.Topic;
 import io.dev.cs_flow.service.SubjectService;
 import io.dev.cs_flow.service.TopicService;
@@ -57,7 +58,10 @@ public class SubjectController {
         Page<Topic> topicPage = topicService.getPublishedTopicsPageable(
                 subjectSlug, condition, Math.max(0, page), PAGE_SIZE, sort);
 
-        model.addAttribute("subject", subjectService.getPublishedSubject(subjectSlug));
+        Subject subject = subjectService.getPublishedSubject(subjectSlug);
+        model.addAttribute("subject", subject);
+        model.addAttribute("pageTitle", subject.getName() + " CS 지식 정리 | CS Flow");
+        model.addAttribute("pageDescription", subject.getName() + " 핵심 개념을 인터랙티브 시각화, 코드 연결, 퀴즈로 정리합니다. 개발자 면접 대비 " + subject.getName() + " CS 지식 총정리.");
         model.addAttribute("topics", topicPage.getContent());
         model.addAttribute("currentPage", topicPage.getNumber());
         model.addAttribute("totalPages",    topicPage.getTotalPages());
