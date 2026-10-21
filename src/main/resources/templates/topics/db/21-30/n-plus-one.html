@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">N+1 문제 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/db/21-30/n-plus-one.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/db}" class="topic-breadcrumb__link">데이터베이스</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">N+1 문제</span>
+                </nav>
+
+                <span class="topic-hero__slug">db · 21</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">N+1 문제</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+                <button type="button" class="topic-like" th:classappend="${liked} ? ' topic-like--active' : ''" th:attr="data-topic-slug=${topic.slug}">
+                    <svg class="topic-like__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <span class="topic-like__count" th:text="${likeCount}">0</span>
+                </button>
+                <div class="topic-share">
+                    <button type="button" class="topic-share__btn topic-share__btn--copy" aria-label="링크 복사">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="topic-share__btn topic-share__btn--kakao" aria-label="카카오톡 공유">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                        </svg>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+                <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        목록을 가져오는 쿼리 1번 뒤에, 목록의 각 항목에 딸린 데이터를 가져오는 쿼리가 항목 수 N번 따로 실행되는 현상이 <strong>N+1 문제</strong>입니다. 데이터가 적을 때는 티가 나지 않다가 데이터가 늘면 거의 같은 모양의 SELECT 문이 수십, 수백 번 반복되며 느려집니다. JPA 같은 ORM을 쓰면 코드에는 반복문 하나만 보이기 때문에 쿼리가 몇 번 나가는지 눈치채기 어렵습니다.
+                    </p>
+                    <p class="overview-lead">
+                        이 토픽에서는 팀 목록과 팀별 멤버 목록을 예로, N+1이 왜 생기는지, 조인 페치로 쿼리를 1번으로 줄이는 방법과 그 한계(페이징), 지연 로딩을 유지한 채 IN으로 묶어 가져오는 <strong>배치 페치</strong>를 쿼리 횟수를 세며 비교합니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">N+1 문제</h3>
+                            <p class="overview-card__desc">목록 조회 쿼리 1번과 목록의 각 항목마다 연관 데이터를 가져오는 쿼리 N번이 따로 실행되는 현상입니다. 항목이 늘면 쿼리 수도 비례해서 늘어납니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">지연 로딩(LAZY)</h3>
+                            <p class="overview-card__desc">연관된 엔티티나 컬렉션을 처음 사용하는 순간에 쿼리를 실행하는 방식입니다. 필요 없는 데이터를 미리 읽지 않는 장점이 있지만, 반복문 안에서 쓰면 N+1의 원인이 됩니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">즉시 로딩(EAGER)</h3>
+                            <p class="overview-card__desc">엔티티를 읽을 때 연관 엔티티도 함께 로딩하는 방식입니다. 즉시 로딩으로 바꾼다고 N+1이 사라지지는 않습니다. JPQL 쿼리에는 즉시 로딩 설정이 조인으로 적용되지 않아, 먼저 쿼리를 실행한 뒤 연관 데이터를 추가 쿼리로 가져오기 때문입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">조인 페치(join fetch)</h3>
+                            <p class="overview-card__desc">JPQL에서 연관 데이터를 같은 쿼리에서 조인해 가져오라고 지시하는 방식입니다. 쿼리가 1번으로 줄지만 컬렉션을 조인하면 결과 행이 부모보다 많아집니다. 같은 부모가 자식 수만큼 반복되기 때문입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">엔티티 그래프(@EntityGraph)</h3>
+                            <p class="overview-card__desc">Spring Data JPA의 쿼리 메서드에 붙여 어떤 연관을 함께 로딩할지 선언하는 방법입니다. 내부 동작은 join fetch와 비슷하게 연관 데이터를 한 번에 가져옵니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">배치 페치(batch fetch)</h3>
+                            <p class="overview-card__desc">지연 로딩은 그대로 두고, 초기화가 필요한 컬렉션들을 모아 IN 조건 쿼리 하나로 가져오는 방식입니다. Hibernate의 default_batch_fetch_size나 @BatchSize로 켭니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>문제는 쿼리 한 번의 느림이 아니라 횟수입니다</strong> — 쿼리 하나하나는 빠르지만 DB와 네트워크를 N번 왕복하면 합쳐서 느려집니다. 데이터가 적은 개발 환경에서는 드러나지 않습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>원인은 지연 로딩이 반복문 안에서 쓰이는 것입니다</strong> — 부모 목록을 읽은 뒤 각 부모의 연관 데이터에 접근하는 순간마다 쿼리가 나갑니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>해결 방향은 로딩을 한꺼번에 하는 것입니다</strong> — 조인으로 같은 쿼리에 싣거나(join fetch, @EntityGraph), IN으로 묶어 한 번에 가져옵니다(batch fetch). 필요한 컬럼만 DTO로 바로 조회하는 방법도 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>페이징이 필요한 컬렉션 연관에는 배치 페치가 대안이 됩니다</strong> — 컬렉션 조인 페치에 페이징을 걸면 DB가 아니라 메모리에서 자르게 되고(Hibernate 7.3 이하), 컬렉션 여러 개를 한 번에 조인하기도 어렵습니다. 가능하면 조인 페치나 DTO 조회가 더 낫다는 것이 Hibernate 문서의 입장입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "N+1 발생" 탭에서 쿼리 횟수가 1 + 5로 늘어나는 과정을, "조인 페치" 탭에서 쿼리 1번과 페이징 경고를, "IN 일괄 조회" 탭에서 쿼리가 2번으로 줄어드는 과정을 STEP으로 확인하세요.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">배경</h2>
+                    <p class="overview-lead">
+                        객체지향 언어의 객체 그래프와 관계형 데이터베이스의 테이블 사이에는 구조 차이가 있습니다. 객체에서는 team.getMembers()처럼 참조를 따라가면 되지만, 데이터베이스에서는 그 순간마다 조회 쿼리가 필요합니다. ORM은 이 차이를 숨겨 편리함을 주는 대신, 객체 탐색 한 번이 쿼리 한 번으로 바뀌는 비용을 코드에서 보이지 않게 만듭니다. Jakarta Persistence(JPA) 명세는 연관의 기본 로딩 방식과 fetch 전략을 정하고, Hibernate 같은 구현체가 그에 맞춰 SQL을 만듭니다. N+1은 Hibernate, Rails, MyBatis 같은 여러 ORM과 매퍼의 문서에서 같은 이름으로 다루는 고전적인 성능 문제입니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>쿼리 수</strong> — 팀 N개의 멤버를 지연 로딩으로 읽으면 쿼리는 1 + N번입니다. 팀 5개는 6번, 100개는 101번, 1,000개는 1,001번입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>조인 페치</strong> — 쿼리는 1번이지만 결과 행 수는 멤버 수와 멤버 없는 팀 수(팀마다 1행)의 합입니다. 모든 팀에 멤버가 있고 멤버가 모두 15명이면 15행이 돌아옵니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>배치 페치</strong> — 쿼리는 1 + ⌈N ÷ 배치 크기⌉번 근처입니다. 배치 크기가 100이면 팀 100개도 2번입니다. 배치 크기는 한 번에 묶어 가져오는 키(id)의 최대 개수입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>컬렉션 연관이 둘 이상일 때</strong> — 조인 페치로 인덱스 컬럼이 없는 List(bag) 컬렉션 두 개를 동시에 가져오면 Hibernate가 MultipleBagFetchException을 던집니다. bag은 중복 요소를 허용해, 두 개를 조인하면 곱해진 행과 실제 중복을 구분할 수 없기 때문입니다. Set으로 바꾸면 예외는 피하지만 행이 곱해지는 문제는 남습니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>즉시 로딩(EAGER)으로 바꾸면 해결된다</strong> — JPQL로 목록을 조회하면 연관 엔티티를 가져오는 쿼리가 항목마다(서로 다른 연관 엔티티 수만큼) 따로 나가는 모양은 그대로입니다. 오히려 필요 없는 곳에서도 연관 데이터를 읽게 되어 문제가 넓어집니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>모든 곳에 join fetch를 쓰면 된다</strong> — 컬렉션 조인 페치는 페이징과 함께 쓰면(Hibernate 7.3 이하) DB가 아니라 메모리에서 자르게 되어 데이터가 많을 때 위험하고, 결과 행이 부풀어 오히려 느릴 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>JPA를 쓰지 않으면 N+1이 없다</strong> — MyBatis에서도 연관 데이터를 건별 select로 불러오면 같은 문제가 생기고, MyBatis 문서가 이를 N+1 Selects Problem이라 부릅니다. ORM이 쉽게 만들 뿐 원리는 같습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>쿼리가 많으면 인덱스가 없어서 느린 것이다</strong> — 각 쿼리가 인덱스를 잘 타도 쿼리가 N번 나가면 왕복 비용이 N번 쌓입니다. N+1은 쿼리 하나의 속도가 아니라 횟수의 문제입니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">N+1 문제란 무엇이고 왜 생기나요?</h3>
+                            <p class="overview-card__desc">목록을 1번 조회한 뒤 각 항목의 연관 데이터를 가져오는 쿼리가 항목 수 N번 추가로 실행되는 현상입니다. 지연 로딩된 연관에 반복문에서 접근하거나, 즉시 로딩인데 JPQL로 조회할 때 생깁니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">해결 방법과 각각의 단점은?</h3>
+                            <p class="overview-card__desc">join fetch와 @EntityGraph는 연관을 한 번에 로딩해 쿼리를 줄이지만 컬렉션이면 행이 부풀어 오르고, 컬렉션 join fetch에 페이징을 걸면 DB가 아니라 메모리에서 일어납니다. 배치 페치는 쿼리가 몇 번 더 나가지만 페이징과 여러 컬렉션에 안전합니다. 화면에 필요한 값만 DTO로 조회하는 방법도 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">컬렉션 join fetch에 페이징을 쓰면 어떻게 되나요?</h3>
+                            <p class="overview-card__desc">조인 결과의 행 수가 부모 수와 달라 DB의 limit으로 부모 단위로 자를 수 없습니다. Hibernate 7.3 이하는 경고를 남기고 모든 행을 메모리로 읽은 뒤 메모리에서 페이징하므로 데이터가 많으면 메모리 문제가 생깁니다. 7.4부터는 DB가 지원하면 SQL에서 처리하도록 바뀌었습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">N+1이 생겼는지 어떻게 확인하나요?</h3>
+                            <p class="overview-card__desc">SQL 로그에서 같은 모양의 쿼리가 반복되는지 봅니다. generate_statistics를 켜고 Hibernate Statistics의 getPrepareStatementCount로 실행된 쿼리 수를 세거나, 테스트에서 쿼리 횟수를 단언하면 재발을 막을 수 있습니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Spring Data JPA</strong> — 쿼리 메서드에 @EntityGraph(attributePaths = ...)를 붙이거나 @Query에 join fetch를 써서 연관을 함께 로딩합니다. 프로젝트 전역으로는 spring.jpa.properties.hibernate.default_batch_fetch_size를 설정해 둡니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>SQL 로그 확인</strong> — logging.level.org.hibernate.SQL=DEBUG로 실행되는 SQL을 로그에 남길 수 있고, 개발 중에 같은 쿼리가 줄줄이 찍히는지 보는 것이 가장 빠른 점검입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>조회 전용 API</strong> — 목록 화면처럼 읽기만 하는 곳은 엔티티 대신 필요한 컬럼만 DTO 프로젝션으로 조회해 연관 로딩 문제를 아예 피하기도 합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>다른 ORM</strong> — Django의 select_related와 prefetch_related, Rails의 includes처럼 이름은 달라도 연관 데이터를 미리 가져오는 같은 장치를 제공합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/sql-join}">SQL JOIN</a> — join fetch가 쿼리에 싣는 조인이 어떤 결과 행을 만드는지 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/index}">인덱스</a> — 쿼리가 아무리 빨라도 횟수가 많으면 느려지는 것과 대비해 한 쿼리를 빠르게 하는 방법을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/query-plan}">실행 계획</a> — 개별 쿼리가 어떻게 실행되는지 확인하는 방법을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/connection-pool}">커넥션 풀</a> — N+1처럼 쿼리가 많을 때 커넥션을 오래 점유하는 문제와 연결해 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Hibernate</strong> — <a href="https://docs.hibernate.org/orm/current/userguide/html_single/#fetching" target="_blank" rel="noopener">Hibernate ORM User Guide: Fetching</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Spring</strong> — <a href="https://docs.spring.io/spring-data/jpa/reference/jpa/query-methods.html" target="_blank" rel="noopener">Spring Data JPA: Query Methods와 Entity Graph</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>명세</strong> — <a href="https://jakarta.ee/specifications/persistence/3.2/apidocs/jakarta.persistence/jakarta/persistence/ManyToOne.html" target="_blank" rel="noopener">Jakarta Persistence API: ManyToOne(기본 fetch 값)</a></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/db/21-30/n-plus-one-code :: code}"></th:block>
+            </div>
+
+            <!-- 탭 4: 퀴즈 -->
+            <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
+                <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+    <script th:src="@{/js/quiz.js}"></script>
+    <script th:src="@{/js/like.js}"></script>
+    <script th:src="@{/js/share.js}"></script>
+</body>
+</html>
