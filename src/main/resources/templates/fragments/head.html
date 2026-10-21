@@ -2,6 +2,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="google-site-verification" content="Opv_BuoU55HVvcJ-dvr9PrYKpAJVdrLhtKHjhKYKhaQ" />
+    <meta name="naver-site-verification" content="4978c9eca103a62369e1625b9cd1602d201e5c56" />
     <meta name="google-adsense-account" content="ca-pub-7175719893208123" />
 
     <!-- Google AdSense -->
@@ -11,7 +12,7 @@
     <!-- SEO -->
     <meta name="keywords" content="CS지식, 컴퓨터구조, 운영체제, 네트워크, 자료구조, 알고리즘, 데이터베이스, 개발자면접, CS공부">
     <meta name="description" th:if="${topic}" th:content="${topic.metaDescription}">
-    <meta name="description" th:unless="${topic}" content="컴퓨터 구조, 운영체제, 네트워크, 자료구조, 알고리즘, 데이터베이스 CS 지식을 인터랙티브 시각화로 학습하세요. 개발자 면접 CS 핵심 개념 총정리.">
+    <meta name="description" th:unless="${topic}" th:content="${pageDescription} ?: 'CS 정리, 컴퓨터 구조·운영체제·네트워크·자료구조·알고리즘·데이터베이스를 인터랙티브 시각화로 학습하세요. 개발자 면접 CS 핵심 개념 총정리.'">
 
     <!-- 검색·필터 결과 -->
     <meta name="robots" content="noindex, follow" th:if="${noindex}">
@@ -23,9 +24,9 @@
     <meta property="og:site_name" content="CS Flow">
     <meta property="og:type" content="website">
     <meta property="og:title"
-          th:content="${topic != null} ? (${topic.title} + ' | CS 지식 정리 - CS Flow') : 'CS Flow | CS 지식 인터랙티브 학습 플랫폼'">
+          th:content="${topic != null} ? (${topic.title} + ' | CS 지식 정리 - CS Flow') : (${pageTitle} ?: 'CS Flow | CS 지식 인터랙티브 학습 플랫폼')">
     <meta property="og:description"
-          th:content="${topic != null} ? ${topic.metaDescription} : '컴퓨터 구조, 운영체제, 네트워크, 자료구조, 알고리즘, 데이터베이스 CS 지식을 인터랙티브 시각화로 학습하세요.'">
+          th:content="${topic != null} ? ${topic.metaDescription} : (${pageDescription} ?: '컴퓨터 구조, 운영체제, 네트워크, 자료구조, 알고리즘, 데이터베이스 CS 지식을 인터랙티브 시각화로 학습하세요.')">
     <meta property="og:url"
           th:content="${canonicalUrl} ?: 'https://csflow.kr/'">
     <meta property="og:image" content="https://csflow.kr/img/og_image.png">
@@ -35,10 +36,10 @@
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title"
-          th:content="${topic != null} ? (${topic.title} + ' | CS Flow') : 'CS Flow | CS 지식 인터랙티브 학습 플랫폼'">
+          th:content="${topic != null} ? (${topic.title} + ' | CS Flow') : (${pageTitle} ?: 'CS Flow | CS 지식 인터랙티브 학습 플랫폼')">
     <meta name="twitter:image" content="https://csflow.kr/img/og_image.png">
     <meta name="twitter:description"
-          th:content="${topic != null} ? ${topic.metaDescription} : '컴퓨터 구조, 운영체제, 네트워크, 자료구조, 알고리즘, 데이터베이스 CS 지식을 인터랙티브 시각화로 학습하세요.'">
+          th:content="${topic != null} ? ${topic.metaDescription} : (${pageDescription} ?: '컴퓨터 구조, 운영체제, 네트워크, 자료구조, 알고리즘, 데이터베이스 CS 지식을 인터랙티브 시각화로 학습하세요.')">
 
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" th:href="@{/img/favicon.svg}">
