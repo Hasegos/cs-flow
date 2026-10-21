@@ -736,3 +736,9 @@
     padding: 2rem 1.25rem 4rem;
   }
 }
+
+/* === .viz-fx-overlay — 시각화 단계 전환 효과(viz-common.js) === */
+.viz-fx-overlay {
+  position: absolute;
+  pointer-events: none;
+}
