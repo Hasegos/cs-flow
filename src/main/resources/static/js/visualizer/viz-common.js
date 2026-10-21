@@ -114,6 +114,196 @@ window.CsFlow.wrapText = function (ctx, str, maxW) {
     };
 })();
 
+/* ===================== 단계 전환 효과 ===================== */
+(function () {
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const BURST_MS = 120;
+    const MOVE_MS  = 150;
+    const DURATION = 650;
+    const GRID_W   = 96;
+    const STATES   = new WeakMap();
+    const rawClear = CanvasRenderingContext2D.prototype.clearRect;
+    let lastMove = 0;
+
+    document.addEventListener('mousemove', function () { lastMove = performance.now(); }, true);
+
+    function stateOf(canvas) {
+        let st = STATES.get(canvas);
+        if (!st) {
+            st = { last: 0, w: 0, h: 0, seen: false, snap: null, ov: null, raf: 0 };
+            STATES.set(canvas, st);
+        }
+        return st;
+    }
+
+    function stopOverlay(st) {
+        if (st.raf) { cancelAnimationFrame(st.raf); st.raf = 0; }
+        if (st.ov) rawClear.call(st.ov.getContext('2d'), 0, 0, st.ov.width, st.ov.height);
+    }
+
+    /**
+     * 이전 프레임과 새 프레임을 작은 격자로 비교해 바뀐 영역의 사각형 목록을 만든다.
+     *
+     * @param snap 이전 프레임을 복사해 둔 캔버스
+     * @param cv   새 프레임이 그려진 캔버스
+     * @returns 캔버스 픽셀 기준 사각형 배열 (바뀐 곳이 없으면 빈 배열)
+     */
+    function diffBoxes(snap, cv) {
+        const gw = GRID_W;
+        const gh = Math.max(8, Math.round(gw * cv.height / cv.width));
+        const a = document.createElement('canvas');
+        const b = document.createElement('canvas');
+        a.width = b.width = gw;
+        a.height = b.height = gh;
+        const ca = a.getContext('2d', { willReadFrequently: true });
+        const cb = b.getContext('2d', { willReadFrequently: true });
+        ca.drawImage(snap, 0, 0, gw, gh);
+        cb.drawImage(cv, 0, 0, gw, gh);
+        const da = ca.getImageData(0, 0, gw, gh).data;
+        const db = cb.getImageData(0, 0, gw, gh).data;
+        const hot = new Uint8Array(gw * gh);
+        let count = 0;
+        for (let i = 0; i < gw * gh; i++) {
+            const d = Math.abs(da[i * 4] - db[i * 4]) + Math.abs(da[i * 4 + 1] - db[i * 4 + 1]) + Math.abs(da[i * 4 + 2] - db[i * 4 + 2]);
+            if (d > 24) { hot[i] = 1; count++; }
+        }
+        if (count < 1) return [];
+        const cw = cv.width / gw;
+        const ch = cv.height / gh;
+        if (count > gw * gh * 0.55) return [{ x: 0, y: 0, w: cv.width, h: cv.height }];
+
+        const seen = new Uint8Array(gw * gh);
+        const boxes = [];
+        for (let s = 0; s < gw * gh; s++) {
+            if (!hot[s] || seen[s]) continue;
+            let x0 = gw, y0 = gh, x1 = 0, y1 = 0;
+            const queue = [s];
+            seen[s] = 1;
+            while (queue.length) {
+                const p = queue.pop();
+                const px = p % gw;
+                const py = (p - px) / gw;
+                if (px < x0) x0 = px;
+                if (px > x1) x1 = px;
+                if (py < y0) y0 = py;
+                if (py > y1) y1 = py;
+                for (let dy = -2; dy <= 2; dy++) {
+                    for (let dx = -2; dx <= 2; dx++) {
+                        const nx = px + dx;
+                        const ny = py + dy;
+                        if (nx < 0 || ny < 0 || nx >= gw || ny >= gh) continue;
+                        const n = ny * gw + nx;
+                        if (hot[n] && !seen[n]) { seen[n] = 1; queue.push(n); }
+                    }
+                }
+            }
+            boxes.push({ x: x0 * cw, y: y0 * ch, w: (x1 - x0 + 1) * cw, h: (y1 - y0 + 1) * ch });
+        }
+        boxes.sort(function (p, q) { return q.w * q.h - p.w * p.h; });
+        return boxes.slice(0, 6);
+    }
+
+    function roundRectPath(g, x, y, w, h, r) {
+        g.beginPath();
+        g.moveTo(x + r, y);
+        g.arcTo(x + w, y, x + w, y + h, r);
+        g.arcTo(x + w, y + h, x, y + h, r);
+        g.arcTo(x, y + h, x, y, r);
+        g.arcTo(x, y, x + w, y, r);
+        g.closePath();
+    }
+
+    /**
+     * 바뀐 영역에서 이전 화면이 새 화면으로 서서히 바뀌고 테두리가 한 번 빛나게 한다.
+     * 단계가 한 번에 바뀌는 시각화에 움직임을 더하는 공용 효과이다.
+     */
+    function playOverlay(st, cv) {
+        const boxes = diffBoxes(st.snap, cv);
+        if (!boxes.length) return;
+        const parent = cv.parentElement;
+        if (!parent) return;
+        if (!st.ov) {
+            st.ov = document.createElement('canvas');
+            st.ov.className = 'viz-fx-overlay';
+            st.ov.fxOverlay = true;
+            parent.appendChild(st.ov);
+        }
+        if (st.ov.width !== cv.width || st.ov.height !== cv.height) {
+            st.ov.width = cv.width;
+            st.ov.height = cv.height;
+        }
+        st.ov.style.left = cv.offsetLeft + 'px';
+        st.ov.style.top = cv.offsetTop + 'px';
+        st.ov.style.width = cv.offsetWidth + 'px';
+        st.ov.style.height = cv.offsetHeight + 'px';
+        const g = st.ov.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+        const pad = 6 * dpr;
+        const color = window.CsFlow.getP().yellow;
+        const t0 = performance.now();
+
+        function frame(now) {
+            const p = Math.min(1, (now - t0) / DURATION);
+            const fade = Math.min(1, p / 0.5);
+            const oldAlpha = 1 - fade * fade * (3 - 2 * fade);
+            rawClear.call(g, 0, 0, st.ov.width, st.ov.height);
+            boxes.forEach(function (b) {
+                g.save();
+                g.beginPath();
+                g.rect(b.x, b.y, b.w, b.h);
+                g.clip();
+                g.globalAlpha = oldAlpha;
+                g.drawImage(st.snap, 0, 0);
+                g.restore();
+                if (boxes.length === 1 && b.w >= cv.width * 0.98 && b.h >= cv.height * 0.98) return;
+                g.save();
+                g.globalAlpha = (1 - p) * 0.9;
+                g.strokeStyle = color;
+                g.lineWidth = 2.2 * dpr;
+                roundRectPath(g, b.x - pad, b.y - pad, b.w + pad * 2, b.h + pad * 2, 8 * dpr);
+                g.stroke();
+                g.restore();
+            });
+            if (p < 1) { st.raf = requestAnimationFrame(frame); }
+            else { st.raf = 0; rawClear.call(g, 0, 0, st.ov.width, st.ov.height); }
+        }
+        frame(t0);
+    }
+
+    CanvasRenderingContext2D.prototype.clearRect = function (x, y, w, h) {
+        const cv = this.canvas;
+        if (cv && !cv.fxOverlay && cv.width > 0 && cv.closest && cv.closest('#visualizer-container')) {
+            const T = this.getTransform();
+            if (w * T.a >= cv.width * 0.98 && h * T.d >= cv.height * 0.98) {
+                try {
+                    const st = stateOf(cv);
+                    const now = performance.now();
+                    const resized = st.w !== cv.width || st.h !== cv.height;
+                    const burst = now - st.last < BURST_MS;
+                    st.w = cv.width;
+                    st.h = cv.height;
+                    st.last = now;
+                    if (st.raf || burst) stopOverlay(st);
+                    if (st.seen && !burst && !resized && now - lastMove > MOVE_MS) {
+                        if (!st.snap) st.snap = document.createElement('canvas');
+                        if (st.snap.width !== cv.width || st.snap.height !== cv.height) {
+                            st.snap.width = cv.width;
+                            st.snap.height = cv.height;
+                        }
+                        const sg = st.snap.getContext('2d');
+                        rawClear.call(sg, 0, 0, st.snap.width, st.snap.height);
+                        sg.drawImage(cv, 0, 0);
+                        queueMicrotask(function () { playOverlay(st, cv); });
+                    }
+                    st.seen = true;
+                } catch (e) { /* 효과 실패가 시각화를 막지 않게 한다 */ }
+            }
+        }
+        return rawClear.apply(this, arguments);
+    };
+})();
+
 /* ===================== 시각화 공통 라이프사이클 ===================== */
 window.CsFlow.createVizLifecycle = function (options) {
     const canvas     = options.canvas;
