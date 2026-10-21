@@ -72,11 +72,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'tcp';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 데이터: 참여자와 단계 ===================== */
     var ACTORS = [
@@ -172,176 +239,222 @@
             { label: '흐름 제어 ≠ 혼잡 제어', msg: [Y('보낼 수 있는 양 ≤ min(수신 윈도, 혼잡 윈도)')], hl: { C: ['두 한도의 최솟값', 'orange'] }, cli: [S('수신 윈도: 수신 측이 알려 줌'), S('혼잡 윈도: 송신 측이 추정')], srv: [S('수신 윈도 = 수신 측 보호')] })
     ];
 
-    /* ===================== 상태 ===================== */
-    var mode    = 'tcp';
-    var stepIdx = -1;
-    var running = false;
-    var timer   = null;
-    var rafId   = null;
-    var speed   = 1900;
+    /* ===================== 장면 데이터: 래더 다이어그램 ===================== */
+    function ann(steps, list) {
+        steps.forEach(function (s, i) { var a = list[i] || {}; for (var k in a) s[k] = a[k]; });
+        var row = -1;
+        steps.forEach(function (s) {
+            if (s.m || s.ev) row++;
+            s.row = (s.m || s.ev) ? row : -1;
+        });
+    }
+    function M(d, l, k, lost) { return { d: d, l: l, k: k, lost: !!lost }; }
+    function EV(t, side, col) { return { t: t, side: side, col: col || 'yellow' }; }
 
+    ann(TCP_STEPS, [
+        { cs: 'CLOSED', ss: 'LISTEN', foot: '' },
+        { m: M('cs', 'SYN  seq=1000', 'ctrl'), cs: 'SYN-SENT' },
+        { m: M('sc', 'SYN+ACK  seq=5000 ack=1001', 'ctrl'), ss: 'SYN-RECEIVED' },
+        { m: M('cs', 'ACK  ack=5001', 'ack'), cs: 'ESTABLISHED' },
+        { ev: EV('연결 수립 완료 (3-way handshake)', 'm', 'green'), ss: 'ESTABLISHED' },
+        { m: M('cs', 'DATA  1001~1100', 'data'), foot: '확인 대기: 1001~1100' },
+        { m: M('sc', 'ACK  ack=1101', 'ack'), foot: '확인됨 1100까지 · 서버가 기다리는 다음 번호 1101' },
+        { m: M('cs', 'DATA  1101~1200', 'lost', true), foot: '확인 대기: 1101~1200 (서버는 존재를 모름)' },
+        { ev: EV('재전송 타이머 만료', 'c', 'red'), foot: '응답이 없어 같은 번호로 다시 보낸다' },
+        { m: M('cs', 'DATA  1101~1200 (재전송)', 'retx'), foot: '확인 대기: 1101~1200' },
+        { m: M('sc', 'ACK  ack=1201', 'ack'), foot: '확인됨 1200까지 · 앱은 유실을 모른 채 순서대로 받는다' },
+        { m: M('cs', 'FIN+ACK  seq=1201', 'ctrl'), cs: 'FIN-WAIT-1', foot: '' },
+        { m: M('sc', 'ACK  ack=1202', 'ack'), cs: 'FIN-WAIT-2', ss: 'CLOSE-WAIT' },
+        { m: M('sc', 'FIN+ACK  seq=5001', 'ctrl'), ss: 'LAST-ACK' },
+        { m: M('cs', 'ACK  ack=5002', 'ack'), cs: 'TIME-WAIT', ss: 'CLOSED' }
+    ]);
+
+    ann(UDP_STEPS, [
+        { cs: '연결 상태 없음', ss: '포트 9000 대기', got: [], foot: '' },
+        { m: M('cs', 'UDP #1  "hello"', 'data'), got: ['hello'] },
+        { ev: EV('데이터그램 1개 = 수신 1회', 's', 'green') },
+        { m: M('cs', 'UDP #2  "world"', 'lost', true) },
+        { m: M('cs', 'UDP #3  "bye"', 'data'), got: ['hello', 'bye'] },
+        { ev: EV('"world"가 사라진 것을 아무도 모른다', 'm', 'red') },
+        { m: M('cs', 'UDP #2 "world" (앱이 재전송)', 'retx'), got: ['hello', 'bye', 'world'] }
+    ]);
+
+    ann(FLOW_STEPS, [
+        { cs: 'ESTABLISHED', ss: 'ESTABLISHED', buf: 0, win: -1 },
+        { m: M('sc', 'ACK  ack=1001  win=300', 'ack'), win: 300 },
+        { m: M('cs', 'DATA 1001~1300 (100B x 3)', 'data'), buf: 3 },
+        { m: M('sc', 'ACK  ack=1301  win=0', 'lost'), win: 0 },
+        { ev: EV('window=0 → 전송 중지', 'c', 'red') },
+        { m: M('cs', '윈도 프로브  1바이트', 'ctrl') },
+        { m: M('sc', 'ACK  ack=1301  win=0', 'lost') },
+        { ev: EV('앱이 200바이트를 읽음', 's', 'green'), buf: 1, win: 200 },
+        { m: M('sc', 'ACK  ack=1301  win=200', 'ack'), win: 200 },
+        { m: M('cs', 'DATA  1301~1500', 'data'), buf: 3 },
+        { ev: EV('송신량 ≤ min(수신 윈도, 혼잡 윈도)', 'm', 'yellow') }
+    ]);
+
+    /* ===================== 상태 ===================== */
     function currentSteps() {
         if (mode === 'udp') return UDP_STEPS;
         if (mode === 'flow') return FLOW_STEPS;
         return TCP_STEPS;
     }
-
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        var rad = Math.min(r, w / 2, h / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + rad, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, rad);
-        ctx.arcTo(x + w, y + h, x,     y + h, rad);
-        ctx.arcTo(x,     y + h, x,     y,     rad);
-        ctx.arcTo(x,     y,     x + w, y,     rad);
-        ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
-    }
-    function tx(str, x, y, sz, color, align, bold) {
-        if (sz < 9.5) sz = 9.5;
-        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
-    }
-    function colorOf(key) {
-        return P[key] || P.muted;
+    function defaultLog() {
+        if (mode === 'udp') return '연결 없이 데이터그램을 보내며 유실을 아무도 책임지지 않는 UDP를 봅니다.';
+        if (mode === 'flow') return '수신 측이 윈도 크기로 송신 속도를 조절하는 TCP 흐름 제어를 봅니다.';
+        return '연결을 만들고, 번호를 매겨 보내고, 유실을 재전송하고, 연결을 닫는 TCP의 한 생애를 봅니다.';
     }
 
     /* ===================== 레이아웃 ===================== */
-    var BOX_H = 60;
-    var SEC_GAP = 10;
+    function rowH(mob) { return mob ? 40 : 44; }
+    function headH() { return 78; }
+    function footH() { return mode === 'flow' ? 74 : 50; }
+    function maxRows() {
+        var n = 0;
+        currentSteps().forEach(function (s) { if (s.row + 1 > n) n = s.row + 1; });
+        return n;
+    }
+    function sceneH(w, mob) { return headH() + maxRows() * rowH(mob) + footH(); }
 
-    function sectionsOf(step, w, mob) {
-        var fs = mob ? 11 : 12;
-        var lh = Math.round(fs * 1.5);
-        var inner = w - 20;
-        var defs = [
-            { title: '주고받는 패킷', rows: step ? step.msg : [], empty: step ? '(내용 없음)' : '(STEP 또는 PLAY로 시작하세요)' },
-            { title: '클라이언트 상태', rows: step ? step.cli : [], empty: '(없음)' },
-            { title: '서버 상태', rows: step ? step.srv : [], empty: '(없음)' }
-        ];
-        defs.forEach(function (d) {
-            var out = [];
-            d.rows.forEach(function (r) {
-                ctx.font = '500 ' + (fs - 1) + 'px "JetBrains Mono",monospace';
-                window.CsFlow.wrapText(ctx, r[0], inner).forEach(function (t) { out.push([t, r[1]]); });
-            });
-            d.lines = out;
-            d.h = 26 + Math.max(1, out.length) * lh;
-            d.lh = lh;
-        });
-        return defs;
+    function pick(steps, idx, key, def) {
+        for (var i = idx; i >= 0; i--) { if (steps[i][key] !== undefined) return steps[i][key]; }
+        return def;
     }
-    function topBlockH() {
-        return BOX_H + 24 + 34;
+    function stateColor(s) {
+        if (s === 'ESTABLISHED') return 'green';
+        if (s === 'CLOSED' || s === 'LISTEN' || s.indexOf('없음') >= 0 || s.indexOf('대기') >= 0) return 'muted';
+        return 'yellow';
     }
-    function totalHeight(step, w, mob, top) {
-        var h = top + topBlockH();
-        sectionsOf(step, w, mob).forEach(function (d) { h += d.h + SEC_GAP; });
-        return h + 6;
+    function kindColor(k) {
+        if (k === 'ctrl') return 'purple';
+        if (k === 'data') return 'orange';
+        if (k === 'ack') return 'teal';
+        if (k === 'retx') return 'yellow';
+        return 'red';
     }
 
     /* ===================== 장면 그리기 ===================== */
-    function drawScene(x0, top, w, mob, step) {
+    function drawScene(x0, top, w, mob, step, prev, t) {
         var fs = mob ? 11 : 12;
-        var gap = mob ? 8 : 16;
-        var bw = (w - gap * 2) / 3;
-        var busY = top + BOX_H + 24;
-        var s = step || { from: null, to: null, kind: '', label: '', hl: {}, msg: [], cli: [], srv: [] };
-        var cx = [];
-        ACTORS.forEach(function (a, i) { cx.push(x0 + i * (bw + gap) + bw / 2); });
-        var idxOf = { C: 0, N: 1, S: 2 };
+        var steps = currentSteps();
+        var cur = stepIdx;
+        var xL = x0 + (mob ? 46 : 80);
+        var xR = x0 + w - (mob ? 46 : 80);
+        var RH = rowH(mob);
+        var yLine0 = top + 54;
+        var yEnd = top + headH() + maxRows() * RH;
 
-        ctx.beginPath();
-        ctx.moveTo(cx[0], busY);
-        ctx.lineTo(cx[2], busY);
-        ctx.strokeStyle = P.muted + '55';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        var pulse = s.kind === 'err' ? P.red : (s.kind === 'res' ? P.teal : P.yellow);
-        ACTORS.forEach(function (a, i) {
-            var x = x0 + i * (bw + gap);
-            var c = colorOf(a.col);
-            var badge = s.hl[a.id];
-            var bc = badge ? colorOf(badge[1]) : c;
-            var faded = badge && badge[1] === 'muted';
-            var on = s.from === a.id || s.to === a.id;
-            ctx.beginPath();
-            ctx.moveTo(cx[i], top + BOX_H);
-            ctx.lineTo(cx[i], busY);
-            ctx.strokeStyle = on ? pulse + 'ff' : P.muted + '55';
-            ctx.lineWidth = on ? 2.4 : 1.4;
-            ctx.stroke();
-            rr(x, top, bw, BOX_H, 6, (faded ? P.muted : bc) + '18', (badge ? bc : c) + (badge || on ? 'ff' : '77'), badge || on ? 1.8 : 1.2);
-            tx(a.name, x + bw / 2, top + 14, fs, c + 'ee', 'center', true);
-            tx(a.sub, x + bw / 2, top + 31, fs - 1.5, P.muted + 'ee', 'center', false);
-            if (badge) tx(badge[0], x + bw / 2, top + 48, fs - 1, bc + 'ff', 'center', true);
-        });
-
-        if (s.from && s.to) {
-            var a = cx[idxOf[s.from]];
-            var b = cx[idxOf[s.to]];
-            var dir = b > a ? 1 : -1;
-            var ax = a + dir * 6;
-            var bx = b - dir * 6;
-            ctx.beginPath();
-            ctx.moveTo(ax, busY);
-            ctx.lineTo(bx, busY);
-            ctx.strokeStyle = pulse + 'ff';
-            ctx.lineWidth = 3;
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(bx, busY);
-            ctx.lineTo(bx - dir * 9, busY - 6);
-            ctx.lineTo(bx - dir * 9, busY + 6);
-            ctx.closePath();
-            ctx.fillStyle = pulse + 'ff';
-            ctx.fill();
-        }
-        tx(s.label || '요청과 응답을 오가는 경로', x0 + w / 2, busY + 16, fs - 0.5, (s.label ? pulse : P.muted) + 'ee', 'center', true);
-
-        var y = top + topBlockH();
-        sectionsOf(step, w, mob).forEach(function (d) {
-            rr(x0, y, w, d.h, 6, 'none', P.muted + '55', 1.2);
-            tx(d.title, x0 + 10, y + 12, fs - 1.5, P.muted + 'ee', 'left', true);
-            if (!d.lines.length) {
-                tx(d.empty, x0 + 10, y + 30, fs - 1, P.muted + 'cc', 'left', false);
+        [['클라이언트', xL, 'orange', 'cs'], ['서버', xR, 'teal', 'ss']].forEach(function (h) {
+            var bw = mob ? 82 : 110;
+            rr(h[1] - bw / 2, top, bw, 30, 6, colorOf(h[2]) + '22', colorOf(h[2]) + 'ff', 1.6);
+            tx(h[0], h[1], top + 15, fs, colorOf(h[2]) + 'ff', 'center', true);
+            var stt = cur >= 0 ? pick(steps, cur, h[3], '') : pick(steps, 0, h[3], '');
+            if (stt) {
+                var sc = colorOf(stateColor(stt));
+                ctx.font = '700 ' + (fs - 1) + 'px "JetBrains Mono",monospace';
+                var sw = Math.max(bw, ctx.measureText(stt).width + 20);
+                rr(h[1] - sw / 2, top + 36, sw, 20, 10, sc + '22', sc + 'cc', 1.2);
+                tx(stt, h[1], top + 46, fs - 1, sc + 'ff', 'center', true);
             }
-            d.lines.forEach(function (ln, i) {
-                tx(ln[0], x0 + 10, y + 30 + i * d.lh, fs - 1, colorOf(ln[1]) + 'ee', 'left', false);
-            });
-            y += d.h + SEC_GAP;
+            ln(h[1], yLine0 + 8, h[1], yEnd, P.muted + '66', 1.6, [5, 4]);
         });
+
+        for (var i = 0; i <= cur; i++) {
+            var s = steps[i];
+            if (s.row < 0) continue;
+            var ry = top + headH() + s.row * RH;
+            var isCur = i === cur;
+            var p = isCur ? t : 1;
+            if (s.m) {
+                var c = colorOf(kindColor(s.m.k));
+                var ya = ry + 28;
+                var xa = s.m.d === 'cs' ? xL : xR;
+                var xb = s.m.d === 'cs' ? xR : xL;
+                var q = seg(p, 0, 0.8);
+                var reach = s.m.lost ? 0.55 : 1;
+                var xe = lerp(xa, xb, q * reach);
+                var dim = isCur ? 'ff' : (s.m.lost ? 'cc' : 'bb');
+                arrow(xa, ya - 4, xe, ya + 4, c + dim, 2.2, s.m.k === 'retx' ? [6, 3] : undefined);
+                tx(s.m.l, (xL + xR) / 2, ry + 13, fs - 0.5, c + 'ff', 'center', true);
+                if (s.m.lost && q > 0.95) {
+                    var xm = lerp(xa, xb, 0.55);
+                    tx('✕', xm + (xb > xa ? 12 : -12), ya + 1, fs + 4, P.red + 'ff', 'center', true);
+                }
+            } else if (s.ev) {
+                var ec = colorOf(s.ev.col);
+                var label = s.ev.t;
+                ctx.font = '700 ' + (fs - 0.5) + 'px "JetBrains Mono",monospace';
+                var tw = ctx.measureText(label).width + 22;
+                var maxw = w - 8;
+                if (tw > maxw) tw = maxw;
+                var ex = s.ev.side === 'c' ? xL + tw / 2 + 8 : (s.ev.side === 's' ? xR - tw / 2 - 8 : (xL + xR) / 2);
+                if (ex - tw / 2 < x0) ex = x0 + tw / 2;
+                if (ex + tw / 2 > x0 + w) ex = x0 + w - tw / 2;
+                var alpha = isCur ? Math.round(clamp01(p * 2) * 255) : 255;
+                var ah = ('0' + alpha.toString(16)).slice(-2);
+                rr(ex - tw / 2, ry + 12, tw, 24, 12, ec + '22', ec + ah, 1.4);
+                tx(label, ex, ry + 24, fs - 0.5, ec + ah, 'center', true);
+            }
+        }
+
+        var fy = yEnd + 12;
+        {
+            var idx = cur >= 0 ? cur : 0;
+            if (mode === 'flow') {
+                var used = pick(steps, idx, 'buf', 0);
+                var win = pick(steps, idx, 'win', -1);
+                tx('서버 수신 버퍼 (300바이트)', x0, fy + 8, fs - 0.5, P.sub + 'ff', 'left', true);
+                var bx = x0, bwid = Math.min(w, 300), bh = 22, by = fy + 24;
+                for (var b = 0; b < 3; b++) {
+                    var segw = (bwid - 8) / 3;
+                    var full = b < used;
+                    rr(bx + b * (segw + 4), by, segw, bh, 4, full ? P.orange + '55' : 'none', full ? P.orange + 'ff' : P.muted + '99', 1.4);
+                    tx(full ? '100B' : '비어 있음', bx + b * (segw + 4) + segw / 2, by + bh / 2, fs - 1.5, (full ? P.orange : P.sub) + 'ff', 'center', false);
+                }
+                var wtxt = win < 0 ? '수신 윈도: 아직 모름' : '수신 윈도 = ' + win + '바이트';
+                tx(wtxt, x0, by + bh + 12, fs, (win === 0 ? P.red : (win > 0 ? P.green : P.sub)) + 'ff', 'left', true);
+            } else if (mode === 'udp') {
+                var got = pick(steps, idx, 'got', []);
+                tx('서버가 받은 순서', x0, fy + 8, fs - 0.5, P.sub + 'ff', 'left', true);
+                var gx = x0;
+                if (!got.length) tx('(아직 없음)', gx, fy + 30, fs, P.sub + 'ff', 'left', false);
+                got.forEach(function (g) {
+                    var gw = g.length * (fs * 0.66) + 22;
+                    rr(gx, fy + 18, gw, 24, 12, P.green + '22', P.green + 'cc', 1.2);
+                    tx(g, gx + gw / 2, fy + 30, fs, P.green + 'ff', 'center', true);
+                    gx += gw + 8;
+                });
+            } else {
+                var ft = pick(steps, idx, 'foot', '');
+                if (ft) {
+                    var fl = lines(ft, w, fs - 0.5);
+                    fl.forEach(function (l2, k) { tx(l2, x0, fy + 12 + k * (fs + 4), fs - 0.5, P.sub + 'ff', 'left', true); });
+                }
+            }
+        }
     }
 
     /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
     function draw() {
         P = window.CsFlow.getP();
         ctx.clearRect(0, 0, GW(), GH());
         var W = GW(); var mob = W < 600;
-        var padX = mob ? 16 : 26;
-        var top = mob ? 16 : 22;
         var steps = currentSteps();
         var step = stepIdx >= 0 ? steps[stepIdx] : null;
-        drawScene(padX, top, W - padX * 2, mob, step);
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
         var mob = w < 600;
-        var padX = mob ? 16 : 26;
-        var top = mob ? 16 : 22;
-        var neededH = 300;
-        currentSteps().forEach(function (s) {
-            var h = totalHeight(s, w - padX * 2, mob, top);
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
             if (h > neededH) neededH = h;
         });
         canvasWrap.style.height    = 'auto';
@@ -357,17 +470,22 @@
     /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        draw();
-        rafId = requestAnimationFrame(function () { rafId = null; if (onDone) onDone(); });
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
     function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
-    function defaultLog() {
-        if (mode === 'udp') return '연결 없이 데이터그램을 보내며 유실을 아무도 책임지지 않는 UDP를 봅니다.';
-        if (mode === 'flow') return '수신 측이 윈도 크기로 송신 속도를 조절하는 TCP 흐름 제어를 봅니다.';
-        return '연결을 만들고, 번호를 매겨 보내고, 유실을 재전송하고, 연결을 닫는 TCP의 한 생애를 봅니다.';
-    }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -406,7 +524,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);

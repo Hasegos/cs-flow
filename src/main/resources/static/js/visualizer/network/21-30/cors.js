@@ -72,11 +72,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'simple';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 데이터: 참여자와 단계 ===================== */
     var ACTORS = [
@@ -166,175 +233,145 @@
     ];
 
     /* ===================== 상태 ===================== */
-    var mode    = 'simple';
-    var stepIdx = -1;
-    var running = false;
-    var timer   = null;
-    var rafId   = null;
-    var speed   = 1900;
-
     function currentSteps() {
         if (mode === 'preflight') return PRE_STEPS;
         if (mode === 'creds') return CRED_STEPS;
         return SIMPLE_STEPS;
     }
-
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        var rad = Math.min(r, w / 2, h / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + rad, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, rad);
-        ctx.arcTo(x + w, y + h, x,     y + h, rad);
-        ctx.arcTo(x,     y + h, x,     y,     rad);
-        ctx.arcTo(x,     y,     x + w, y,     rad);
-        ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
-    }
-    function tx(str, x, y, sz, color, align, bold) {
-        if (sz < 9.5) sz = 9.5;
-        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
-    }
-    function colorOf(key) {
-        return P[key] || P.muted;
+    function defaultLog() {
+        if (mode === 'preflight') return 'PUT 요청처럼 사전 요청(preflight)이 필요한 경우를 봅니다.';
+        if (mode === 'creds') return '쿠키를 포함한 요청에서 와일드카드와 정확한 출처가 어떻게 다른지 봅니다.';
+        return '단순 GET 요청이 CORS 검사를 통과하거나 막히는 과정을 봅니다.';
     }
 
-    /* ===================== 레이아웃 ===================== */
-    var BOX_H = 60;
-    var SEC_GAP = 10;
-
-    function sectionsOf(step, w, mob) {
-        var fs = mob ? 11 : 12;
-        var lh = Math.round(fs * 1.5);
-        var inner = w - 20;
-        var defs = [
-            { title: 'HTTP 메시지', rows: step ? step.msg : [], empty: step ? '(내용 없음)' : '(STEP 또는 PLAY로 시작하세요)' },
-            { title: '브라우저의 판단', rows: step ? step.cli : [], empty: '(없음)' },
-            { title: '서버의 CORS 설정', rows: step ? step.srv : [], empty: '(없음)' }
-        ];
-        defs.forEach(function (d) {
-            var out = [];
-            d.rows.forEach(function (r) {
-                ctx.font = '500 ' + (fs - 1) + 'px "JetBrains Mono",monospace';
-                window.CsFlow.wrapText(ctx, r[0], inner).forEach(function (t) { out.push([t, r[1]]); });
-            });
-            d.lines = out;
-            d.h = 26 + Math.max(1, out.length) * lh;
-            d.lh = lh;
+    /* ===================== 레이아웃(모드마다 고정) ===================== */
+    function wrapRows(rows, maxW, fs) {
+        var out = [];
+        (rows || []).forEach(function (r) {
+            lines(r[0], maxW, fs).forEach(function (t) { out.push([t, r[1]]); });
         });
-        return defs;
+        return out;
     }
-    function topBlockH() {
-        return BOX_H + 24 + 34;
+    function layout(w, mob) {
+        var fs = mob ? 11 : 12;
+        var lh = Math.round(fs * 1.45);
+        var innerW = w - 28;
+        var judge = 0, srvN = 0, cardN = 0;
+        currentSteps().forEach(function (s) {
+            judge = Math.max(judge, wrapRows(s.cli, innerW, fs - 1).length);
+            srvN = Math.max(srvN, wrapRows(s.srv, innerW, fs - 1).length);
+            cardN = Math.max(cardN, wrapRows(s.msg, w - 76, fs - 1).length);
+        });
+        var winH = 30 + 12 + 26 + 10 + 16 + Math.max(1, judge) * lh + 12;
+        var cardH = Math.max(1, cardN) * lh + 14;
+        var gapH = cardH + 70;
+        var srvH = 24 + 16 + Math.max(1, srvN) * lh + 12;
+        return { fs: fs, lh: lh, winH: winH, cardH: cardH, gapH: gapH, srvH: srvH, total: winH + gapH + srvH + 6 };
     }
-    function totalHeight(step, w, mob, top) {
-        var h = top + topBlockH();
-        sectionsOf(step, w, mob).forEach(function (d) { h += d.h + SEC_GAP; });
-        return h + 6;
-    }
+    function sceneH(w, mob) { return layout(w, mob).total; }
 
     /* ===================== 장면 그리기 ===================== */
-    function drawScene(x0, top, w, mob, step) {
-        var fs = mob ? 11 : 12;
-        var gap = mob ? 8 : 16;
-        var bw = (w - gap * 2) / 3;
-        var busY = top + BOX_H + 24;
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var L = layout(w, mob);
+        var fs = L.fs;
         var s = step || { from: null, to: null, kind: '', label: '', hl: {}, msg: [], cli: [], srv: [] };
-        var cx = [];
-        ACTORS.forEach(function (a, i) { cx.push(x0 + i * (bw + gap) + bw / 2); });
-        var idxOf = { C: 0, B: 1, S: 2 };
+        var hl = s.hl || {};
+        var gateKey = hl.B ? hl.B[1] : 'muted';
+        var gateCol = colorOf(gateKey === 'purple' ? 'purple' : gateKey);
+        var winY = top, winH = L.winH;
+        var gateY = winY + winH;
+        var gapTop = gateY + 8;
+        var srvY = gateY + L.gapH;
 
-        ctx.beginPath();
-        ctx.moveTo(cx[0], busY);
-        ctx.lineTo(cx[2], busY);
-        ctx.strokeStyle = P.muted + '55';
-        ctx.lineWidth = 2;
-        ctx.stroke();
+        rr(x0, winY, w, winH, 10, P.orange + '0f', P.orange + 'aa', 1.6);
+        rr(x0, winY, w, 30, 10, P.orange + '22', 'none');
+        [0, 1, 2].forEach(function (i) { circ(x0 + 14 + i * 13, winY + 15, 3.6, P.muted + 'cc'); });
+        rr(x0 + 56, winY + 5, w - 68, 20, 10, P.bg ? P.bg : 'none', P.muted + '88', 1);
+        tx('https://app.example.com', x0 + 66, winY + 15, fs - 0.5, P.orange + 'ff', 'left', true);
 
-        var pulse = s.kind === 'err' ? P.red : (s.kind === 'res' ? P.teal : P.yellow);
-        ACTORS.forEach(function (a, i) {
-            var x = x0 + i * (bw + gap);
-            var c = colorOf(a.col);
-            var badge = s.hl[a.id];
-            var bc = badge ? colorOf(badge[1]) : c;
-            var faded = badge && badge[1] === 'muted';
-            var on = s.from === a.id || s.to === a.id;
-            ctx.beginPath();
-            ctx.moveTo(cx[i], top + BOX_H);
-            ctx.lineTo(cx[i], busY);
-            ctx.strokeStyle = on ? pulse + 'ff' : P.muted + '55';
-            ctx.lineWidth = on ? 2.4 : 1.4;
-            ctx.stroke();
-            rr(x, top, bw, BOX_H, 6, (faded ? P.muted : bc) + '18', (badge ? bc : c) + (badge || on ? 'ff' : '77'), badge || on ? 1.8 : 1.2);
-            tx(a.name, x + bw / 2, top + 14, fs, c + 'ee', 'center', true);
-            tx(a.sub, x + bw / 2, top + 31, fs - 1.5, P.muted + 'ee', 'center', false);
-            if (badge) tx(badge[0], x + bw / 2, top + 48, fs - 1, bc + 'ff', 'center', true);
+        var chipY = winY + 42;
+        var chipLbl = hl.C ? hl.C[0] : 'app 스크립트';
+        var chipCol = hl.C ? colorOf(hl.C[1]) : colorOf('orange');
+        rr(x0 + 12, chipY, Math.min(w - 24, 190 + (hl.C ? 40 : 0)), 26, 6, chipCol + '22', chipCol + 'ff', 1.5);
+        tx('📜 ' + chipLbl, x0 + 22, chipY + 13, fs - 0.5, chipCol + 'ff', 'left', true);
+
+        tx('브라우저의 판단', x0 + 14, chipY + 40, fs - 1.5, P.sub + 'ff', 'left', true);
+        wrapRows(s.cli, w - 28, fs - 1).forEach(function (r, i) {
+            tx(r[0], x0 + 14, chipY + 58 + i * L.lh, fs - 1, colorOf(r[1]) + 'ff', 'left', false);
         });
 
-        if (s.from && s.to) {
-            var a = cx[idxOf[s.from]];
-            var b = cx[idxOf[s.to]];
-            var dir = b > a ? 1 : -1;
-            var ax = a + dir * 6;
-            var bx = b - dir * 6;
-            ctx.beginPath();
-            ctx.moveTo(ax, busY);
-            ctx.lineTo(bx, busY);
-            ctx.strokeStyle = pulse + 'ff';
-            ctx.lineWidth = 3;
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(bx, busY);
-            ctx.lineTo(bx - dir * 9, busY - 6);
-            ctx.lineTo(bx - dir * 9, busY + 6);
-            ctx.closePath();
-            ctx.fillStyle = pulse + 'ff';
-            ctx.fill();
-        }
-        tx(s.label || '요청과 응답을 오가는 경로', x0 + w / 2, busY + 16, fs - 0.5, (s.label ? pulse : P.muted) + 'ee', 'center', true);
+        ln(x0 + 4, gateY, x0 + w - 4, gateY, gateCol + (hl.B ? 'ff' : '66'), hl.B ? 5 : 2.5);
+        var gl = hl.B ? 'CORS 검사: ' + hl.B[0] : 'CORS 검사';
+        ctx.font = '700 ' + (fs - 0.5) + 'px "JetBrains Mono",monospace';
+        var gw = ctx.measureText(gl).width + 24;
+        rr(x0 + w / 2 - gw / 2, gateY - 11, gw, 22, 11, P.bg ? P.bg : '#000', gateCol + (hl.B ? 'ff' : '88'), 1.6);
+        tx(gl, x0 + w / 2, gateY, fs - 0.5, gateCol + (hl.B ? 'ff' : 'cc'), 'center', true);
 
-        var y = top + topBlockH();
-        sectionsOf(step, w, mob).forEach(function (d) {
-            rr(x0, y, w, d.h, 6, 'none', P.muted + '55', 1.2);
-            tx(d.title, x0 + 10, y + 12, fs - 1.5, P.muted + 'ee', 'left', true);
-            if (!d.lines.length) {
-                tx(d.empty, x0 + 10, y + 30, fs - 1, P.muted + 'cc', 'left', false);
-            }
-            d.lines.forEach(function (ln, i) {
-                tx(ln[0], x0 + 10, y + 30 + i * d.lh, fs - 1, colorOf(ln[1]) + 'ee', 'left', false);
+        var laneL = x0 + 12, laneR = x0 + w - 12;
+        var kc = s.kind === 'err' ? P.red : (s.kind === 'res' ? P.teal : P.yellow);
+        var goDown = s.from === 'B' && s.to === 'S';
+        var goUp = s.from === 'S' && s.to === 'B';
+        arrow(laneL, gateY + 14, laneL, srvY - 4, goDown ? kc + 'ff' : P.muted + '55', goDown ? 3 : 1.6, goDown ? undefined : [4, 4]);
+        arrow(laneR, srvY - 4, laneR, gateY + 14, goUp ? kc + 'ff' : P.muted + '55', goUp ? 3 : 1.6, goUp ? undefined : [4, 4]);
+
+        var rows = wrapRows(s.msg, w - 76, fs - 1);
+        var cardW = w - 52;
+        var cardX = x0 + 26;
+        var yTop = gapTop, yBot = srvY - L.cardH - 6;
+        var e = clamp01(t);
+        var cy = null, alpha = 1, border = kc, blocked = false;
+        if (s.from === 'C' && s.to === 'B') { cy = yTop; alpha = e; }
+        else if (goDown) { cy = lerp(yTop, yBot, e); }
+        else if (goUp) { cy = lerp(yBot, yTop, e); }
+        else if (s.from === 'B' && s.to === 'C') {
+            cy = s.kind === 'err' ? yTop : lerp(yTop, yTop - 22, e);
+            alpha = s.kind === 'err' ? 1 : 1 - e * 0.85;
+            blocked = s.kind === 'err';
+        }
+        if (cy !== null && rows.length) {
+            ctx.globalAlpha = alpha;
+            rr(cardX, cy, cardW, L.cardH, 8, border + '1c', border + 'ff', 1.8);
+            rows.forEach(function (r, i) {
+                tx(r[0], cardX + 10, cy + 7 + L.lh / 2 + i * L.lh, fs - 1, colorOf(r[1]) + 'ff', 'left', false);
             });
-            y += d.h + SEC_GAP;
+            if (blocked) tx('✕', cardX + cardW - 14, cy + 14, fs + 6, P.red + 'ff', 'center', true);
+            ctx.globalAlpha = 1;
+        }
+        if (s.label && cy === null) {
+            tx(s.label, x0 + w / 2, gateY + L.gapH / 2, fs, colorOf('yellow') + 'ff', 'center', true);
+        }
+
+        rr(x0, srvY, w, L.srvH, 10, P.teal + '0f', P.teal + 'aa', 1.6);
+        tx('api.example.com  (서버)', x0 + 14, srvY + 16, fs, P.teal + 'ff', 'left', true);
+        tx('응답에 담는 CORS 헤더', x0 + 14, srvY + 38, fs - 1.5, P.sub + 'ff', 'left', true);
+        var srvRows = wrapRows(s.srv, w - 28, fs - 1);
+        if (!srvRows.length) tx('(설정 없음)', x0 + 14, srvY + 56, fs - 1, P.sub + 'ff', 'left', false);
+        srvRows.forEach(function (r, i) {
+            tx(r[0], x0 + 14, srvY + 56 + i * L.lh, fs - 1, colorOf(r[1]) + 'ff', 'left', false);
         });
     }
 
     /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
     function draw() {
         P = window.CsFlow.getP();
         ctx.clearRect(0, 0, GW(), GH());
         var W = GW(); var mob = W < 600;
-        var padX = mob ? 16 : 26;
-        var top = mob ? 16 : 22;
         var steps = currentSteps();
         var step = stepIdx >= 0 ? steps[stepIdx] : null;
-        drawScene(padX, top, W - padX * 2, mob, step);
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
         var mob = w < 600;
-        var padX = mob ? 16 : 26;
-        var top = mob ? 16 : 22;
-        var neededH = 300;
-        currentSteps().forEach(function (s) {
-            var h = totalHeight(s, w - padX * 2, mob, top);
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
             if (h > neededH) neededH = h;
         });
         canvasWrap.style.height    = 'auto';
@@ -350,17 +387,22 @@
     /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        draw();
-        rafId = requestAnimationFrame(function () { rafId = null; if (onDone) onDone(); });
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
     function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
-    function defaultLog() {
-        if (mode === 'preflight') return 'PUT이나 JSON 본문 요청에서 브라우저가 먼저 OPTIONS로 허락을 묻는 과정을 봅니다.';
-        if (mode === 'creds') return '쿠키를 포함한 다른 출처 요청에서 서버가 정확한 출처를 허락해야 하는 이유를 봅니다.';
-        return '다른 출처의 API를 부를 때 서버의 허락 헤더로 응답을 읽을 수 있는지 판단하는 과정을 봅니다.';
-    }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -399,7 +441,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);
