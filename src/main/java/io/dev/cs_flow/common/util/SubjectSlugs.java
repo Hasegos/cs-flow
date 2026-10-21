@@ -9,7 +9,7 @@ package io.dev.cs_flow.common.util;
  */
 public final class SubjectSlugs {
 
-    public static final String PATTERN = "arch|os|network|ds|algo|db";
+    public static final String PATTERN = "arch|os|network|ds|algo|db|robot";
 
     private SubjectSlugs() {
     }
