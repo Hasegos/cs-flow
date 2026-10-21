@@ -1,0 +1,94 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python (rclpy) — QoS를 지정한 발행자와 구독자</p>
+            <div class="code-block">
+<pre><span class="kw">from</span> rclpy.qos <span class="kw">import</span> (QoSProfile, ReliabilityPolicy, DurabilityPolicy,
+                      HistoryPolicy, qos_profile_sensor_data)
+
+<span class="cm"># 지도 서버: 늦게 시작한 구독자에게도 마지막 지도를 전달</span>
+map_qos = <span class="fn">QoSProfile</span>(
+    history=HistoryPolicy.KEEP_LAST, depth=<span class="num">1</span>,
+    reliability=ReliabilityPolicy.RELIABLE,
+    durability=DurabilityPolicy.TRANSIENT_LOCAL)
+self.map_pub = self.<span class="fn">create_publisher</span>(OccupancyGrid, <span class="st">'/map'</span>, map_qos)
+
+<span class="cm"># 센서 구독: 최신 값이 중요하므로 센서용 프로파일 사용</span>
+self.sub = self.<span class="fn">create_subscription</span>(
+    LaserScan, <span class="st">'/scan'</span>, self.on_scan, qos_profile_sensor_data)
+
+<span class="cm"># QoS를 정수로 주면 KEEP_LAST depth만 지정, 나머지는 기본값</span>
+self.pub = self.<span class="fn">create_publisher</span>(String, <span class="st">'chatter'</span>, <span class="num">10</span>)</pre>
+            </div>
+            <p class="code-desc">
+                QoS는 create_publisher에서는 세 번째 인자, create_subscription에서는 콜백 다음의 네 번째 인자입니다. 정수 10을 주면 KEEP_LAST depth 10에 신뢰성 RELIABLE, 내구성 VOLATILE이라는 기본값이 쓰입니다. 정책을 직접 정하려면 QoSProfile을 만들어 넘깁니다.
+                첫 번째 예시는 지도를 TRANSIENT_LOCAL로 발행합니다. 늦게 시작한 구독자도 연결되는 순간 마지막 지도를 받으려면 구독자도 TRANSIENT_LOCAL을 요청해야 합니다. 구독자가 VOLATILE이어도 연결은 되지만 지난 지도는 받지 못합니다.
+                센서 토픽은 rclpy가 제공하는 qos_profile_sensor_data를 쓰면 BEST_EFFORT, depth 5 같은 센서용 설정이 한 번에 적용됩니다. 센서 드라이버가 BEST_EFFORT로 발행하는데 구독자가 기본값으로 만들면 연결되지 않는 것이 앞의 시각화에서 본 상황입니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">C++ (rclcpp) — QoS 설정</p>
+            <div class="code-block">
+<pre><span class="cm">// 지도: RELIABLE + TRANSIENT_LOCAL, 최근 1개 보관</span>
+<span class="kw">auto</span> map_qos = rclcpp::<span class="fn">QoS</span>(rclcpp::<span class="fn">KeepLast</span>(<span class="num">1</span>)).<span class="fn">reliable</span>().<span class="fn">transient_local</span>();
+map_pub_ = <span class="fn">create_publisher</span>&lt;nav_msgs::msg::OccupancyGrid&gt;(<span class="st">"/map"</span>, map_qos);
+
+<span class="cm">// 센서: BEST_EFFORT 프로파일</span>
+scan_sub_ = <span class="fn">create_subscription</span>&lt;sensor_msgs::msg::LaserScan&gt;(
+  <span class="st">"/scan"</span>, rclcpp::<span class="fn">SensorDataQoS</span>(), callback);
+
+<span class="cm">// 숫자만 주면 depth만 지정 (RELIABLE, VOLATILE이 기본)</span>
+chat_pub_ = <span class="fn">create_publisher</span>&lt;std_msgs::msg::String&gt;(<span class="st">"chatter"</span>, <span class="num">10</span>);</pre>
+            </div>
+            <p class="code-desc">
+                rclcpp::QoS 객체에 KeepLast로 depth를 주고 reliable(), transient_local() 같은 메서드를 이어 붙여 정책을 정합니다. SensorDataQoS는 센서용 프로파일을 한 줄로 만들어 줍니다.
+                세 번째 줄처럼 정수만 주면 그 값이 KeepLast의 depth가 되고 나머지 정책은 기본값을 따릅니다. 기본값은 RELIABLE과 VOLATILE이어서 센서용 BEST_EFFORT 발행자와 연결되지 않는 쪽에 속합니다.
+                QoS는 노드 코드에 박아 두는 대신 파라미터로 받아 환경에 따라 바꿀 수 있게 만들기도 합니다. 코드를 고치지 않고 실행할 때 QoS를 바꾸기 위해서입니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Shell (ros2 CLI) — QoS 비교와 echo의 QoS 바꾸기</p>
+            <div class="code-block">
+<pre><span class="cm"># 발행자와 구독자의 QoS 확인</span>
+ros2 topic info /scan --verbose
+
+<span class="cm">#  ...  Reliability: BEST_EFFORT</span>
+<span class="cm">#       History (Depth): KEEP_LAST (5)</span>
+<span class="cm">#       Durability: VOLATILE</span>
+
+<span class="cm"># echo의 QoS를 직접 지정해 시험 (기본은 발행자에 맞춰 자동 선택)</span>
+ros2 topic echo /scan --qos-reliability best_effort
+
+<span class="cm"># 센서용 프로파일 한 번에 적용</span>
+ros2 topic echo /scan --qos-profile sensor_data</pre>
+            </div>
+            <p class="code-desc">
+                ros2 topic info에 --verbose를 붙이면 토픽의 발행자와 구독자가 각각 어떤 QoS를 쓰는지 볼 수 있습니다. 양쪽의 신뢰성, 내구성, 이력을 나란히 놓고 요청이 제공보다 강한 곳이 없는지 비교하면 연결이 안 되는 원인을 찾기 쉽습니다.
+                ros2 topic echo는 현재 발행자의 QoS에 맞춰 자동으로 구독하므로 보통 센서 토픽도 보입니다. 그래도 데이터가 보이지 않으면 --qos-reliability, --qos-durability 또는 --qos-profile sensor_data로 echo의 QoS를 직접 지정해 보면 노드가 아니라 QoS가 원인인지 가려 낼 수 있습니다.
+                위 출력은 예시이며 정확한 형식은 배포판에 따라 다를 수 있습니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Shell — DDS 구현체(RMW)와 도메인 선택</p>
+            <div class="code-block">
+<pre><span class="cm"># 사용할 DDS 구현체 선택 (설치되어 있어야 함)</span>
+<span class="kw">export</span> RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+
+<span class="cm"># 같은 네트워크의 다른 로봇과 분리 (같은 ID끼리만 통신)</span>
+<span class="kw">export</span> ROS_DOMAIN_ID=<span class="num">7</span>
+
+ros2 run my_pkg lidar_node</pre>
+            </div>
+            <p class="code-desc">
+                ROS 2는 DDS 구현체를 RMW라는 계층 뒤에 숨겨서, 환경 변수 RMW_IMPLEMENTATION만 바꾸면 노드 코드 수정 없이 다른 구현체를 쓸 수 있습니다. 구현체마다 기본값이 다를 수 있고, 서로 다른 RMW 사이의 통신은 모든 경우에 보장되지 않으므로 시스템 전체에서 같은 RMW를 쓰는 것이 권장됩니다.
+                ROS_DOMAIN_ID는 같은 네트워크에서 서로 다른 로봇 시스템의 노드가 섞이지 않게 나누는 값입니다. 같은 ID를 쓰는 노드끼리만 서로를 발견하므로, 여러 사람이 같은 공유기에서 실습할 때 ID를 다르게 두는 것이 안전합니다.
+                위 값은 예시이며 구현체 이름과 도메인 ID 범위는 설치한 배포판의 문서를 확인해야 합니다. 설정은 노드를 실행하는 터미널마다 적용돼야 합니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
