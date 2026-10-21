@@ -1,0 +1,96 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java (JPA) — N+1이 생기는 코드</p>
+            <div class="code-block">
+<pre><span class="kw">@Entity</span>
+<span class="kw">public class</span> <span class="fn">Team</span> {
+    <span class="kw">@Id @GeneratedValue</span>
+    <span class="kw">private</span> Long id;
+    <span class="kw">private</span> String name;
+
+    <span class="kw">@OneToMany</span>(mappedBy = <span class="st">"team"</span>)          <span class="cm">// 컬렉션 연관은 기본이 지연 로딩</span>
+    <span class="kw">private</span> List&lt;Member&gt; members = <span class="kw">new</span> ArrayList&lt;&gt;();
+}
+
+<span class="cm">// 서비스 코드</span>
+List&lt;Team&gt; teams = teamRepository.<span class="fn">findAll</span>();          <span class="cm">// 쿼리 1번</span>
+<span class="kw">for</span> (Team t : teams) {
+    System.out.<span class="fn">println</span>(t.<span class="fn">getName</span>() + <span class="st">" : "</span> + t.<span class="fn">getMembers</span>().<span class="fn">size</span>());  <span class="cm">// 팀마다 쿼리 1번</span>
+}</pre>
+            </div>
+            <p class="code-desc">
+                Team의 members는 @OneToMany이므로 JPA 기본값이 지연 로딩입니다. findAll은 팀 테이블만 읽고 members에는 아직 데이터가 없는 지연 컬렉션을 넣어 둡니다. 반복문에서 getMembers().size()를 호출하는 순간 JPA가 그 팀의 멤버를 읽는 SELECT를 실행합니다.
+                팀이 5개면 findAll 1번과 멤버 조회 5번으로 쿼리가 6번 나가고, 팀이 100개면 101번이 됩니다. 코드는 반복문 하나라서 쿼리가 몇 번 나가는지 눈에 보이지 않는다는 점이 이 문제가 늦게 발견되는 이유입니다.
+                멤버 이름만 쓰고 싶다는 단순한 요구가 쿼리 폭증으로 이어지므로, 연관 데이터를 쓰는 목록 조회에서는 어떻게 로딩할지 의도적으로 정해야 합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java (Spring Data JPA) — join fetch와 @EntityGraph</p>
+            <div class="code-block">
+<pre><span class="kw">public interface</span> <span class="fn">TeamRepository</span> <span class="kw">extends</span> JpaRepository&lt;Team, Long&gt; {
+
+    <span class="cm">// 방법 1: JPQL join fetch</span>
+    <span class="kw">@Query</span>(<span class="st">"select t from Team t left join fetch t.members"</span>)
+    List&lt;Team&gt; <span class="fn">findAllWithMembers</span>();
+
+    <span class="cm">// 방법 2: 엔티티 그래프로 함께 로딩할 연관을 선언</span>
+    <span class="kw">@EntityGraph</span>(attributePaths = <span class="st">"members"</span>)
+    <span class="kw">@Query</span>(<span class="st">"select t from Team t"</span>)
+    List&lt;Team&gt; <span class="fn">findAllWithGraph</span>();
+}</pre>
+            </div>
+            <p class="code-desc">
+                두 방법 모두 팀의 members를 미리 채워 두라는 지시입니다. 컬렉션 하나를 가져올 때는 보통 조인으로 한 쿼리에 싣고, 이후 반복문에서 getMembers()에 접근해도 추가 쿼리가 나가지 않아 쿼리는 1번입니다. 다만 연관이 여러 개이거나 Hibernate가 판단하면 추가 select로 처리할 수도 있습니다.
+                join fetch는 쿼리 문자열 안에, @EntityGraph는 메서드에 붙인 선언으로 로딩할 연관을 정하는 차이가 있습니다. 둘 다 컬렉션 연관을 가져오면 결과 행이 멤버 수만큼 늘어난다는 점은 같습니다.
+                컬렉션 join fetch 쿼리에 Pageable을 함께 넘기면 Hibernate 7.3 이하는 경고를 남기고 모든 행을 읽어 메모리에서 페이징하므로 주의해야 합니다(7.4부터는 DB가 지원하면 SQL에서 처리). @EntityGraph로 컬렉션을 가져오면서 페이징할 때도 결과가 의도대로인지 따로 확인해야 합니다. 페이징이 필요한 컬렉션 연관에는 다음의 배치 페치가 대안이 됩니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">설정 — 배치 페치 (application.yml)</p>
+            <div class="code-block">
+<pre><span class="cm"># 전역 설정: 지연 로딩 컬렉션/프록시를 IN 쿼리로 묶어 가져오는 최대 개수</span>
+spring:
+  jpa:
+    properties:
+      hibernate:
+        default_batch_fetch_size: <span class="num">100</span></pre>
+            </div>
+            <p class="code-desc">
+                이 설정을 켜면 지연 로딩을 그대로 두고도 아직 초기화되지 않은 컬렉션을 최대 100개씩 모아 where team_id in (...) 쿼리 하나로 가져옵니다. 팀 100개를 지연 로딩으로 읽으면 쿼리가 1 + 100번이 아니라 2번 근처로 줄어듭니다.
+                엔티티 단위로만 지정하고 싶다면 컬렉션 필드에 @BatchSize(size = 100)를 붙일 수 있습니다. 배치 크기는 한 번에 묶어 가져오는 키(id)의 최대 개수라서, 너무 크면 쿼리가 무거워지고 너무 작으면 쿼리 횟수가 다시 늘어납니다.
+                join fetch와 달리 컬렉션과 DB 페이징을 함께 쓸 수 있고 컬렉션이 여러 개여도 동작합니다. 다만 Hibernate 문서는 대개 조인 페치나 DTO 조회가 더 나은 대안이라고 보며, 배치 페치는 페이징이 필요하거나 컬렉션이 여러 개인 경우의 대안으로 둡니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">설정과 SQL — 쿼리 횟수 확인하기</p>
+            <div class="code-block">
+<pre><span class="cm"># application.yml: 실행되는 SQL을 로그에 남기기</span>
+logging:
+  level:
+    org.hibernate.SQL: DEBUG
+
+<span class="cm"># N+1이 있으면 로그에 같은 모양이 반복된다</span>
+select t.id, t.name from team t
+select m.id, m.name, m.team_id from member m where m.team_id=?
+select m.id, m.name, m.team_id from member m where m.team_id=?
+select m.id, m.name, m.team_id from member m where m.team_id=?
+...
+
+<span class="cm"># 배치 페치 후에는 IN으로 묶인다</span>
+select t.id, t.name from team t
+select m.id, m.name, m.team_id from member m where m.team_id in (?,?,?,?,?)</pre>
+            </div>
+            <p class="code-desc">
+                org.hibernate.SQL 로거를 DEBUG로 두면 Hibernate가 실행하는 SQL 문이 로그에 찍힙니다. 같은 모양의 member 조회가 줄줄이 찍히면 N+1을 의심할 수 있습니다. 바인딩된 값을 보려면 별도의 로깅 설정이나 도구가 필요합니다.
+                배치 페치를 설정한 뒤에는 where 조건이 in으로 바뀌어 쿼리 수가 크게 줄어든 것을 같은 로그로 확인할 수 있습니다. 위 SQL은 흐름을 보여 주는 예시이며 실제 컬럼과 별칭은 엔티티 정의에 따라 다릅니다. 배치 쿼리의 모양도 dialect마다 달라, PostgreSQL에서는 team_id = any (?)처럼 배열 하나로, IN을 쓰는 dialect에서는 배치 크기만큼의 ?(남는 자리는 null)로 나갈 수 있습니다.
+                운영에서 매번 로그를 보기는 어려우므로, 중요한 목록 API는 통합 테스트에서 Hibernate 통계(generate_statistics 설정 후 Statistics의 getPrepareStatementCount)의 쿼리 수를 확인하는 테스트를 두면 N+1이 다시 생기는 것을 막을 수 있습니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
