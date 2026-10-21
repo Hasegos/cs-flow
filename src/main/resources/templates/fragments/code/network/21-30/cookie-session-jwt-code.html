@@ -1,0 +1,99 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">curl — 세션 쿠키가 오가는 모습 확인하기</p>
+            <div class="code-block">
+<pre><span class="cm"># 로그인: 응답의 Set-Cookie를 cookies.txt에 저장 (-c), 헤더도 함께 출력 (-i)</span>
+curl -i -c cookies.txt -d <span class="st">"username=kim&amp;password=********"</span> https://example.com/login
+
+<span class="cm"># 출력 예 (일부)</span>
+HTTP/<span class="num">1.1</span> <span class="num">200</span> OK
+Set-Cookie: JSESSIONID=<span class="num">3F9A1C7E</span>...; Path=/; Secure; HttpOnly; SameSite=Lax
+
+<span class="cm"># 저장한 쿠키를 붙여서 보호된 경로 요청 (-b)</span>
+curl -i -b cookies.txt https://example.com/me</pre>
+            </div>
+            <p class="code-desc">
+                curl의 -c 옵션은 응답으로 받은 쿠키를 파일에 저장하고, -b 옵션은 그 파일의 쿠키를 요청의 Cookie 헤더에 붙여 보냅니다. 브라우저가 자동으로 하는 일을 손으로 재현하는 셈이어서, 쿠키가 어떤 헤더로 내려오고 어떻게 돌아가는지 눈으로 확인하기 좋습니다.
+                출력 예의 JSESSIONID는 자바 서블릿 컨테이너가 쓰는 세션 쿠키 이름이고, 시각화의 sid와 같은 역할입니다. 값은 실제로는 훨씬 긴 난수이고 여기서는 줄여서 적었습니다.
+                Path, Secure, HttpOnly, SameSite 같은 속성은 쿠키 값 뒤에 세미콜론으로 이어지며, 이 속성들이 브라우저가 쿠키를 어디로, 언제 보낼지와 스크립트에 보일지를 정합니다. 위 주소와 계정은 예시이므로 실제 서비스에 맞게 바꿔야 합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java (Spring Boot) — HttpSession과 세션 쿠키 설정</p>
+            <div class="code-block">
+<pre><span class="cm"># application.yml</span>
+server:
+  servlet:
+    session:
+      timeout: <span class="num">30m</span>
+      cookie:
+        http-only: <span class="kw">true</span>
+        secure: <span class="kw">true</span>
+        same-site: lax
+
+<span class="cm">// 컨트롤러</span>
+<span class="kw">@PostMapping</span>(<span class="st">"/login"</span>)
+<span class="kw">public void</span> <span class="fn">login</span>(HttpServletRequest request) {
+    HttpSession session = request.<span class="fn">getSession</span>();   <span class="cm">// 없으면 새로 만들고 세션 쿠키를 내려 보낸다</span>
+    session.<span class="fn">setAttribute</span>(<span class="st">"user"</span>, <span class="st">"kim"</span>);
+}
+
+<span class="kw">@GetMapping</span>(<span class="st">"/me"</span>)
+<span class="kw">public</span> String <span class="fn">me</span>(HttpSession session) {
+    <span class="kw">return</span> (String) session.<span class="fn">getAttribute</span>(<span class="st">"user"</span>);
+}</pre>
+            </div>
+            <p class="code-desc">
+                서블릿 컨테이너는 getSession()이 처음 불리면 세션을 만들어 서버 메모리에 두고, 세션 ID를 쿠키로 내려 보냅니다. 이후 요청에서는 쿠키의 세션 ID로 같은 HttpSession 객체를 찾아 주므로 setAttribute로 넣은 값을 getAttribute로 꺼낼 수 있습니다.
+                application.yml의 server.servlet.session.cookie 설정은 세션 쿠키의 HttpOnly, Secure, SameSite 속성을 정하고, timeout은 마지막 요청 뒤 세션을 유지하는 시간이고 기본은 30분이며, 쿠키 속성은 지정하지 않으면 서블릿 컨테이너의 기본을 따릅니다. 개발 중 HTTP로만 접속한다면 secure를 켠 쿠키는 전송되지 않으므로 환경에 맞게 조정해야 합니다.
+                위 코드는 흐름을 보이려고 줄인 예시입니다. 실제 로그인은 Spring Security 같은 인증 프레임워크를 쓰고, 로그인 직후 세션 ID를 새로 발급해 세션 고정 공격을 막는 처리가 필요합니다. 서버가 여러 대이면 세션을 메모리에 두지 않고 Redis 같은 공유 저장소로 옮깁니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python (PyJWT) — 토큰 발급과 검증</p>
+            <div class="code-block">
+<pre><span class="kw">import</span> datetime
+<span class="kw">import</span> jwt   <span class="cm"># pip install PyJWT</span>
+
+SECRET = <span class="st">"change-me"</span>   <span class="cm"># 실제로는 코드에 적지 않고 환경 변수 등에서 읽는다</span>
+
+exp = datetime.datetime.<span class="fn">now</span>(datetime.timezone.utc) + datetime.<span class="fn">timedelta</span>(minutes=<span class="num">15</span>)
+token = jwt.<span class="fn">encode</span>({<span class="st">"sub"</span>: <span class="st">"kim"</span>, <span class="st">"exp"</span>: exp}, SECRET, algorithm=<span class="st">"HS256"</span>)
+
+<span class="kw">try</span>:
+    claims = jwt.<span class="fn">decode</span>(token, SECRET, algorithms=[<span class="st">"HS256"</span>])
+    <span class="fn">print</span>(claims[<span class="st">"sub"</span>])                     <span class="cm"># kim</span>
+<span class="kw">except</span> jwt.ExpiredSignatureError:
+    <span class="fn">print</span>(<span class="st">"만료된 토큰"</span>)
+<span class="kw">except</span> jwt.InvalidTokenError:
+    <span class="fn">print</span>(<span class="st">"서명이 맞지 않거나 형식이 잘못된 토큰"</span>)</pre>
+            </div>
+            <p class="code-desc">
+                jwt.encode는 클레임 딕셔너리를 JSON으로 만들어 Base64url로 인코딩하고, 비밀키로 HS256(HMAC-SHA256) 서명을 계산해 헤더.페이로드.서명 형태의 문자열을 돌려줍니다. exp에 넣은 시각이 만료 시각이며, PyJWT는 datetime을 초 단위 숫자로 바꿔 담습니다.
+                jwt.decode는 서명을 다시 계산해 비교하고 만료 시각도 확인합니다. 만료되면 ExpiredSignatureError, 서명이 틀리거나 형식이 잘못되면 InvalidTokenError 계열의 예외가 나므로 반드시 잡아서 401로 응답해야 합니다.
+                decode에 algorithms 목록을 반드시 지정하는 것이 중요합니다. 허용할 알고리즘을 정하지 않으면 토큰 헤더가 말하는 알고리즘을 그대로 믿게 되어 서명 없는 토큰이 통과하는 사고가 생길 수 있고, RFC 8725는 허용 알고리즘을 호출자가 직접 지정하고 서명 없는 none 알고리즘은 명시하지 않는 한 받지 말라고 권고합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">셸 — JWT 페이로드는 누구나 읽을 수 있다</p>
+            <div class="code-block">
+<pre><span class="cm"># 토큰의 가운데 부분(페이로드)만 Base64로 풀어 보기</span>
+echo <span class="st">'eyJzdWIiOiJraW0iLCJleHAiOjE4MDAwMDAwMDB9'</span> | base64 -d
+
+<span class="cm"># 출력</span>
+{<span class="st">"sub"</span>:<span class="st">"kim"</span>,<span class="st">"exp"</span>:<span class="num">1800000000</span>}</pre>
+            </div>
+            <p class="code-desc">
+                JWT의 페이로드는 암호화된 값이 아니라 Base64url로 인코딩한 JSON이라서, 키 없이도 위처럼 한 줄로 풀어 읽을 수 있습니다. 서명은 내용이 바뀌었는지 알려 줄 뿐 내용을 가려 주지 않습니다.
+                그래서 비밀번호나 개인정보 같은 민감한 값은 JWT 페이로드에 넣지 않아야 합니다. 내용까지 숨겨야 한다면 서명이 아니라 암호화하는 JWE 형식을 쓰거나, 민감한 값은 토큰에 넣지 않고 서버에서 조회하는 방식으로 설계합니다.
+                이 예시의 토큰 조각은 시각화의 페이로드와 같은 값이며, Base64url에서 쓰는 - 와 _ 문자가 없어 base64 -d로 바로 풀리지만 다른 토큰에서는 이 문자들을 바꿔 줘야 풀릴 수 있습니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
