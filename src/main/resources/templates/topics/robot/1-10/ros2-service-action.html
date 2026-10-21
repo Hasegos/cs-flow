@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">ROS2 서비스 vs 액션 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/robot/1-10/ros2-service-action.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/robot}" class="topic-breadcrumb__link">로봇 · 임베디드</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">ROS2 서비스 vs 액션</span>
+                </nav>
+
+                <span class="topic-hero__slug">robot · 2</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">ROS2 서비스 vs 액션</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+                <button type="button" class="topic-like" th:classappend="${liked} ? ' topic-like--active' : ''" th:attr="data-topic-slug=${topic.slug}">
+                    <svg class="topic-like__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <span class="topic-like__count" th:text="${likeCount}">0</span>
+                </button>
+                <div class="topic-share">
+                    <button type="button" class="topic-share__btn topic-share__btn--copy" aria-label="링크 복사">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="topic-share__btn topic-share__btn--kakao" aria-label="카카오톡 공유">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                        </svg>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+                <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        로봇에게 "두 수를 더해 줘", "카메라 화면을 한 장 찍어 줘"처럼 한 번 시키고 결과를 받는 일이 있고, "저 방으로 이동해 줘"처럼 몇 분이 걸리고 도중에 진행 상황을 알아야 하며 중간에 멈출 수도 있어야 하는 일이 있습니다. ROS 2에서 앞의 것은 <strong>서비스(service)</strong>, 뒤의 것은 <strong>액션(action)</strong>으로 만듭니다. 계속 흘러가는 센서 값을 나르는 토픽과는 다른, 요청과 응답 방식의 통신입니다.
+                    </p>
+                    <p class="overview-lead">
+                        이 토픽에서는 서비스의 요청과 응답 흐름과 서버가 없을 때의 처리, 액션의 목표 · 피드백 · 결과 흐름, 그리고 실행 중인 목표를 취소하는 과정을 단계별로 보며 토픽 · 서비스 · 액션 중 무엇을 써야 하는지 가르는 기준을 정리합니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">서비스(service)</h3>
+                            <p class="overview-card__desc">클라이언트가 요청을 보내면 서버가 처리해 응답 하나를 돌려주는 통신입니다. .srv 파일에서 요청과 응답 필드를 --- 로 나누어 정의합니다. 짧게 끝나는 작업에 맞습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">액션(action)</h3>
+                            <p class="overview-card__desc">오래 걸리는 작업을 위한 통신입니다. 클라이언트가 목표(goal)를 보내면 서버가 피드백으로 진행 상황을 알리고 끝나면 결과(result)를 돌려주며, 도중에 취소도 할 수 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">목표 · 피드백 · 결과</h3>
+                            <p class="overview-card__desc">.action 파일은 목표, 결과, 피드백 세 부분을 --- 로 나누어 정의합니다. 수락된 목표 기준으로 목표는 한 번, 피드백은 여러 번, 결과는 마지막에 한 번 전달됩니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">서비스 서버와 클라이언트</h3>
+                            <p class="overview-card__desc">서비스 이름 하나에는 서버를 하나만 두어야 하고(여러 개면 어느 서버가 요청을 받을지 정해져 있지 않음) 클라이언트는 여러 개가 같은 서비스를 호출할 수 있습니다. 클라이언트는 요청 전에 서버가 준비됐는지 먼저 확인합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">비동기 호출과 future</h3>
+                            <p class="overview-card__desc">클라이언트가 요청을 보내고 응답을 기다리는 동안 다른 일도 할 수 있도록 call_async 같은 비동기 호출은 결과를 나중에 받을 수 있는 future 객체를 돌려줍니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">목표의 상태</h3>
+                            <p class="overview-card__desc">수락된 목표는 ACCEPTED에서 EXECUTING으로 가고, 취소 요청이 수락되면 CANCELING을 거칩니다. 끝날 때는 SUCCEEDED, CANCELED, ABORTED 중 하나가 됩니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>토픽은 흐름, 서비스는 질문과 대답, 액션은 긴 심부름입니다</strong> — 센서 값처럼 계속 오가면 토픽, 한 번 묻고 답하면 서비스, 오래 걸리고 진행과 취소가 필요하면 액션을 고릅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>서비스는 짧은 작업에만 씁니다</strong> — 서비스에는 진행 상황을 알리거나 서버의 작업을 취소하라고 요청하는 규약이 없어서, 결과는 응답이 와야 알 수 있습니다. 공식 문서도 서비스를 오래 걸리는 작업에 쓰지 말라고 안내합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>액션은 토픽과 서비스로 만들어집니다</strong> — 목표, 결과, 취소는 서비스 방식으로, 피드백과 상태는 토픽 방식으로 오가서 확실한 요청 · 응답과 진행 상황의 스트리밍을 함께 가집니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>서버가 없거나 취소를 거절할 수 있습니다</strong> — 호출 전에 서버의 존재를 확인하고, 액션 서버가 취소를 허용하도록 구현해야 취소가 동작합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "서비스" 탭에서 요청과 응답, 서버가 없을 때의 실패를, "액션" 탭에서 목표 · 피드백 · 결과의 흐름을, "취소" 탭에서 실행 중 취소하는 과정과 서비스와의 차이를 STEP으로 확인하세요.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">배경</h2>
+                    <p class="overview-lead">
+                        ROS 1에도 서비스와 액션이 있었는데, 액션은 별도 라이브러리(actionlib)로 토픽 위에 만든 규약이었습니다. ROS 2는 액션을 클라이언트 라이브러리에 포함해 서비스와 토픽의 조합으로 제공합니다. 서비스에는 진행 정보가 없고, 액션은 응답이 오래 걸리는 요청에 쓰도록 나뉘어 있습니다. 예를 들어 Nav2의 NavigateToPose와 MoveIt의 FollowJointTrajectory 컨트롤러 연결이 액션입니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>서비스</strong> — 요청 1번에 응답 1번입니다. AddTwoInts 서비스는 요청의 a, b 두 정수를 받아 합 sum 하나를 응답합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>액션</strong> — 수락된 목표 1번에 피드백 0번 이상, 결과 1번입니다. 공식 Fibonacci 예제에서 order가 5이면 결과 수열은 [0, 1, 1, 2, 3, 5]이고, 서버가 1초마다 피드백으로 지금까지의 수열을 보냅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>액션의 구성</strong> — 서비스 3개(목표 전송, 결과 요청, 취소)와 토픽 2개(피드백, 상태)로 이루어져 있어, 액션 하나가 내부에서는 5개의 통신 통로를 씁니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>목표의 종료 상태</strong> — 성공(SUCCEEDED), 취소(CANCELED), 외부 요청 없이 서버가 중단한 ABORTED 세 가지 중 하나로 끝납니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>서비스를 부르면 호출이 끝날 때까지 프로그램이 멈춘다</strong> — call_async로 부르면 바로 돌아오고, 응답은 future로 나중에 받을 수 있습니다. 동기 호출 call()은 응답이 올 때까지 막으며 공식 문서는 이를 권장하지 않습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>액션이 수락되면 작업이 끝난 것이다</strong> — 수락은 서버가 목표를 받아들였다는 응답일 뿐이고, 작업의 끝은 결과가 도착해야 알 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>취소 요청을 보내면 무조건 취소된다</strong> — 취소 요청도 서버가 수락해야 합니다. rclpy의 기본 취소 콜백은 요청을 거절하므로 서버를 구현할 때 취소를 허용하도록 직접 작성해야 합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>오래 걸려도 서비스로 만들면 간단하다</strong> — 진행 상황도 취소도 없어서 오래 걸리는 일에는 공식 문서가 서비스를 권하지 않습니다. 오래 걸리면 액션이 맞습니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">ROS 2의 토픽, 서비스, 액션은 각각 언제 쓰나요?</h3>
+                            <p class="overview-card__desc">센서 값처럼 지속적으로 흐르는 데이터는 발행-구독의 토픽, 짧게 끝나는 요청과 응답은 서비스, 오래 걸리고 진행 상황 보고와 취소가 필요한 작업은 액션을 씁니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">액션은 어떻게 구성돼 있나요?</h3>
+                            <p class="overview-card__desc">목표, 결과, 피드백 세 부분으로 정의하고, 내부에서는 목표 · 결과 · 취소가 서비스, 피드백 · 상태가 토픽으로 구현됩니다. 목표는 수락, 실행, 성공 · 취소 · 중단의 상태를 거칩니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">서비스 서버가 죽어 있으면 어떻게 되나요?</h3>
+                            <p class="overview-card__desc">요청을 처리할 서버가 없어서 응답이 오지 않습니다. 클라이언트는 wait_for_service로 서버가 있는지 시간 제한을 두고 확인한 뒤, 없으면 재시도하거나 오류로 처리해야 합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">실행 중인 로봇 이동을 중간에 멈추려면 어떻게 하나요?</h3>
+                            <p class="overview-card__desc">이동을 액션으로 요청했다면 클라이언트가 취소를 요청하고, 서버가 취소를 수락해 작업을 멈추면 목표가 CANCELED로 끝납니다. 서비스로 요청했다면 응답이 올 때까지 멈출 방법이 없습니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>turtlesim</strong> — 공식 튜토리얼에서 /spawn 서비스로 거북이를 새로 만들고, /turtle1/rotate_absolute 액션으로 거북이를 목표 각도까지 돌리며 피드백으로 남은 각도를 받습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Nav2</strong> — 내비게이션의 이동 요청인 NavigateToPose가 액션입니다. 목표 지점을 보내면 진행 중 현재 위치와 남은 거리를 피드백으로 받고, 중간에 취소할 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>파라미터 서비스</strong> — 노드의 파라미터를 읽고 바꾸는 기능도 서비스로 제공됩니다. ros2 param 명령이 이 서비스를 호출합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>ros2 CLI</strong> — ros2 service call과 ros2 action send_goal 명령으로 코드 없이 서비스와 액션을 직접 호출해 볼 수 있고, --feedback 옵션으로 피드백도 출력합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/robot/ros2-node-topic}">ROS2 노드와 토픽</a> — 서비스와 액션의 바탕이 되는 발행-구독 통신을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/robot/dds-qos}">DDS QoS</a> — 통신 품질 설정이 서비스와 액션에도 적용되는 방식을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/http}">HTTP</a> — 서비스의 요청 · 응답과 닮은 웹의 요청 · 응답 모델을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/thread}">스레드</a> — 오래 걸리는 작업을 기다리지 않고 다른 일을 하는 동시성의 바탕을 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>ROS 2 공식 문서</strong> — <a href="https://docs.ros.org/en/jazzy/Concepts/Basic/About-Services.html" target="_blank" rel="noopener">Services</a>, <a href="https://docs.ros.org/en/jazzy/Concepts/Basic/About-Actions.html" target="_blank" rel="noopener">Actions</a>, <a href="https://design.ros2.org/articles/actions.html" target="_blank" rel="noopener">Actions 설계 문서</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>튜토리얼</strong> — <a href="https://docs.ros.org/en/jazzy/Tutorials/Beginner-Client-Libraries/Writing-A-Simple-Py-Service-And-Client.html" target="_blank" rel="noopener">Writing a simple service and client (Python)</a>, <a href="https://docs.ros.org/en/jazzy/Tutorials/Intermediate/Writing-an-Action-Server-Client/Py.html" target="_blank" rel="noopener">Writing an action server and client (Python)</a></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/robot/1-10/ros2-service-action-code :: code}"></th:block>
+            </div>
+
+            <!-- 탭 4: 퀴즈 -->
+            <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
+                <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+    <script th:src="@{/js/quiz.js}"></script>
+    <script th:src="@{/js/like.js}"></script>
+    <script th:src="@{/js/share.js}"></script>
+</body>
+</html>
