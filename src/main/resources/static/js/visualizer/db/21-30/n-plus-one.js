@@ -72,11 +72,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'n1';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 데이터: 참여자와 단계 ===================== */
     var ACTORS = [
@@ -148,176 +215,217 @@
             { label: '1 + ⌈N ÷ 배치⌉', msg: [Y('쿼리 수 = 1 + ⌈팀 수 ÷ 배치 크기⌉')], hl: { D: ['2회', 'green'] }, cli: [G('팀 100개, 배치 크기 100 → 쿼리 2번')], srv: [G('N+1 → 1 + 소수의 쿼리')] })
     ];
 
-    /* ===================== 상태 ===================== */
-    var mode    = 'n1';
-    var stepIdx = -1;
-    var running = false;
-    var timer   = null;
-    var rafId   = null;
-    var speed   = 1900;
+    /* ===================== 장면 데이터 ===================== */
+    function ann(steps, list) {
+        steps.forEach(function (s, i) { var a = list[i] || {}; for (var k in a) s[k] = a[k]; });
+    }
+    ann(N1_STEPS, [
+        { q: 0, tm: 'nnnnn', db: '' },
+        { q: 1, tm: 'nnnnn', db: 'team', hit: [] },
+        { q: 1, tm: 'lllll', db: 'team', hit: [] },
+        { q: 2, tm: 'mllll', db: 'member', hit: [0] },
+        { q: 3, tm: 'mmlll', db: 'member', hit: [1] },
+        { q: 6, tm: 'mmmmm', db: 'member', hit: [2, 3, 4], qs: ['④', '⑤', '⑥'] },
+        { q: 6, tm: 'mmmmm', db: '', fm: '1 + N  =  1 + 5  =  6번', bad: true }
+    ]);
+    ann(FETCH_STEPS, [
+        { q: 0, tm: 'nnnnn', db: '' },
+        { q: 1, tm: 'nnnnn', db: 'join', hit: [0, 1, 2, 3, 4] },
+        { q: 1, tm: 'nnnnn', db: 'join', hit: [0, 1, 2, 3, 4] },
+        { q: 1, tm: 'mmmmm', db: '' },
+        { q: 1, tm: 'mmmmm', db: '', fm: '반복문을 돌려도 쿼리 1번' },
+        { q: 1, tm: 'mmmmm', db: 'join', hit: [0, 1, 2, 3, 4], warn: 'limit 없이 모든 행을 읽음' }
+    ]);
+    ann(BATCH_STEPS, [
+        { q: 0, tm: 'nnnnn', db: '' },
+        { q: 1, tm: 'nnnnn', db: 'team', hit: [] },
+        { q: 1, tm: 'lllll', db: 'team', hit: [] },
+        { q: 1, tm: 'lllll', db: '', bundle: true },
+        { q: 2, tm: 'lllll', db: 'member', hit: [0, 1, 2, 3, 4] },
+        { q: 2, tm: 'mmmmm', db: 'member', hit: [0, 1, 2, 3, 4] },
+        { q: 2, tm: 'mmmmm', db: '', fm: '1 + ⌈N ÷ 배치 크기⌉  =  2번', good: true }
+    ]);
 
+    /* ===================== 상태 ===================== */
     function currentSteps() {
         if (mode === 'fetch') return FETCH_STEPS;
         if (mode === 'batch') return BATCH_STEPS;
         return N1_STEPS;
     }
-
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        var rad = Math.min(r, w / 2, h / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + rad, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, rad);
-        ctx.arcTo(x + w, y + h, x,     y + h, rad);
-        ctx.arcTo(x,     y + h, x,     y,     rad);
-        ctx.arcTo(x,     y,     x + w, y,     rad);
-        ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
-    }
-    function tx(str, x, y, sz, color, align, bold) {
-        if (sz < 9.5) sz = 9.5;
-        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
-    }
-    function colorOf(key) {
-        return P[key] || P.muted;
+    function defaultLog() {
+        if (mode === 'fetch') return '조인 페치로 쿼리를 1번으로 줄이는 방법과 컬렉션 페이징의 한계를 봅니다.';
+        if (mode === 'batch') return '지연 로딩을 유지한 채 IN으로 묶어 쿼리를 2번으로 줄이는 배치 페치를 봅니다.';
+        return '목록 1번과 항목마다 1번씩, 쿼리가 1 + N번 나가는 과정을 쿼리 횟수를 세며 봅니다.';
     }
 
-    /* ===================== 레이아웃 ===================== */
-    var BOX_H = 60;
-    var SEC_GAP = 10;
-
-    function sectionsOf(step, w, mob) {
-        var fs = mob ? 11 : 12;
-        var lh = Math.round(fs * 1.5);
-        var inner = w - 20;
-        var defs = [
-            { title: '실행되는 SQL', rows: step ? step.msg : [], empty: step ? '(내용 없음)' : '(STEP 또는 PLAY로 시작하세요)' },
-            { title: '애플리케이션의 동작', rows: step ? step.cli : [], empty: '(없음)' },
-            { title: '쿼리 횟수와 비용', rows: step ? step.srv : [], empty: '(없음)' }
-        ];
-        defs.forEach(function (d) {
-            var out = [];
-            d.rows.forEach(function (r) {
-                ctx.font = '500 ' + (fs - 1) + 'px "JetBrains Mono",monospace';
-                window.CsFlow.wrapText(ctx, r[0], inner).forEach(function (t) { out.push([t, r[1]]); });
-            });
-            d.lines = out;
-            d.h = 26 + Math.max(1, out.length) * lh;
-            d.lh = lh;
+    /* ===================== 레이아웃(모드마다 고정) ===================== */
+    function wrapRows(rows, maxW, fs) {
+        var out = [];
+        (rows || []).forEach(function (r) {
+            lines(r[0], maxW, fs).forEach(function (t) { out.push([t, r[1]]); });
         });
-        return defs;
+        return out;
     }
-    function topBlockH() {
-        return BOX_H + 24 + 34;
+    function layout(w, mob) {
+        var fs = mob ? 11 : 12;
+        var lh = Math.round(fs * 1.45);
+        var cardN = 0;
+        currentSteps().forEach(function (s) { cardN = Math.max(cardN, wrapRows(s.msg, w - 76, fs - 1).length); });
+        var cardH = Math.max(1, cardN) * lh + 14;
+        return { fs: fs, lh: lh, cntH: 66, appH: 112, cardH: cardH, gapH: cardH + 58, dbH: 128, fmH: 34,
+                 total: 66 + 112 + cardH + 58 + 128 + 34 + 10 };
     }
-    function totalHeight(step, w, mob, top) {
-        var h = top + topBlockH();
-        sectionsOf(step, w, mob).forEach(function (d) { h += d.h + SEC_GAP; });
-        return h + 6;
-    }
+    function sceneH(w, mob) { return layout(w, mob).total; }
+
+    var TEAM_COL = ['orange', 'purple', 'teal', 'green', 'yellow'];
 
     /* ===================== 장면 그리기 ===================== */
-    function drawScene(x0, top, w, mob, step) {
-        var fs = mob ? 11 : 12;
-        var gap = mob ? 8 : 16;
-        var bw = (w - gap * 2) / 3;
-        var busY = top + BOX_H + 24;
-        var s = step || { from: null, to: null, kind: '', label: '', hl: {}, msg: [], cli: [], srv: [] };
-        var cx = [];
-        ACTORS.forEach(function (a, i) { cx.push(x0 + i * (bw + gap) + bw / 2); });
-        var idxOf = { A: 0, O: 1, D: 2 };
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var L = layout(w, mob);
+        var fs = L.fs;
+        var s = step || { from: null, to: null, kind: '', label: '', hl: {}, msg: [], tm: 'nnnnn', q: 0, db: '' };
+        var hl = s.hl || {};
+        var e = clamp01(t);
 
-        ctx.beginPath();
-        ctx.moveTo(cx[0], busY);
-        ctx.lineTo(cx[2], busY);
-        ctx.strokeStyle = P.muted + '55';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        var pulse = s.kind === 'err' ? P.red : (s.kind === 'res' ? P.teal : P.yellow);
-        ACTORS.forEach(function (a, i) {
-            var x = x0 + i * (bw + gap);
-            var c = colorOf(a.col);
-            var badge = s.hl[a.id];
-            var bc = badge ? colorOf(badge[1]) : c;
-            var faded = badge && badge[1] === 'muted';
-            var on = s.from === a.id || s.to === a.id;
-            ctx.beginPath();
-            ctx.moveTo(cx[i], top + BOX_H);
-            ctx.lineTo(cx[i], busY);
-            ctx.strokeStyle = on ? pulse + 'ff' : P.muted + '55';
-            ctx.lineWidth = on ? 2.4 : 1.4;
-            ctx.stroke();
-            rr(x, top, bw, BOX_H, 6, (faded ? P.muted : bc) + '18', (badge ? bc : c) + (badge || on ? 'ff' : '77'), badge || on ? 1.8 : 1.2);
-            tx(a.name, x + bw / 2, top + 14, fs, c + 'ee', 'center', true);
-            tx(a.sub, x + bw / 2, top + 31, fs - 1.5, P.muted + 'ee', 'center', false);
-            if (badge) tx(badge[0], x + bw / 2, top + 48, fs - 1, bc + 'ff', 'center', true);
-        });
-
-        if (s.from && s.to) {
-            var a = cx[idxOf[s.from]];
-            var b = cx[idxOf[s.to]];
-            var dir = b > a ? 1 : -1;
-            var ax = a + dir * 6;
-            var bx = b - dir * 6;
-            ctx.beginPath();
-            ctx.moveTo(ax, busY);
-            ctx.lineTo(bx, busY);
-            ctx.strokeStyle = pulse + 'ff';
-            ctx.lineWidth = 3;
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(bx, busY);
-            ctx.lineTo(bx - dir * 9, busY - 6);
-            ctx.lineTo(bx - dir * 9, busY + 6);
-            ctx.closePath();
-            ctx.fillStyle = pulse + 'ff';
-            ctx.fill();
+        /* 쿼리 카운터 */
+        var qcol = s.bad ? P.red : (s.good ? P.green : P.yellow);
+        rr(x0, top, w, L.cntH - 8, 10, qcol + '14', qcol + 'aa', 1.6);
+        tx('SQL 쿼리', x0 + 14, top + 14, fs - 0.5, P.sub + 'ff', 'left', true);
+        var qShow = s.q;
+        if (prev && prev.q !== undefined && s.q > prev.q) qShow = Math.round(lerp(prev.q, s.q, e));
+        tx(String(qShow), x0 + 14, top + 40, 30, qcol + 'ff', 'left', true);
+        var numW = String(qShow).length * 19 + 22;
+        tx('번', x0 + 14 + numW, top + 42, fs + 1, P.sub + 'ff', 'left', true);
+        var chipX = x0 + 14 + numW + 34;
+        var maxChips = Math.floor((x0 + w - 14 - chipX) / 22);
+        for (var i = 0; i < Math.min(s.q, maxChips); i++) {
+            var isNew = prev && i >= (prev.q || 0) && i < s.q;
+            var cc = i === 0 ? P.yellow : qcol;
+            circ(chipX + i * 22 + 9, top + 28, 9, cc + (isNew ? Math.round(e * 255).toString(16).padStart(2, '0') : 'ff'), 'none');
+            tx(String(i + 1), chipX + i * 22 + 9, top + 28, 10.5, P.bg + 'ff', 'center', true);
         }
-        tx(s.label || '요청과 응답을 오가는 경로', x0 + w / 2, busY + 16, fs - 0.5, (s.label ? pulse : P.muted) + 'ee', 'center', true);
 
-        var y = top + topBlockH();
-        sectionsOf(step, w, mob).forEach(function (d) {
-            rr(x0, y, w, d.h, 6, 'none', P.muted + '55', 1.2);
-            tx(d.title, x0 + 10, y + 12, fs - 1.5, P.muted + 'ee', 'left', true);
-            if (!d.lines.length) {
-                tx(d.empty, x0 + 10, y + 30, fs - 1, P.muted + 'cc', 'left', false);
+        /* 앱: 팀 카드 */
+        var ay = top + L.cntH;
+        rr(x0, ay, w, L.appH, 10, P.orange + '0f', P.orange + 'aa', 1.6);
+        tx('서비스 코드 (JPA 엔티티)', x0 + 14, ay + 16, fs, P.orange + 'ff', 'left', true);
+        if (hl.A) {
+            var ca = colorOf(hl.A[1]);
+            ctx.font = '700 ' + (fs - 1) + 'px "JetBrains Mono",monospace';
+            var bw = ctx.measureText(hl.A[0]).width + 18;
+            rr(x0 + w - bw - 10, ay + 6, bw, 20, 10, ca + '22', ca + 'ff', 1.2);
+            tx(hl.A[0], x0 + w - bw / 2 - 10, ay + 16, fs - 1, ca + 'ff', 'center', true);
+        }
+        var cw = (w - 28 - 4 * 8) / 5;
+        for (var k = 0; k < 5; k++) {
+            var tstate = s.tm.charAt(k);
+            var cx = x0 + 14 + k * (cw + 8), cyy = ay + 34;
+            var col = colorOf(TEAM_COL[k]);
+            var flash = s.hit && s.hit.indexOf(k) >= 0 && s.db === 'member' && !prev ? 1 : 0;
+            var justLoaded = prev && prev.tm && prev.tm.charAt(k) !== 'm' && tstate === 'm';
+            var lit = justLoaded ? e : (tstate === 'm' ? 1 : 0);
+            if (tstate === 'n') {
+                rr(cx, cyy, cw, 68, 7, 'none', P.muted + '88', 1.2);
+                tx('팀 ' + (k + 1), cx + cw / 2, cyy + 14, fs - 1, P.muted + 'ff', 'center', true);
+                tx('없음', cx + cw / 2, cyy + 40, fs - 1.5, P.muted + 'ff', 'center', false);
+            } else {
+                rr(cx, cyy, cw, 68, 7, col + '1c', col + 'ff', 1.5);
+                tx('팀 ' + (k + 1), cx + cw / 2, cyy + 14, fs - 1, col + 'ff', 'center', true);
+                if (tstate === 'l') {
+                    tx('members', cx + cw / 2, cyy + 34, fs - 2, P.sub + 'ff', 'center', false);
+                    tx('? 지연', cx + cw / 2, cyy + 52, fs - 1, P.sub + 'ff', 'center', true);
+                } else {
+                    var dr = 4.5;
+                    for (var d = 0; d < 3; d++) {
+                        circ(cx + cw / 2 + (d - 1) * 13, cyy + 40, dr + lit * 1.5, col + Math.round((0.25 + 0.75 * lit) * 255).toString(16).padStart(2, '0'), 'none');
+                    }
+                    tx(lit > 0.5 ? '로딩됨' : '? 지연', cx + cw / 2, cyy + 57, fs - 1.5, (lit > 0.5 ? P.green : P.sub) + 'ff', 'center', true);
+                }
             }
-            d.lines.forEach(function (ln, i) {
-                tx(ln[0], x0 + 10, y + 30 + i * d.lh, fs - 1, colorOf(ln[1]) + 'ee', 'left', false);
+        }
+
+        /* 가운데: SQL 카드 */
+        var gy = ay + L.appH;
+        var dby = gy + L.gapH;
+        var kc = s.kind === 'err' ? P.red : (s.kind === 'res' ? P.teal : P.yellow);
+        var down = (s.from === 'A' || s.from === 'O') && s.to === 'D';
+        var up = s.from === 'D' && s.to === 'A';
+        arrow(x0 + 14, gy + 2, x0 + 14, dby - 4, down ? kc + 'ff' : P.muted + '55', down ? 3 : 1.6, down ? undefined : [4, 4]);
+        arrow(x0 + w - 14, dby - 4, x0 + w - 14, gy + 2, up ? kc + 'ff' : P.muted + '55', up ? 3 : 1.6, up ? undefined : [4, 4]);
+        var rows = wrapRows(s.msg, w - 76, fs - 1);
+        var cardX = x0 + 28, cardW = w - 56;
+        var yTop = gy + 6, yBot = dby - L.cardH - 8;
+        var cy = null, alpha = 1, border = kc;
+        if (down) cy = lerp(yTop, yBot, e);
+        else if (up) cy = lerp(yBot, yTop, e);
+        else if (rows.length) { cy = lerp(yTop, yBot, 0.5); alpha = e; border = s.bundle ? P.purple : P.yellow; }
+        if (cy !== null && rows.length) {
+            ctx.globalAlpha = alpha;
+            rr(cardX, cy, cardW, L.cardH, 8, border + '1c', border + 'ff', 1.8);
+            rows.forEach(function (r, i) {
+                tx(r[0], cardX + 10, cy + 7 + L.lh / 2 + i * L.lh, fs - 1, colorOf(r[1]) + 'ff', 'left', false);
             });
-            y += d.h + SEC_GAP;
-        });
+            ctx.globalAlpha = 1;
+        }
+        if (s.label && !rows.length) tx(s.label, x0 + w / 2, gy + L.gapH / 2, fs, P.yellow + 'ff', 'center', true);
+
+        /* DB: team / member 테이블 */
+        var dcol = hl.D ? colorOf(hl.D[1]) : P.teal;
+        rr(x0, dby, w, L.dbH, 10, P.teal + '0f', dcol + (hl.D ? 'ff' : 'aa'), hl.D ? 2 : 1.6);
+        tx('DB (PostgreSQL)', x0 + 14, dby + 16, fs, P.teal + 'ff', 'left', true);
+        if (hl.D) {
+            var bw2 = (function () { ctx.font = '700 ' + (fs - 1) + 'px "JetBrains Mono",monospace'; return ctx.measureText(hl.D[0]).width + 18; })();
+            rr(x0 + w - bw2 - 10, dby + 6, bw2, 20, 10, dcol + '22', dcol + 'ff', 1.2);
+            tx(hl.D[0], x0 + w - bw2 / 2 - 10, dby + 16, fs - 1, dcol + 'ff', 'center', true);
+        }
+        var tw1 = Math.min(110, w * 0.3), tx1 = x0 + 14, ty = dby + 32;
+        var teamLit = s.db === 'team' || s.db === 'join';
+        rr(tx1, ty, tw1, 88, 6, teamLit ? P.yellow + '18' : 'none', (teamLit ? P.yellow : P.muted) + 'cc', teamLit ? 2 : 1.2);
+        tx('team', tx1 + tw1 / 2, ty + 11, fs - 1, (teamLit ? P.yellow : P.sub) + 'ff', 'center', true);
+        for (var r1 = 0; r1 < 5; r1++) {
+            var rc = colorOf(TEAM_COL[r1]);
+            var on1 = teamLit && (s.db === 'join' ? true : e > r1 / 6);
+            rr(tx1 + 8, ty + 22 + r1 * 12, tw1 - 16, 8, 3, rc + (on1 ? 'cc' : '44'), 'none');
+        }
+        var mx = tx1 + tw1 + 16, mw = x0 + w - 14 - mx;
+        var memLit = s.db === 'member' || s.db === 'join';
+        rr(mx, ty, mw, 88, 6, memLit ? P.yellow + '18' : 'none', (memLit ? P.yellow : P.muted) + 'cc', memLit ? 2 : 1.2);
+        tx('member', mx + mw / 2, ty + 11, fs - 1, (memLit ? P.yellow : P.sub) + 'ff', 'center', true);
+        var gw = (mw - 16 - 4 * 6) / 5;
+        for (var g = 0; g < 5; g++) {
+            var gc = colorOf(TEAM_COL[g]);
+            var ghit = s.hit && s.hit.indexOf(g) >= 0 && memLit;
+            var gon = ghit ? (s.hit.length > 1 && s.db === 'member' && s.hit.length < 5 ? e > (s.hit.indexOf(g) / s.hit.length) : e > 0.1) : false;
+            for (var m = 0; m < 3; m++) {
+                rr(mx + 8 + g * (gw + 6), ty + 22 + m * 20, gw, 14, 3, gc + (gon ? 'cc' : '33'), gon ? gc + 'ff' : 'none', 1);
+            }
+        }
+
+        if (s.warn) tx('⚠ ' + s.warn, x0 + w / 2, dby + L.dbH + 14, fs - 0.5, P.red + 'ff', 'center', true);
+        else if (s.fm) tx(s.fm, x0 + w / 2, dby + L.dbH + 16, fs + 1, qcol + 'ff', 'center', true);
     }
 
     /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
     function draw() {
         P = window.CsFlow.getP();
         ctx.clearRect(0, 0, GW(), GH());
         var W = GW(); var mob = W < 600;
-        var padX = mob ? 16 : 26;
-        var top = mob ? 16 : 22;
         var steps = currentSteps();
         var step = stepIdx >= 0 ? steps[stepIdx] : null;
-        drawScene(padX, top, W - padX * 2, mob, step);
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
         var mob = w < 600;
-        var padX = mob ? 16 : 26;
-        var top = mob ? 16 : 22;
-        var neededH = 300;
-        currentSteps().forEach(function (s) {
-            var h = totalHeight(s, w - padX * 2, mob, top);
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
             if (h > neededH) neededH = h;
         });
         canvasWrap.style.height    = 'auto';
@@ -333,17 +441,22 @@
     /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        draw();
-        rafId = requestAnimationFrame(function () { rafId = null; if (onDone) onDone(); });
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
     function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
-    function defaultLog() {
-        if (mode === 'fetch') return '조인 페치로 쿼리를 1번으로 줄이는 방법과 컬렉션 페이징의 한계를 봅니다.';
-        if (mode === 'batch') return '지연 로딩을 유지한 채 IN으로 묶어 쿼리를 2번으로 줄이는 배치 페치를 봅니다.';
-        return '목록 1번과 항목마다 1번씩, 쿼리가 1 + N번 나가는 과정을 쿼리 횟수를 세며 봅니다.';
-    }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -382,7 +495,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);

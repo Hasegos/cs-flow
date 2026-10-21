@@ -72,11 +72,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'offset';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 데이터: 참여자와 단계 ===================== */
     var ACTORS = [
@@ -158,176 +225,256 @@
             { label: '위치 vs 기준 행', msg: [Y('OFFSET: 위치(몇 번째)를 기억'), Y('커서: 기준 행(어떤 행 다음)을 기억')], hl: { C: ['커서가 안정적', 'green'] }, cli: [R('OFFSET: 중복 · 누락 가능')], srv: [G('커서: 변경에 강함')] })
     ];
 
-    /* ===================== 상태 ===================== */
-    var mode    = 'offset';
-    var stepIdx = -1;
-    var running = false;
-    var timer   = null;
-    var rafId   = null;
-    var speed   = 1900;
+    /* ===================== 장면 데이터 ===================== */
+    function ann(steps, list) {
+        steps.forEach(function (s, i) { var a = list[i] || {}; for (var k in a) s[k] = a[k]; });
+    }
+    function seqIds(from, to) {
+        var a = [];
+        for (var i = from; i >= to; i--) a.push(i);
+        return a;
+    }
+    function RW(label, ids, marks) { return { label: label, ids: ids, marks: marks || {} }; }
+    var BIG = 1000000;
 
+    ann(OFFSET_STEPS, [
+        { sc: 0 },
+        { sc: 0, nm: 'OFFSET 0' },
+        { sc: 1, win: 0, read: 10, skip: 0, ret: 10 },
+        { sc: 0, nm: 'OFFSET 10' },
+        { sc: 1, win: 10, read: 20, skip: 10, ret: 10 },
+        { sc: 0, nm: 'OFFSET 999,990' },
+        { sc: 1, win: 999990, read: 1000000, skip: 999990, ret: 10, bad: true },
+        { sc: 1, win: 999990, read: 1000000, skip: 999990, ret: 10, bad: true, fm: '거치는 행 = offset + size' }
+    ]);
+    ann(CURSOR_STEPS, [
+        { sc: 0 },
+        { sc: 0 },
+        { sc: 1, win: 0, read: 10, skip: 0, ret: 10, cur: 10 },
+        { sc: 0, cur: 10 },
+        { sc: 1, win: 10, read: 10, skip: 0, ret: 10, cur: 20, jump: 10 },
+        { sc: 0, cur: 999990 },
+        { sc: 1, win: 999990, read: 10, skip: 0, ret: 10, cur: 999990, jump: 999990, good: true },
+        { sc: 0, fm: '페이지 번호로 건너뛰기 불가 → 순차 이동에 적합' },
+        { sc: 0 }
+    ]);
+    ann(CHANGE_STEPS, [
+        { rows: [] },
+        { rows: [RW('사용자가 본 1페이지', seqIds(100, 91), {})] },
+        { rows: [RW('사용자가 본 1페이지', seqIds(100, 91), {}), RW('DB 맨 앞 (새 글 3개)', seqIds(103, 94), { 103: 'yellow', 102: 'yellow', 101: 'yellow' })] },
+        { rows: [RW('사용자가 본 1페이지', seqIds(100, 91), {}), RW('DB 맨 앞 (새 글 3개)', seqIds(103, 94), { 103: 'yellow', 102: 'yellow', 101: 'yellow' }), RW('OFFSET 2페이지', seqIds(93, 84), { 93: 'red', 92: 'red', 91: 'red' })] },
+        { rows: [RW('사용자가 본 1페이지', seqIds(100, 91), {}), RW('DB 맨 앞 (새 글 3개)', seqIds(103, 94), { 103: 'yellow', 102: 'yellow', 101: 'yellow' }), RW('커서 2페이지 (id < 91)', seqIds(90, 81), { 90: 'green', 89: 'green', 88: 'green', 87: 'green', 86: 'green', 85: 'green', 84: 'green', 83: 'green', 82: 'green', 81: 'green' })] },
+        { rows: [RW('사용자가 본 1페이지', seqIds(100, 91), {}), RW('DB 맨 앞 (95 삭제)', [100, 99, 98, 97, 96, 95, 94, 93, 92, 91], { 95: 'gone' }), RW('OFFSET 2페이지', seqIds(89, 80), { 89: 'yellow' }), RW('', [], {})], note: '90이 어느 페이지에도 나오지 않음 (누락)' },
+        { rows: [RW('사용자가 본 1페이지', seqIds(100, 91), {}), RW('DB 맨 앞 (95 삭제)', [100, 99, 98, 97, 96, 95, 94, 93, 92, 91], { 95: 'gone' }), RW('커서 2페이지 (id < 91)', seqIds(90, 81), { 90: 'green', 89: 'green', 88: 'green', 87: 'green', 86: 'green', 85: 'green', 84: 'green', 83: 'green', 82: 'green', 81: 'green' })], good: true },
+        { rows: [], fm: 'OFFSET은 위치를, 커서는 기준 행을 기억한다' }
+    ]);
+
+    /* ===================== 상태 ===================== */
     function currentSteps() {
         if (mode === 'cursor') return CURSOR_STEPS;
         if (mode === 'change') return CHANGE_STEPS;
         return OFFSET_STEPS;
     }
-
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        var rad = Math.min(r, w / 2, h / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + rad, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, rad);
-        ctx.arcTo(x + w, y + h, x,     y + h, rad);
-        ctx.arcTo(x,     y + h, x,     y,     rad);
-        ctx.arcTo(x,     y,     x + w, y,     rad);
-        ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    function defaultLog() {
+        if (mode === 'cursor') return '마지막으로 본 행의 키로 이어 가는 커서 방식이 위치와 상관없이 일정한 비용으로 읽는 과정을 봅니다.';
+        if (mode === 'change') return '페이지를 넘기는 사이 데이터가 추가·삭제될 때 OFFSET과 커서의 결과가 어떻게 달라지는지 봅니다.';
+        return '페이지 번호로 위치를 정하는 OFFSET 방식에서 뒤 페이지일수록 거치는 행이 늘어나는 과정을 봅니다.';
     }
-    function tx(str, x, y, sz, color, align, bold) {
-        if (sz < 9.5) sz = 9.5;
-        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
-    }
-    function colorOf(key) {
-        return P[key] || P.muted;
+    function comma(n) {
+        var s = String(Math.round(n));
+        return s.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     }
 
-    /* ===================== 레이아웃 ===================== */
-    var BOX_H = 60;
-    var SEC_GAP = 10;
-
-    function sectionsOf(step, w, mob) {
-        var fs = mob ? 11 : 12;
-        var lh = Math.round(fs * 1.5);
-        var inner = w - 20;
-        var defs = [
-            { title: '요청 · SQL · 응답', rows: step ? step.msg : [], empty: step ? '(내용 없음)' : '(STEP 또는 PLAY로 시작하세요)' },
-            { title: '읽은 행 · 사용자 상태', rows: step ? step.cli : [], empty: '(없음)' },
-            { title: '결과 · 서버 상태', rows: step ? step.srv : [], empty: '(없음)' }
-        ];
-        defs.forEach(function (d) {
-            var out = [];
-            d.rows.forEach(function (r) {
-                ctx.font = '500 ' + (fs - 1) + 'px "JetBrains Mono",monospace';
-                window.CsFlow.wrapText(ctx, r[0], inner).forEach(function (t) { out.push([t, r[1]]); });
-            });
-            d.lines = out;
-            d.h = 26 + Math.max(1, out.length) * lh;
-            d.lh = lh;
+    /* ===================== 레이아웃(모드마다 고정) ===================== */
+    function wrapRows(rows, maxW, fs) {
+        var out = [];
+        (rows || []).forEach(function (r) {
+            lines(r[0], maxW, fs).forEach(function (t) { out.push([t, r[1]]); });
         });
-        return defs;
+        return out;
     }
-    function topBlockH() {
-        return BOX_H + 24 + 34;
+    function layout(w, mob) {
+        var fs = mob ? 11 : 12;
+        var lh = Math.round(fs * 1.45);
+        var cardN = 0;
+        currentSteps().forEach(function (s) { cardN = Math.max(cardN, wrapRows(s.msg, w - 40, fs - 1).length); });
+        var cardH = Math.max(1, cardN) * lh + 14;
+        var body = mode === 'change' ? 4 * 62 + 24 : 196;
+        return { fs: fs, lh: lh, pipeH: 54, cardH: cardH, body: body, total: 54 + 12 + cardH + 14 + body + 10 };
     }
-    function totalHeight(step, w, mob, top) {
-        var h = top + topBlockH();
-        sectionsOf(step, w, mob).forEach(function (d) { h += d.h + SEC_GAP; });
-        return h + 6;
-    }
+    function sceneH(w, mob) { return layout(w, mob).total; }
 
     /* ===================== 장면 그리기 ===================== */
-    function drawScene(x0, top, w, mob, step) {
-        var fs = mob ? 11 : 12;
-        var gap = mob ? 8 : 16;
-        var bw = (w - gap * 2) / 3;
-        var busY = top + BOX_H + 24;
-        var s = step || { from: null, to: null, kind: '', label: '', hl: {}, msg: [], cli: [], srv: [] };
-        var cx = [];
-        ACTORS.forEach(function (a, i) { cx.push(x0 + i * (bw + gap) + bw / 2); });
-        var idxOf = { C: 0, A: 1, D: 2 };
-
-        ctx.beginPath();
-        ctx.moveTo(cx[0], busY);
-        ctx.lineTo(cx[2], busY);
-        ctx.strokeStyle = P.muted + '55';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        var pulse = s.kind === 'err' ? P.red : (s.kind === 'res' ? P.teal : P.yellow);
-        ACTORS.forEach(function (a, i) {
+    function drawPipe(x0, top, w, fs, s) {
+        var items = [['C', '클라이언트', 'orange'], ['A', '서버', 'purple'], ['D', 'DB', 'teal']];
+        var bw = Math.min(110, (w - 60) / 3);
+        var gap = (w - bw * 3) / 2;
+        items.forEach(function (it, i) {
             var x = x0 + i * (bw + gap);
-            var c = colorOf(a.col);
-            var badge = s.hl[a.id];
-            var bc = badge ? colorOf(badge[1]) : c;
-            var faded = badge && badge[1] === 'muted';
-            var on = s.from === a.id || s.to === a.id;
-            ctx.beginPath();
-            ctx.moveTo(cx[i], top + BOX_H);
-            ctx.lineTo(cx[i], busY);
-            ctx.strokeStyle = on ? pulse + 'ff' : P.muted + '55';
-            ctx.lineWidth = on ? 2.4 : 1.4;
-            ctx.stroke();
-            rr(x, top, bw, BOX_H, 6, (faded ? P.muted : bc) + '18', (badge ? bc : c) + (badge || on ? 'ff' : '77'), badge || on ? 1.8 : 1.2);
-            tx(a.name, x + bw / 2, top + 14, fs, c + 'ee', 'center', true);
-            tx(a.sub, x + bw / 2, top + 31, fs - 1.5, P.muted + 'ee', 'center', false);
-            if (badge) tx(badge[0], x + bw / 2, top + 48, fs - 1, bc + 'ff', 'center', true);
+            var on = s.from === it[0] || s.to === it[0];
+            var c = colorOf(it[2]);
+            rr(x, top, bw, 30, 15, c + (on ? '33' : '12'), c + (on ? 'ff' : '88'), on ? 2 : 1.2);
+            tx(it[1], x + bw / 2, top + 15, fs - 0.5, c + 'ff', 'center', true);
+            if (i < 2) {
+                var act = (s.from === it[0] && s.to === items[i + 1][0]) || (s.from === items[i + 1][0] && s.to === it[0]);
+                var back = s.from === items[i + 1][0] && s.to === it[0];
+                var kc = s.kind === 'err' ? P.red : (s.kind === 'res' ? P.teal : P.yellow);
+                if (back) arrow(x + bw + gap - 4, top + 15, x + bw + 4, top + 15, act ? kc + 'ff' : P.muted + '66', act ? 3 : 1.4);
+                else arrow(x + bw + 4, top + 15, x + bw + gap - 4, top + 15, act ? kc + 'ff' : P.muted + '66', act ? 3 : 1.4);
+            }
         });
+        var hl = s.hl || {};
+        ['C', 'A', 'D'].forEach(function (k, i) {
+            if (hl[k]) {
+                var x = x0 + i * (bw + gap);
+                var c = colorOf(hl[k][1]);
+                tx(hl[k][0], x + bw / 2, top + 44, fs - 1.5, c + 'ff', 'center', true);
+            }
+        });
+    }
+    function drawCard(x0, y, w, fs, L, s, e, border) {
+        var rows = wrapRows(s.msg, w - 40, fs - 1);
+        if (!rows.length) {
+            if (s.label) tx(s.label, x0 + w / 2, y + L.cardH / 2, fs, P.yellow + 'ff', 'center', true);
+            return;
+        }
+        ctx.globalAlpha = e;
+        rr(x0, y, w, L.cardH, 8, border + '1c', border + 'ff', 1.8);
+        rows.forEach(function (r, i) {
+            tx(r[0], x0 + 12, y + 7 + L.lh / 2 + i * L.lh, fs - 1, colorOf(r[1]) + 'ff', 'left', false);
+        });
+        ctx.globalAlpha = 1;
+    }
 
-        if (s.from && s.to) {
-            var a = cx[idxOf[s.from]];
-            var b = cx[idxOf[s.to]];
-            var dir = b > a ? 1 : -1;
-            var ax = a + dir * 6;
-            var bx = b - dir * 6;
+    function drawTrack(x0, y, w, fs, s, prev, e, L) {
+        var cx = x0 + 14, cw = w - 28;
+        tx('post 테이블  (id 1 → 1,000,000, 100만 행)', x0 + 2, y + 6, fs - 0.5, P.sub + 'ff', 'left', true);
+        var ty = y + 22, th = 26;
+        rr(cx, ty, cw, th, 6, P.muted + '1a', P.muted + 'aa', 1.4);
+        var scanTo = 0;
+        if (s.sc && s.read !== undefined && mode === 'offset') scanTo = clamp01(s.read / BIG);
+        if (scanTo > 0) {
+            var sx = cw * scanTo * e;
+            rr(cx, ty, Math.max(sx, 3), th, 6, (s.bad ? P.red : P.orange) + '88', 'none');
+        }
+        if (s.sc && s.win !== undefined) {
+            var wx = cx + cw * (s.win / BIG);
+            var ww = Math.max(5, cw * (10 / BIG));
+            if (wx + ww > cx + cw) wx = cx + cw - ww;
+            ctx.globalAlpha = mode === 'offset' ? clamp01((e - 0.6) / 0.4) : e;
+            rr(wx - 1, ty - 4, ww + 2, th + 8, 3, P.green + 'ff', 'none');
+            ctx.globalAlpha = 1;
+            var lbl = '돌려줌 10행';
+            var lx = Math.min(cx + cw - 44, Math.max(cx + 44, wx));
+            tx(lbl, lx, ty + th + 18, fs - 0.5, P.green + 'ff', 'center', true);
+            if (mode === 'cursor' && s.jump !== undefined) {
+                var sx0 = cx + 4, ex0 = wx + ww / 2;
+                ctx.beginPath();
+                ctx.moveTo(sx0, ty - 4);
+                var mid = (sx0 + ex0) / 2;
+                ctx.quadraticCurveTo(mid, ty - 34, lerp(sx0, ex0, e), ty - 4 - 18 * Math.sin(Math.PI * e) * 0);
+                ctx.strokeStyle = P.green + 'ff';
+                ctx.lineWidth = 2.4;
+                ctx.setLineDash([6, 4]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                tx('인덱스로 바로 이동', mid, ty - 24, fs - 0.5, P.green + 'ff', 'center', true);
+            }
+        }
+        if (mode === 'cursor' && s.cur !== undefined) {
+            var px = cx + cw * Math.min(1, s.cur / BIG);
             ctx.beginPath();
-            ctx.moveTo(ax, busY);
-            ctx.lineTo(bx, busY);
-            ctx.strokeStyle = pulse + 'ff';
-            ctx.lineWidth = 3;
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(bx, busY);
-            ctx.lineTo(bx - dir * 9, busY - 6);
-            ctx.lineTo(bx - dir * 9, busY + 6);
+            ctx.moveTo(px, ty + th + 1);
+            ctx.lineTo(px - 5, ty + th + 9);
+            ctx.lineTo(px + 5, ty + th + 9);
             ctx.closePath();
-            ctx.fillStyle = pulse + 'ff';
+            ctx.fillStyle = P.yellow + 'ff';
             ctx.fill();
         }
-        tx(s.label || '요청과 응답을 오가는 경로', x0 + w / 2, busY + 16, fs - 0.5, (s.label ? pulse : P.muted) + 'ee', 'center', true);
 
-        var y = top + topBlockH();
-        sectionsOf(step, w, mob).forEach(function (d) {
-            rr(x0, y, w, d.h, 6, 'none', P.muted + '55', 1.2);
-            tx(d.title, x0 + 10, y + 12, fs - 1.5, P.muted + 'ee', 'left', true);
-            if (!d.lines.length) {
-                tx(d.empty, x0 + 10, y + 30, fs - 1, P.muted + 'cc', 'left', false);
-            }
-            d.lines.forEach(function (ln, i) {
-                tx(ln[0], x0 + 10, y + 30 + i * d.lh, fs - 1, colorOf(ln[1]) + 'ee', 'left', false);
-            });
-            y += d.h + SEC_GAP;
+        var ny = ty + th + 40;
+        var nums = [['거친 행', s.read, s.bad ? 'red' : 'yellow'], ['건너뛴 행', s.skip, s.bad ? 'red' : 'sub'], ['돌려준 행', s.ret, 'green']];
+        var nw = (cw - 16) / 3;
+        nums.forEach(function (n, i) {
+            var nx = cx + i * (nw + 8);
+            var val = n[1];
+            var prevVal = prev && prev.read !== undefined ? prev[i === 0 ? 'read' : (i === 1 ? 'skip' : 'ret')] : 0;
+            var shown = val === undefined ? null : (prevVal !== undefined && prev ? lerp(prevVal || 0, val, e) : val);
+            var c = colorOf(n[2]);
+            rr(nx, ny, nw, 54, 8, c + '12', c + 'aa', 1.3);
+            tx(n[0], nx + nw / 2, ny + 13, fs - 1.5, P.sub + 'ff', 'center', true);
+            tx(shown === null ? '-' : comma(shown), nx + nw / 2, ny + 36, fs + 3, c + 'ff', 'center', true);
         });
+        if (s.nm) tx(s.nm, x0 + w / 2, ny + 74, fs, P.yellow + 'ff', 'center', true);
+        if (s.fm) tx(s.fm, x0 + w / 2, ny + 74, fs, P.yellow + 'ff', 'center', true);
+    }
+
+    function drawChips(x0, y, w, fs, row, e, idx) {
+        var chipW = Math.min(30, (w - 9 * 3) / 10);
+        var gx = 3;
+        tx(row.label, x0 + 2, y + 6, fs - 1, P.sub + 'ff', 'left', true);
+        row.ids.forEach(function (id, i) {
+            var x = x0 + i * (chipW + gx);
+            var mk = row.marks[id];
+            var c = mk === 'red' ? P.red : (mk === 'yellow' ? P.yellow : (mk === 'green' ? P.green : (mk === 'gone' ? P.muted : P.sub)));
+            var a = clamp01(e * 3 - i * 0.12);
+            ctx.globalAlpha = idx === 1 ? 1 : a;
+            if (mk === 'gone') {
+                rr(x, y + 16, chipW, 26, 5, 'none', P.red + 'cc', 1.3);
+                tx('삭제', x + chipW / 2, y + 29, 10, P.red + 'ff', 'center', true);
+            } else {
+                rr(x, y + 16, chipW, 26, 5, c + (mk ? '33' : '14'), c + (mk ? 'ff' : '88'), mk ? 1.8 : 1.2);
+                tx(String(id), x + chipW / 2, y + 29, 10.5, (mk ? c : P.text) + 'ff', 'center', mk ? true : false);
+            }
+            ctx.globalAlpha = 1;
+        });
+    }
+
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var L = layout(w, mob);
+        var fs = L.fs;
+        var s = step || { from: null, to: null, kind: '', label: '', hl: {}, msg: [], rows: [] };
+        var e = clamp01(t);
+        drawPipe(x0, top, w, fs, s);
+        var cy = top + L.pipeH + 6;
+        var kc = s.kind === 'err' ? P.red : (s.kind === 'res' ? P.teal : P.yellow);
+        drawCard(x0, cy, w, fs, L, s, e, kc);
+        var by = cy + L.cardH + 14;
+        if (mode === 'change') {
+            var rows = s.rows || [];
+            rows.forEach(function (r, i) {
+                if (!r.ids.length) return;
+                drawChips(x0, by + i * 62, w, fs, r, e, i === rows.length - 1 ? 0 : 1);
+            });
+            if (s.note) tx('⚠ ' + s.note, x0 + w / 2, by + 3 * 62 + 4, fs - 0.5, P.red + 'ff', 'center', true);
+            if (s.fm) tx(s.fm, x0 + w / 2, by + 30, fs + 1, P.yellow + 'ff', 'center', true);
+            if (s.good && !s.note) tx('✓ 중복도 누락도 없음', x0 + w / 2, by + 3 * 62 + 4, fs, P.green + 'ff', 'center', true);
+        } else {
+            drawTrack(x0, by, w, fs, s, prev, e, L);
+        }
     }
 
     /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
     function draw() {
         P = window.CsFlow.getP();
         ctx.clearRect(0, 0, GW(), GH());
         var W = GW(); var mob = W < 600;
-        var padX = mob ? 16 : 26;
-        var top = mob ? 16 : 22;
         var steps = currentSteps();
         var step = stepIdx >= 0 ? steps[stepIdx] : null;
-        drawScene(padX, top, W - padX * 2, mob, step);
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
         var mob = w < 600;
-        var padX = mob ? 16 : 26;
-        var top = mob ? 16 : 22;
-        var neededH = 300;
-        currentSteps().forEach(function (s) {
-            var h = totalHeight(s, w - padX * 2, mob, top);
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
             if (h > neededH) neededH = h;
         });
         canvasWrap.style.height    = 'auto';
@@ -343,17 +490,22 @@
     /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        draw();
-        rafId = requestAnimationFrame(function () { rafId = null; if (onDone) onDone(); });
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
     function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
-    function defaultLog() {
-        if (mode === 'cursor') return '마지막으로 본 행의 키로 이어 가는 커서 방식이 위치와 상관없이 일정한 비용으로 읽는 과정을 봅니다.';
-        if (mode === 'change') return '페이지를 넘기는 사이 데이터가 추가·삭제될 때 OFFSET과 커서의 결과가 어떻게 달라지는지 봅니다.';
-        return '페이지 번호로 위치를 정하는 OFFSET 방식에서 뒤 페이지일수록 거치는 행이 늘어나는 과정을 봅니다.';
-    }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -392,7 +544,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);
