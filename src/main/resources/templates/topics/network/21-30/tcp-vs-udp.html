@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">TCP vs UDP와 흐름 제어 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/network/21-30/tcp-vs-udp.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/network}" class="topic-breadcrumb__link">네트워크</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">TCP vs UDP와 흐름 제어</span>
+                </nav>
+
+                <span class="topic-hero__slug">network · 23</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">TCP vs UDP와 흐름 제어</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+                <button type="button" class="topic-like" th:classappend="${liked} ? ' topic-like--active' : ''" th:attr="data-topic-slug=${topic.slug}">
+                    <svg class="topic-like__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <span class="topic-like__count" th:text="${likeCount}">0</span>
+                </button>
+                <div class="topic-share">
+                    <button type="button" class="topic-share__btn topic-share__btn--copy" aria-label="링크 복사">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="topic-share__btn topic-share__btn--kakao" aria-label="카카오톡 공유">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                        </svg>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+                <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        인터넷에서 두 프로그램이 데이터를 주고받으려면 IP 위에서 어떤 방식으로 보낼지 정해야 합니다. 이때 가장 많이 쓰는 전송 계층 프로토콜이 <strong>TCP(Transmission Control Protocol)</strong>와 <strong>UDP(User Datagram Protocol)</strong>입니다. TCP는 연결을 만들고, 보낸 데이터가 순서대로 빠짐없이 도착하도록 책임집니다. UDP는 그런 약속 없이 데이터를 한 덩어리씩 던지듯 보냅니다. 웹 페이지와 파일 전송은 대개 TCP로, 이름 조회(DNS)와 실시간 음성 · 영상은 UDP로 가는 이유가 여기에 있습니다.
+                    </p>
+                    <p class="overview-lead">
+                        이 토픽에서는 TCP의 3-way handshake와 순서 번호 · 확인 응답 · 재전송, 연결 종료의 4단계, UDP가 연결 없이 데이터그램을 보내며 유실을 책임지지 않는 모습, 그리고 수신 측이 윈도 크기로 송신 속도를 조절하는 <strong>흐름 제어</strong>를 단계별로 봅니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">연결형과 비연결형</h3>
+                            <p class="overview-card__desc">TCP는 데이터를 보내기 전에 양쪽이 연결 상태를 만들고 유지합니다. UDP는 연결 상태가 없어서 보내고 싶을 때 바로 데이터그램을 보냅니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">바이트 스트림과 데이터그램</h3>
+                            <p class="overview-card__desc">TCP는 바이트가 이어진 흐름을 전달하므로 보낸 단위와 받는 단위가 같다고 보장하지 않습니다. UDP는 보낸 데이터그램 하나가 받는 쪽에 한 덩어리로 전달됩니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">순서 번호와 확인 응답</h3>
+                            <p class="overview-card__desc">TCP는 보낸 바이트마다 번호를 매기고, 수신 측이 "다음에 받을 번호"를 ack로 알립니다. 확인이 오지 않으면 송신 측이 같은 데이터를 다시 보냅니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">3-way handshake</h3>
+                            <p class="overview-card__desc">SYN, SYN-ACK, ACK 세 번의 교환으로 양쪽이 서로의 초기 순서 번호를 확인하고 연결을 만듭니다. 연결을 닫을 때는 FIN과 ACK를 양방향으로 주고받습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">흐름 제어</h3>
+                            <p class="overview-card__desc">수신 측이 ACK에 수신 윈도(받을 수 있는 크기)를 실어 알리고, 송신 측이 확인받지 못한 데이터를 그 크기 이하로만 유지해 수신 버퍼가 넘치지 않게 합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">혼잡 제어</h3>
+                            <p class="overview-card__desc">네트워크가 붐비지 않도록 송신 측이 혼잡 윈도로 보내는 양을 스스로 조절하는 장치입니다. 흐름 제어가 수신 측을 지킨다면 혼잡 제어는 네트워크를 지킵니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>TCP의 신뢰성은 번호와 확인 응답에서 나옵니다</strong> — 번호가 있어서 수신 측이 순서를 맞추고 중복을 버리고, 확인이 없으면 재전송할 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>UDP는 가벼운 대신 책임지지 않습니다</strong> — 헤더가 작고 기다리는 단계가 없지만, 유실 · 중복 · 순서 뒤바뀜을 UDP는 처리하지 않으므로 필요하면 애플리케이션이 직접 다룹니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>TCP는 메시지 경계를 만들어 주지 않습니다</strong> — 애플리케이션 프로토콜이 길이나 구분자로 한 메시지의 끝을 직접 정해야 합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>신뢰성이 필요한지가 선택 기준입니다</strong> — 한 바이트도 틀리면 안 되는 데이터는 TCP, 조금 잃어도 최신 데이터가 중요하거나 요청과 응답이 한 번씩이면 끝나는 경우는 UDP가 맞을 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "TCP 연결·전송" 탭에서 handshake, 유실과 재전송, 연결 종료를, "UDP 전송" 탭에서 유실을 아무도 모르는 모습을, "흐름 제어" 탭에서 윈도가 0이 됐다가 다시 열리는 과정을 STEP으로 확인하세요.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">배경</h2>
+                    <p class="overview-lead">
+                        UDP는 1980년 RFC 768로 정의됐습니다. 문서 3쪽 분량의 단순한 프로토콜로, IP 위에서 포트 번호로 프로그램을 구분해 데이터그램을 전달하는 것이 전부입니다. TCP는 1981년 RFC 793으로 표준화됐고, 오랫동안 고쳐진 끝에 2022년 RFC 9293이 이를 대체하는 현재의 명세가 됐습니다. 신뢰할 수 없는 IP 네트워크 위에서 신뢰할 수 있는 바이트 스트림을 만들어 내는 것이 TCP의 목표였습니다. 혼잡 제어 알고리즘은 RFC 5681에, 큰 윈도를 쓰는 확장은 RFC 7323에 정리돼 있습니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>헤더 크기</strong> — UDP 헤더는 출발 포트, 도착 포트, 길이, 체크섬 각 2바이트씩 8바이트입니다. TCP 헤더는 옵션이 없어도 20바이트이고, 옵션이 붙으면 최대 60바이트까지 늘어납니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>포트 번호</strong> — 두 프로토콜 모두 포트가 16비트라 0부터 65535까지입니다. 같은 번호라도 TCP 포트와 UDP 포트는 서로 다른 것으로 취급됩니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>연결 수립과 종료의 세그먼트 수</strong> — 연결을 만드는 데 세 개(SYN, SYN-ACK, ACK), 양쪽을 모두 닫는 데 보통 네 개(FIN, ACK, FIN, ACK)가 오갑니다. 가운데 ACK와 FIN을 한 세그먼트에 합치면 세 개가 되기도 합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>수신 윈도의 한계</strong> — TCP 헤더의 윈도 필드는 16비트라 한 번에 알릴 수 있는 크기가 65,535바이트입니다. 윈도 확장 옵션(RFC 7323)은 이 값을 최대 2의 14제곱 배까지 키워 약 1GiB까지 알릴 수 있게 합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>UDP 데이터그램의 최대 크기</strong> — 길이 필드가 16비트라 헤더를 포함해 65,535바이트가 한계입니다. IPv4에서는 IP 헤더 20바이트와 UDP 헤더 8바이트를 빼면 데이터는 최대 65,507바이트입니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>UDP는 패킷을 잘 잃어버리는 프로토콜이다</strong> — UDP가 유실을 일으키는 것이 아니라, 네트워크에서 생긴 유실을 복구해 주지 않을 뿐입니다. 네트워크 상태가 좋으면 UDP로도 대부분 잘 도착합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>TCP는 데이터가 반드시 전달됨을 보장한다</strong> — 연결이 끊기거나 재전송이 계속 실패하면 TCP는 전달을 포기하고 오류를 알립니다. 보장하는 것은 "전달된다면 순서대로 빠짐없이"이고, ACK는 상대의 TCP가 받았다는 뜻이지 애플리케이션이 처리했다는 뜻이 아닙니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>write를 두 번 하면 read도 두 번 된다</strong> — TCP는 바이트 스트림이라 두 번 보낸 데이터가 한 번에 읽히거나, 한 번 보낸 데이터가 나뉘어 읽힐 수 있습니다. 메시지 경계는 애플리케이션이 정해야 합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>흐름 제어와 혼잡 제어는 같은 말이다</strong> — 흐름 제어는 수신 측 버퍼가 넘치지 않게 수신 측이 알려 주는 윈도로 조절하고, 혼잡 제어는 네트워크 경로가 막히지 않게 송신 측이 스스로 추정해 조절합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">TCP와 UDP의 차이는 무엇인가요?</h3>
+                            <p class="overview-card__desc">TCP는 연결을 만들고 순서 번호, 확인 응답, 재전송, 흐름 제어, 혼잡 제어로 순서대로 빠짐없는 바이트 스트림을 제공합니다. UDP는 연결 없이 데이터그램을 보내며 신뢰성 기능을 제공하지 않는 대신 헤더가 작고 지연이 적습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">연결을 맺는 데 왜 세 번 주고받나요?</h3>
+                            <p class="overview-card__desc">RFC 9293은 가장 중요한 이유를 오래된 중복 SYN이 새 연결로 오해되는 것을 막기 위해서라고 설명합니다. 그 과정에서 양쪽이 각자의 초기 순서 번호를 보내고 상대가 확인하므로 두 방향의 번호도 함께 동기화됩니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">흐름 제어와 혼잡 제어는 어떻게 다른가요?</h3>
+                            <p class="overview-card__desc">흐름 제어는 수신 측 버퍼를 보호하기 위해 수신 측이 윈도 크기를 알려 송신 속도를 맞추는 것이고, 혼잡 제어는 네트워크 전체의 혼잡을 막기 위해 송신 측이 혼잡 윈도로 속도를 조절하는 것입니다. 실제 전송량은 둘 중 작은 값을 따릅니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">DNS는 왜 주로 UDP를 쓰나요?</h3>
+                            <p class="overview-card__desc">질의와 응답이 짧은 메시지 한 쌍이라 연결을 만드는 비용이 오히려 큽니다. 응답이 UDP로 담기에 너무 크거나 이름 서버 간 영역 전송처럼 신뢰성이 필요한 경우에는 TCP를 씁니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>웹과 서비스 통신</strong> — HTTP/1.1과 HTTP/2, SSH는 TCP 위에서 동작하고, 데이터베이스 클라이언트 연결도 대개 TCP를 씁니다. HTTP/3는 UDP 위에 만든 QUIC을 전송 계층으로 쓰고, QUIC이 재전송과 혼잡 제어를 자체로 수행합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>UDP를 쓰는 서비스</strong> — DNS 조회, DHCP, NTP 시각 동기화, RTP 기반 실시간 음성 · 화상 통화가 대표적입니다. 실시간 통화에서는 늦게 도착한 오래된 데이터를 다시 받는 것보다 지금의 데이터를 이어 가는 것이 중요합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Java 소켓</strong> — TCP는 Socket과 ServerSocket, UDP는 DatagramSocket과 DatagramPacket으로 다룹니다. TCP 소켓의 InputStream에서 읽는 단위는 보낸 write 단위와 무관합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>연결 상태 확인</strong> — 리눅스에서 ss -tan으로 ESTAB(ESTABLISHED), TIME-WAIT 같은 TCP 상태를 볼 수 있고, Wireshark나 tcpdump로 SYN, ACK, FIN 세그먼트와 순서 번호를 직접 확인할 수 있습니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/tcp-ip}">TCP/IP 4계층</a> — 전송 계층이 인터넷 계층 위에서 하는 일의 전체 구조를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/tcp-congestion}">TCP 혼잡 제어</a> — 이 토픽에서 구분만 한 혼잡 윈도의 증가와 감소를 자세히 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/http3-quic}">HTTP/3 · QUIC</a> — UDP 위에서 신뢰성을 다시 만든 전송 프로토콜을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/dns}">DNS</a> — UDP를 대표적으로 쓰는 이름 조회 과정을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/websocket}">WebSocket</a> — TCP 연결 위에서 양방향 메시지를 주고받는 방식을 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>표준</strong> — <a href="https://www.rfc-editor.org/rfc/rfc9293" target="_blank" rel="noopener">RFC 9293 TCP</a>, <a href="https://www.rfc-editor.org/rfc/rfc768" target="_blank" rel="noopener">RFC 768 UDP</a>, <a href="https://www.rfc-editor.org/rfc/rfc5681" target="_blank" rel="noopener">RFC 5681 TCP 혼잡 제어</a>, <a href="https://www.rfc-editor.org/rfc/rfc7323" target="_blank" rel="noopener">RFC 7323 TCP 확장</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>구현</strong> — <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/net/Socket.html" target="_blank" rel="noopener">Java Socket</a>, <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/net/DatagramSocket.html" target="_blank" rel="noopener">Java DatagramSocket</a></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/network/21-30/tcp-vs-udp-code :: code}"></th:block>
+            </div>
+
+            <!-- 탭 4: 퀴즈 -->
+            <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
+                <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+    <script th:src="@{/js/quiz.js}"></script>
+    <script th:src="@{/js/like.js}"></script>
+    <script th:src="@{/js/share.js}"></script>
+</body>
+</html>
