@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">CORS | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/network/21-30/cors.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/network}" class="topic-breadcrumb__link">네트워크</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">CORS</span>
+                </nav>
+
+                <span class="topic-hero__slug">network · 22</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">CORS</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+                <button type="button" class="topic-like" th:classappend="${liked} ? ' topic-like--active' : ''" th:attr="data-topic-slug=${topic.slug}">
+                    <svg class="topic-like__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <span class="topic-like__count" th:text="${likeCount}">0</span>
+                </button>
+                <div class="topic-share">
+                    <button type="button" class="topic-share__btn topic-share__btn--copy" aria-label="링크 복사">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="topic-share__btn topic-share__btn--kakao" aria-label="카카오톡 공유">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                        </svg>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+                <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        브라우저에서 다른 사이트의 API를 호출했다가 "blocked by CORS policy"라는 오류를 만난 적이 있을 겁니다. 브라우저는 보안을 위해 한 출처의 페이지에서 실행되는 스크립트가 다른 출처의 응답을 마음대로 읽지 못하게 막습니다(동일 출처 정책). 하지만 프런트엔드와 API 서버를 서로 다른 주소에 두는 구성은 흔하므로, 서버가 "이 출처의 페이지에는 응답을 보여 줘도 좋다"고 HTTP 헤더로 허락하는 약속이 필요합니다. 그 약속이 <strong>CORS(Cross-Origin Resource Sharing, 교차 출처 리소스 공유)</strong>입니다.
+                    </p>
+                    <p class="overview-lead">
+                        이 토픽에서는 출처가 무엇인지, 단순 요청에서 브라우저가 Origin과 Access-Control-Allow-Origin을 비교하는 과정, PUT이나 JSON 요청에서 OPTIONS로 먼저 묻는 <strong>사전 요청(preflight)</strong>, 그리고 쿠키를 함께 보낼 때 와일드카드(*)가 막히는 이유를 단계별로 봅니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">출처(origin)</h3>
+                            <p class="overview-card__desc">스킴(http, https), 호스트, 포트 세 가지를 합친 것입니다. 셋 중 하나라도 다르면 다른 출처이고, 경로는 출처에 포함되지 않습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">동일 출처 정책</h3>
+                            <p class="overview-card__desc">다른 출처의 응답을 스크립트가 읽는 것을 기본적으로 제한하는 브라우저의 보안 모델입니다. CORS는 이 제한을 서버의 허락으로 필요한 만큼 푸는 방법입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">Origin과 Allow-Origin</h3>
+                            <p class="overview-card__desc">브라우저가 요청에 페이지의 출처를 Origin 헤더로 실어 보내고, 서버가 응답에 허용하는 출처를 Access-Control-Allow-Origin 헤더로 돌려줍니다. 두 값을 비교하는 것은 브라우저입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">단순 요청</h3>
+                            <p class="overview-card__desc">메서드가 GET, HEAD, POST 중 하나이고, 스크립트가 직접 넣은 헤더가 Accept, Accept-Language, Content-Language, Content-Type, Range 같은 안전 목록 헤더뿐이며, Content-Type이 form 전송용 세 가지 값 중 하나일 때입니다. 사전 요청 없이 바로 서버로 갑니다. 단순 요청은 Fetch 표준의 용어가 아니라 MDN 등에서 쓰는 이름입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">사전 요청(preflight)</h3>
+                            <p class="overview-card__desc">단순 요청이 아닐 때 브라우저가 실제 요청 전에 보내는 OPTIONS 요청입니다. 쓰려는 메서드와 헤더를 묻고, 서버가 허용 목록으로 답하면 그때 실제 요청을 보냅니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">자격 증명 요청</h3>
+                            <p class="overview-card__desc">쿠키나 인증 정보를 함께 보내는 요청입니다. 서버가 Access-Control-Allow-Credentials: true를 보내야 하고, Allow-Origin에는 와일드카드(*)가 아니라 정확한 출처를 적어야 합니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>CORS를 집행하는 것은 브라우저입니다</strong> — 서버는 허락을 헤더로 표시할 뿐이고, 브라우저가 그 헤더를 보고 응답을 스크립트에 넘길지 정합니다. curl이나 서버끼리의 호출에는 적용되지 않습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>막히는 것은 요청이 아니라 응답 읽기입니다</strong> — 단순 요청은 서버로 전송되어 이미 처리됐을 수 있고, 브라우저가 응답을 스크립트에 넘기지 않을 뿐입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>사전 요청이 거절되면 실제 요청은 가지 않습니다</strong> — 서버에 부작용을 줄 수 있는 요청은 허락을 받은 뒤에야 전송됩니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>고치는 곳은 서버의 응답 헤더입니다</strong> — 허락은 서버가 내리는 것이라 프런트엔드 코드만으로 CORS 오류를 없앨 수는 없습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "단순 요청" 탭에서 Origin 비교와 응답 차단을, "사전 요청" 탭에서 OPTIONS 허락과 거절을, "쿠키 포함 요청" 탭에서 와일드카드가 막히고 정확한 출처가 통과하는 과정을 STEP으로 확인하세요.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">배경</h2>
+                    <p class="overview-lead">
+                        출처(origin)의 개념은 2011년 12월에 나온 RFC 6454(The Web Origin Concept)에 정의돼 있습니다. 교차 출처 요청을 허락하는 CORS 프로토콜은 지금 WHATWG의 Fetch 표준에서 정의합니다. 웹 페이지가 여러 서비스의 API를 조합해 쓰는 일이 늘면서, 동일 출처 정책이 지키는 보안과 필요한 교차 출처 통신 사이의 균형을 서버의 명시적 허락으로 맞추는 방식이 자리 잡았습니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>경로가 달라도 같은 출처</strong> — https://app.example.com/a와 https://app.example.com/b는 스킴, 호스트, 포트가 모두 같아 같은 출처입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>스킴이 다르면 다른 출처</strong> — http://app.example.com과 https://app.example.com은 스킴이 달라 다른 출처입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>호스트가 다르면 다른 출처</strong> — app.example.com과 api.example.com은 같은 도메인 아래에 있어도 호스트가 달라 다른 출처입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>포트가 다르면 다른 출처</strong> — https://app.example.com(기본 포트 443)과 https://app.example.com:8443은 포트가 달라 다른 출처입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>사전 요청의 비용</strong> — 사전 요청이 필요한 요청은 OPTIONS와 실제 요청으로 왕복이 두 번 필요합니다. 서버가 보낸 Access-Control-Max-Age 동안 허락이 기억되면 이후에는 한 번이면 됩니다. Fetch 표준은 이 헤더가 없을 때 기본값을 5초로 정하고, 브라우저마다 상한이 있어 MDN 기준으로 Chromium은 2시간, Firefox는 24시간을 넘지 못합니다. 이 시각화는 600초(10분)로 보여 줍니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>CORS는 서버를 보호하는 보안 기능이다</strong> — CORS는 사용자의 브라우저가 다른 출처의 응답을 스크립트에 넘길지 정하는 규칙입니다. 단순 요청은 서버로 전송되어 처리될 수 있으므로 서버를 지키려면 인증과 권한 검사가 따로 필요합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Postman이나 curl에서 되니 서버는 문제없다</strong> — 두 도구는 CORS를 집행하지 않습니다. 브라우저에서만 오류가 나는 것이 CORS 문제의 전형적인 모습입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Allow-Origin을 *로 두면 다 해결된다</strong> — 쿠키 등 자격 증명을 포함한 요청에서는 와일드카드가 허용되지 않습니다. 또 모든 출처에 응답을 읽도록 여는 것이므로 민감한 API에는 맞지 않습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>프런트 코드를 고치면 CORS가 풀린다</strong> — 허락은 서버 응답 헤더로만 나옵니다. fetch의 no-cors 모드는 오류를 없애 주는 것이 아니라 스크립트가 읽을 수 없는 불투명한 응답을 돌려줄 뿐입니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">CORS는 무엇이고 왜 필요한가요?</h3>
+                            <p class="overview-card__desc">브라우저는 동일 출처 정책으로 다른 출처의 응답을 스크립트가 읽지 못하게 막습니다. CORS는 서버가 응답 헤더로 특정 출처에 읽기를 허락해 이 제한을 필요한 만큼 푸는 표준 방법입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">사전 요청은 언제 발생하나요?</h3>
+                            <p class="overview-card__desc">단순 요청 조건을 벗어날 때입니다. 예를 들어 PUT이나 DELETE 메서드, Content-Type이 application/json인 요청, 안전하지 않은 사용자 지정 헤더가 있으면 브라우저가 OPTIONS로 먼저 허락을 묻습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">CORS 오류가 나면 요청이 서버에 도달하나요?</h3>
+                            <p class="overview-card__desc">단순 요청은 서버로 전송되어 처리될 수 있고 브라우저가 응답만 막습니다. 사전 요청이 필요한 요청은 OPTIONS가 거절되면 실제 요청이 전송되지 않습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">쿠키를 포함한 CORS 요청은 어떻게 설정하나요?</h3>
+                            <p class="overview-card__desc">클라이언트에서 credentials를 include로 하고, 서버는 Access-Control-Allow-Credentials: true와 와일드카드가 아닌 정확한 출처의 Access-Control-Allow-Origin을 보내야 합니다. 출처에 따라 응답이 달라지므로 Vary: Origin도 붙입니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Spring</strong> — 컨트롤러에 @CrossOrigin을 붙이거나 WebMvcConfigurer의 addCorsMappings로 전역 설정합니다. allowCredentials(true)일 때는 allowedOrigins에 *를 쓸 수 없어 정확한 출처나 allowedOriginPatterns를 써야 합니다. Spring Security를 쓰면 사전 요청에는 쿠키가 없어 인증에 막히므로, http.cors로 CORS를 Spring Security보다 먼저 처리하도록 켜야 합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Express</strong> — cors 미들웨어가 origin, methods, allowedHeaders, credentials, maxAge 같은 옵션으로 CORS 응답 헤더를 붙여 줍니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>개발 서버 프록시</strong> — 개발할 때는 프런트엔드 개발 서버가 API 요청을 대신 전달하도록 프록시를 설정해 브라우저에는 같은 출처로 보이게 하는 방법을 흔히 씁니다. Vite의 server.proxy가 한 예입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>브라우저 개발자 도구</strong> — 콘솔에 어떤 CORS 헤더가 없거나 맞지 않는지가 오류 메시지로 나옵니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/http}">HTTP</a> — 요청 · 응답 헤더와 메서드의 기본 구조를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/cookie-session-jwt}">쿠키 · 세션 · JWT</a> — 자격 증명 요청에 실리는 쿠키와 토큰의 원리를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/proxy-forward-reverse}">포워드 / 리버스 프록시</a> — 프록시로 여러 서버를 같은 출처 뒤에 두는 방식을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/https-tls}">HTTPS / TLS</a> — 스킴이 출처의 일부인 이유가 되는 보안 연결을 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>표준</strong> — <a href="https://fetch.spec.whatwg.org/#http-cors-protocol" target="_blank" rel="noopener">Fetch Standard: CORS protocol</a>, <a href="https://www.rfc-editor.org/rfc/rfc6454" target="_blank" rel="noopener">RFC 6454 The Web Origin Concept</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>MDN</strong> — <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS" target="_blank" rel="noopener">Cross-Origin Resource Sharing (CORS)</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>구현</strong> — <a href="https://docs.spring.io/spring-framework/reference/web/webmvc-cors.html" target="_blank" rel="noopener">Spring Framework CORS</a>, <a href="https://expressjs.com/en/resources/middleware/cors.html" target="_blank" rel="noopener">Express cors middleware</a></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/network/21-30/cors-code :: code}"></th:block>
+            </div>
+
+            <!-- 탭 4: 퀴즈 -->
+            <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
+                <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+    <script th:src="@{/js/quiz.js}"></script>
+    <script th:src="@{/js/like.js}"></script>
+    <script th:src="@{/js/share.js}"></script>
+</body>
+</html>

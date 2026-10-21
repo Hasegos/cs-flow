@@ -1,0 +1,98 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">JavaScript (fetch) — 단순 요청, 사전 요청, 쿠키 포함 요청</p>
+            <div class="code-block">
+<pre><span class="cm">// https://app.example.com 의 페이지에서 실행</span>
+
+<span class="cm">// 1) 단순 요청: GET에 특별한 헤더가 없으므로 사전 요청이 없다</span>
+<span class="kw">const</span> res1 = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="st">'https://api.example.com/data'</span>);
+
+<span class="cm">// 2) 사전 요청 발생: PUT + Content-Type: application/json</span>
+<span class="kw">const</span> res2 = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="st">'https://api.example.com/data'</span>, {
+  method: <span class="st">'PUT'</span>,
+  headers: { <span class="st">'Content-Type'</span>: <span class="st">'application/json'</span> },
+  body: JSON.<span class="fn">stringify</span>({ name: <span class="st">'kim'</span> }),
+});
+
+<span class="cm">// 3) 쿠키를 포함한 요청</span>
+<span class="kw">const</span> res3 = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="st">'https://api.example.com/me'</span>, { credentials: <span class="st">'include'</span> });</pre>
+            </div>
+            <p class="code-desc">
+                같은 fetch라도 옵션에 따라 브라우저의 동작이 달라집니다. 첫 번째는 GET이고 직접 넣은 헤더가 없어 단순 요청이므로, 브라우저가 Origin 헤더만 붙여 바로 서버로 보내고 응답의 Access-Control-Allow-Origin을 확인합니다.
+                두 번째는 메서드가 PUT이고 Content-Type이 application/json이라 단순 요청 조건을 벗어나서, 브라우저가 실제 요청 전에 OPTIONS 사전 요청을 보냅니다.
+                세 번째는 credentials: 'include'로 쿠키를 함께 보내므로, 서버가 Access-Control-Allow-Credentials: true와 정확한 출처를 응답에 넣지 않으면 브라우저가 응답을 막습니다. 같은 출처 요청에는 이런 검사가 적용되지 않습니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">curl — 사전 요청을 직접 보내 서버의 허용 헤더 확인하기</p>
+            <div class="code-block">
+<pre>curl -i -X OPTIONS https://api.example.com/data \
+  -H <span class="st">"Origin: https://app.example.com"</span> \
+  -H <span class="st">"Access-Control-Request-Method: PUT"</span> \
+  -H <span class="st">"Access-Control-Request-Headers: content-type"</span>
+
+<span class="cm"># 서버가 CORS를 허용했다면 응답 헤더 예</span>
+HTTP/<span class="num">1.1</span> <span class="num">204</span> No Content
+Access-Control-Allow-Origin: https://app.example.com
+Access-Control-Allow-Methods: GET, PUT
+Access-Control-Allow-Headers: content-type
+Access-Control-Max-Age: <span class="num">600</span></pre>
+            </div>
+            <p class="code-desc">
+                브라우저가 사전 요청에 실어 보내는 헤더를 그대로 흉내 내 서버가 어떤 허용 헤더를 돌려주는지 확인하는 방법입니다. CORS 오류가 났을 때 브라우저 콘솔의 메시지만으로 원인이 불분명하면, 이렇게 서버의 응답 헤더를 직접 보면 어떤 값이 빠졌는지 알기 쉽습니다.
+                curl은 CORS를 집행하지 않으므로 허용 헤더가 없어도 응답 자체는 정상으로 받아집니다. 그래서 "curl에서는 되는데 브라우저에서만 안 된다"는 상황이 생기며, 이때는 응답에 허용 헤더가 있는지가 확인할 점입니다.
+                주소와 출처, 헤더 값은 예시이므로 실제 서비스에 맞게 바꿔야 합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java (Spring Boot) — CORS 전역 설정</p>
+            <div class="code-block">
+<pre><span class="kw">@Configuration</span>
+<span class="kw">public class</span> <span class="fn">CorsConfig</span> <span class="kw">implements</span> WebMvcConfigurer {
+
+    <span class="kw">@Override</span>
+    <span class="kw">public void</span> <span class="fn">addCorsMappings</span>(CorsRegistry registry) {
+        registry.<span class="fn">addMapping</span>(<span class="st">"/api/**"</span>)
+                .<span class="fn">allowedOrigins</span>(<span class="st">"https://app.example.com"</span>)
+                .<span class="fn">allowedMethods</span>(<span class="st">"GET"</span>, <span class="st">"PUT"</span>)
+                .<span class="fn">allowedHeaders</span>(<span class="st">"Content-Type"</span>)
+                .<span class="fn">allowCredentials</span>(<span class="kw">true</span>)
+                .<span class="fn">maxAge</span>(<span class="num">600</span>);
+    }
+}</pre>
+            </div>
+            <p class="code-desc">
+                addCorsMappings는 지정한 경로 패턴에 대해 허용 출처, 메서드, 헤더, 자격 증명 허용 여부, 사전 요청 결과를 기억할 시간(초)을 설정합니다. 이 설정이 앞에서 본 Access-Control-Allow-* 응답 헤더로 바뀌어 나갑니다.
+                allowCredentials(true)와 allowedOrigins("*")는 함께 쓸 수 없고, 쿠키를 허용하려면 위처럼 출처를 정확히 적거나 allowedOriginPatterns를 써야 합니다. 이것은 앞에서 본 자격 증명 요청에서 와일드카드가 막히는 규칙과 같은 이유입니다.
+                Spring Security를 쓰는 프로젝트에서는 이 설정과 별개로 보안 필터 체인에서 http.cors로 CORS를 켜야 합니다. 사전 요청에는 쿠키가 없어서, 켜지 않으면 인증이 필요한 경로에서 OPTIONS 사전 요청이 먼저 인증에 걸려 거절될 수 있습니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Node.js (Express) — cors 미들웨어</p>
+            <div class="code-block">
+<pre><span class="kw">const</span> express = <span class="fn">require</span>(<span class="st">'express'</span>);
+<span class="kw">const</span> cors = <span class="fn">require</span>(<span class="st">'cors'</span>);   <span class="cm">// npm install cors</span>
+
+<span class="kw">const</span> app = <span class="fn">express</span>();
+app.<span class="fn">use</span>(<span class="fn">cors</span>({
+  origin: <span class="st">'https://app.example.com'</span>,
+  methods: [<span class="st">'GET'</span>, <span class="st">'PUT'</span>],
+  allowedHeaders: [<span class="st">'Content-Type'</span>],
+  credentials: <span class="kw">true</span>,
+  maxAge: <span class="num">600</span>,
+}));</pre>
+            </div>
+            <p class="code-desc">
+                cors 미들웨어는 요청이 들어오면 옵션에 맞춰 Access-Control-Allow-* 헤더를 응답에 붙입니다. 위처럼 app.use로 전역 적용하면 OPTIONS 사전 요청에도 직접 응답하고, 특정 라우트에만 붙일 때는 그 경로에 app.options를 따로 추가해야 합니다. origin에 정확한 출처를 적고 credentials를 true로 두면 쿠키를 포함한 요청도 통과합니다.
+                origin 옵션을 생략하면 모든 출처를 허용하는 쪽으로 동작하므로, 인증이 필요한 API에서는 허용할 출처를 반드시 명시하는 편이 안전합니다. 미들웨어는 라우트보다 앞에 등록해야 모든 경로에 적용됩니다.
+                어떤 서버 프레임워크를 쓰든 결국 하는 일은 같습니다. 요청의 Origin을 보고 허용하는 출처이면 응답 헤더에 허락을 적어 주는 것입니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
