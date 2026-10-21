@@ -1,0 +1,118 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python (rclpy) — 발행 노드</p>
+            <div class="code-block">
+<pre><span class="kw">import</span> rclpy
+<span class="kw">from</span> rclpy.node <span class="kw">import</span> Node
+<span class="kw">from</span> sensor_msgs.msg <span class="kw">import</span> LaserScan
+
+<span class="kw">class</span> <span class="fn">LidarNode</span>(Node):
+    <span class="kw">def</span> <span class="fn">__init__</span>(self):
+        <span class="fn">super</span>().<span class="fn">__init__</span>(<span class="st">'lidar_node'</span>)                       <span class="cm"># 노드 이름</span>
+        self.pub = self.<span class="fn">create_publisher</span>(LaserScan, <span class="st">'/scan'</span>, <span class="num">10</span>)   <span class="cm"># 타입, 토픽 이름, 큐 크기</span>
+        self.<span class="fn">create_timer</span>(<span class="num">0.1</span>, self.on_timer)                   <span class="cm"># 0.1초마다 호출</span>
+
+    <span class="kw">def</span> <span class="fn">on_timer</span>(self):
+        msg = <span class="fn">LaserScan</span>()
+        msg.header.stamp = self.<span class="fn">get_clock</span>().<span class="fn">now</span>().<span class="fn">to_msg</span>()
+        msg.header.frame_id = <span class="st">'laser'</span>
+        msg.ranges = [<span class="num">1.0</span>, <span class="num">1.1</span>, <span class="num">1.2</span>]
+        self.pub.<span class="fn">publish</span>(msg)                             <span class="cm"># 토픽으로 내보낸다</span>
+
+<span class="kw">def</span> <span class="fn">main</span>():
+    rclpy.<span class="fn">init</span>()
+    rclpy.<span class="fn">spin</span>(<span class="fn">LidarNode</span>())        <span class="cm"># 콜백(타이머 등)을 계속 처리</span>
+    rclpy.<span class="fn">shutdown</span>()</pre>
+            </div>
+            <p class="code-desc">
+                Node를 상속한 클래스가 하나의 노드입니다. create_publisher에 메시지 타입, 토픽 이름, 큐 크기를 주면 발행자가 만들어지고, publish를 부를 때마다 메시지가 토픽으로 나갑니다. 여기서는 타이머가 0.1초마다 on_timer를 불러 초당 10번 발행합니다.
+                발행자는 구독자가 있는지 확인하지 않고 그저 내보냅니다. 구독자가 없으면 메시지는 아무도 받지 않고 지나갈 뿐 오류가 나지 않습니다. 이 코드의 값은 실제 센서가 아니라 예시이고, 실제 LaserScan에는 각도 범위와 거리 한계 같은 필드도 채워야 합니다.
+                rclpy.spin은 컨텍스트가 shutdown될 때까지(예: Ctrl+C) 타이머나 구독 콜백 같은 이벤트를 처리하는 반복문입니다. spin이 돌지 않으면 콜백이 실행되지 않으므로 발행도 일어나지 않습니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python (rclpy) — 구독 노드</p>
+            <div class="code-block">
+<pre><span class="kw">import</span> rclpy
+<span class="kw">from</span> rclpy.node <span class="kw">import</span> Node
+<span class="kw">from</span> sensor_msgs.msg <span class="kw">import</span> LaserScan
+
+<span class="kw">class</span> <span class="fn">SlamNode</span>(Node):
+    <span class="kw">def</span> <span class="fn">__init__</span>(self):
+        <span class="fn">super</span>().<span class="fn">__init__</span>(<span class="st">'slam_node'</span>)
+        self.sub = self.<span class="fn">create_subscription</span>(
+            LaserScan, <span class="st">'/scan'</span>, self.on_scan, <span class="num">10</span>)   <span class="cm"># 타입, 이름, 콜백, 큐 크기</span>
+
+    <span class="kw">def</span> <span class="fn">on_scan</span>(self, msg):
+        self.<span class="fn">get_logger</span>().<span class="fn">info</span>(<span class="st">f'받은 거리 {len(msg.ranges)}개'</span>)
+
+<span class="kw">def</span> <span class="fn">main</span>():
+    rclpy.<span class="fn">init</span>()
+    rclpy.<span class="fn">spin</span>(<span class="fn">SlamNode</span>())
+    rclpy.<span class="fn">shutdown</span>()</pre>
+            </div>
+            <p class="code-desc">
+                create_subscription에 같은 메시지 타입과 같은 토픽 이름, 메시지를 받을 콜백, 큐 크기를 주면 구독자가 만들어집니다. 앞의 발행 노드와 타입(LaserScan)과 이름(/scan)이 같아서 DDS 디스커버리가 둘을 연결하고, 메시지가 올 때마다 on_scan이 호출됩니다.
+                콜백은 spin을 돌리는 실행기 안에서 하나씩 호출되므로 콜백이 오래 걸리면 그동안 다음 메시지가 큐에 쌓입니다. 큐 크기 10을 넘기면 오래된 메시지가 버려지는 것이 앞의 시각화에서 본 상황입니다. 콜백은 가볍게 유지하고 무거운 계산은 따로 처리하는 것이 좋습니다.
+                발행 노드와 구독 노드는 서로를 import 하지도 호출하지도 않습니다. 둘을 잇는 것은 토픽 이름과 메시지 타입뿐입니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">C++ (rclcpp) — 구독 노드</p>
+            <div class="code-block">
+<pre><span class="kw">#include</span> <span class="st">"rclcpp/rclcpp.hpp"</span>
+<span class="kw">#include</span> <span class="st">"sensor_msgs/msg/laser_scan.hpp"</span>
+
+<span class="kw">class</span> <span class="fn">SlamNode</span> : <span class="kw">public</span> rclcpp::Node {
+<span class="kw">public</span>:
+  <span class="fn">SlamNode</span>() : Node(<span class="st">"slam_node"</span>) {
+    sub_ = <span class="fn">create_subscription</span>&lt;sensor_msgs::msg::LaserScan&gt;(
+      <span class="st">"/scan"</span>, <span class="num">10</span>,
+      [<span class="kw">this</span>](sensor_msgs::msg::LaserScan::SharedPtr msg) {
+        <span class="fn">RCLCPP_INFO</span>(<span class="fn">get_logger</span>(), <span class="st">"received %zu ranges"</span>, msg-&gt;ranges.<span class="fn">size</span>());
+      });
+  }
+<span class="kw">private</span>:
+  rclcpp::Subscription&lt;sensor_msgs::msg::LaserScan&gt;::SharedPtr sub_;
+};
+
+<span class="kw">int</span> <span class="fn">main</span>(<span class="kw">int</span> argc, <span class="kw">char</span>** argv) {
+  rclcpp::<span class="fn">init</span>(argc, argv);
+  rclcpp::<span class="fn">spin</span>(std::make_shared&lt;SlamNode&gt;());
+  rclcpp::<span class="fn">shutdown</span>();
+}</pre>
+            </div>
+            <p class="code-desc">
+                같은 구독 노드를 C++로 쓴 것입니다. create_subscription의 템플릿 인자가 메시지 타입이고, 인자로 토픽 이름과 큐 크기, 콜백을 받습니다. 콜백은 위처럼 람다로 넘기는 경우가 많습니다.
+                ROS 2는 노드를 Python과 C++ 어느 쪽으로 써도 같은 토픽 위에서 서로 통신합니다. 공식 문서도 시각화 도구는 Python으로 빠르게 시제품을 만들고 효율이 중요한 노드는 C++로 만드는 식의 선택을 예로 듭니다. 노드가 어떤 언어로 만들어졌는지는 상대 노드가 알 필요가 없습니다.
+                C++ 노드는 빌드 시스템(colcon, ament_cmake)에 의존성과 설치 설정을 추가해야 하고, 위 코드는 핵심 흐름만 보인 것이라 빌드 설정은 생략했습니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Shell (ros2 CLI) — 실행 중인 노드와 토픽 조사하기</p>
+            <div class="code-block">
+<pre><span class="cm"># 노드를 각각 다른 터미널에서 실행 (패키지 이름은 예시)</span>
+ros2 run my_pkg lidar_node
+ros2 run my_pkg slam_node
+
+ros2 node list                      <span class="cm"># /lidar_node, /slam_node</span>
+ros2 topic list                     <span class="cm"># /scan, /parameter_events, /rosout</span>
+ros2 topic info /scan --verbose     <span class="cm"># 타입, 발행자·구독자 수와 QoS</span>
+ros2 topic echo /scan               <span class="cm"># 메시지 내용을 화면에 출력</span>
+ros2 topic hz /scan                 <span class="cm"># 수신 주기 측정</span>
+ros2 interface show sensor_msgs/msg/LaserScan   <span class="cm"># 메시지 필드 정의 보기</span></pre>
+            </div>
+            <p class="code-desc">
+                ros2 node list는 현재 그래프에 있는 노드를, ros2 topic list는 토픽을 보여 줍니다. 기본 설정의 노드는 /parameter_events와 /rosout 같은 토픽을 함께 만들어 목록에 나옵니다.
+                ros2 topic info에 --verbose를 붙이면 토픽의 메시지 타입과 발행자 · 구독자의 정보를 볼 수 있어, 두 노드가 연결되지 않을 때 타입이나 QoS가 서로 맞는지 확인하기 좋습니다. echo는 구독자로 붙어 오가는 메시지를 출력하고, hz는 구독으로 받은 메시지의 초당 횟수를 재서 알려 줍니다(플랫폼 자원과 QoS 때문에 발행 주기와 다를 수 있음).
+                ros2 interface show는 메시지가 어떤 필드로 이루어졌는지 보여 줍니다. 위 출력 설명은 예시이며 실제 목록은 실행 중인 노드와 설치한 배포판에 따라 다릅니다. 명령을 쓰기 전에 ROS 2 환경 설정 파일(setup.bash)을 불러와야 합니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>
