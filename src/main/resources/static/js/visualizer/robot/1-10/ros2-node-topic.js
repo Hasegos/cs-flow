@@ -72,11 +72,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'pubsub';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 데이터: 참여자와 단계 ===================== */
     var ACTORS = [
@@ -146,176 +213,223 @@
             { label: '큐와 손실', msg: [Y('구독이 느림 → 오래된 메시지부터 폐기'), S('발행자는 영향받지 않음')], hl: { S: ['큐 크기가 손실을 좌우', 'yellow'] }, cli: [G('발행자는 막히지 않음')], srv: [Y('depth ↑ 또는 콜백 ↓')] })
     ];
 
-    /* ===================== 상태 ===================== */
-    var mode    = 'pubsub';
-    var stepIdx = -1;
-    var running = false;
-    var timer   = null;
-    var rafId   = null;
-    var speed   = 1900;
+    /* ===================== 장면 데이터: 노드 그래프 ===================== */
+    function ann(steps, list) {
+        steps.forEach(function (s, i) { var a = list[i] || {}; for (var k in a) s[k] = a[k]; });
+    }
+    function MV(a, b, ph, lb, col) { return { a: a, b: b, ph: ph, lb: lb, col: col || 'yellow' }; }
 
+    ann(PUBSUB_STEPS, [
+        { show: { p1: 1, s1: 1 }, link: {}, dim: { p1: 1, s1: 1 }, cap: '토픽 = 이름 + 메시지 타입' },
+        { show: { p1: 1 }, link: {}, hot: 'p1', cap: 'create_publisher(LaserScan, "/scan", 10)' },
+        { show: { p1: 1, s1: 1 }, link: {}, hot: 's1', cap: 'create_subscription(LaserScan, "/scan", callback, 10)' },
+        { show: { p1: 1, s1: 1 }, link: { p1: 1, s1: 1 }, disc: true, cap: 'DDS 디스커버리: 이름 · 타입 · QoS가 맞으면 연결' },
+        { show: { p1: 1, s1: 1 }, link: { p1: 1, s1: 1 }, mv: [MV('p1', 'T', 1, '#1')], cap: 'publish(scan #1)' },
+        { show: { p1: 1, s1: 1 }, link: { p1: 1, s1: 1 }, mv: [MV('T', 's1', 1, '#1', 'green')], cb: { s1: 'callback(scan #1)' }, cap: '콜백 호출' },
+        { show: { p1: 1, s1: 1 }, link: { p1: 1, s1: 1 }, mv: [MV('p1', 'T', 1, '#2'), MV('T', 's1', 2, '#2', 'green')], cb: { s1: 'callback(scan #2)' }, cap: '응답을 기다리지 않음' },
+        { show: { p1: 1, s1: 1 }, link: { p1: 1, s1: 1 }, cap: '단방향 스트림: 요청 · 응답이 없다' }
+    ]);
+    ann(MANY_STEPS, [
+        { show: { p1: 1, s1: 1 }, link: { p1: 1, s1: 1 }, cap: '발행자 N개 ↔ 구독자 M개' },
+        { show: { p1: 1, s1: 1, s2: 1 }, link: { p1: 1, s1: 1, s2: 1 }, hot: 's2', cap: '구독자 추가 — 발행 코드는 그대로' },
+        { show: { p1: 1, s1: 1, s2: 1 }, link: { p1: 1, s1: 1, s2: 1 }, mv: [MV('p1', 'T', 1, '#1'), MV('T', 's1', 2, '#1', 'green'), MV('T', 's2', 2, '#1', 'green')], cb: { s1: 'callback #1', s2: 'callback #1' }, cap: '발행 1번 → 구독자 2개가 수신' },
+        { show: { p1: 1, p2: 1, s1: 1, s2: 1 }, link: { p1: 1, p2: 1, s1: 1, s2: 1 }, hot: 'p2', mv: [MV('p1', 'T', 1, 'A'), MV('p2', 'T', 1, 'B'), MV('T', 's1', 2, 'A', 'green'), MV('T', 's1', 2, 'B', 'green')], cap: '두 발행자의 메시지를 모두 받음 (header.frame_id로 구분)' },
+        { show: { p1: 1, s1: 1, s2: 1 }, link: { p1: 1, s1: 1 }, gone: { s2: 1 }, cap: 'obstacle_node 종료 — 나머지는 계속 동작' },
+        { show: { p1: 1, s1: 1, s2: 1 }, link: { p1: 1, s1: 1 }, bad: { s2: 1 }, types: { s2: 'String' }, cap: '이름은 같아도 타입이 다르면 연결되지 않음' }
+    ]);
+    ann(QUEUE_STEPS, [
+        { show: { p1: 1, s1: 1 }, link: { p1: 1, s1: 1 }, q: [], qd: 3, cap: '큐 크기(depth) = 3, KEEP_LAST' },
+        { show: { p1: 1, s1: 1 }, link: { p1: 1, s1: 1 }, q: [1, 2, 3], qd: 3, mv: [MV('p1', 'T', 1, '1·2·3'), MV('T', 's1', 2, '1·2·3', 'yellow')], cap: '구독 콜백이 바쁜 동안 큐에 쌓임' },
+        { show: { p1: 1, s1: 1 }, link: { p1: 1, s1: 1 }, q: [2, 3, 4], qd: 3, drop: 1, mv: [MV('p1', 'T', 1, '4'), MV('T', 's1', 2, '4', 'red')], cap: '큐가 가득 → 가장 오래된 1 폐기' },
+        { show: { p1: 1, s1: 1 }, link: { p1: 1, s1: 1 }, q: [3, 4, 5], qd: 3, drop: 2, mv: [MV('p1', 'T', 1, '5'), MV('T', 's1', 2, '5', 'red')], cap: '5 도착 → 2 폐기, 늘 최신 3개만 남음' },
+        { show: { p1: 1, s1: 1 }, link: { p1: 1, s1: 1 }, q: [4, 5], qd: 3, cb: { s1: 'callback(3)' }, cap: '콜백이 큐에서 가장 오래된 3을 꺼내 처리' },
+        { show: { p1: 1, s1: 1 }, link: { p1: 1, s1: 1 }, q: [4, 5], qd: 3, cap: '발행자는 막히지 않음 · 손실은 큐 크기와 콜백 속도가 좌우' }
+    ]);
+
+    /* ===================== 상태 ===================== */
     function currentSteps() {
         if (mode === 'many') return MANY_STEPS;
         if (mode === 'queue') return QUEUE_STEPS;
         return PUBSUB_STEPS;
     }
-
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        var rad = Math.min(r, w / 2, h / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + rad, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, rad);
-        ctx.arcTo(x + w, y + h, x,     y + h, rad);
-        ctx.arcTo(x,     y + h, x,     y,     rad);
-        ctx.arcTo(x,     y,     x + w, y,     rad);
-        ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
-    }
-    function tx(str, x, y, sz, color, align, bold) {
-        if (sz < 9.5) sz = 9.5;
-        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
-    }
-    function colorOf(key) {
-        return P[key] || P.muted;
+    function defaultLog() {
+        if (mode === 'many') return '발행자와 구독자가 여러 개 붙는 토픽과 타입이 맞지 않을 때의 연결을 봅니다.';
+        if (mode === 'queue') return '구독자가 느릴 때 큐가 가득 차면 오래된 메시지가 폐기되는 과정을 봅니다.';
+        return '노드가 토픽에 발행하고 구독 노드가 콜백으로 받는 기본 흐름을 봅니다.';
     }
 
     /* ===================== 레이아웃 ===================== */
-    var BOX_H = 60;
-    var SEC_GAP = 10;
-
-    function sectionsOf(step, w, mob) {
+    function layout(w, mob) {
         var fs = mob ? 11 : 12;
-        var lh = Math.round(fs * 1.5);
-        var inner = w - 20;
-        var defs = [
-            { title: '주고받는 것', rows: step ? step.msg : [], empty: step ? '(내용 없음)' : '(STEP 또는 PLAY로 시작하세요)' },
-            { title: '발행 노드 쪽', rows: step ? step.cli : [], empty: '(없음)' },
-            { title: '구독 노드 쪽', rows: step ? step.srv : [], empty: '(없음)' }
-        ];
-        defs.forEach(function (d) {
-            var out = [];
-            d.rows.forEach(function (r) {
-                ctx.font = '500 ' + (fs - 1) + 'px "JetBrains Mono",monospace';
-                window.CsFlow.wrapText(ctx, r[0], inner).forEach(function (t) { out.push([t, r[1]]); });
-            });
-            d.lines = out;
-            d.h = 26 + Math.max(1, out.length) * lh;
-            d.lh = lh;
-        });
-        return defs;
+        var nodeW = Math.min(124, Math.floor((w - 64 - 44) / 2));
+        var topicW = mob ? 64 : 84;
+        return { fs: fs, nodeW: nodeW, topicW: topicW, graphH: 190, capH: 62, qH: mode === 'queue' ? 78 : 0,
+                 total: 190 + 62 + (mode === 'queue' ? 78 : 0) };
     }
-    function topBlockH() {
-        return BOX_H + 24 + 34;
-    }
-    function totalHeight(step, w, mob, top) {
-        var h = top + topBlockH();
-        sectionsOf(step, w, mob).forEach(function (d) { h += d.h + SEC_GAP; });
-        return h + 6;
+    function sceneH(w, mob) { return layout(w, mob).total; }
+
+    function ell(cx, cy, rx, ry, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+        if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+        if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.5; ctx.stroke(); }
     }
 
     /* ===================== 장면 그리기 ===================== */
-    function drawScene(x0, top, w, mob, step) {
-        var fs = mob ? 11 : 12;
-        var gap = mob ? 8 : 16;
-        var bw = (w - gap * 2) / 3;
-        var busY = top + BOX_H + 24;
-        var s = step || { from: null, to: null, kind: '', label: '', hl: {}, msg: [], cli: [], srv: [] };
-        var cx = [];
-        ACTORS.forEach(function (a, i) { cx.push(x0 + i * (bw + gap) + bw / 2); });
-        var idxOf = { P: 0, T: 1, S: 2 };
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var L = layout(w, mob);
+        var fs = L.fs;
+        var s = step || { show: { p1: 1, s1: 1 }, link: {}, dim: { p1: 1, s1: 1 }, cap: '' };
+        var show = s.show || {};
+        var e = clamp01(t);
+        var pubX = x0 + L.nodeW / 2, subX = x0 + w - L.nodeW / 2, topX = x0 + w / 2;
+        var rowY = { 0: top + 44, 1: top + 134 };
+        var pos = {
+            p1: [pubX, rowY[0]], p2: [pubX, rowY[1]], s1: [subX, rowY[0]], s2: [subX, rowY[1]]
+        };
+        var two = !!(show.p2 || show.s2);
+        var topY0 = top + 8, topY1 = top + L.graphH - 8;
+        var tcol = P.purple;
 
-        ctx.beginPath();
-        ctx.moveTo(cx[0], busY);
-        ctx.lineTo(cx[2], busY);
-        ctx.strokeStyle = P.muted + '55';
-        ctx.lineWidth = 2;
-        ctx.stroke();
+        /* 토픽 */
+        rr(topX - L.topicW / 2, topY0 + (two ? 0 : 26), L.topicW, (two ? topY1 - topY0 : topY1 - topY0 - 52), 12, tcol + '22', tcol + 'ff', 2);
+        tx(mode === 'many' && s.types && s.types.s2 ? '/scan' : '/scan', topX, (topY0 + topY1) / 2 - 8, fs, tcol + 'ff', 'center', true);
+        tx('LaserScan', topX, (topY0 + topY1) / 2 + 10, fs - 2, P.sub + 'ff', 'center', false);
 
-        var pulse = s.kind === 'err' ? P.red : (s.kind === 'res' ? P.teal : P.yellow);
-        ACTORS.forEach(function (a, i) {
-            var x = x0 + i * (bw + gap);
-            var c = colorOf(a.col);
-            var badge = s.hl[a.id];
-            var bc = badge ? colorOf(badge[1]) : c;
-            var faded = badge && badge[1] === 'muted';
-            var on = s.from === a.id || s.to === a.id;
-            ctx.beginPath();
-            ctx.moveTo(cx[i], top + BOX_H);
-            ctx.lineTo(cx[i], busY);
-            ctx.strokeStyle = on ? pulse + 'ff' : P.muted + '55';
-            ctx.lineWidth = on ? 2.4 : 1.4;
-            ctx.stroke();
-            rr(x, top, bw, BOX_H, 6, (faded ? P.muted : bc) + '18', (badge ? bc : c) + (badge || on ? 'ff' : '77'), badge || on ? 1.8 : 1.2);
-            tx(a.name, x + bw / 2, top + 14, fs, c + 'ee', 'center', true);
-            tx(a.sub, x + bw / 2, top + 31, fs - 1.5, P.muted + 'ee', 'center', false);
-            if (badge) tx(badge[0], x + bw / 2, top + 48, fs - 1, bc + 'ff', 'center', true);
-        });
-
-        if (s.from && s.to) {
-            var a = cx[idxOf[s.from]];
-            var b = cx[idxOf[s.to]];
-            var dir = b > a ? 1 : -1;
-            var ax = a + dir * 6;
-            var bx = b - dir * 6;
-            ctx.beginPath();
-            ctx.moveTo(ax, busY);
-            ctx.lineTo(bx, busY);
-            ctx.strokeStyle = pulse + 'ff';
-            ctx.lineWidth = 3;
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(bx, busY);
-            ctx.lineTo(bx - dir * 9, busY - 6);
-            ctx.lineTo(bx - dir * 9, busY + 6);
-            ctx.closePath();
-            ctx.fillStyle = pulse + 'ff';
-            ctx.fill();
-        }
-        tx(s.label || '요청과 응답을 오가는 경로', x0 + w / 2, busY + 16, fs - 0.5, (s.label ? pulse : P.muted) + 'ee', 'center', true);
-
-        var y = top + topBlockH();
-        sectionsOf(step, w, mob).forEach(function (d) {
-            rr(x0, y, w, d.h, 6, 'none', P.muted + '55', 1.2);
-            tx(d.title, x0 + 10, y + 12, fs - 1.5, P.muted + 'ee', 'left', true);
-            if (!d.lines.length) {
-                tx(d.empty, x0 + 10, y + 30, fs - 1, P.muted + 'cc', 'left', false);
+        /* 연결선 */
+        function edge(key, isPub) {
+            var p = pos[key];
+            var linked = s.link && s.link[key];
+            var bad = s.bad && s.bad[key];
+            var gone = s.gone && s.gone[key];
+            var x1 = isPub ? p[0] + L.nodeW / 2 : topX + L.topicW / 2;
+            var x2 = isPub ? topX - L.topicW / 2 : p[0] - L.nodeW / 2;
+            var y = p[1];
+            if (bad) {
+                ln(x1, y, lerp(x1, x2, 0.5), y, P.red + 'cc', 2, [5, 4]);
+                tx('✕', lerp(x1, x2, 0.5) + 10, y, fs + 6, P.red + 'ff', 'center', true);
+                return;
             }
-            d.lines.forEach(function (ln, i) {
-                tx(ln[0], x0 + 10, y + 30 + i * d.lh, fs - 1, colorOf(ln[1]) + 'ee', 'left', false);
+            if (gone) { ln(x1, y, x2, y, P.muted + '55', 1.4, [4, 4]); return; }
+            if (linked) {
+                var disc = s.disc;
+                ln(x1, y, x2, y, (disc ? P.purple : P.muted) + (disc ? 'ff' : 'cc'), disc ? 2.6 : 2);
+            } else {
+                ln(x1, y, x2, y, P.muted + '55', 1.4, [4, 4]);
+            }
+        }
+        ['p1', 'p2'].forEach(function (k) { if (show[k]) edge(k, true); });
+        ['s1', 's2'].forEach(function (k) { if (show[k]) edge(k, false); });
+
+        /* 노드 */
+        function node(key, label, col) {
+            if (!show[key]) return;
+            var p = pos[key];
+            var hot = s.hot === key;
+            var dim = s.dim && s.dim[key];
+            var bad = s.bad && s.bad[key];
+            var gone = s.gone && s.gone[key];
+            var c = bad ? P.red : (gone ? P.muted : colorOf(col));
+            var a = hot ? Math.round(clamp01(e * 2) * 255) : 255;
+            var ah = ('0' + a.toString(16)).slice(-2);
+            ell(p[0], p[1], L.nodeW / 2, 26, c + (dim ? '10' : '22'), c + (dim ? '77' : ah), hot ? 2.6 : 1.8);
+            tx(label, p[0], p[1] - 4, fs - 0.5, c + (dim ? '99' : 'ff'), 'center', true);
+            var sub = s.types && s.types[key] ? '타입 ' + s.types[key] : (gone ? '종료됨' : (key.charAt(0) === 'p' ? '발행' : '구독'));
+            tx(sub, p[0], p[1] + 12, fs - 2, (bad ? P.red : P.sub) + 'ff', 'center', false);
+        }
+        node('p1', 'lidar_node', 'orange');
+        node('p2', 'lidar_2_node', 'orange');
+        node('s1', 'slam_node', 'teal');
+        node('s2', 'obstacle_node', 'teal');
+
+        /* 콜백 풍선 */
+        if (s.cb) {
+            ['s1', 's2'].forEach(function (k) {
+                if (!s.cb[k]) return;
+                var p = pos[k];
+                var ph = mode === 'queue' ? 1 : clamp01((e - 0.5) * 2);
+                ctx.globalAlpha = ph;
+                ctx.font = '700 ' + (fs - 1.5) + 'px "JetBrains Mono",monospace';
+                var tw = ctx.measureText(s.cb[k]).width + 16;
+                var bx = Math.min(x0 + w - tw, p[0] - tw / 2);
+                rr(bx, p[1] + 30, tw, 20, 10, P.green + '22', P.green + 'ff', 1.4);
+                tx(s.cb[k], bx + tw / 2, p[1] + 40, fs - 1.5, P.green + 'ff', 'center', true);
+                ctx.globalAlpha = 1;
             });
-            y += d.h + SEC_GAP;
-        });
+        }
+
+        /* 메시지 점 */
+        if (s.mv) {
+            var maxPh = 1;
+            s.mv.forEach(function (m) { if (m.ph > maxPh) maxPh = m.ph; });
+            s.mv.forEach(function (m, idx) {
+                var tt = clamp01(e * (maxPh + 0.0001) - (m.ph - 1));
+                if (tt <= 0 || (tt >= 1 && m.ph < maxPh)) return;
+                var fromX, fromY, toX, toY;
+                if (m.a === 'T') { fromX = topX + L.topicW / 2; fromY = pos[m.b][1]; toX = pos[m.b][0] - L.nodeW / 2; toY = fromY; }
+                else { fromX = pos[m.a][0] + L.nodeW / 2; fromY = pos[m.a][1]; toX = topX - L.topicW / 2; toY = fromY; }
+                var yOff = (m.lb === 'B') ? 0 : 0;
+                var px = lerp(fromX, toX, tt), py = lerp(fromY, toY, tt) + yOff;
+                var c = colorOf(m.col);
+                circ(px, py, 7, c + 'ff', 'none');
+                ctx.font = '700 ' + (fs - 1.5) + 'px "JetBrains Mono",monospace';
+                tx(m.lb, px, py - 14, fs - 1.5, c + 'ff', 'center', true);
+            });
+        }
+
+        /* 큐 */
+        if (mode === 'queue' && s.q) {
+            var qy = top + L.graphH + 4;
+            var slotW = 34;
+            var qx = x0 + w - slotW * s.qd - (s.qd - 1) * 4;
+            tx('구독 큐 (depth ' + s.qd + ')', x0 + w, qy + 4, fs - 1, P.sub + 'ff', 'right', true);
+            for (var i = 0; i < s.qd; i++) {
+                var xx = qx + i * (slotW + 4);
+                var val = s.q[i];
+                rr(xx, qy + 14, slotW, 34, 6, val ? P.yellow + '22' : 'none', val ? P.yellow + 'ff' : P.muted + '99', 1.5);
+                if (val) tx('#' + val, xx + slotW / 2, qy + 31, fs - 0.5, P.yellow + 'ff', 'center', true);
+            }
+            tx('← 오래된 것', qx - 6, qy + 31, fs - 1.5, P.sub + 'ff', 'right', false);
+            if (s.drop) {
+                var dxx = Math.max(x0 + 24, qx - 112 - e * 14);
+                ctx.globalAlpha = 1 - e * 0.6;
+                rr(dxx - 18, qy + 18, 36, 26, 6, P.red + '22', P.red + 'ff', 1.6);
+                tx('#' + s.drop, dxx, qy + 31, fs - 0.5, P.red + 'ff', 'center', true);
+                ctx.globalAlpha = 1;
+                tx('폐기', dxx, qy + 58, fs - 1.5, P.red + 'ff', 'center', true);
+            }
+        }
+
+        /* 캡션 */
+        var cy = top + L.graphH + L.qH + 10;
+        if (s.cap) {
+            lines(s.cap, w - 20, fs - 0.5).forEach(function (l, i) {
+                tx(l, x0 + w / 2, cy + 12 + i * (fs + 5), fs - 0.5, P.yellow + 'ff', 'center', true);
+            });
+        }
     }
 
     /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
     function draw() {
         P = window.CsFlow.getP();
         ctx.clearRect(0, 0, GW(), GH());
         var W = GW(); var mob = W < 600;
-        var padX = mob ? 16 : 26;
-        var top = mob ? 16 : 22;
         var steps = currentSteps();
         var step = stepIdx >= 0 ? steps[stepIdx] : null;
-        drawScene(padX, top, W - padX * 2, mob, step);
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
         var mob = w < 600;
-        var padX = mob ? 16 : 26;
-        var top = mob ? 16 : 22;
-        var neededH = 300;
-        currentSteps().forEach(function (s) {
-            var h = totalHeight(s, w - padX * 2, mob, top);
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
             if (h > neededH) neededH = h;
         });
         canvasWrap.style.height    = 'auto';
@@ -331,17 +445,22 @@
     /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        draw();
-        rafId = requestAnimationFrame(function () { rafId = null; if (onDone) onDone(); });
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
     function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
-    function defaultLog() {
-        if (mode === 'many') return '한 토픽에 발행자와 구독자를 늘리는 과정과, 타입이 맞지 않으면 연결되지 않는 경우를 봅니다.';
-        if (mode === 'queue') return '구독자가 느릴 때 큐가 가득 차 오래된 메시지부터 버려지는 과정을 봅니다.';
-        return '라이다 노드가 /scan 토픽에 발행하고 SLAM 노드가 구독하는 ROS 2의 기본 통신 흐름을 봅니다.';
-    }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -380,7 +499,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);
