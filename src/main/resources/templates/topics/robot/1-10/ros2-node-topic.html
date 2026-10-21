@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">ROS2 노드와 토픽(발행·구독) | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/robot/1-10/ros2-node-topic.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/robot}" class="topic-breadcrumb__link">로봇 · 임베디드</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">ROS2 노드와 토픽(발행·구독)</span>
+                </nav>
+
+                <span class="topic-hero__slug">robot · 1</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">ROS2 노드와 토픽(발행·구독)</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+                <button type="button" class="topic-like" th:classappend="${liked} ? ' topic-like--active' : ''" th:attr="data-topic-slug=${topic.slug}">
+                    <svg class="topic-like__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <span class="topic-like__count" th:text="${likeCount}">0</span>
+                </button>
+                <div class="topic-share">
+                    <button type="button" class="topic-share__btn topic-share__btn--copy" aria-label="링크 복사">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="topic-share__btn topic-share__btn--kakao" aria-label="카카오톡 공유">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                        </svg>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+                <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        로봇 한 대에는 카메라, 라이다, 바퀴 모터, 경로 계획, 지도 작성처럼 서로 다른 일을 하는 프로그램이 동시에 돌아갑니다. 이 프로그램들이 하나의 거대한 코드가 아니라 각자 독립적으로 만들어지고 데이터를 주고받으려면 공통의 통신 규칙이 필요합니다. <strong>ROS 2(Robot Operating System 2)</strong>는 이름과 달리 운영체제가 아니라 로봇 소프트웨어를 위한 미들웨어와 도구 모음이고, 그 통신의 가장 기본이 <strong>노드(node)</strong>와 <strong>토픽(topic)</strong>입니다.
+                    </p>
+                    <p class="overview-lead">
+                        이 토픽에서는 라이다 노드가 /scan 토픽으로 측정값을 발행하고 SLAM 노드가 구독하는 예로, 발행자와 구독자가 만나는 과정, 한 토픽에 여러 노드가 붙는 구조와 타입이 맞지 않을 때의 문제, 구독자가 느릴 때 큐에서 메시지가 버려지는 모습을 단계별로 봅니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">노드(node)</h3>
+                            <p class="overview-card__desc">하나의 논리적인 일을 맡은 계산 단위입니다. 라이다 드라이버, 지도 작성, 모터 제어처럼 역할별로 노드를 나누고, 노드끼리 토픽 · 서비스 · 액션으로 통신합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">토픽(topic)</h3>
+                            <p class="overview-card__desc">이름이 붙은 데이터 통로입니다. 발행자가 메시지를 내보내고 구독자가 받는 단방향 통신이며, 센서 값처럼 계속 흘러가는 데이터에 맞습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">메시지(message)</h3>
+                            <p class="overview-card__desc">토픽으로 오가는 데이터의 형식입니다. sensor_msgs/msg/LaserScan처럼 .msg 파일로 필드를 정의하고, 토픽마다 하나의 메시지 타입을 가집니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">발행자와 구독자</h3>
+                            <p class="overview-card__desc">publisher는 토픽에 메시지를 보내고 subscription은 콜백 함수로 받습니다. 한 노드가 여러 토픽의 발행자와 구독자를 동시에 가질 수 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">DDS와 디스커버리</h3>
+                            <p class="overview-card__desc">ROS 2는 데이터 전달에 DDS 표준 기반의 미들웨어를 씁니다. 같은 토픽 이름과 타입을 가진 발행자와 구독자를 디스커버리로 자동으로 찾아 연결합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">큐 크기(depth)</h3>
+                            <p class="overview-card__desc">발행자와 구독자가 메시지를 임시로 쌓아 두는 크기입니다. 구독자가 처리하는 속도보다 메시지가 빨리 오면 큐가 차고, 가득 차면 오래된 메시지부터 버려집니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>노드를 작게 나누는 것이 ROS의 기본 설계입니다</strong> — 기능마다 노드를 분리하면 센서나 알고리즘을 갈아 끼우고 노드 하나만 따로 시험하기 쉽습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>토픽은 발행자와 구독자를 느슨하게 연결합니다</strong> — 서로를 직접 알 필요가 없고 응답도 없어서, 구독자를 추가하거나 빼도 발행자 코드는 바뀌지 않습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>연결 조건은 이름과 타입, 그리고 QoS 호환입니다</strong> — 이름이 같아도 메시지 타입이 다르면 연결되지 않습니다. QoS는 다음 토픽(DDS QoS)에서 자세히 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>토픽은 연속 데이터에, 요청과 응답은 서비스와 액션에</strong> — 센서 스트림 같은 흐름은 토픽으로, 한 번 요청하고 결과를 받는 일은 서비스나 액션으로 나눕니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "발행 · 구독" 탭에서 발행자와 구독자가 서로를 찾고 콜백이 호출되는 흐름을, "여러 노드 연결" 탭에서 구독자와 발행자를 늘리는 과정과 타입 불일치를, "느린 구독자" 탭에서 큐가 가득 차 메시지가 버려지는 모습을 STEP으로 확인하세요.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">배경</h2>
+                    <p class="overview-lead">
+                        ROS는 2007년 11월 Willow Garage에서 PR2 로봇의 개발 환경으로 시작된 로봇 소프트웨어 프레임워크입니다. 초기 ROS 1은 중앙 마스터(ROS master)가 노드들의 연결을 중개했고, 연구용 로봇에 맞춰 설계돼 실시간성이나 여러 로봇 · 불안정한 네트워크 환경에서 한계가 있었습니다. 이를 보완해 만든 ROS 2는 통신 계층에 OMG가 표준화한 DDS를 기본 미들웨어로 채택해 마스터 없이 노드가 서로를 찾고, 통신 품질을 QoS로 조절할 수 있게 했습니다. 배포판은 해마다 나오며 장기 지원(LTS) 버전이 따로 있습니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공식 튜토리얼의 발행 주기</strong> — 기본 발행자 예제는 타이머를 0.5초로 두어 초당 2번 메시지를 발행하고, create_publisher의 큐 크기는 10입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>기본 설정의 노드가 만드는 토픽</strong> — 기본 설정의 노드는 /parameter_events와 /rosout 토픽을 만들어 ros2 topic list에 보입니다(노드 옵션으로 끌 수 있음). 각각 파라미터 변경 알림과 로그 메시지를 나르는 토픽입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>도메인 ID</strong> — 같은 네트워크에서 서로 다른 로봇 시스템이 섞이지 않게 ROS_DOMAIN_ID 환경 변수로 구분하며 기본값은 0입니다. 같은 도메인 ID의 노드끼리만 서로를 발견합니다. 공식 문서는 0부터 101까지를 안전한 범위로 안내하며, 이는 Linux 기본 포트 범위 기준이고 macOS와 Windows는 0~166까지입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>큐 손실 계산</strong> — 큐 크기가 3인 구독자에 메시지가 5개 연달아 도착하고 콜백이 그동안 하나도 꺼내지 못하면 오래된 2개(1번, 2번)가 버려지고 3, 4, 5번만 남습니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>ROS는 로봇용 운영체제다</strong> — 리눅스 같은 운영체제 위에서 도는 미들웨어와 라이브러리, 도구의 모음입니다. 이름에 운영체제가 들어 있을 뿐입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>토픽은 요청에 대한 응답을 준다</strong> — 토픽은 한 방향 데이터 흐름이라 응답이 없습니다. 결과가 필요한 호출은 서비스나 액션입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이름만 같으면 반드시 연결된다</strong> — 메시지 타입이 같아야 하고 QoS 설정도 호환돼야 합니다. 맞지 않으면 연결이 만들어지지 않아 데이터가 오지 않습니다. rclcpp는 기본으로 경고 로그를 남기지만 rclpy는 이벤트 콜백을 직접 달기 전에는 아무 표시가 없을 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>구독을 시작하면 지난 메시지도 받는다</strong> — 기본 설정에서는 구독이 연결된 이후에 발행된 메시지만 받습니다. 지난 값을 받으려면 발행자와 구독자 모두 QoS의 내구성(durability)을 Transient Local로 설정해야 합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">ROS 2의 노드와 토픽을 설명해 보세요.</h3>
+                            <p class="overview-card__desc">노드는 하나의 논리적인 일을 맡은 계산 단위이고, 토픽은 이름과 메시지 타입을 가진 단방향 데이터 통로입니다. 발행자가 토픽에 메시지를 보내면 구독자가 콜백으로 받는 발행-구독 구조입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">ROS 1과 ROS 2의 통신 구조는 어떻게 다른가요?</h3>
+                            <p class="overview-card__desc">ROS 1은 중앙 마스터(ROS master)가 노드들을 중개해야 했습니다. ROS 2는 DDS 기반 미들웨어의 디스커버리로 노드가 서로를 직접 찾아 마스터가 필요 없고, QoS로 통신 품질을 조절할 수 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">구독자가 발행 속도를 따라가지 못하면 어떻게 되나요?</h3>
+                            <p class="overview-card__desc">구독자의 큐에 메시지가 쌓이다가 큐 크기를 넘으면 오래된 메시지부터 버려집니다. 기본 설정(KEEP_LAST)에서는 발행자가 막히지 않습니다. 손실을 줄이려면 큐 크기와 QoS를 조정하고 콜백의 처리 시간을 줄입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">토픽과 서비스는 언제 각각 쓰나요?</h3>
+                            <p class="overview-card__desc">센서 값이나 상태처럼 계속 흐르는 데이터는 토픽으로, 한 번 요청하고 응답을 받는 짧은 작업은 서비스로, 오래 걸리고 진행 상황이 필요한 작업은 액션으로 합니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>turtlesim 튜토리얼</strong> — 공식 입문 예제에서 키보드 조종 노드가 /turtle1/cmd_vel 토픽에 geometry_msgs/msg/Twist 메시지를 발행하고, 거북이 노드가 구독해 움직입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>자율주행 스택</strong> — Nav2 같은 내비게이션 프레임워크는 기본 설정에서 /scan(라이다), /odom(주행 거리), /cmd_vel(속도 명령) 같은 토픽으로 센서, 위치 추정, 경로 계획, 모터 제어 노드를 이어 붙입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>rosbag2</strong> — ros2 bag record로 토픽의 메시지를 파일에 기록하고 나중에 재생해, 실제 로봇 없이 같은 센서 데이터로 알고리즘을 시험합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>ros2 CLI와 rqt</strong> — ros2 node list, ros2 topic list · echo · info · hz로 실행 중인 그래프를 조사하고, rqt_graph로 노드와 토픽의 연결을 그림으로 볼 수 있습니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/multicast-broadcast}">멀티캐스트 · 브로드캐스트</a> — 노드가 서로를 찾는 디스커버리가 쓰는 네트워크 전송 방식을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/tcp-ip}">TCP/IP 4계층</a> — DDS 통신이 올라가는 인터넷 프로토콜의 구조를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/os/process}">프로세스</a> — 노드는 보통 프로세스로 실행하지만 한 프로세스에 여러 노드를 넣을 수도 있습니다. 그 바탕이 되는 프로세스를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/robot/ros2-service-action}">ROS2 서비스 vs 액션</a> — 토픽과 달리 요청 · 응답으로 동작하는 통신 방식을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/robot/dds-qos}">DDS QoS</a> — 발행자와 구독자의 연결 조건이 되는 통신 품질 설정을 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>ROS 2 공식 문서</strong> — <a href="https://docs.ros.org/en/jazzy/Concepts/Basic/About-Nodes.html" target="_blank" rel="noopener">Nodes</a>, <a href="https://docs.ros.org/en/jazzy/Concepts/Basic/About-Topics.html" target="_blank" rel="noopener">Topics</a>, <a href="https://docs.ros.org/en/jazzy/Concepts/Intermediate/About-Domain-ID.html" target="_blank" rel="noopener">Domain ID</a>, <a href="https://docs.ros.org/en/jazzy/Concepts/Basic/About-Discovery.html" target="_blank" rel="noopener">Discovery</a>, <a href="https://docs.ros.org/en/jazzy/Concepts/Intermediate/About-Quality-of-Service-Settings.html" target="_blank" rel="noopener">Quality of Service</a>, <a href="https://docs.ros.org/en/jazzy/Concepts/Intermediate/About-Executors.html" target="_blank" rel="noopener">Executors</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>설계 문서</strong> — <a href="https://github.com/ros2/design/blob/gh-pages/articles/010_why_ros2.md" target="_blank" rel="noopener">Why ROS 2?</a>, <a href="https://www.ros.org/reps/rep-2000.html" target="_blank" rel="noopener">REP 2000 (배포판과 LTS)</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>튜토리얼</strong> — <a href="https://docs.ros.org/en/jazzy/Tutorials/Beginner-Client-Libraries/Writing-A-Simple-Py-Publisher-And-Subscriber.html" target="_blank" rel="noopener">Writing a simple publisher and subscriber (Python)</a>, <a href="https://docs.ros.org/en/jazzy/Tutorials/Beginner-CLI-Tools/Understanding-ROS2-Topics/Understanding-ROS2-Topics.html" target="_blank" rel="noopener">Understanding topics</a></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/robot/1-10/ros2-node-topic-code :: code}"></th:block>
+            </div>
+
+            <!-- 탭 4: 퀴즈 -->
+            <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
+                <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+    <script th:src="@{/js/quiz.js}"></script>
+    <script th:src="@{/js/like.js}"></script>
+    <script th:src="@{/js/share.js}"></script>
+</body>
+</html>
