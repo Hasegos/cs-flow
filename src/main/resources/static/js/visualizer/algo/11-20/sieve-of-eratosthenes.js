@@ -1,5 +1,5 @@
 /**
- * 에라토스테네스의 체 시각화
+ * 에라토스테네스의 체 시각화 시각화
  */
 (function () {
     'use strict';
@@ -39,7 +39,7 @@
     var speedWrap = el('div', 'sv-viz__speed');
     speedWrap.appendChild(el('span', 'sv-viz__speed-label', 'SPEED'));
     var speedBtns = [];
-    [['1x', 1700], ['2x', 850], ['3x', 480]].forEach(function (pair, i) {
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
         var b = el('button', 'sv-viz__speed-btn' + (i === 0 ? ' sv-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
@@ -72,11 +72,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'sieve';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 엔진: 에라토스테네스의 체 ===================== */
     function bat(n) {
@@ -221,178 +288,424 @@
     })();
 
     /* ===================== 상태 ===================== */
-    var mode    = 'sieve';
-    var stepIdx = -1;
-    var running = false;
-    var timer   = null;
-    var rafId   = null;
-    var speed   = 1700;
-
     function currentSteps() {
         if (mode === 'sq') return SQ_STEPS;
         if (mode === 'scale') return SC_STEPS;
         return SIEVE_STEPS;
     }
-
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        var rad = Math.min(r, w / 2, h / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + rad, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, rad);
-        ctx.arcTo(x + w, y + h, x,     y + h, rad);
-        ctx.arcTo(x,     y + h, x,     y,     rad);
-        ctx.arcTo(x,     y,     x + w, y,     rad);
-        ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
-    }
-    function tx(str, x, y, sz, color, align, bold) {
-        if (sz < 11) sz = 11;
-        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
+    function defaultLog() {
+        if (mode === 'sq') return '소수 p의 배수를 왜 p²부터 지우는지 5의 배수로 확인합니다.';
+        if (mode === 'scale') return 'n을 키워 가며 체가 지우는 횟수가 얼마나 늘어나는지 실제로 셉니다.';
+        return '2부터 소수의 배수를 지워 나가며 50 이하의 소수를 찾는 과정을 봅니다.';
     }
 
-    /* ===================== 공통: 캡션 ===================== */
-    function drawCaps(s, x0, w, y, fs) {
-        if (s.cap) tx(s.cap, x0 + w / 2, y, fs - 0.5, P.yellow + 'ff', 'center', true);
-        if (s.cap2) tx(s.cap2, x0 + w / 2, y + 19, fs - 1, P.text + 'ee', 'center', false);
-        if (s.cap3) tx(s.cap3, x0 + w / 2, y + 38, fs - 1, P.green + 'ee', 'center', true);
+    /* ===================== 공용 계산 ===================== */
+    function ez(q) {
+        q = clamp01(q);
+        return q * q * (3 - 2 * q);
+    }
+    function fontSet(mob) {
+        if (mob) return { body: 11.5, small: 11 };
+        return { body: 13, small: 12 };
+    }
+    function lhOf(S) {
+        return S.body + 5;
+    }
+    function spfOf(n) {
+        var d;
+        for (d = 2; d * d <= n; d++) {
+            if (n % d === 0) return d;
+        }
+        return n;
+    }
+    function multiplesOf(p) {
+        var arr = [];
+        var m;
+        if (!p) return arr;
+        for (m = p * p; m <= NN; m += p) arr.push(m);
+        return arr;
+    }
+    function sqValsOf(cur) {
+        var arr = [];
+        var k;
+        if (!cur) return [2, 3, 5, 7, 11];
+        for (k = cur; k <= NN; k += cur) arr.push(k);
+        return arr;
+    }
+    function sqVisited(steps, upto, cur) {
+        var map = {};
+        var i;
+        for (i = 0; i <= upto && i < steps.length; i++) {
+            if (steps[i].cur === cur) {
+                steps[i].hl.forEach(function (h) { map[h.m] = h.k; });
+            }
+        }
+        return map;
+    }
+    function scaleLabel(d) {
+        return 'n = ' + fmt(d.n) + ' · 접근 ' + fmt(d.ops) + '번';
+    }
+    function arcAt(xa, xb, base, H, f) {
+        return { x: lerp(xa, xb, f), y: base - 4 * H * f * (1 - f) };
+    }
+    function cellStyle(code, hi) {
+        if (hi) return { fill: P.yellow + '66', stroke: P.yellow + 'ff', lw: 1.4, text: P.text + 'ff', bold: true, x: P.red + 'cc' };
+        if (code === 1) return { fill: P.teal + '33', stroke: P.teal + 'ff', lw: 1.4, text: P.text + 'ff', bold: true, x: null };
+        if (code === 2) return { fill: 'none', stroke: P.sub + '55', lw: 1.2, text: P.sub + 'ff', bold: false, x: P.sub + 'cc' };
+        if (code === 4) return { fill: 'none', stroke: P.sub + '33', lw: 1.2, text: P.sub + 'ff', bold: false, x: null };
+        return { fill: 'none', stroke: P.sub + 'aa', lw: 1.2, text: P.text + 'ff', bold: false, x: null };
+    }
+    function chipStyleOf(key) {
+        if (key === 'cur' || key === 'prime') return { fill: P.teal + '33', stroke: P.teal + 'ff', text: P.text + 'ff', bold: true };
+        if (key === 'dup') return { fill: P.orange + '33', stroke: P.orange + 'ff', text: P.text + 'ff', bold: true };
+        if (key === 'new') return { fill: P.green + '33', stroke: P.green + 'ff', text: P.text + 'ff', bold: true };
+        if (key === 'pre') return { fill: 'none', stroke: P.orange + '99', text: P.sub + 'ff', bold: false };
+        if (key === 'out') return { fill: 'none', stroke: P.sub + '33', text: P.sub + 'aa', bold: false };
+        return { fill: 'none', stroke: P.sub + '88', text: P.sub + 'ff', bold: false };
+    }
+
+    /* ===================== 레이아웃 ===================== */
+    function gridLayout(w, mob) {
+        var cw = Math.min(54, w / 10);
+        return { cw: cw, ch: mob ? 30 : 36, gx: (w - cw * 10) / 2 };
+    }
+    function sieveLegend() {
+        return [
+            { fill: P.teal + '33', stroke: P.teal + 'ff', label: '소수' },
+            { fill: 'none', stroke: P.purple + 'ff', label: '현재 p' },
+            { fill: P.yellow + '66', stroke: P.yellow + 'ff', label: '새로 지움' },
+            { fill: 'none', stroke: P.sub + '66', label: '지워짐' }
+        ];
+    }
+    function sqLegend() {
+        return [
+            { fill: P.teal + '33', stroke: P.teal + 'ff', label: '소수 p' },
+            { fill: P.orange + '33', stroke: P.orange + 'ff', label: '이미 지움' },
+            { fill: P.green + '33', stroke: P.green + 'ff', label: '처음 지움' },
+            { fill: 'none', stroke: P.orange + '99', label: '앞선 소수가 지움' },
+            { fill: 'none', stroke: P.sub + '88', label: '아직' }
+        ];
+    }
+    function scaleLabelH(w, S) {
+        var mx = 1;
+        SC.forEach(function (d) {
+            var c = lines(scaleLabel(d), w, S.body).length;
+            if (c > mx) mx = c;
+        });
+        return mx * lhOf(S);
+    }
+    function capParts(s, w, S) {
+        var out = [];
+        if (s.cap) lines(s.cap, w, S.body).forEach(function (t) { out.push({ t: t, c: P.yellow + 'ff', b: true, f: S.body }); });
+        if (s.cap2) lines(s.cap2, w, S.small).forEach(function (t) { out.push({ t: t, c: P.text + 'ee', b: false, f: S.small }); });
+        if (s.cap3) lines(s.cap3, w, S.small).forEach(function (t) { out.push({ t: t, c: P.green + 'ff', b: true, f: S.small }); });
+        return out;
+    }
+    function capHeight(w, S) {
+        var mx = 0;
+        currentSteps().forEach(function (s) {
+            var n = capParts(s, w, S).length;
+            if (n > mx) mx = n;
+        });
+        return mx * lhOf(S);
+    }
+    function legendFlow(x0, y, w, items, S, doDraw) {
+        var lh = 18;
+        var sw = 11;
+        var cx = x0;
+        var row = 0;
+        ctx.font = '500 ' + S.small + 'px "JetBrains Mono",monospace';
+        items.forEach(function (it) {
+            var need = sw + 5 + ctx.measureText(it.label).width;
+            if (cx > x0 && cx + need > x0 + w) {
+                cx = x0;
+                row++;
+            }
+            if (doDraw) {
+                var cy = y + row * lh + lh / 2;
+                rr(cx, cy - sw / 2, sw, sw, 2.5, it.fill, it.stroke, 1.4);
+                tx(it.label, cx + sw + 5, cy, S.small, P.sub + 'ff', 'left', false);
+            }
+            cx += need + 14;
+        });
+        return (row + 1) * lh;
+    }
+    function layout(w, mob) {
+        var S = fontSet(mob);
+        var capH = capHeight(w, S);
+        var L = { S: S, gap: mob ? 4 : 6, hopH: mob ? 24 : 28, chipH: mob ? 30 : 36, noteY: 0, legTop: 0, capTop: 0, total: 0, labelH: 0, rowH: 0, rowsTop: 6 };
+        if (mode === 'scale') {
+            L.labelH = scaleLabelH(w, S);
+            L.rowH = L.labelH + 28;
+            L.capTop = L.rowsTop + SC.length * L.rowH + 6;
+        } else if (mode === 'sq') {
+            L.noteY = L.hopH + L.chipH + 27;
+            L.legTop = L.noteY + 14;
+            L.capTop = L.legTop + legendFlow(0, 0, w, sqLegend(), S, false) + 6;
+        } else {
+            var g = gridLayout(w, mob);
+            L.legTop = 4 + g.ch * 5 + 10;
+            L.capTop = L.legTop + legendFlow(0, 0, w, sieveLegend(), S, false) + 6;
+        }
+        L.total = L.capTop + capH + 8;
+        return L;
+    }
+    function sceneH(w, mob) { return layout(w, mob).total; }
+
+    /* ===================== 그리기 헬퍼 ===================== */
+    function drawCapBlock(s, x0, w, y, S) {
+        var lh = lhOf(S);
+        capParts(s, w, S).forEach(function (pt, i) {
+            tx(pt.t, x0 + w / 2, y + i * lh + lh / 2, pt.f, pt.c, 'center', pt.b);
+        });
+    }
+    function paintCell(x, y, cw, ch, m, code, hi, a, S) {
+        var st = cellStyle(code, hi);
+        ctx.globalAlpha = a;
+        rr(x + 2, y + 2, cw - 4, ch - 4, 4, st.fill, st.stroke, st.lw);
+        tx(String(m), x + cw / 2, y + ch / 2, S.body, st.text, 'center', st.bold);
+        if (st.x) {
+            ctx.beginPath();
+            ctx.moveTo(x + 6, y + ch - 6);
+            ctx.lineTo(x + cw - 6, y + 6);
+            ctx.strokeStyle = st.x;
+            ctx.lineWidth = 1.4;
+            ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+    }
+    function drawChip(x, y, cw, ch, m, key, a, S) {
+        var st = chipStyleOf(key);
+        ctx.globalAlpha = a;
+        rr(x, y, cw, ch, 5, st.fill, st.stroke, 1.4);
+        tx(String(m), x + cw / 2, y + ch / 2, S.body, st.text, 'center', st.bold);
+        ctx.globalAlpha = 1;
     }
 
     /* ===================== 격자: 1부터 50 ===================== */
-    function drawGrid(x0, top, w, mob, step) {
-        var s = step || SIEVE_STEPS[0];
-        var fs = mob ? 11.5 : 13;
-        var cw = Math.min(54, w / 10);
-        var ch = mob ? 32 : 38;
-        var gx = x0 + (w - cw * 10) / 2;
-        var gy = top + 6;
+    function drawSieveScene(x0, top, w, mob, now, pv, t, L) {
+        var S = L.S;
+        var animating = pv !== now;
+        var g = gridLayout(w, mob);
+        var gy = top + 4;
+        var M = multiplesOf(now.cur);
+        var N = M.length;
+        var walkPos = animating ? seg(t, 0.1, 0.9) * Math.max(0, N - 1) : 0;
+        function cellX(v) { return x0 + g.gx + ((v - 1) % 10) * g.cw; }
+        function cellY(v) { return gy + Math.floor((v - 1) / 10) * g.ch; }
+        function crossP(v) {
+            var i = M.indexOf(v);
+            if (!animating || i < 0) return 1;
+            return ez(clamp01((walkPos - i) / 0.6));
+        }
         var m;
-        var k;
         for (m = 1; m <= NN; m++) {
-            var cx = gx + ((m - 1) % 10) * cw;
-            var cy = gy + Math.floor((m - 1) / 10) * ch;
-            var stt = s.st[m];
-            var isFresh = s.fresh.indexOf(m) >= 0;
-            var fill = 'none';
-            var stroke = P.sub + 'aa';
-            var lw = 1.2;
-            var tc = P.text + 'ff';
-            var bold = false;
-            if (isFresh) {
-                fill = P.yellow + '66';
-                stroke = P.yellow + 'ff';
-                bold = true;
-            } else if (stt === 2) {
-                stroke = P.sub + '55';
-                tc = P.sub + 'ff';
-            } else if (stt === 1) {
-                fill = P.teal + '33';
-                stroke = P.teal + 'ff';
-                bold = true;
-            } else if (stt === 4) {
-                stroke = P.sub + '33';
-                tc = P.sub + 'ff';
+            var cx = cellX(m);
+            var cy = cellY(m);
+            var nowC = now.st[m];
+            var nowH = now.fresh.indexOf(m) >= 0;
+            var preC = animating ? pv.st[m] : nowC;
+            var preH = animating ? pv.fresh.indexOf(m) >= 0 : nowH;
+            paintCell(cx, cy, g.cw, g.ch, m, preC, false, 1, S);
+            if (preH) paintCell(cx, cy, g.cw, g.ch, m, 2, true, nowH ? 1 : 1 - ez(seg(t, 0, 0.35)), S);
+            if (nowC !== preC) {
+                var chA = 1;
+                if (animating && nowC === 1) chA = ez(seg(t, 0.45 * m / NN, 0.45 * m / NN + 0.4));
+                else if (animating && nowC === 2) chA = crossP(m);
+                paintCell(cx, cy, g.cw, g.ch, m, nowC, false, chA, S);
             }
-            if (m === s.cur) {
-                stroke = P.purple + 'ff';
-                lw = 3;
+            if (nowH && !preH) paintCell(cx, cy, g.cw, g.ch, m, 2, true, crossP(m), S);
+            var bA = 0;
+            if (animating && pv.cur !== now.cur) {
+                if (m === now.cur) bA = ez(seg(t, 0, 0.25));
+                else if (m === pv.cur) bA = 1 - ez(seg(t, 0, 0.25));
+            } else if (m === now.cur) {
+                bA = 1;
             }
-            for (k = 0; k < s.hl.length; k++) {
-                if (s.hl[k].m === m) {
-                    stroke = s.hl[k].k === 'new' ? P.green + 'ff' : P.orange + 'ff';
-                    lw = 3;
+            if (bA > 0) {
+                ctx.globalAlpha = bA;
+                rr(cx + 2, cy + 2, g.cw - 4, g.ch - 4, 4, 'none', P.purple + 'ff', 3);
+                ctx.globalAlpha = 1;
+            }
+        }
+        if (animating && N > 0) {
+            var wa = 1 - ez(seg(t, 0.85, 0.95));
+            if (wa > 0) {
+                var wk = Math.min(Math.floor(walkPos), N - 1);
+                var wn = Math.min(wk + 1, N - 1);
+                var wf = walkPos - wk;
+                var ax = cellX(M[wk]) + g.cw / 2;
+                var ay = cellY(M[wk]) + g.ch / 2;
+                var bx = cellX(M[wn]) + g.cw / 2;
+                var by = cellY(M[wn]) + g.ch / 2;
+                ctx.globalAlpha = wa;
+                circ(lerp(ax, bx, wf), lerp(ay, by, wf), 5, P.purple + 'ff', P.text + 'ff', 1.2);
+                ctx.globalAlpha = 1;
+            }
+        }
+        legendFlow(x0, top + L.legTop, w, sieveLegend(), S, true);
+        drawCapBlock(now, x0, w, top + L.capTop, S);
+    }
+
+    /* ===================== 칩 줄: p의 배수를 p²부터 지우는 이유 ===================== */
+    function sqRow(x0, top, w, L, cur, base, fresh, walkU, alpha) {
+        var S = L.S;
+        var vals = sqValsOf(cur);
+        var n = vals.length;
+        var gap = L.gap;
+        var cw = Math.min(44, (w - gap * (n - 1)) / n);
+        var total = cw * n + gap * (n - 1);
+        var ox = x0 + (w - total) / 2;
+        var rowY = top + L.hopH;
+        var nF = fresh.length;
+        var i;
+        function cxOf(k) { return ox + k * (cw + gap) + cw / 2; }
+        for (i = 0; i < n; i++) {
+            var m = vals[i];
+            var bk = base[m];
+            var baseKey;
+            if (cur === 0) baseKey = m * m > NN ? 'out' : 'prime';
+            else if (m === cur) baseKey = 'cur';
+            else if (bk) baseKey = bk;
+            else baseKey = spfOf(m) < cur ? 'pre' : 'todo';
+            var fj = -1;
+            var j;
+            for (j = 0; j < nF; j++) {
+                if (fresh[j].m === m) fj = j;
+            }
+            var x = ox + i * (cw + gap);
+            drawChip(x, rowY, cw, L.chipH, m, baseKey, alpha, S);
+            if (fj >= 0) {
+                var fp = ez(clamp01(walkU * nF - fj));
+                if (fp > 0) drawChip(x, rowY, cw, L.chipH, m, fresh[fj].k, alpha * fp, S);
+            }
+            var subTxt = cur === 0 ? String(m * m) : String(spfOf(m));
+            var subCol = baseKey === 'cur' || baseKey === 'prime' ? P.teal : P.sub;
+            ctx.globalAlpha = alpha;
+            tx(subTxt, x + cw / 2, rowY + L.chipH + 11, S.small, subCol + 'ff', 'center', false);
+            ctx.globalAlpha = 1;
+        }
+        if (nF > 0 && walkU < 1 && alpha > 0) {
+            var pos = walkU * nF;
+            var k = Math.min(Math.floor(pos), nF - 1);
+            var f = pos - k;
+            var nodes = [cxOf(0)];
+            fresh.forEach(function (h) { nodes.push(cxOf(vals.indexOf(h.m))); });
+            var baseY = rowY - 2;
+            var H = L.hopH - 8;
+            var h2;
+            var q;
+            ctx.globalAlpha = alpha;
+            ctx.setLineDash([3, 3]);
+            ctx.strokeStyle = P.purple + 'aa';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            for (h2 = 0; h2 <= k; h2++) {
+                var fe = h2 < k ? 1 : f;
+                for (q = 0; q <= 8; q++) {
+                    var pt = arcAt(nodes[h2], nodes[h2 + 1], baseY, H, fe * q / 8);
+                    if (h2 === 0 && q === 0) {
+                        ctx.moveTo(pt.x, pt.y);
+                    } else {
+                        ctx.lineTo(pt.x, pt.y);
+                    }
                 }
             }
-            rr(cx + 2, cy + 2, cw - 4, ch - 4, 4, fill, stroke, lw);
-            tx(String(m), cx + cw / 2, cy + ch / 2, fs, tc, 'center', bold);
-            if (stt === 2) {
-                ctx.beginPath();
-                ctx.moveTo(cx + 6, cy + ch - 6);
-                ctx.lineTo(cx + cw - 6, cy + 6);
-                ctx.strokeStyle = (isFresh ? P.red : P.sub) + 'cc';
-                ctx.lineWidth = 1.4;
-                ctx.stroke();
-            }
+            ctx.stroke();
+            ctx.setLineDash([]);
+            var wp = arcAt(nodes[k], nodes[k + 1], baseY, H, f);
+            circ(wp.x, wp.y, 4, P.purple + 'ff', 'none');
+            ctx.globalAlpha = 1;
         }
-        var ly = gy + ch * 5 + 16;
-        var items = [['소수', P.teal + '33', P.teal + 'ff'], ['현재 p', 'none', P.purple + 'ff'], ['새로 지움', P.yellow + '66', P.yellow + 'ff'], ['지워짐', 'none', P.sub + '55']];
-        var iw = w / 4;
-        for (k = 0; k < 4; k++) {
-            var lx = x0 + k * iw;
-            rr(lx + 2, ly - 6, 12, 12, 3, items[k][1], items[k][2], 2);
-            tx(items[k][0], lx + 20, ly, fs - 1.5, P.sub + 'ff', 'left', false);
+        ctx.globalAlpha = alpha;
+        tx(cur === 0 ? '아래 숫자 = p²' : '아래 숫자 = 가장 작은 소인수', x0 + w / 2, top + L.noteY, S.small, P.sub + 'ff', 'center', false);
+        ctx.globalAlpha = 1;
+    }
+    function drawSqScene(x0, top, w, mob, now, pv, t, L) {
+        var steps = currentSteps();
+        var idx = steps.indexOf(now);
+        var animating = pv !== now;
+        var prevIdx = animating ? idx - 1 : idx;
+        if (animating && pv.cur !== now.cur) {
+            var cf = ez(seg(t, 0, 0.3));
+            sqRow(x0, top, w, L, pv.cur, sqVisited(steps, prevIdx, pv.cur), [], 1, 1 - cf);
+            sqRow(x0, top, w, L, now.cur, sqVisited(steps, prevIdx, now.cur), now.hl, seg(t, 0.3, 0.9), cf);
+        } else if (animating) {
+            sqRow(x0, top, w, L, now.cur, sqVisited(steps, prevIdx, now.cur), now.hl, seg(t, 0.1, 0.9), 1);
+        } else {
+            sqRow(x0, top, w, L, now.cur, sqVisited(steps, idx, now.cur), [], 1, 1);
         }
-        drawCaps(s, x0, w, ly + 30, fs);
+        legendFlow(x0, top + L.legTop, w, sqLegend(), L.S, true);
+        drawCapBlock(now, x0, w, top + L.capTop, L.S);
     }
 
     /* ===================== 막대: n당 접근 횟수 ===================== */
-    function drawScale(x0, top, w, mob, step) {
-        var s = step || SC_STEPS[0];
-        var fs = mob ? 11.5 : 13;
-        var rh = mob ? 42 : 48;
-        var maxR = 2.5;
+    function drawScaleScene(x0, top, w, mob, now, pv, t, L) {
+        var S = L.S;
+        var animating = pv !== now;
+        var grow = animating && pv.rows < now.rows ? now.rows - 1 : -1;
+        var gA = grow >= 0 ? ez(seg(t, 0.05, 0.95)) : 1;
+        var barMax = w - 64;
+        var lh = lhOf(S);
         var j;
         for (j = 0; j < SC.length; j++) {
-            var y = top + 8 + j * rh;
-            if (j < s.rows) {
-                var d = SC[j];
-                var cur = j === s.rows - 1;
-                tx('n = ' + fmt(d.n) + ' · 접근 ' + fmt(d.ops) + '번 · n당 ' + d.r.toFixed(2), x0 + 2, y + 6, fs - 1, cur ? P.text + 'ff' : P.sub + 'ff', 'left', cur);
-                rr(x0 + 2, y + 18, Math.max(4, (d.r / maxR) * (w - 4)), 12, 3, P.teal + (cur ? '88' : '44'), P.teal + 'ff', cur ? 2.4 : 1.2);
-            } else {
-                rr(x0 + 2, y + 18, w - 4, 12, 3, 'none', P.sub + '33', 1);
-            }
+            var d = SC[j];
+            var y = top + L.rowsTop + j * L.rowH;
+            var barY = y + L.labelH + 6;
+            rr(x0, barY, barMax, 12, 3, 'none', P.sub + '33', 1);
+            if (j >= now.rows) continue;
+            var cur = j === now.rows - 1;
+            var isNew = j === grow;
+            var lblA = isNew ? clamp01(gA * 3) : 1;
+            var barA = isNew ? gA : 1;
+            ctx.globalAlpha = lblA;
+            lines(scaleLabel(d), w, S.body).forEach(function (txt, li) {
+                tx(txt, x0, y + li * lh + lh / 2, S.body, (cur ? P.text : P.sub) + 'ff', 'left', cur);
+            });
+            ctx.globalAlpha = 1;
+            var len = Math.max(4, (d.r / 2.5) * barMax) * barA;
+            rr(x0, barY, len, 12, 3, P.teal + (cur ? '88' : '44'), P.teal + 'ff', cur ? 2 : 1.2);
+            tx('n당 ' + d.r.toFixed(2), x0 + w, barY + 6, S.small, (cur ? P.text : P.sub) + 'ff', 'right', cur);
         }
-        drawCaps(s, x0, w, top + 8 + SC.length * rh + 14, fs);
+        drawCapBlock(now, x0, w, top + L.capTop, S);
+    }
+
+    /* ===================== 장면 진입점 ===================== */
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var now = step || currentSteps()[0];
+        var pv = prev || now;
+        var L = layout(w, mob);
+        if (mode === 'scale') drawScaleScene(x0, top, w, mob, now, pv, t, L);
+        else if (mode === 'sq') drawSqScene(x0, top, w, mob, now, pv, t, L);
+        else drawSieveScene(x0, top, w, mob, now, pv, t, L);
+        ctx.globalAlpha = 1;
     }
 
     /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
     function draw() {
         P = window.CsFlow.getP();
         ctx.clearRect(0, 0, GW(), GH());
         var W = GW(); var mob = W < 600;
-        var padX = mob ? 16 : 26;
-        var fullW = W - padX * 2;
-        var top = mob ? 18 : 26;
-
         var steps = currentSteps();
         var step = stepIdx >= 0 ? steps[stepIdx] : null;
-
-        var dsStep = step || currentSteps()[0];
-        if (dsStep.kind === 'scale') drawScale(padX, top, fullW, mob, dsStep);
-        else drawGrid(padX, top, fullW, mob, dsStep);
-
-        if (!step) {
-            var hint = '아래 STEP으로 에라토스테네스의 체 동작을 확인하세요.';
-            ctx.font = '500 ' + (mob ? 11 : 12.5) + 'px "JetBrains Mono",monospace';
-            var hs = mob ? 11 : 12.5;
-            var hl = [hint];
-            if (ctx.measureText(hint).width > W - 16) {
-                var cut = hint.indexOf(' ', Math.floor(hint.length / 2));
-                if (cut < 0) cut = hint.lastIndexOf(' ');
-                hl = [hint.slice(0, cut), hint.slice(cut + 1)];
-            }
-            hl.forEach(function (line, li) {
-                tx(line, W / 2, GH() - (mob ? 12 : 14) - (hl.length - 1 - li) * (hs + 4), hs, P.muted + 'aa', 'center', false);
-            });
-        }
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
         var mob = w < 600;
-        var neededH;
-        neededH = mob ? 320 : 360;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
         canvasWrap.style.height    = 'auto';
-        canvasWrap.style.minHeight = neededH + 'px';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
         var actualH = canvasWrap.offsetHeight || neededH;
         if (actualH < neededH) actualH = neededH;
         canvas.width  = w * dpr;
@@ -404,17 +717,22 @@
     /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        draw();
-        rafId = requestAnimationFrame(function () { rafId = null; if (onDone) onDone(); });
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
     function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
-    function defaultLog() {
-        if (mode === 'sq') return '소수 p의 배수를 왜 p²부터 지우는지 5의 배수로 확인합니다.';
-        if (mode === 'scale') return 'n을 키워 가며 체가 지우는 횟수가 얼마나 늘어나는지 실제로 셉니다.';
-        return '2부터 소수의 배수를 지워 나가며 50 이하의 소수를 찾는 과정을 봅니다.';
-    }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -453,7 +771,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);
