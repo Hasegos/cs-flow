@@ -1,5 +1,5 @@
 /**
- * 백트래킹(Backtracking) 시각화`
+ * 백트래킹(Backtracking) 시각화 시각화
  */
 (function () {
     'use strict';
@@ -23,7 +23,7 @@
     var modeWrap = el('div', 'backtracking-viz__mode');
     var modeDefs = [
         { key: 'board', label: '보드에서 탐색' },
-        { key: 'tree',  label: '탐색 트리' },
+        { key: 'tree', label: '탐색 트리' }
     ];
     var modeBtns = {};
     modeDefs.forEach(function (m, i) {
@@ -38,7 +38,7 @@
     var speedWrap = el('div', 'backtracking-viz__speed');
     speedWrap.appendChild(el('span', 'backtracking-viz__speed-label', 'SPEED'));
     var speedBtns = [];
-    [['1x', 1200], ['2x', 600], ['3x', 300]].forEach(function (pair, i) {
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
         var b = el('button', 'backtracking-viz__speed-btn' + (i === 0 ? ' backtracking-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
@@ -71,11 +71,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'board';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== N-Queens 데이터 (N=4, 실제 백트래킹 알고리즘 실행) ===================== */
     var N = 4;
@@ -235,234 +302,294 @@
 
     var TREE_STEPS = buildTreeSteps();
 
-    /* ===================== 상태 변수 ===================== */
-    var mode    = 'board';
-    var stepIdx = -1;
-    var running = false;
-    var timer   = null;
-    var rafId   = null;
-    var speed   = 1200;
-
+    /* ===================== 상태 ===================== */
     function currentSteps() {
-        return mode === 'board' ? BOARD_STEPS : TREE_STEPS;
+        return mode === 'tree' ? TREE_STEPS : BOARD_STEPS;
+    }
+    function defaultLog() {
+        return currentSteps()[0].log;
     }
 
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        var rad = Math.min(r, w / 2, h / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + rad, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, rad);
-        ctx.arcTo(x + w, y + h, x,     y + h, rad);
-        ctx.arcTo(x,     y + h, x,     y,     rad);
-        ctx.arcTo(x,     y,     x + w, y,     rad);
-        ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.5; ctx.stroke(); }
-    }
-
-    function tx(str, x, y, sz, color, align, bold) {
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
-    }
-
-    function line(x1, y1, x2, y2, col, lw) {
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
-        ctx.strokeStyle = col; ctx.lineWidth = lw || 1.5;
-        ctx.stroke();
-    }
-
-    /* ===================== 보드 렌더 ===================== */
-    function drawBoard(x0, top, mob, step, headW) {
+    /* ===================== 레이아웃 ===================== */
+    function layout(w, mob) {
         var cell = mob ? 44 : 56;
-        var boardX = x0 + headW;
         var boardPx = cell * N;
+        var colLabelH = mob ? 18 : 22;
+        var gap = mob ? 12 : 14;
+        var stripH = mob ? 24 : 26;
+        var levelH = mob ? 40 : 52;
+        var boardTotal = colLabelH + boardPx + gap + stripH;
+        var treeTotal = (N + 1) * levelH + gap + stripH;
+        return {
+            cell: cell, headW: mob ? 40 : 48, boardPx: boardPx, colLabelH: colLabelH,
+            gap: gap, stripH: stripH, levelH: levelH, gutter: mob ? 34 : 44,
+            fs: mob ? 11 : 12.5, total: mode === 'tree' ? treeTotal : boardTotal
+        };
+    }
+    function sceneH(w, mob) { return layout(w, mob).total; }
 
-        for (var r0 = 0; r0 < N; r0++) {
-            tx('행' + r0, x0 + headW / 2, top + r0 * cell + cell / 2, mob ? 11 : 12.5, P.text + 'dd', 'center', true);
+    function ez(q) { q = clamp01(q); return q * q * (3 - 2 * q); }
+
+    /* ===================== 보드 장면 ===================== */
+    function abtDrawBoard(x0, top, w, mob, L, s, steps, fresh, t) {
+        var pr = function (a, b) { return fresh ? seg(t, a, b) : 1; };
+        var cell = L.cell;
+        var fs = L.fs;
+        var boardW = L.headW + L.boardPx;
+        var bx = x0 + (w - boardW) / 2 + L.headW;
+        var by = top + L.colLabelH;
+        var ax = function (c) { return bx + c * cell + cell / 2; };
+        var ay = function (r) { return by + r * cell + cell / 2; };
+        var tries = s.tried || [];
+        var nT = tries.length;
+        var tAt = function (i) { return pr(0.1 + 0.4 * i / nT, 0.1 + 0.4 * (i + 1) / nT); };
+        var r, c, i;
+
+        for (r = 0; r < N; r++) {
+            tx('행' + r, x0 + (w - boardW) / 2 + L.headW / 2, ay(r), fs, P.text + 'dd', 'center', true);
         }
-
-        for (var r = 0; r < N; r++) {
-            for (var c = 0; c < N; c++) {
-                var cx = boardX + c * cell, cy = top + r * cell;
-                var isCurRow = step.row === r;
+        for (c = 0; c < N; c++) {
+            tx(String(c), ax(c), top + L.colLabelH / 2, fs, P.text + 'dd', 'center', true);
+        }
+        for (r = 0; r < N; r++) {
+            for (c = 0; c < N; c++) {
                 var baseCol = ((r + c) % 2 === 0) ? P.muted + '0a' : P.muted + '16';
-                rr(cx, cy, cell - 2, cell - 2, 3, baseCol, P.muted + '30', 1);
-
-                if (isCurRow) {
-                    rr(cx, cy, cell - 2, cell - 2, 3, P.orange + '10', P.orange + '30', 1);
-                }
-
-                var queenCol = step.board[r];
-                if (queenCol === c) {
-                    if (step.type === 'remove' && r === step.row && c === step.removedCol) {
-                        ctx.save();
-                        ctx.setLineDash([4, 3]);
-                        ctx.beginPath();
-                        ctx.arc(cx + cell / 2, cy + cell / 2, cell * 0.38, 0, Math.PI * 2);
-                        ctx.strokeStyle = P.orange + 'cc';
-                        ctx.lineWidth = 2.2;
-                        ctx.stroke();
-                        ctx.restore();
-                        tx('♛', cx + cell / 2, cy + cell / 2, mob ? 26 : 32, P.orange + '77', 'center', true);
-                    } else {
-                        var qCol = step.type === 'solution' ? P.green : (isCurRow ? P.orange : P.teal);
-                        tx('♛', cx + cell / 2, cy + cell / 2, mob ? 26 : 32, qCol + 'ff', 'center', true);
-                    }
-                } else if (isCurRow && step.tried) {
-                    var t = step.tried.filter(function (tt) { return tt.col === c; })[0];
-                    if (t && !t.safe) {
-                        tx('✕', cx + cell / 2, cy + cell / 2, mob ? 19 : 23, P.muted + 'ee', 'center', true);
-                    }
-                }
+                rr(bx + c * cell, by + r * cell, cell - 2, cell - 2, 3, baseCol, P.muted + '30', 1);
             }
         }
-
-        for (var c2 = 0; c2 < N; c2++) {
-            tx(String(c2), boardX + c2 * cell + cell / 2, top - (mob ? 15 : 17), mob ? 11 : 12.5, P.text + 'dd', 'center', true);
+        if (s.row >= 0 && s.row < N) {
+            ctx.globalAlpha = pr(0, 0.2);
+            rr(bx, by + s.row * cell, L.boardPx - 2, cell - 2, 3, P.orange + '14', P.orange + '55', 1.2);
+            ctx.globalAlpha = 1;
         }
-        return headW + boardPx;
+        if (s.type === 'backtrack' && s.row > 0) {
+            ctx.globalAlpha = pr(0.6, 1);
+            ctx.setLineDash([5, 4]);
+            rr(bx, by + (s.row - 1) * cell, L.boardPx - 2, cell - 2, 3, 'none', P.orange + 'ff', 1.8);
+            ctx.setLineDash([]);
+            ctx.globalAlpha = 1;
+        }
+        for (i = 0; i < nT; i++) {
+            var tr = tries[i];
+            if (tr.safe) continue;
+            var la = tAt(i);
+            var x1 = ax(tr.col), y1 = ay(s.row);
+            var x2 = ax(s.board[tr.conflictRow]), y2 = ay(tr.conflictRow);
+            ctx.globalAlpha = la;
+            ln(x1, y1, x1 + (x2 - x1) * la, y1 + (y2 - y1) * la, P.red + 'cc', 2, tr.reason === 'diag' ? [5, 4] : []);
+            ctx.globalAlpha = 1;
+        }
+        if (fresh && nT > 0 && (s.type === 'place' || s.type === 'backtrack')) {
+            var fi = seg(t, 0, 0.5) * (nT - 1);
+            var i0 = Math.floor(fi), i1 = Math.min(nT - 1, i0 + 1);
+            var cc = lerp(tries[i0].col, tries[i1].col, fi - i0);
+            ctx.globalAlpha = 1 - pr(0.45, 0.6);
+            rr(bx + cc * cell + 1, by + s.row * cell + 1, cell - 4, cell - 4, 4, 'none', P.yellow + 'cc', 1.8);
+            ctx.globalAlpha = 1;
+        }
+        for (r = 0; r < N; r++) {
+            var qc = s.board[r];
+            if (qc < 0) continue;
+            var qx = ax(qc), qy = ay(r), qs = mob ? 26 : 32;
+            if (s.type === 'remove' && r === s.row) {
+                var va = 1 - pr(0, 0.6);
+                ctx.globalAlpha = va;
+                tx('♛', qx, qy - 14 * (1 - va), qs, P.orange + 'ff', 'center', true);
+                ctx.globalAlpha = va * pr(0, 0.25);
+                ctx.setLineDash([4, 3]);
+                circ(qx, qy, cell * 0.38, 'none', P.orange + 'ff', 2.2);
+                ctx.setLineDash([]);
+                ctx.globalAlpha = 1;
+                continue;
+            }
+            if (s.type === 'solution') {
+                var sg = pr(0, 0.5);
+                ctx.globalAlpha = 1 - sg;
+                tx('♛', qx, qy, qs, P.teal + 'ff', 'center', true);
+                ctx.globalAlpha = sg;
+                tx('♛', qx, qy, qs, P.green + 'ff', 'center', true);
+                ctx.globalAlpha = sg * 0.4;
+                circ(qx, qy, cell * 0.42, 'none', P.green + 'ff', 2);
+                ctx.globalAlpha = 1;
+                continue;
+            }
+            var isNew = s.type === 'place' && r === s.row;
+            var qa = isNew ? pr(0.5, 0.7) : 1;
+            var qy2 = isNew ? qy - (1 - ez(pr(0.5, 1))) * cell * 0.9 : qy;
+            ctx.globalAlpha = qa;
+            tx('♛', qx, qy2, qs, (r === s.row ? P.orange : P.teal) + 'ff', 'center', true);
+            ctx.globalAlpha = 1;
+        }
+        for (i = 0; i < nT; i++) {
+            if (tries[i].safe) continue;
+            ctx.globalAlpha = tAt(i);
+            tx('✕', ax(tries[i].col), ay(s.row), mob ? 19 : 23, P.red + 'ff', 'center', true);
+        }
+        ctx.globalAlpha = 1;
+
+        var sy = by + L.boardPx + L.gap;
+        var solAll = BOARD_STEPS.filter(function (x) { return x.type === 'solution'; }).length;
+        var si = steps.indexOf(s), found = 0;
+        for (var k = 0; k <= si; k++) { if (steps[k].type === 'solution') found++; }
+        tx('찾은 정답 ' + found + ' / ' + solAll, x0 + w / 2, sy + L.stripH / 2, fs,
+            (found === solAll ? P.green : P.sub) + 'ff', 'center', true);
     }
 
-    /* ===================== 탐색 트리 렌더 ===================== */
-    function drawTree(x0, top, w, h, mob, step) {
-        var revealedSet = {};
-        (step.revealed || []).forEach(function (id) { revealedSet[id] = true; });
-
-        var activePath = {};
-        if (step.curId != null) {
-            var cur = step.curId;
-            while (cur != null) { activePath[cur] = true; cur = TREE.byId[cur].parentId; }
+    /* ===================== 트리 장면 ===================== */
+    function abtDrawTree(x0, top, w, mob, L, s, p, fresh, t) {
+        var pr = function (a, b) { return fresh ? seg(t, a, b) : 1; };
+        var fs = L.fs;
+        var tx0 = x0 + L.gutter;
+        var tw = w - L.gutter - 8;
+        var colW = tw / Math.max(1, TREE.leafCount);
+        var rad0 = Math.min(mob ? 12 : 16, colW * 0.42);
+        var lh = L.levelH;
+        var newId = fresh && s.curId != null ? s.curId : null;
+        var revealed = {};
+        (s.revealed || []).forEach(function (id) { revealed[id] = true; });
+        var path = {};
+        if (s.curId != null) {
+            var cur = s.curId;
+            while (cur != null) { path[cur] = true; cur = TREE.byId[cur].parentId; }
         }
+        var posOf = function (nd) { return { x: tx0 + (nd.x + 0.5) * colW, y: top + nd.row * lh + lh / 2 }; };
 
-        var levels = N + 1;
-        var colW = w / Math.max(1, TREE.leafCount);
-        var rowH = h / levels;
-
-        function nodePx(n) {
-            return { x: x0 + (n.x + 0.5) * colW, y: top + n.row * rowH + rowH / 2 };
-        }
-
-        TREE.nodes.forEach(function (n) {
-            if (n.parentId == null || !revealedSet[n.id]) return;
-            var parent = TREE.byId[n.parentId];
-            var p1 = nodePx(parent), p2 = nodePx(n);
-            var onActive = activePath[n.id] && activePath[n.parentId];
-            var onSol = n.onSolutionPath && revealedSet[n.id];
-            var eCol = onActive ? P.orange : (onSol ? P.green : P.muted);
-            var eAlpha = onActive ? 'ee' : (onSol ? 'cc' : '55');
-            var eLw = onActive ? 2.8 : (onSol ? 2.2 : 1.3);
-            line(p1.x, p1.y, p2.x, p2.y, eCol + eAlpha, eLw);
+        TREE.nodes.forEach(function (nd) {
+            if (nd.parentId == null || !revealed[nd.id]) return;
+            var a = posOf(TREE.byId[nd.parentId]), b = posOf(nd);
+            var g = nd.id === newId ? pr(0, 0.5) : 1;
+            var onAct = path[nd.id] && path[nd.parentId];
+            var eCol = onAct ? P.orange : (nd.onSolutionPath ? P.green : P.muted);
+            var eA = onAct ? 'ee' : (nd.onSolutionPath ? 'cc' : '55');
+            var eLw = onAct ? 2.8 : (nd.onSolutionPath ? 2.2 : 1.3);
+            ln(a.x, a.y, a.x + (b.x - a.x) * g, a.y + (b.y - a.y) * g, eCol + eA, eLw);
         });
 
-        TREE.nodes.forEach(function (n) {
-            if (!revealedSet[n.id]) return;
-            var p = nodePx(n);
-            var isCur = step.curId === n.id;
-            var r = mob ? 15 : 18;
-            var col = P.muted, label = n.col != null ? String(n.col) : '·';
-            if (n.type === 'deadend') { col = P.muted; label = '✕'; }
-            if (n.type === 'solution') { col = P.green; label = '✓'; }
-            if (n.onSolutionPath && n.type !== 'solution') col = P.green;
-            if (n.type === 'place' && !n.onSolutionPath) col = P.teal;
+        TREE.nodes.forEach(function (nd) {
+            if (!revealed[nd.id]) return;
+            var q = posOf(nd);
+            var isNew = nd.id === newId;
+            var g = isNew ? ez(pr(0.4, 1)) : 1;
+            var isCur = s.curId === nd.id;
+            var col = P.muted, label = nd.col != null ? String(nd.col) : '·';
+            if (nd.type === 'deadend') label = '✕';
+            if (nd.type === 'solution') { col = P.green; label = '✓'; }
+            if (nd.onSolutionPath && nd.type !== 'solution') col = P.green;
+            if (nd.type === 'place' && !nd.onSolutionPath) col = P.teal;
             if (isCur) col = P.orange;
-
+            ctx.globalAlpha = g;
             ctx.beginPath();
-            ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+            ctx.arc(q.x, q.y, rad0 * (0.6 + 0.4 * g), 0, Math.PI * 2);
             ctx.fillStyle = col + '28';
             ctx.fill();
             ctx.strokeStyle = col + 'ee';
             ctx.lineWidth = isCur ? 2.4 : 1.6;
             ctx.stroke();
-            tx(label, p.x, p.y, mob ? 12 : 13.5, col + 'ff', 'center', true);
-            var rowLabel = n.type === 'solution' ? '완성' : ('행' + n.row);
-            tx(rowLabel, p.x + r * 0.85, p.y - r * 0.85, mob ? 11 : 13, P.text + 'aa', 'left', true);
+            tx(label, q.x, q.y, mob ? 12 : 13.5, col + 'ff', 'center', true);
+            ctx.globalAlpha = 1;
         });
+
+        for (var lv = 0; lv <= N; lv++) {
+            tx(lv === N ? '완성' : '행' + lv, x0 + 2, top + lv * lh + lh / 2, fs, P.text + 'dd', 'left', true);
+        }
+
+        var sy = top + (N + 1) * lh + L.gap;
+        var sh = L.stripH;
+        var cw = mob ? 22 : 26;
+        var cg = mob ? 5 : 6;
+        var cx0 = x0 + (mob ? 30 : 40);
+        var curB = s.curId != null ? TREE.byId[s.curId].board : null;
+        var prevB = p.curId != null ? TREE.byId[p.curId].board : null;
+        var chip = function (i, val, a) {
+            var x = cx0 + i * (cw + cg), y = sy + (sh - cw) / 2;
+            if (val < 0) { rr(x, y, cw, cw, 4, 'none', P.muted + '66', 1.2); return; }
+            ctx.globalAlpha = a;
+            rr(x, y, cw, cw, 4, P.teal + '30', P.teal + 'ff', 1.4);
+            tx(String(val), x + cw / 2, y + cw / 2, fs, P.teal + 'ff', 'center', true);
+            ctx.globalAlpha = 1;
+        };
+        tx('배치', x0, sy + sh / 2, fs, P.sub + 'ff', 'left', true);
+        for (var ci = 0; ci < N; ci++) {
+            var cv = curB ? curB[ci] : -1;
+            var pv = prevB ? prevB[ci] : -1;
+            if (fresh && cv !== pv) {
+                if (pv >= 0) chip(ci, pv, 1 - pr(0, 0.5));
+                if (cv >= 0) chip(ci, cv, pr(0.4, 1));
+                else chip(ci, -1, 1);
+            } else {
+                chip(ci, cv, 1);
+            }
+        }
+        tx('가지 ' + (s.revealed || []).length + ' / ' + TREE.nodes.length, x0 + w, sy + sh / 2, fs, P.sub + 'ff', 'right', true);
     }
 
-    /* ===================== 레이아웃 ===================== */
-    function getLayout(mob) {
-        var cell = mob ? 44 : 56;
-        var headW = mob ? 40 : 48;
-        return {
-            top:      mob ? 18 : 24,
-            boardTopPad: mob ? 24 : 28,
-            boardPx:  cell * N,
-            headW:    headW,
-            treeH:    mob ? 260 : 320,
-        };
+    /* ===================== 메인 장면 ===================== */
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var steps = currentSteps();
+        var s = step || steps[0];
+        var p = prev || s;
+        var fresh = s !== p;
+        var tt = clamp01(t);
+        var L = layout(w, mob);
+        if (mode === 'tree') {
+            abtDrawTree(x0, top, w, mob, L, s, p, fresh, tt);
+        } else {
+            abtDrawBoard(x0, top, w, mob, L, s, steps, fresh, tt);
+        }
+    }
+
+    /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
+    function draw() {
+        P = window.CsFlow.getP();
+        ctx.clearRect(0, 0, GW(), GH());
+        var W = GW(); var mob = W < 600;
+        var steps = currentSteps();
+        var step = stepIdx >= 0 ? steps[stepIdx] : null;
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
-    function calcH(W) {
-        var mob = W < 600;
-        var L = getLayout(mob);
-        if (mode === 'board') return L.top + L.boardTopPad + L.boardPx + L.top;
-        return L.top + L.treeH + L.top;
-    }
-
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
-        var neededH = calcH(w);
+        var mob = w < 600;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
         canvasWrap.style.height    = 'auto';
-        canvasWrap.style.minHeight = neededH + 'px';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
         var actualH = canvasWrap.offsetHeight || neededH;
         if (actualH < neededH) actualH = neededH;
-
         canvas.width  = w * dpr;
         canvas.height = actualH * dpr;
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         draw();
     }
 
-    /* ===================== 메인 드로우 ===================== */
-    function draw() {
-        P = window.CsFlow.getP();
-        ctx.clearRect(0, 0, GW(), GH());
-        var W   = GW();
-        var mob = W < 600;
-        var L   = getLayout(mob);
-
-        var neededH = calcH(W);
-        var extra = Math.max(0, GH() - neededH);
-        L.top = L.top + extra / 2;
-
-        var steps = currentSteps();
-        var step  = stepIdx >= 0 ? steps[stepIdx] : steps[0];
-
-        if (mode === 'board') {
-            var boardX0 = (W - (L.headW + L.boardPx)) / 2;
-            drawBoard(boardX0, L.top + L.boardTopPad, mob, step, L.headW);
-        } else {
-            var padX = mob ? 16 : 28;
-            drawTree(padX, L.top, W - padX * 2, L.treeH, mob, step);
-        }
-    }
-
-    /* ===================== 애니메이션(스텝 전환 타이밍) ===================== */
+    /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        draw();
-        rafId = requestAnimationFrame(function () {
-            rafId = null;
-            if (onDone) onDone();
-        });
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
-    function setSpeedDisabled(v) {
-        speedBtns.forEach(function (b) { b.disabled = v; });
-    }
-
-    function defaultLog() {
-        return currentSteps()[0].log;
-    }
+    function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -482,7 +609,7 @@
                 if (next === steps.length - 1) {
                     running = false; btnStep.disabled = true; setSpeedDisabled(false);
                 } else {
-                    timer = setTimeout(tick, speed * 0.32);
+                    timer = setTimeout(tick, speed * 0.6);
                 }
             });
         }
@@ -492,7 +619,7 @@
     function vizStep() {
         if (running) return;
         var steps = currentSteps();
-        var next  = stepIdx + 1;
+        var next = stepIdx + 1;
         if (next >= steps.length) return;
         applyStep(next, null);
         if (next === steps.length - 1) { btnPlay.disabled = true; btnStep.disabled = true; }
@@ -501,7 +628,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);
@@ -517,9 +644,7 @@
     function switchMode(m) {
         if (mode === m) return;
         mode = m;
-        modeDefs.forEach(function (d) {
-            modeBtns[d.key].classList.toggle('backtracking-viz__mode-btn--active', d.key === m);
-        });
+        modeDefs.forEach(function (d) { modeBtns[d.key].classList.toggle('backtracking-viz__mode-btn--active', d.key === m); });
         vizReset();
     }
 
@@ -538,9 +663,9 @@
                 tooltipHits: [],
                 hoveredKey: function () { return null; },
                 setHoveredKey: function () {},
-                draw: draw,
+                draw: draw
             };
-        },
+        }
     });
 
     setTimeout(resize, 60);

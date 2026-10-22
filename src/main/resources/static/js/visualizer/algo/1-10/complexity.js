@@ -1,5 +1,5 @@
 /**
- * 시간/공간 복잡도(Big-O) 시각화
+ * 시간/공간 복잡도(Big-O) 시각화 시각화
  */
 (function () {
     'use strict';
@@ -23,7 +23,7 @@
     var modeWrap = el('div', 'complexity-viz__mode');
     var modeDefs = [
         { key: 'graph', label: '그래프로 보기' },
-        { key: 'table', label: '숫자로 비교' },
+        { key: 'table', label: '숫자로 비교' }
     ];
     var modeBtns = {};
     modeDefs.forEach(function (m, i) {
@@ -38,7 +38,7 @@
     var speedWrap = el('div', 'complexity-viz__speed');
     speedWrap.appendChild(el('span', 'complexity-viz__speed-label', 'SPEED'));
     var speedBtns = [];
-    [['1x', 1600], ['2x', 800], ['3x', 500]].forEach(function (pair, i) {
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
         var b = el('button', 'complexity-viz__speed-btn' + (i === 0 ? ' complexity-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
@@ -53,7 +53,7 @@
     canvasWrap.appendChild(canvas);
     root.appendChild(canvasWrap);
 
-    var logEl = el('div', 'complexity-viz__log', '▶ PLAY를 눌러 n(입력 크기)이 1부터 12까지 커질 때 각 복잡도가 얼마나 다르게 자라는지 확인하세요.');
+    var logEl = el('div', 'complexity-viz__log', '');
     root.appendChild(logEl);
 
     var controls = el('div', 'complexity-viz__controls');
@@ -71,11 +71,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'graph';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 복잡도 클래스 정의 ===================== */
     var N_MAX = 12;
@@ -144,283 +211,251 @@
     var GRAPH_STEPS = buildGraphSteps();
     var TABLE_STEPS = buildTableSteps();
 
-    /* ===================== 상태 변수 ===================== */
-    var mode    = 'graph';
-    var stepIdx = -1;
-    var running = false;
-    var timer   = null;
-    var rafId   = null;
-    var speed   = 1600;
-
+    /* ===================== 상태 ===================== */
     function currentSteps() {
         return mode === 'graph' ? GRAPH_STEPS : TABLE_STEPS;
     }
-
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        var rad = Math.min(r, w / 2, h / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + rad, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, rad);
-        ctx.arcTo(x + w, y + h, x,     y + h, rad);
-        ctx.arcTo(x,     y + h, x,     y,     rad);
-        ctx.arcTo(x,     y,     x + w, y,     rad);
-        ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.5; ctx.stroke(); }
+    function defaultLog() {
+        return mode === 'graph'
+            ? 'PLAY를 눌러 n(입력 크기)이 1부터 12까지 커질 때 각 복잡도가 얼마나 다르게 자라는지 확인하세요.'
+            : 'PLAY를 눌러 n=10 → 100 → 1000으로 커질 때 실제 연산 횟수가 얼마나 벌어지는지 확인하세요.';
     }
 
-    function tx(str, x, y, sz, color, align, bold) {
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
-    }
+    /* ===================== 레이아웃 ===================== */
+    var acxLgMax = Math.log10(Math.pow(2, TABLE_COLS[TABLE_COLS.length - 1]));
 
-    function textWidth(str, sz, bold) {
+    function ez(q) { q = clamp01(q); return q * q * (3 - 2 * q); }
+
+    function acxTw(str, sz, bold) {
         ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
         return ctx.measureText(str).width;
     }
+    function acxCol(cls) { return cls.colorKey === 'muted' ? P.sub : classColor(cls); }
+    function acxFmt(cls, v) { return cls.key === 'olog' ? v.toFixed(1) : fmtCount(v); }
+    function acxBarFrac(v) { return v <= 1 ? 0 : clamp01(Math.log10(v) / acxLgMax); }
 
-    function circle(cx, cy, r, fill, stroke, lw) {
-        ctx.beginPath();
-        ctx.arc(cx, cy, r, 0, Math.PI * 2);
-        if (fill)   { ctx.fillStyle = fill; ctx.fill(); }
-        if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.5; ctx.stroke(); }
+    function acxGraphL(w, mob) {
+        var fs = mob ? 10 : 11;
+        var padL = Math.ceil(acxTw(fmtCount(Math.pow(2, N_MAX)), fs, false)) + 10;
+        var cols = mob ? 2 : CLASSES.length;
+        var rows = Math.ceil(CLASSES.length / cols);
+        var cellH = mob ? 20 : 26;
+        var hdrH = mob ? 18 : 22;
+        var plotH = mob ? 118 : 196;
+        var padB = mob ? 20 : 24;
+        var gridH = rows * cellH;
+        return {
+            fs: fs, padL: padL, padR: mob ? 8 : 16, cols: cols, cellH: cellH, hdrH: hdrH,
+            plotH: plotH, padB: padB, gridH: gridH,
+            total: hdrH + 6 + plotH + padB + 4 + gridH + 4
+        };
     }
 
-    function line(x1, y1, x2, y2, col, lw) {
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
-        ctx.strokeStyle = col; ctx.lineWidth = lw || 1.5;
-        ctx.stroke();
+    function acxTableL(w, mob) {
+        var fs = mob ? 10 : 12;
+        var hdrH = mob ? 18 : 22;
+        var colH = mob ? 18 : 22;
+        var rowH = mob ? 46 : 40;
+        var labelW = mob ? 0 : 124;
+        var cellW = (w - labelW) / TABLE_COLS.length;
+        return {
+            fs: fs, hdrH: hdrH, colH: colH, rowH: rowH, labelW: labelW, cellW: cellW,
+            total: hdrH + 4 + colH + CLASSES.length * rowH + 4
+        };
     }
 
-    /* ===================== 범례 (줄바꿈 지원) ===================== */
-    function drawLegend(W, top, mob, padX) {
-        var fLbl = mob ? 10 : 11;
-        var sw    = mob ? 9  : 10;
-        var lineGap = mob ? 18 : 20;
-        var x = padX, y = top + (mob ? 7 : 9);
-
-        CLASSES.forEach(function (cls) {
-            var col = classColor(cls);
-            var w = sw + 5 + textWidth(cls.label, fLbl, false) + (mob ? 14 : 18);
-            if (x + w > W - padX && x > padX) { x = padX; y += lineGap; }
-            circle(x + sw / 2, y, sw / 2, col + 'dd', col + 'ee', 1);
-            tx(cls.label, x + sw + 5, y, fLbl, P.text + 'cc', 'left', false);
-            x += w;
-        });
-        return y + lineGap / 2;
+    function layout(w, mob) {
+        return mode === 'graph' ? acxGraphL(w, mob) : acxTableL(w, mob);
     }
+    function sceneH(w, mob) { return layout(w, mob).total; }
 
-    /* ===================== 그래프 (성장 곡선) ===================== */
-    function drawGraph(W, top, h, mob, step) {
-        var padL = mob ? 34 : 46;
-        var padR = mob ? 10 : 18;
-        var padT = mob ? 8  : 10;
-        var padB = mob ? 22 : 26;
-        var plotW = Math.max(10, W - padL - padR);
-        var plotH = Math.max(10, h - padT - padB);
-        var n     = step.n || 0;
-        var maxY  = Math.pow(2, N_MAX);
-        var x0 = padL, y0 = top + padT;
+    /* ===================== 그래프 그리기 (n이 늘면 곡선이 자라고 마커가 따라간다) ===================== */
+    function acxDrawGraph(x0, top, w, mob, s, p, e) {
+        var L = acxGraphL(w, mob);
+        var fs = L.fs;
+        var maxY = Math.pow(2, N_MAX);
+        var nNow = lerp(p.n || 0, s.n || 0, ez(e));
+        var plotX = x0 + L.padL;
+        var plotW = w - L.padL - L.padR;
+        var plotY = top + L.hdrH + 6;
+        var bottom = plotY + L.plotH;
+        var xOf = function (nv) { return plotX + (nv / N_MAX) * plotW; };
+        var yOf = function (v) { return bottom - Math.min(1, v / maxY) * L.plotH; };
+        var xNow = xOf(nNow);
 
-        line(x0, y0, x0, y0 + plotH, P.muted + '55', 1);
-        line(x0, y0 + plotH, x0 + plotW, y0 + plotH, P.muted + '55', 1);
+        tx('연산 횟수(회)', x0, top + L.hdrH / 2, fs, P.sub + 'ff', 'left', true);
+        tx('n = ' + Math.round(nNow) + ' (입력 크기)', x0 + w, top + L.hdrH / 2, fs, P.text + 'ff', 'right', true);
 
-        var fTick = mob ? 8 : 9;
+        ln(plotX, plotY, plotX, bottom, P.muted + '77', 1);
+        ln(plotX, bottom, plotX + plotW, bottom, P.muted + '77', 1);
         [0, 0.5, 1].forEach(function (r) {
-            var ty = y0 + plotH - r * plotH;
-            line(x0 - 3, ty, x0, ty, P.muted + '77', 1);
-            tx(fmtCount(maxY * r), x0 - 6, ty, fTick, P.text + '88', 'right', false);
+            var ty = bottom - r * L.plotH;
+            if (r > 0) ln(plotX, ty, plotX + plotW, ty, P.muted + '33', 1, [3, 3]);
+            ln(plotX - 3, ty, plotX, ty, P.muted + '77', 1);
+            tx(fmtCount(maxY * r), plotX - 6, ty, fs, P.sub + 'ff', 'right', false);
+        });
+        (mob ? [0, 6, 12] : [0, 3, 6, 9, 12]).forEach(function (tn) {
+            var gx = xOf(tn);
+            ln(gx, bottom, gx, bottom + 3, P.muted + '77', 1);
+            tx(String(tn), gx, bottom + 11, fs, P.sub + 'ff', 'center', false);
         });
 
-        var ticks = mob ? [0, 6, 12] : [0, 3, 6, 9, 12];
-        ticks.forEach(function (tn) {
-            var tx2 = x0 + (tn / N_MAX) * plotW;
-            line(tx2, y0 + plotH, tx2, y0 + plotH + 3, P.muted + '77', 1);
-            tx(String(tn), tx2, y0 + plotH + padB - (mob ? 8 : 10), fTick, P.text + '88', 'center', false);
-        });
-        tx('n (입력 크기)', mob ? x0 + plotW * 0.75 : x0 + plotW - 6, y0 + plotH + padB - (mob ? 8 : 10), fTick, P.text + '66', mob ? 'center' : 'right', false);
-
-        if (n > 0) {
-            var curX = x0 + (n / N_MAX) * plotW;
-            ctx.save();
-            ctx.setLineDash([4, 4]);
-            line(curX, y0, curX, y0 + plotH, P.text + '33', 1);
-            ctx.restore();
-        }
+        if (nNow > 0) ln(xNow, plotY, xNow, bottom, P.text + '44', 1, [4, 4]);
 
         CLASSES.forEach(function (cls) {
-            var col = classColor(cls);
-            var lw = cls.key === 'o2n' ? (mob ? 2.6 : 3.2) : (mob ? 1.6 : 2);
+            var col = acxCol(cls);
+            var whole = Math.floor(nNow);
             ctx.beginPath();
-            for (var i = 0; i <= n; i++) {
-                var val = cls.calc(i);
-                var px = x0 + (i / N_MAX) * plotW;
-                var py = y0 + plotH - Math.min(1, val / maxY) * plotH;
-                if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+            for (var i = 0; i <= whole; i++) {
+                if (i === 0) ctx.moveTo(xOf(0), yOf(cls.calc(0)));
+                else ctx.lineTo(xOf(i), yOf(cls.calc(i)));
             }
+            if (nNow > whole) ctx.lineTo(xNow, yOf(cls.calc(nNow)));
             ctx.strokeStyle = col + 'ee';
-            ctx.lineWidth = lw;
+            ctx.lineWidth = cls.key === 'o2n' ? (mob ? 2.6 : 3.2) : (mob ? 1.6 : 2);
             ctx.stroke();
+            circ(xNow, yOf(cls.calc(nNow)), mob ? 3.5 : 4.5, col + 'ff', null, 0);
+        });
 
-            if (n >= 0) {
-                var lastVal = cls.calc(n);
-                var lastX = x0 + (n / N_MAX) * plotW;
-                var lastY = y0 + plotH - Math.min(1, lastVal / maxY) * plotH;
-                circle(lastX, lastY, mob ? 3 : 4, col + 'ee', null, 0);
-            }
+        var gy0 = bottom + L.padB + 4;
+        var cw = w / L.cols;
+        CLASSES.forEach(function (cls, i) {
+            var col = acxCol(cls);
+            var cx = x0 + (i % L.cols) * cw;
+            var cy = gy0 + Math.floor(i / L.cols) * L.cellH + L.cellH / 2;
+            circ(cx + 5, cy, mob ? 3.5 : 4, col + 'ff', null, 0);
+            tx(cls.label, cx + 14, cy, fs, P.text + 'ff', 'left', true);
+            tx(acxFmt(cls, cls.calc(nNow)), cx + cw - 6, cy, fs, col + 'ff', 'right', true);
         });
     }
 
-    /* ===================== 현재 n의 값 목록 (줄바꿈 지원) ===================== */
-    function drawValuesRow(W, top, mob, step) {
-        var n = step.n || 0;
-        var fLbl = mob ? 10 : 11;
-        var padX = mob ? 12 : 24;
-        var lineGap = mob ? 20 : 22;
-        var x = padX, y = top + (mob ? 12 : 14);
+    /* ===================== 표 그리기 (열이 차례로 공개되고 막대가 자란다) ===================== */
+    function acxDrawTable(x0, top, w, mob, s, p, e) {
+        var L = acxTableL(w, mob);
+        var fs = L.fs;
+        var reveal = s.reveal || 0;
+        var pReveal = p.reveal || 0;
+        var colY = top + L.hdrH + 4;
+        var rowsY = colY + L.colH;
 
-        tx('n=' + n + '일 때 연산 횟수', padX, top, mob ? 9 : 10, P.muted + 'aa', 'left', true);
-        y += mob ? 6 : 8;
+        tx('연산 횟수(회)', x0, top + L.hdrH / 2, fs, P.sub + 'ff', 'left', true);
+        tx('막대 = 자릿수(로그)', x0 + w, top + L.hdrH / 2, fs, P.sub + 'ff', 'right', false);
 
-        CLASSES.forEach(function (cls) {
-            var col = classColor(cls);
-            var str = cls.label + '=' + fmtCount(cls.calc(n));
-            var w = textWidth(str, fLbl, true) + (mob ? 18 : 24);
-            if (x + w > W - padX && x > padX) { x = padX; y += lineGap; }
-            tx(str, x, y, fLbl, col + 'ee', 'left', true);
-            x += w;
-        });
-    }
-
-    /* ===================== 표 (n=10 / 100 / 1000 비교) ===================== */
-    function drawTable(W, top, mob, step) {
-        var reveal = step.reveal || 0;
-        var fLbl  = mob ? 10 : 11;
-        var fVal  = mob ? 11 : 12.5;
-        var labelW = mob ? 76 : 100;
-        var cellW  = mob ? 82 : 108;
-        var cellH  = mob ? 34 : 40;
-        var headH  = mob ? 26 : 30;
-        var totalW = labelW + TABLE_COLS.length * cellW;
-        var x0 = Math.max(mob ? 10 : 20, (W - totalW) / 2);
-        var y0 = top;
-
-        tx('복잡도', x0, y0 + headH / 2, fLbl, P.muted + 'aa', 'left', true);
         TABLE_COLS.forEach(function (colN, ci) {
+            var cx = x0 + L.labelW + ci * L.cellW + L.cellW / 2;
             var on = ci < reveal;
-            var cx = x0 + labelW + ci * cellW + cellW / 2;
-            tx('n=' + colN.toLocaleString('ko-KR'), cx, y0 + headH / 2, fLbl, (on ? P.text + 'dd' : P.muted + '66'), 'center', true);
+            var fresh = on && ci >= pReveal;
+            ctx.globalAlpha = fresh ? seg(e, 0, 0.35) : 1;
+            tx('n=' + colN.toLocaleString('ko-KR'), cx, colY + L.colH / 2, fs, on ? P.text + 'ff' : P.sub + '66', 'center', true);
+            ctx.globalAlpha = 1;
         });
 
         CLASSES.forEach(function (cls, ri) {
-            var ry = y0 + headH + ri * cellH;
-            var col = classColor(cls);
-            circle(x0 + 5, ry + cellH / 2, mob ? 3.5 : 4, col + 'ee', null, 0);
-            tx(cls.label, x0 + 14, ry + cellH / 2, fLbl, P.text + 'dd', 'left', true);
+            var col = acxCol(cls);
+            var rowTop = rowsY + ri * L.rowH;
+            var labelY = mob ? rowTop + 7 : rowTop + L.rowH / 2;
+            var boxTop = mob ? rowTop + 14 : rowTop + 3;
+            var boxH = mob ? 30 : L.rowH - 6;
+            var valY = boxTop + (mob ? 10 : 11);
+            var barY = boxTop + (mob ? 19 : 21);
+            circ(x0 + 5, labelY, mob ? 3.5 : 4, col + 'ff', null, 0);
+            tx(cls.label, x0 + 14, labelY, fs, P.text + 'ff', 'left', true);
 
             TABLE_COLS.forEach(function (colN, ci) {
+                var cx = x0 + L.labelW + ci * L.cellW;
+                var cw = L.cellW;
+                var bx = cx + 3;
+                var bw = cw - 6;
                 var on = ci < reveal;
-                var cx = x0 + labelW + ci * cellW;
-                var cyMid = ry + cellH / 2;
-                if (on) {
-                    rr(cx + 4, ry + 4, cellW - 8, cellH - 8, 5, col + '16', col + '55', 1.2);
-                    tx(fmtCount(cls.calc(colN)) + '회', cx + cellW / 2, cyMid, fVal, P.text + 'ee', 'center', false);
-                } else {
-                    rr(cx + 4, ry + 4, cellW - 8, cellH - 8, 5, P.muted + '0c', P.muted + '33', 1);
-                    tx('?', cx + cellW / 2, cyMid, fVal, P.muted + '77', 'center', false);
+                var fresh = on && ci >= pReveal;
+                var boxA = on ? (fresh ? seg(e, 0, 0.3) : 1) : 0;
+                var phA = on ? (fresh ? 1 - boxA : 0) : 1;
+
+                if (phA > 0) {
+                    ctx.globalAlpha = phA;
+                    rr(bx, boxTop, bw, boxH, 5, P.muted + '0c', P.muted + '33', 1);
+                    tx('?', cx + cw / 2, boxTop + boxH / 2, fs, P.sub + '88', 'center', false);
+                    ctx.globalAlpha = 1;
                 }
+                if (!on) return;
+
+                ctx.globalAlpha = boxA;
+                rr(bx, boxTop, bw, boxH, 5, col + '16', col + '55', 1.2);
+                ctx.globalAlpha = fresh ? seg(e, 0.15, 0.5) : 1;
+                tx(acxFmt(cls, cls.calc(colN)), cx + cw / 2, valY, fs, P.text + 'ff', 'center', true);
+
+                var trackW = bw - 8;
+                var frac = acxBarFrac(cls.calc(colN));
+                var grow = fresh ? ez(seg(e, 0.25, 1)) : 1;
+                var barW = frac > 0 ? Math.max(3, trackW * frac) : 0;
+                rr(bx + 4, barY, trackW, 5, 2.5, P.muted + '22', null);
+                rr(bx + 4, barY, barW * grow, 5, 2.5, col + 'ff', null);
+                ctx.globalAlpha = 1;
             });
         });
     }
 
-    /* ===================== 레이아웃 상수 ===================== */
-    function getLayout(mob) {
-        return {
-            top:      mob ? 18 : 24,
-            legendH:  mob ? 40 : 30,
-            graphH:   mob ? 190 : 250,
-            valuesH:  mob ? 56  : 52,
-            headH:    mob ? 26 : 30,
-            cellH:    mob ? 34 : 40,
-        };
+    /* ===================== 장면 진입 ===================== */
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var s = step || currentSteps()[0];
+        var p = prev || s;
+        var e = clamp01(t);
+        if (mode === 'graph') acxDrawGraph(x0, top, w, mob, s, p, e);
+        else acxDrawTable(x0, top, w, mob, s, p, e);
+    }
+
+    /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
+    function draw() {
+        P = window.CsFlow.getP();
+        ctx.clearRect(0, 0, GW(), GH());
+        var W = GW(); var mob = W < 600;
+        var steps = currentSteps();
+        var step = stepIdx >= 0 ? steps[stepIdx] : null;
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
-    function calcH(W) {
-        var mob = W < 600;
-        var L = getLayout(mob);
-        if (mode === 'graph') {
-            return L.top + L.legendH + L.graphH + L.valuesH + L.top;
-        }
-        return L.top + L.headH + CLASSES.length * L.cellH + L.top;
-    }
-
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
-        var neededH = calcH(w);
+        var mob = w < 600;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
         canvasWrap.style.height    = 'auto';
-        canvasWrap.style.minHeight = neededH + 'px';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
         var actualH = canvasWrap.offsetHeight || neededH;
         if (actualH < neededH) actualH = neededH;
-
         canvas.width  = w * dpr;
         canvas.height = actualH * dpr;
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         draw();
     }
 
-    /* ===================== 메인 드로우 ===================== */
-    function draw() {
-        P = window.CsFlow.getP();
-        ctx.clearRect(0, 0, GW(), GH());
-        var W   = GW();
-        var mob = W < 600;
-        var L   = getLayout(mob);
-
-        var neededH = calcH(W);
-        var extra = Math.max(0, GH() - neededH);
-        L.top = L.top + extra / 2;
-
-        var steps = currentSteps();
-        var step  = stepIdx >= 0 ? steps[stepIdx] : steps[0];
-
-        if (mode === 'graph') {
-            var padX = mob ? 12 : 24;
-            drawLegend(W, L.top, mob, padX);
-            drawGraph(W, L.top + L.legendH, L.graphH, mob, step);
-            drawValuesRow(W, L.top + L.legendH + L.graphH + (mob ? 10 : 12), mob, step);
-        } else {
-            drawTable(W, L.top, mob, step);
-        }
-    }
-
-    /* ===================== 애니메이션(스텝 전환 타이밍) ===================== */
+    /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        draw();
-        rafId = requestAnimationFrame(function () {
-            rafId = null;
-            if (onDone) onDone();
-        });
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
-    function setSpeedDisabled(v) {
-        speedBtns.forEach(function (b) { b.disabled = v; });
-    }
-
-    function defaultLog() {
-        return mode === 'graph'
-            ? 'PLAY를 눌러 n(입력 크기)이 1부터 12까지 커질 때 각 복잡도가 얼마나 다르게 자라는지 확인하세요.'
-            : 'PLAY를 눌러 n=10 → 100 → 1000으로 커질 때 실제 연산 횟수가 얼마나 벌어지는지 확인하세요.';
-    }
+    function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -440,7 +475,7 @@
                 if (next === steps.length - 1) {
                     running = false; btnStep.disabled = true; setSpeedDisabled(false);
                 } else {
-                    timer = setTimeout(tick, speed * 0.4);
+                    timer = setTimeout(tick, speed * 0.6);
                 }
             });
         }
@@ -450,7 +485,7 @@
     function vizStep() {
         if (running) return;
         var steps = currentSteps();
-        var next  = stepIdx + 1;
+        var next = stepIdx + 1;
         if (next >= steps.length) return;
         applyStep(next, null);
         if (next === steps.length - 1) { btnPlay.disabled = true; btnStep.disabled = true; }
@@ -459,7 +494,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);
@@ -475,11 +510,11 @@
     function switchMode(m) {
         if (mode === m) return;
         mode = m;
-        modeDefs.forEach(function (d) {
-            modeBtns[d.key].classList.toggle('complexity-viz__mode-btn--active', d.key === m);
-        });
+        modeDefs.forEach(function (d) { modeBtns[d.key].classList.toggle('complexity-viz__mode-btn--active', d.key === m); });
         vizReset();
     }
+
+    logEl.textContent = defaultLog();
 
     /* ===================== 라이프사이클 ===================== */
     window.CsFlow.createVizLifecycle({
@@ -494,9 +529,9 @@
                 tooltipHits: [],
                 hoveredKey: function () { return null; },
                 setHoveredKey: function () {},
-                draw: draw,
+                draw: draw
             };
-        },
+        }
     });
 
     setTimeout(resize, 60);
