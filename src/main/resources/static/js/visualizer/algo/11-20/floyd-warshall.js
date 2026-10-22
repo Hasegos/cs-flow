@@ -1,5 +1,5 @@
 /**
- * 플로이드-워셜 시각화
+ * 플로이드-워셜 시각화 시각화
  */
 (function () {
     'use strict';
@@ -39,7 +39,7 @@
     var speedWrap = el('div', 'fw-viz__speed');
     speedWrap.appendChild(el('span', 'fw-viz__speed-label', 'SPEED'));
     var speedBtns = [];
-    [['1x', 1700], ['2x', 850], ['3x', 480]].forEach(function (pair, i) {
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
         var b = el('button', 'fw-viz__speed-btn' + (i === 0 ? ' fw-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
@@ -72,11 +72,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'matrix';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 엔진: 플로이드-워셜 ===================== */
     var N = 4;
@@ -224,176 +291,291 @@
     })();
 
     /* ===================== 상태 ===================== */
-    var mode    = 'matrix';
-    var stepIdx = -1;
-    var running = false;
-    var timer   = null;
-    var rafId   = null;
-    var speed   = 1700;
-
     function currentSteps() {
         if (mode === 'cell') return CELL_STEPS;
         if (mode === 'path') return PATH_STEPS;
         return MAT_STEPS;
     }
-
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        var rad = Math.min(r, w / 2, h / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + rad, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, rad);
-        ctx.arcTo(x + w, y + h, x,     y + h, rad);
-        ctx.arcTo(x,     y + h, x,     y,     rad);
-        ctx.arcTo(x,     y,     x + w, y,     rad);
-        ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
-    }
-    function tx(str, x, y, sz, color, align, bold) {
-        if (sz < 11) sz = 11;
-        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
+    function defaultLog() {
+        if (mode === 'cell') return '경유지 하나를 새로 허용했을 때 각 칸을 어떻게 비교하는지 봅니다.';
+        if (mode === 'path') return '거리 행렬과 함께 저장한 next 행렬로 실제 경로를 복원하는 과정을 봅니다.';
+        return '경유지를 하나씩 허용하며 모든 정점 쌍의 거리를 갱신하는 과정을 봅니다.';
     }
 
-    /* ===================== 공통: 그래프와 행렬 그리기 ===================== */
-    function drawFW(x0, top, w, mob, step) {
-        var mat = step ? step.mat : initDist();
-        var kind = step ? step.kind : 'dist';
-        var k = step ? step.k : -1;
-        var cur = step ? step.cur : null;
-        var cand = step ? step.cand : [];
-        var changed = step ? step.changed : [];
-        var hotV = step ? step.hotV : [];
-        var hotE = step ? step.hotE : [];
-        var fs = mob ? 11.5 : 13;
-        var r = mob ? 17 : 20;
-        var gh = mob ? 150 : 190;
-        var gbox = Math.min(w, 340);
-        var gx = x0 + (w - gbox) / 2 + r + 24;
-        var gw = gbox - 2 * (r + 24);
-        var gy0 = top + r + 6;
-        var gih = gh - 2 * r - 12;
-        function px(v) { return gx + POS[v][0] * gw; }
-        function py(v) { return gy0 + POS[v][1] * gih; }
-        var i;
-        var j;
-        EDGES.forEach(function (e, idx) {
-            var ax = px(e[0]);
-            var ay = py(e[0]);
-            var bx = px(e[1]);
-            var by = py(e[1]);
-            var ang = Math.atan2(by - ay, bx - ax);
-            var nxv = -Math.sin(ang) * 7;
-            var nyv = Math.cos(ang) * 7;
-            var sx = ax + nxv + Math.cos(ang) * r;
-            var sy = ay + nyv + Math.sin(ang) * r;
-            var ex = bx + nxv - Math.cos(ang) * (r + 2);
-            var ey = by + nyv - Math.sin(ang) * (r + 2);
-            var isHot = hotE.indexOf(idx) >= 0;
-            var color = isHot ? P.green + 'ff' : P.sub + 'aa';
-            ctx.beginPath();
-            ctx.moveTo(sx, sy);
-            ctx.lineTo(ex, ey);
-            ctx.strokeStyle = color;
-            ctx.lineWidth = isHot ? 3 : 1.6;
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(ex, ey);
-            ctx.lineTo(ex - 8 * Math.cos(ang - 0.4), ey - 8 * Math.sin(ang - 0.4));
-            ctx.lineTo(ex - 8 * Math.cos(ang + 0.4), ey - 8 * Math.sin(ang + 0.4));
-            ctx.closePath();
-            ctx.fillStyle = color;
-            ctx.fill();
-            tx(String(e[2]), (sx + ex) / 2 + nxv * 1.7, (sy + ey) / 2 + nyv * 1.7, fs, isHot ? P.green + 'ff' : P.text + 'ff', 'center', true);
-        });
-        for (i = 0; i < N; i++) {
-            var isHotV = hotV.indexOf(i) >= 0;
-            var base = kind === 'next' ? (isHotV ? P.green : P.sub) : (isHotV && i === k ? P.yellow : isHotV ? P.teal : P.sub);
-            ctx.beginPath();
-            ctx.arc(px(i), py(i), r, 0, Math.PI * 2);
-            ctx.fillStyle = isHotV ? base + '44' : P.surf2;
-            ctx.fill();
-            ctx.strokeStyle = base + 'ff';
-            ctx.lineWidth = isHotV ? 3 : 1.8;
-            ctx.stroke();
-            tx(NAMES[i], px(i), py(i), fs + 1, P.text + 'ff', 'center', true);
+    /* ===================== 공용 계산 ===================== */
+    function ez(q) {
+        var v = clamp01(q);
+        return v * v * (3 - 2 * v);
+    }
+    function fwVal(v, isNext) {
+        if (isNext) return v < 0 ? '-' : NAMES[v];
+        return fmt(v);
+    }
+    function fwHas(list, i, j) {
+        var k;
+        for (k = 0; k < list.length; k++) {
+            if (list[k][0] === i && list[k][1] === j) return true;
         }
-        var cw = Math.min(58, (w - 8) / (N + 1));
-        var rh = mob ? 27 : 30;
-        var mx = x0 + (w - cw * (N + 1)) / 2;
-        var my = top + gh + 24;
-        if (step && step.mlabel) tx(step.mlabel, x0 + w / 2, my - 11, fs - 1, P.sub + 'ee', 'center', true);
-        for (i = -1; i < N; i++) {
-            for (j = -1; j < N; j++) {
-                var cx0 = mx + (j + 1) * cw;
-                var cy0 = my + (i + 1) * rh;
-                if (i < 0 && j < 0) continue;
-                if (i < 0 || j < 0) {
-                    tx(NAMES[i < 0 ? j : i], cx0 + cw / 2, cy0 + rh / 2, fs, P.sub + 'ff', 'center', true);
-                    continue;
-                }
-                var isCur = cur && cur[0] === i && cur[1] === j;
-                var isCh = changed.some(function (c) { return c[0] === i && c[1] === j; });
-                var isCand = cand.some(function (c) { return c[0] === i && c[1] === j; });
-                var onK = k >= 0 && kind === 'dist' && (i === k || j === k) && (cur || changed.length);
-                var fill = isCh ? P.yellow + '44' : isCand ? P.teal + '44' : onK ? P.teal + '18' : 'none';
-                var stroke = isCur ? P.yellow + 'ff' : isCh ? P.yellow + 'ff' : isCand ? P.teal + 'ff' : P.sub + '66';
-                rr(cx0 + 1.5, cy0 + 1.5, cw - 3, rh - 3, 3, fill, stroke, isCur ? 2.6 : isCh || isCand ? 1.8 : 1);
-                var v = mat[i][j];
-                var label = kind === 'next' ? (v < 0 ? '-' : NAMES[v]) : fmt(v);
-                tx(label, cx0 + cw / 2, cy0 + rh / 2, fs, isCh ? P.yellow + 'ff' : P.text + 'ff', 'center', true);
+        return false;
+    }
+
+    /* ===================== 레이아웃 ===================== */
+    var fwMemo = {};
+    function fwSize(mob) {
+        if (mob) return { fs: 11.5, fsS: 11, lhS: 14, gh: 118, rh: 23, nr: 13 };
+        return { fs: 13, fsS: 12, lhS: 16, gh: 142, rh: 28, nr: 16 };
+    }
+    function fwLines(str, w, fs) {
+        return str ? lines(str, w, fs).length : 0;
+    }
+    function layout(w, mob) {
+        var key = Math.round(w) + (mob ? 'm' : 'd');
+        if (fwMemo[key]) return fwMemo[key];
+        var z = fwSize(mob);
+        var labN = 0;
+        var capH = 0;
+        MAT_STEPS.concat(CELL_STEPS, PATH_STEPS).forEach(function (s) {
+            labN = Math.max(labN, fwLines(s.mlabel, w - 8, z.fsS));
+            var h = fwLines(s.cap, w - 8, z.fs) * (z.fs + 5)
+                + (fwLines(s.cap2, w - 8, z.fsS) + fwLines(s.cap3, w - 8, z.fsS)) * (z.fsS + 4);
+            capH = Math.max(capH, h);
+        });
+        var L = { fs: z.fs, fsS: z.fsS, lhS: z.lhS, gh: z.gh, rh: z.rh, nr: z.nr };
+        L.mTop = z.gh + 4 + labN * z.lhS + 6;
+        L.capTop = L.mTop + 5 * z.rh + 10;
+        L.total = L.capTop + capH + 6;
+        fwMemo[key] = L;
+        return L;
+    }
+    function sceneH(w, mob) {
+        return layout(w, mob).total;
+    }
+
+    /* ===================== 그래프 ===================== */
+    function fwPt(x0, w, top, L, v) {
+        var gbw = Math.min(w, 300);
+        var gx = x0 + (w - gbw) / 2;
+        var padX = L.nr + 10;
+        var padY = L.nr + 4;
+        return {
+            x: gx + padX + POS[v][0] * (gbw - 2 * padX),
+            y: top + padY + POS[v][1] * (L.gh - 2 * padY)
+        };
+    }
+    function fwEdge(x0, w, top, L, idx, s, p, fresh, e) {
+        var ed = EDGES[idx];
+        var a = fwPt(x0, w, top, L, ed[0]);
+        var b = fwPt(x0, w, top, L, ed[1]);
+        var ang = Math.atan2(b.y - a.y, b.x - a.x);
+        var rev = EDGES.some(function (f) { return f[0] === ed[1] && f[1] === ed[0]; });
+        var lo = rev ? 6 : 0;
+        var ox = -Math.sin(ang) * lo;
+        var oy = Math.cos(ang) * lo;
+        var sx = a.x + ox + Math.cos(ang) * L.nr;
+        var sy = a.y + oy + Math.sin(ang) * L.nr;
+        var ex = b.x + ox - Math.cos(ang) * (L.nr + 3);
+        var ey = b.y + oy - Math.sin(ang) * (L.nr + 3);
+        var hot = s.hotE.indexOf(idx) >= 0;
+        var grow = hot && fresh && p.hotE.indexOf(idx) < 0 ? ez(seg(e, 0.1, 0.8)) : 1;
+        var col = hot ? P.green + 'ff' : P.sub + 'aa';
+        var lw = hot ? 3 : 1.6;
+        if (grow >= 1) arrow(sx, sy, ex, ey, col, lw);
+        else ln(sx, sy, lerp(sx, ex, grow), lerp(sy, ey, grow), col, lw);
+        var hx = (sx + ex) / 2;
+        var hy = (sy + ey) / 2;
+        var lx = hx + ox * 2;
+        var ly = hy + oy * 2;
+        if (!rev) {
+            var vx = hx - (x0 + w / 2);
+            var vy = hy - (top + L.gh / 2);
+            var len = Math.sqrt(vx * vx + vy * vy);
+            if (len > 1) {
+                lx = hx + vx / len * 11;
+                ly = hy + vy / len * 11;
+            } else {
+                lx = hx;
+                ly = hy;
             }
         }
-        var at = my + (N + 1) * rh + 18;
-        if (step && step.cap) tx(step.cap, x0 + w / 2, at, fs - 0.5, P.yellow + 'ff', 'center', true);
-        if (step && step.cap2) tx(step.cap2, x0 + w / 2, at + 19, fs - 1, P.text + 'ee', 'center', false);
-        if (step && step.cap3) tx(step.cap3, x0 + w / 2, at + 38, fs - 1, P.green + 'ee', 'center', true);
+        tx(String(ed[2]), lx, ly, L.fs, (hot ? P.green : P.text) + 'ff', 'center', true);
+    }
+    function fwRoute(x0, w, top, L, s, fresh, e) {
+        if (s.kind !== 'dist' || !s.cur || s.k < 0) return;
+        var a = fwPt(x0, w, top, L, s.cur[0]);
+        var m = fwPt(x0, w, top, L, s.k);
+        var b = fwPt(x0, w, top, L, s.cur[1]);
+        var f = fresh ? seg(e, 0, 0.6) : 1;
+        var f1 = clamp01(f * 2);
+        var f2 = clamp01(f * 2 - 1);
+        var col = P.purple + 'ff';
+        ln(a.x, a.y, lerp(a.x, m.x, f1), lerp(a.y, m.y, f1), col, 2, [4, 3]);
+        if (f2 > 0) ln(m.x, m.y, lerp(m.x, b.x, f2), lerp(m.y, b.y, f2), col, 2, [4, 3]);
+    }
+    function fwNodes(x0, w, top, L, s, fresh, e) {
+        var kHot = s.kind === 'dist' && s.hotV.length ? s.hotV[0] : -1;
+        var i;
+        for (i = 0; i < N; i++) {
+            var q = fwPt(x0, w, top, L, i);
+            var fill = P.surf2;
+            var stroke = P.sub + 'ff';
+            var lw = 1.8;
+            if (s.kind === 'next' && s.hotV.indexOf(i) >= 0) {
+                fill = P.green + '44'; stroke = P.green + 'ff'; lw = 3;
+            } else if (i === kHot) {
+                fill = P.yellow + '44'; stroke = P.yellow + 'ff'; lw = 3;
+                if (fresh && e < 1) {
+                    ctx.globalAlpha = 1 - e;
+                    circ(q.x, q.y, L.nr + 3 + 8 * ez(e), 'none', P.yellow + 'ff', 2);
+                    ctx.globalAlpha = 1;
+                }
+            } else if (s.kind === 'dist' && s.hotV.indexOf(i) >= 0) {
+                fill = P.teal + '44'; stroke = P.teal + 'ff'; lw = 3;
+            }
+            circ(q.x, q.y, L.nr, fill, stroke, lw);
+            tx(NAMES[i], q.x, q.y, L.fs, P.text + 'ff', 'center', true);
+        }
+    }
+    function fwGraph(x0, w, top, L, s, p, fresh, e) {
+        var ed;
+        for (ed = 0; ed < EDGES.length; ed++) fwEdge(x0, w, top, L, ed, s, p, fresh, e);
+        fwRoute(x0, w, top, L, s, fresh, e);
+        fwNodes(x0, w, top, L, s, fresh, e);
+    }
+
+    /* ===================== 행렬 ===================== */
+    function fwMat(x0, top, w, L, s, p, fresh, e) {
+        var cw = Math.min(54, w / 5);
+        var rh = L.rh;
+        var mx = x0 + (w - cw * (N + 1)) / 2;
+        var my = top + L.mTop;
+        var isNext = s.kind === 'next';
+        var cellMode = mode === 'cell';
+        var cellFinal = cellMode && s.cur === null && s.k >= 0;
+        var ref = cellFinal ? CELL_STEPS[0].mat : p.mat;
+        var chgA = fresh ? ez(seg(e, cellMode ? 0.6 : 0.3, cellMode ? 0.85 : 0.7)) : 1;
+        var kNow = isNext ? -1 : s.k;
+        var kPrev = fresh && !isNext ? p.k : kNow;
+        var aNow = fresh ? ez(seg(e, 0, 0.3)) : 1;
+        var i;
+        var j;
+        function cen(r, c) {
+            return { x: mx + (c + 1) * cw + cw / 2, y: my + (r + 1) * rh + rh / 2 };
+        }
+        for (j = 0; j < N; j++) tx(NAMES[j], cen(-1, j).x, my + rh / 2, L.fs, P.sub + 'ff', 'center', true);
+        for (i = 0; i < N; i++) {
+            tx(NAMES[i], mx + cw / 2, cen(i, -1).y, L.fs, P.sub + 'ff', 'center', true);
+            for (j = 0; j < N; j++) {
+                var x = mx + (j + 1) * cw;
+                var y = my + (i + 1) * rh;
+                var nowV = s.mat[i][j];
+                var oldV = ref[i][j];
+                var chg = (cellFinal || fresh) && oldV !== nowV;
+                var inK = kNow >= 0 && (i === kNow || j === kNow);
+                var inOld = kPrev >= 0 && kPrev !== kNow && (i === kPrev || j === kPrev);
+                var tint = 0;
+                if (inK) tint = fresh && kPrev !== kNow ? aNow : 1;
+                if (inOld) tint = Math.max(tint, 1 - aNow);
+                if (tint > 0) {
+                    ctx.globalAlpha = tint;
+                    rr(x + 1.5, y + 1.5, cw - 3, rh - 3, 3, P.teal + '33', 'none', 1);
+                    ctx.globalAlpha = 1;
+                }
+                if (fwHas(s.cand, i, j)) rr(x + 1.5, y + 1.5, cw - 3, rh - 3, 3, P.teal + '44', P.teal + 'ff', 1.8);
+                else rr(x + 1.5, y + 1.5, cw - 3, rh - 3, 3, 'none', P.sub + '66', 1);
+                if (chg) {
+                    ctx.globalAlpha = chgA;
+                    rr(x + 1.5, y + 1.5, cw - 3, rh - 3, 3, P.yellow + '44', P.yellow + 'ff', 1.8);
+                    ctx.globalAlpha = 1 - chgA;
+                    tx(fwVal(oldV, isNext), x + cw / 2, y + rh / 2, L.fs, P.sub + 'ff', 'center', true);
+                    ctx.globalAlpha = chgA;
+                    tx(fwVal(nowV, isNext), x + cw / 2, y + rh / 2, L.fs, P.yellow + 'ff', 'center', true);
+                    ctx.globalAlpha = 1;
+                } else {
+                    tx(fwVal(nowV, isNext), x + cw / 2, y + rh / 2, L.fs, P.text + 'ff', 'center', true);
+                }
+                if (s.cur && s.cur[0] === i && s.cur[1] === j) {
+                    rr(x + 1.5, y + 1.5, cw - 3, rh - 3, 3, 'none', P.purple + 'ff', 2.6);
+                }
+            }
+        }
+        if (cellMode && s.cur && fresh && s.cand.length === 2) {
+            var ca = s.cand[0];
+            var cb = s.cand[1];
+            var sum = s.mat[ca[0]][ca[1]] + s.mat[cb[0]][cb[1]];
+            var pa = cen(ca[0], ca[1]);
+            var pb = cen(cb[0], cb[1]);
+            var pt = cen(s.cur[0], s.cur[1]);
+            var g = ez(seg(e, 0.05, 0.6));
+            var chx = lerp((pa.x + pb.x) / 2, pt.x, g);
+            var chy = lerp((pa.y + pb.y) / 2, pt.y, g);
+            var fa = ez(seg(e, 0, 0.1)) * (1 - ez(seg(e, 0.6, 0.8)));
+            if (fa > 0) {
+                ctx.globalAlpha = fa;
+                rr(chx - 16, chy - 9, 32, 18, 5, P.surf2, P.yellow + 'ff', 1.6);
+                tx(fmt(sum), chx, chy, L.fs, P.text + 'ff', 'center', true);
+                ctx.globalAlpha = 1;
+            }
+        }
+    }
+
+    /* ===================== 캡션 ===================== */
+    function fwBlock(str, cx, y, maxW, fs, lh, col, bold) {
+        if (!str) return y;
+        var rows = lines(str, maxW, fs);
+        rows.forEach(function (row, li) {
+            tx(row, cx, y + li * lh + lh / 2, fs, col, 'center', bold);
+        });
+        return y + rows.length * lh;
+    }
+    function fwCaps(x0, top, w, L, s, fresh, e) {
+        var cx = x0 + w / 2;
+        var y = top + L.capTop;
+        ctx.globalAlpha = fresh ? 0.35 + 0.65 * ez(e) : 1;
+        y = fwBlock(s.cap, cx, y, w - 8, L.fs, L.fs + 5, P.yellow + 'ff', true);
+        y = fwBlock(s.cap2, cx, y, w - 8, L.fsS, L.fsS + 4, P.text + 'ee', false);
+        fwBlock(s.cap3, cx, y, w - 8, L.fsS, L.fsS + 4, P.green + 'ff', true);
+        ctx.globalAlpha = 1;
+    }
+
+    /* ===================== 진입 ===================== */
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var s = step || currentSteps()[0];
+        var p = prev || s;
+        var fresh = s !== p;
+        var e = clamp01(t);
+        var L = layout(w, mob);
+        fwGraph(x0, w, top, L, s, p, fresh, e);
+        fwBlock(s.mlabel, x0 + w / 2, top + L.gh + 4, w - 8, L.fsS, L.lhS, P.sub + 'ff', true);
+        fwMat(x0, top, w, L, s, p, fresh, e);
+        fwCaps(x0, top, w, L, s, fresh, e);
+        ctx.globalAlpha = 1;
     }
 
     /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
     function draw() {
         P = window.CsFlow.getP();
         ctx.clearRect(0, 0, GW(), GH());
         var W = GW(); var mob = W < 600;
-        var padX = mob ? 16 : 26;
-        var fullW = W - padX * 2;
-        var top = mob ? 18 : 26;
-
         var steps = currentSteps();
         var step = stepIdx >= 0 ? steps[stepIdx] : null;
-
-        drawFW(padX, top, fullW, mob, step);
-
-        if (!step) {
-            var hint = '아래 STEP으로 플로이드-워셜의 동작을 확인하세요.';
-            ctx.font = '500 ' + (mob ? 11 : 12.5) + 'px "JetBrains Mono",monospace';
-            var hs = mob ? 11 : 12.5;
-            var hl = [hint];
-            if (ctx.measureText(hint).width > W - 16) {
-                var cut = hint.indexOf(' ', Math.floor(hint.length / 2));
-                if (cut < 0) cut = hint.lastIndexOf(' ');
-                hl = [hint.slice(0, cut), hint.slice(cut + 1)];
-            }
-            hl.forEach(function (line, li) {
-                tx(line, W / 2, GH() - (mob ? 12 : 14) - (hl.length - 1 - li) * (hs + 4), hs, P.muted + 'aa', 'center', false);
-            });
-        }
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
         var mob = w < 600;
-        var neededH;
-        neededH = mob ? 410 : 460;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
         canvasWrap.style.height    = 'auto';
-        canvasWrap.style.minHeight = neededH + 'px';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
         var actualH = canvasWrap.offsetHeight || neededH;
         if (actualH < neededH) actualH = neededH;
         canvas.width  = w * dpr;
@@ -405,17 +587,22 @@
     /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        draw();
-        rafId = requestAnimationFrame(function () { rafId = null; if (onDone) onDone(); });
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
     function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
-    function defaultLog() {
-        if (mode === 'cell') return '경유지 하나를 새로 허용했을 때 각 칸을 어떻게 비교하는지 봅니다.';
-        if (mode === 'path') return '거리 행렬과 함께 저장한 next 행렬로 실제 경로를 복원하는 과정을 봅니다.';
-        return '경유지를 하나씩 허용하며 모든 정점 쌍의 거리를 갱신하는 과정을 봅니다.';
-    }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -454,7 +641,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);
