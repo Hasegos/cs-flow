@@ -1,5 +1,5 @@
 /**
- * 분리집합(Union-Find) 시각화
+ * 분리집합(Union-Find) 시각화 시각화
  */
 (function () {
     'use strict';
@@ -39,7 +39,7 @@
     var speedWrap = el('div', 'uf-viz__speed');
     speedWrap.appendChild(el('span', 'uf-viz__speed-label', 'SPEED'));
     var speedBtns = [];
-    [['1x', 1700], ['2x', 850], ['3x', 480]].forEach(function (pair, i) {
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
         var b = el('button', 'uf-viz__speed-btn' + (i === 0 ? ' uf-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
@@ -72,11 +72,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'naive';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 엔진: 분리집합 ===================== */
     function jro(n) {
@@ -170,45 +237,27 @@
     })();
 
     /* ===================== 상태 ===================== */
-    var mode    = 'naive';
-    var stepIdx = -1;
-    var running = false;
-    var timer   = null;
-    var rafId   = null;
-    var speed   = 1700;
-
     function currentSteps() {
         if (mode === 'size') return SZ_STEPS;
         if (mode === 'compress') return PC_STEPS;
         return NV_STEPS;
     }
-
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        var rad = Math.min(r, w / 2, h / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + rad, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, rad);
-        ctx.arcTo(x + w, y + h, x,     y + h, rad);
-        ctx.arcTo(x,     y + h, x,     y,     rad);
-        ctx.arcTo(x,     y,     x + w, y,     rad);
-        ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
-    }
-    function tx(str, x, y, sz, color, align, bold) {
-        if (sz < 11) sz = 11;
-        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
+    function defaultLog() {
+        if (mode === 'size') return '같은 연산을 크기 기준으로 합치면 트리 높이가 어떻게 달라지는지 봅니다.';
+        if (mode === 'compress') return 'find가 지나간 경로를 루트에 직접 연결하는 경로 압축을 봅니다.';
+        return '루트를 다른 루트 밑에 붙이는 union을 한 번씩 실행해 봅니다.';
     }
 
-    /* ===================== 공통: 숲과 부모 배열 그리기 ===================== */
-    function layoutForest(par) {
+    /* ===================== 공통 ===================== */
+    function ez(q) {
+        var v = clamp01(q);
+        return v * v * (3 - 2 * v);
+    }
+    function ufA(c, a) {
+        var h = Math.round(clamp01(a) * 255).toString(16);
+        return c + (h.length < 2 ? '0' + h : h);
+    }
+    function ufForest(par) {
         var ch = [];
         var i;
         for (i = 0; i <= N; i++) ch.push([]);
@@ -228,118 +277,222 @@
             kids.forEach(function (k) { walk(k, d + 1); });
             pos[v] = { cx: (pos[kids[0]].cx + pos[kids[kids.length - 1]].cx) / 2, d: d };
         }
-        roots.forEach(function (r) {
-            walk(r, 0);
-            leaf += 0.5;
-        });
+        roots.forEach(function (rt) { walk(rt, 0); leaf += 0.5; });
         return { pos: pos, total: leaf - 0.5 };
     }
-    function drawUF(x0, top, w, mob, step) {
-        var par = step ? step.par : mkPar();
-        var cur = step ? step.cur : 0;
-        var hops = step ? step.hops : [];
-        var hl = step ? step.hl : [];
-        var fs = mob ? 10.5 : 12;
-        var r = mob ? 11 : 12.5;
-        var dy = mob ? 24 : 28;
-        var lay = layoutForest(par);
-        var u = Math.min(52, w / Math.max(lay.total, 1));
-        var offX = x0 + (w - lay.total * u) / 2;
-        function px(v) { return offX + lay.pos[v].cx * u; }
-        function py(v) { return top + 16 + lay.pos[v].d * dy; }
+    function ufSizes(par) {
+        var sz = [];
+        var i;
+        for (i = 0; i <= N; i++) sz.push(0);
+        for (i = 1; i <= N; i++) sz[rootOf(par, i)] += 1;
+        return sz;
+    }
+    function ufPrefix(a, b) {
+        if (a.length >= b.length) return false;
+        var k;
+        for (k = 0; k < a.length; k++) if (a[k] !== b[k]) return false;
+        return true;
+    }
+    function ufMaxTotal(steps) {
+        var m = 1;
+        steps.forEach(function (st) { m = Math.max(m, ufForest(st.par).total); });
+        return m;
+    }
+    function ufMaxDepth(steps) {
+        var d = 0;
+        steps.forEach(function (st) { d = Math.max(d, heightOf(st.par)); });
+        return d;
+    }
+
+    /* ===================== 레이아웃 ===================== */
+    function layout(w, mob) {
+        var steps = currentSteps();
+        var g = {
+            r: mob ? 10 : 12.5,
+            fs: mob ? 11 : 12.5,
+            fsSub: mob ? 11 : 12,
+            dy: mob ? 30 : 36,
+            D: ufMaxDepth(steps),
+            M: ufMaxTotal(steps),
+            labW: mob ? 46 : 56,
+            bh: mob ? 22 : 24,
+            sr: mode === 'size' ? (mob ? 16 : 18) : 0
+        };
+        g.cw = Math.min(mob ? 36 : 50, (w - g.labW) / N);
+        g.u = Math.min(mob ? 36 : 52, Math.max(8, (w - 2 * g.r - 4) / g.M));
+        g.treeH = 2 * g.r + 8 + g.D * g.dy;
+        g.stripH = 15 + g.bh + (g.sr ? 4 + g.sr : 0) + 4;
+        return g;
+    }
+
+    /* ===================== 캡션 ===================== */
+    function ufCapBlock(w, g, st) {
+        var out = [];
+        if (st.cap) out.push({ ls: lines(st.cap, w, g.fs), col: P.yellow + 'ff', bold: true, sz: g.fs });
+        if (st.cap2) out.push({ ls: lines(st.cap2, w, g.fsSub), col: P.text + 'ee', bold: false, sz: g.fsSub });
+        if (st.cap3) out.push({ ls: lines(st.cap3, w, g.fsSub), col: P.green + 'ff', bold: true, sz: g.fsSub });
+        return out;
+    }
+    function ufCapH(w, g, st) {
+        var h = 0;
+        ufCapBlock(w, g, st).forEach(function (b, bi) {
+            h += (bi > 0 ? 6 : 0) + b.ls.length * (b.sz + 4);
+        });
+        return h;
+    }
+    function ufDrawCap(x0, y, w, g, st) {
+        var yy = y;
+        ufCapBlock(w, g, st).forEach(function (b, bi) {
+            if (bi > 0) yy += 6;
+            b.ls.forEach(function (str) {
+                tx(str, x0 + w / 2, yy + (b.sz + 4) / 2, b.sz, b.col, 'center', b.bold);
+                yy += b.sz + 4;
+            });
+        });
+    }
+    function sceneH(w, mob) {
+        var g = layout(w, mob);
+        var cap = 0;
+        currentSteps().forEach(function (st) { cap = Math.max(cap, ufCapH(w, g, st)); });
+        return g.treeH + g.stripH + 4 + cap;
+    }
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function ufEdge(x1, y1, x2, y2, r, col) {
+        var dx = x2 - x1;
+        var dz = y2 - y1;
+        var len = Math.sqrt(dx * dx + dz * dz);
+        if (len < 2 * r) return;
+        var ux = dx / len;
+        var uy = dz / len;
+        var ex = x2 - ux * (r + 1);
+        var ey = y2 - uy * (r + 1);
+        ln(x1 + ux * r, y1 + uy * r, ex, ey, col, 1.5);
+        ctx.beginPath();
+        ctx.moveTo(ex, ey);
+        ctx.lineTo(ex - ux * 6 - uy * 3.5, ey - uy * 6 + ux * 3.5);
+        ctx.lineTo(ex - ux * 6 + uy * 3.5, ey - uy * 6 - ux * 3.5);
+        ctx.closePath();
+        ctx.fillStyle = col;
+        ctx.fill();
+    }
+
+    /* ===================== 진입 ===================== */
+    function drawScene(x0, top, w, mob, cs, ps, t) {
+        var s = cs || currentSteps()[0];
+        var p = ps || s;
+        var mv = p !== s;
+        var tt = mv ? t : 1;
+        var e = ez(tt);
+        var g = layout(w, mob);
+        var offX = x0 + (w - g.M * g.u) / 2;
+        var baseY = top + g.r + 4;
+        var lay = ufForest(s.par);
+        var lp = ufForest(p.par);
+        var nx = [];
+        var ny = [];
         var v;
+        var i;
         for (v = 1; v <= N; v++) {
-            if (par[v] === v) continue;
-            var ax = px(v), ay = py(v), bx = px(par[v]), by = py(par[v]);
-            var dx = bx - ax, dyy = by - ay;
-            var len = Math.sqrt(dx * dx + dyy * dyy);
-            var ux = dx / len, uy = dyy / len;
-            var sx = ax + ux * r, sy = ay + uy * r;
-            var ex = bx - ux * (r + 2), ey = by - uy * (r + 2);
-            ctx.beginPath();
-            ctx.moveTo(sx, sy);
-            ctx.lineTo(ex, ey);
-            ctx.strokeStyle = P.sub + 'cc';
-            ctx.lineWidth = 1.5;
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(ex, ey);
-            ctx.lineTo(ex - ux * 6 - uy * 3.5, ey - uy * 6 + ux * 3.5);
-            ctx.lineTo(ex - ux * 6 + uy * 3.5, ey - uy * 6 - ux * 3.5);
-            ctx.closePath();
-            ctx.fillStyle = P.sub + 'cc';
-            ctx.fill();
+            nx[v] = lerp(offX + lp.pos[v].cx * g.u, offX + lay.pos[v].cx * g.u, e);
+            ny[v] = lerp(baseY + lp.pos[v].d * g.dy, baseY + lay.pos[v].d * g.dy, e);
         }
         for (v = 1; v <= N; v++) {
-            var isRoot = par[v] === v;
-            var col = P.teal;
-            var lw = 1.5;
-            if (isRoot) { col = P.green; lw = 2.4; }
+            var pv = s.par[v];
+            if (pv !== v) {
+                var fresh = mv && p.par[v] !== pv;
+                ufEdge(nx[v], ny[v], nx[pv], ny[pv], g.r, fresh ? ufA(P.yellow, e * 0.95) : ufA(P.sub, 0.8));
+            }
+            var old = p.par[v];
+            if (mv && old !== v && old !== pv) {
+                ufEdge(nx[v], ny[v], nx[old], ny[old], g.r, ufA(P.sub, (1 - e) * 0.8));
+            }
+        }
+        var hops = s.hops;
+        for (v = 1; v <= N; v++) {
+            var isRoot = s.par[v] === v;
+            var inHl = s.hl.indexOf(v) >= 0;
+            var cur = v === s.cur;
+            var col = isRoot ? P.green : P.teal;
             if (hops.indexOf(v) >= 0) col = P.orange;
-            if (hl.indexOf(v) >= 0) col = P.purple;
-            if (v === cur) col = P.yellow;
-            ctx.beginPath();
-            ctx.arc(px(v), py(v), r, 0, Math.PI * 2);
-            ctx.fillStyle = col + '30';
-            ctx.fill();
-            ctx.strokeStyle = col + 'ff';
-            ctx.lineWidth = v === cur || hl.indexOf(v) >= 0 ? 2.6 : lw;
-            ctx.stroke();
-            tx(String(v), px(v), py(v), fs, P.text + 'ff', 'center', true);
+            if (inHl) col = P.purple;
+            if (cur) col = P.yellow;
+            circ(nx[v], ny[v], g.r, ufA(col, 0.19), ufA(col, 1), isRoot || inHl || cur ? 2.4 : 1.5);
+            tx(String(v), nx[v], ny[v], g.fs, P.text + 'ff', 'center', true);
         }
-        var at = top + 5 * dy + 44;
-        var cw = Math.min(46, w / N);
-        var ax0 = x0 + (w - cw * N) / 2;
-        tx('parent', x0, at - 8, fs - 1.5, P.sub + 'ee', 'left', true);
-        for (var i = 1; i <= N; i++) {
-            var hot = i === cur || hl.indexOf(i) >= 0;
-            tx(String(i), ax0 + (i - 0.5) * cw, at + 6, fs - 1.5, P.sub + 'ee', 'center', true);
-            rr(ax0 + (i - 1) * cw + 1.5, at + 16, cw - 3, 22, 3, hot ? P.yellow + '30' : 'none', (hot ? P.yellow : P.sub) + (hot ? 'ff' : '88'), hot ? 1.8 : 1.1);
-            tx(String(par[i]), ax0 + (i - 0.5) * cw, at + 27, fs - 0.5, P.text + 'ee', 'center', true);
+        if (hops.length) {
+            var st0 = mv && p.hops.length > 0 && ufPrefix(p.hops, hops) ? p.hops.length - 1 : 0;
+            var f = mv ? st0 + tt * (hops.length - 1 - st0) : hops.length - 1;
+            var i0 = Math.floor(f);
+            var i1 = Math.min(i0 + 1, hops.length - 1);
+            var fr = f - i0;
+            var wx = lerp(nx[hops[i0]], nx[hops[i1]], fr);
+            var wy = lerp(ny[hops[i0]], ny[hops[i1]], fr);
+            circ(wx, wy, g.r + 3, 'none', P.yellow + 'ff', 2);
         }
-        if (step && step.cap) tx(step.cap, x0 + w / 2, at + 56, fs - 0.5, P.yellow + 'ff', 'center', true);
-        if (step && step.cap2) tx(step.cap2, x0 + w / 2, at + 74, fs - 1, P.text + 'ee', 'center', false);
-        if (step && step.cap3) tx(step.cap3, x0 + w / 2, at + 92, fs - 1, P.green + 'ee', 'center', true);
+
+        var gx = x0 + g.labW + (w - g.labW - g.cw * N) / 2;
+        var idxC = top + g.treeH + 7;
+        var boxT = top + g.treeH + 15;
+        var boxC = boxT + g.bh / 2;
+        tx('parent', x0, boxC, g.fsSub, P.sub + 'ff', 'left', true);
+        var szs = ufSizes(s.par);
+        var pszs = ufSizes(p.par);
+        for (i = 1; i <= N; i++) {
+            var cx0 = gx + (i - 1) * g.cw;
+            var hot = i === s.cur || s.hl.indexOf(i) >= 0;
+            var chg = mv && p.par[i] !== s.par[i];
+            var flash = chg ? Math.sin(Math.PI * tt) : 0;
+            var shownP = chg && tt < 0.5 ? p.par[i] : s.par[i];
+            tx(String(i), cx0 + g.cw / 2, idxC, g.fsSub, P.sub + 'ff', 'center', true);
+            rr(cx0 + 1.5, boxT, g.cw - 3, g.bh, 3,
+                chg ? ufA(P.yellow, 0.1 + 0.35 * flash) : hot ? ufA(P.yellow, 0.19) : 'none',
+                hot || chg ? P.yellow + 'ff' : ufA(P.sub, 0.55),
+                hot || chg ? 1.8 : 1.1);
+            tx(String(shownP), cx0 + g.cw / 2, boxC, g.fs, P.text + 'ff', 'center', true);
+        }
+        if (g.sr) {
+            var syC = boxT + g.bh + 4 + g.sr / 2;
+            tx('크기', x0, syC, g.fsSub, P.sub + 'ff', 'left', true);
+            for (i = 1; i <= N; i++) {
+                var scx = gx + (i - 1) * g.cw + g.cw / 2;
+                var nv = szs[i];
+                var ov = pszs[i];
+                var chgS = mv && nv !== ov;
+                var show = chgS && tt < 0.5 ? ov : nv;
+                var txt = show > 0 ? String(show) : '-';
+                var tcol = chgS ? P.yellow + 'ff' : show > 0 ? P.green + 'ff' : P.sub + 'ff';
+                tx(txt, scx, syC, g.fsSub, tcol, 'center', true);
+            }
+        }
+        ufDrawCap(x0, top + g.treeH + g.stripH + 4, w, g, s);
     }
 
     /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
     function draw() {
         P = window.CsFlow.getP();
         ctx.clearRect(0, 0, GW(), GH());
         var W = GW(); var mob = W < 600;
-        var padX = mob ? 16 : 26;
-        var fullW = W - padX * 2;
-        var top = mob ? 18 : 26;
-
         var steps = currentSteps();
         var step = stepIdx >= 0 ? steps[stepIdx] : null;
-
-        drawUF(padX, top, fullW, mob, step);
-
-        if (!step) {
-            var hint = '아래 STEP으로 분리집합의 동작을 확인하세요.';
-            ctx.font = '500 ' + (mob ? 11 : 12.5) + 'px "JetBrains Mono",monospace';
-            var hs = mob ? 11 : 12.5;
-            var hl = [hint];
-            if (ctx.measureText(hint).width > W - 16) {
-                var cut = hint.indexOf(' ', Math.floor(hint.length / 2));
-                if (cut < 0) cut = hint.lastIndexOf(' ');
-                hl = [hint.slice(0, cut), hint.slice(cut + 1)];
-            }
-            hl.forEach(function (line, li) {
-                tx(line, W / 2, GH() - (mob ? 12 : 14) - (hl.length - 1 - li) * (hs + 4), hs, P.muted + 'aa', 'center', false);
-            });
-        }
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
         var mob = w < 600;
-        var neededH;
-        neededH = mob ? 300 : 330;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
         canvasWrap.style.height    = 'auto';
-        canvasWrap.style.minHeight = neededH + 'px';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
         var actualH = canvasWrap.offsetHeight || neededH;
         if (actualH < neededH) actualH = neededH;
         canvas.width  = w * dpr;
@@ -351,17 +504,22 @@
     /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        draw();
-        rafId = requestAnimationFrame(function () { rafId = null; if (onDone) onDone(); });
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
     function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
-    function defaultLog() {
-        if (mode === 'size') return '같은 연산을 크기 기준으로 합치면 트리 높이가 어떻게 달라지는지 봅니다.';
-        if (mode === 'compress') return 'find가 지나간 경로를 루트에 직접 연결하는 경로 압축을 봅니다.';
-        return '루트를 다른 루트 밑에 붙이는 union을 한 번씩 실행해 봅니다.';
-    }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -400,7 +558,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);

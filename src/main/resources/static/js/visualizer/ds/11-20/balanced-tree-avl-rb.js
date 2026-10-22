@@ -1,5 +1,5 @@
 /**
- * 균형 이진트리 AVL과 레드-블랙 시각화
+ * 균형 이진트리 AVL과 레드-블랙 시각화 시각화
  */
 (function () {
     'use strict';
@@ -39,7 +39,7 @@
     var speedWrap = el('div', 'bal-viz__speed');
     speedWrap.appendChild(el('span', 'bal-viz__speed-label', 'SPEED'));
     var speedBtns = [];
-    [['1x', 1700], ['2x', 850], ['3x', 480]].forEach(function (pair, i) {
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
         var b = el('button', 'bal-viz__speed-btn' + (i === 0 ? ' bal-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
@@ -72,11 +72,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'avl';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 엔진: 조사 ===================== */
     function jg(n, a, b) {
@@ -315,180 +382,295 @@
     RB_STEPS.push({ tree: RB_STEPS[RB_STEPS.length - 1].tree, hl: [], cap: '높이 ' + RB_RUN.height + ' · 회전 ' + RB_RUN.rot + '번 · 색만 바꾼 처리 ' + RB_RUN.rec + '번', log: '정리 — 키 ' + RB_KEYS.length + '개를 넣는 동안 회전은 ' + RB_RUN.rot + '번이고 최종 높이는 ' + RB_RUN.height + '입니다. 삼촌이 빨강이면 색만 바꾸고, 검정이면 회전 한두 번으로 끝나 재균형 비용이 작습니다.' });
 
     /* ===================== 상태 ===================== */
-    var mode    = 'avl';
-    var stepIdx = -1;
-    var running = false;
-    var timer   = null;
-    var rafId   = null;
-    var speed   = 1700;
-
     function currentSteps() {
         if (mode === 'rb') return RB_STEPS;
         if (mode === 'cmp') return CMP_STEPS;
         return AVL_STEPS;
     }
+    function defaultLog() {
+        if (mode === 'rb') return '레드-블랙 트리에 키를 삽입하며 색 바꾸기와 회전이 일어나는 과정을 봅니다.';
+        if (mode === 'cmp') return '정렬된 키를 삽입했을 때 세 트리의 높이를 비교합니다.';
+        return 'AVL 트리에 키를 삽입하며 불균형이 회전으로 복구되는 과정을 봅니다.';
+    }
+    function ez(q) { var v = clamp01(q); return v * v * (3 - 2 * v); }
 
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        var rad = Math.min(r, w / 2, h / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + rad, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, rad);
-        ctx.arcTo(x + w, y + h, x,     y + h, rad);
-        ctx.arcTo(x,     y + h, x,     y,     rad);
-        ctx.arcTo(x,     y,     x + w, y,     rad);
-        ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    /* ===================== 레이아웃 ===================== */
+    var btMemo = {};
+    var BT_CMP_TITLE = '키 1~' + jg(N_SORT, '을', '를') + ' 정렬된 순서로 삽입했을 때 높이';
+    var BT_CMP_SUM = '이론 상한: AVL 약 1.44 log2(n + 2) · 레드-블랙 2 log2(n + 1)';
+    var BT_LEG_AVL = '숫자는 균형 인수(왼쪽 높이 - 오른쪽 높이)입니다. -1, 0, 1이면 정상입니다.';
+    var BT_LEG_RB = '빨강 원은 빨강 노드, 어두운 원은 검정 노드입니다. 루트는 항상 검정입니다.';
+    function btFs(mob) { return mob ? 11 : 12.5; }
+    function btFsSub(mob) { return mob ? 11 : 12; }
+    function btR(mob) { return mob ? 13 : 15; }
+    function btDy(mob) { return mob ? 44 : 50; }
+    function btSlots() { return mode === 'rb' ? RB_KEYS.length : AVL_KEYS.length; }
+    function btLevels() {
+        var best = 1;
+        currentSteps().forEach(function (st) {
+            var h = mode === 'rb' ? rbHeight(st.tree) : avlH(st.tree);
+            if (h > best) best = h;
+        });
+        return best;
     }
-    function tx(str, x, y, sz, color, align, bold) {
-        if (sz < 9.5) sz = 9.5;
-        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
+    function btCapMax(w, mob) {
+        var fs = btFs(mob);
+        var best = 0;
+        currentSteps().forEach(function (st) {
+            if (!st.cap) return;
+            var h = lines(st.cap, w - 8, fs).length * (fs + 5);
+            if (h > best) best = h;
+        });
+        return best;
     }
+    function btBuildCmp(w, mob) {
+        var fs = btFs(mob), fsub = btFsSub(mob);
+        var L = { fs: fs, fsub: fsub, unit: (w - 40) / N_SORT, rows: [] };
+        L.titleL = lines(BT_CMP_TITLE, w, fs);
+        var y = L.titleL.length * (fs + 4) + 8;
+        CMP_ROWS.forEach(function (rw) {
+            var nl = lines(rw.note, w - 4, fsub);
+            L.rows.push({ y: y, nl: nl });
+            y += fs + 40 + nl.length * (fsub + 4);
+        });
+        L.sumY = y;
+        L.sumL = lines(BT_CMP_SUM, w - 8, fsub);
+        L.total = y + L.sumL.length * (fsub + 5) + 4;
+        return L;
+    }
+    function btBuildTree(w, mob) {
+        var fs = btFs(mob), fsub = btFsSub(mob), r = btR(mob), dy = btDy(mob);
+        var L = { fs: fs, fsub: fsub, r: r, dy: dy };
+        L.treeH = 2 * r + 12 + (btLevels() - 1) * dy;
+        L.capY = L.treeH + 8;
+        L.legL = lines(mode === 'rb' ? BT_LEG_RB : BT_LEG_AVL, w - 8, fsub);
+        L.legY = L.capY + btCapMax(w, mob) + 6;
+        L.total = L.legY + L.legL.length * (fsub + 4) + 4;
+        return L;
+    }
+    function layout(w, mob) {
+        var key = mode + '|' + Math.round(w) + '|' + (mob ? 'm' : 'd');
+        if (!btMemo[key]) btMemo[key] = mode === 'cmp' ? btBuildCmp(w, mob) : btBuildTree(w, mob);
+        return btMemo[key];
+    }
+    function sceneH(w, mob) { return layout(w, mob).total; }
 
-    /* ===================== 공통: 트리 배치 ===================== */
-    function layoutTree(root) {
-        var nodes = [];
-        var idx = 0;
-        function walk(n, d) {
-            if (!n) return;
-            walk(n.l, d + 1);
-            nodes.push({ n: n, x: idx++, d: d });
-            walk(n.r, d + 1);
+    /* ===================== 트리 헬퍼 ===================== */
+    function btPlace(tree, slots, x0, w, r, top, dy) {
+        var list = [];
+        function walk(nd, d) {
+            if (!nd) return;
+            walk(nd.l, d + 1);
+            list.push({ k: nd.k, d: d });
+            walk(nd.r, d + 1);
         }
-        walk(root, 0);
-        return nodes;
-    }
-    function drawTreeBox(x0, top, w, mob, step, kind) {
-        var fs = mob ? 10 : 11.5;
-        var tree = step ? step.tree : null;
-        var capY = top + (mob ? 214 : 230);
-        if (!tree) {
-            tx('(아직 키가 없습니다)', x0 + w / 2, top + 100, fs, P.sub + 'ee', 'center', false);
-            return;
-        }
-        var nodes = layoutTree(tree);
-        var total = Math.max(nodes.length, kind === 'avl' ? 6 : 7);
-        var r = mob ? 13 : 15;
-        var dx = (w - 2 * r) / (total - 1);
-        var dy = mob ? 46 : 50;
+        walk(tree, 0);
         var pos = {};
-        nodes.forEach(function (p) {
-            pos[p.n.k] = { x: x0 + r + p.x * dx + (total - nodes.length) * dx / 2, y: top + 34 + p.d * dy };
+        var dx = slots > 1 ? (w - 2 * r) / (slots - 1) : 0;
+        var off = (slots - list.length) / 2;
+        list.forEach(function (it, i) {
+            pos[it.k] = { x: x0 + r + (i + off) * dx, y: top + r + 8 + it.d * dy };
         });
-        function edges(n) {
-            if (!n) return;
-            [n.l, n.r].forEach(function (ch) {
-                if (!ch) return;
-                ctx.beginPath();
-                ctx.moveTo(pos[n.k].x, pos[n.k].y);
-                ctx.lineTo(pos[ch.k].x, pos[ch.k].y);
-                ctx.strokeStyle = P.sub + 'aa';
-                ctx.lineWidth = 1.6;
-                ctx.stroke();
-                edges(ch);
-            });
+        return pos;
+    }
+    function btNodes(tree, out) {
+        if (!tree) return out;
+        out.push(tree);
+        btNodes(tree.l, out);
+        btNodes(tree.r, out);
+        return out;
+    }
+    function btEdges(tree, out) {
+        if (!tree) return out;
+        if (tree.l) out.push([tree.k, tree.l.k]);
+        if (tree.r) out.push([tree.k, tree.r.k]);
+        btEdges(tree.l, out);
+        btEdges(tree.r, out);
+        return out;
+    }
+    function btHasEdge(list, a, b) {
+        for (var i = 0; i < list.length; i++) {
+            if (list[i][0] === a && list[i][1] === b) return true;
         }
-        edges(tree);
-        var hl = step.hl || [];
-        nodes.forEach(function (p) {
-            var n = p.n;
-            var ps = pos[n.k];
-            var on = hl.indexOf(n.k) >= 0;
-            var bad = kind === 'avl' && step.bad === n.k;
-            var fill;
-            var edge;
-            if (kind === 'rb') {
-                fill = n.c === 'R' ? P.red + '55' : '#0d0d16';
-                edge = n.c === 'R' ? P.red + 'ff' : P.sub + 'ff';
-            } else {
-                fill = P.teal + '25';
-                edge = P.teal + 'ff';
-            }
-            if (bad) edge = P.red + 'ff';
-            ctx.beginPath();
-            ctx.arc(ps.x, ps.y, r, 0, Math.PI * 2);
-            ctx.fillStyle = fill;
-            ctx.fill();
-            ctx.lineWidth = on || bad ? 3 : 1.6;
-            ctx.strokeStyle = on && !bad ? P.yellow + 'ff' : edge;
-            ctx.stroke();
-            tx(String(n.k), ps.x, ps.y, fs, P.text + 'ff', 'center', true);
-            if (kind === 'avl') {
-                var bf = avlH(n.l) - avlH(n.r);
-                tx(String(bf), ps.x + r + 3, ps.y - r - 1, fs - 1.5, (Math.abs(bf) > 1 ? P.red : P.green) + 'ff', 'left', true);
-            }
+        return false;
+    }
+    function btByKey(tree) {
+        var m = {};
+        btNodes(tree, []).forEach(function (nd) { m[nd.k] = nd; });
+        return m;
+    }
+    function btStyle(isRb, c) {
+        if (!isRb) return { fill: P.teal + '25', edge: P.teal + 'ff', text: P.text + 'ff' };
+        if (c === 'R') return { fill: P.red + 'ff', edge: P.red + 'ff', text: P.bg + 'ff' };
+        return { fill: '#0d0d16ff', edge: P.sub + 'ff', text: '#e8e8f0ff' };
+    }
+    function btPaint(x, y, rad, st, hot, bad) {
+        var edge = bad ? P.red + 'ff' : hot ? P.yellow + 'ff' : st.edge;
+        circ(x, y, rad, st.fill, edge, bad || hot ? 3 : 1.6);
+    }
+    function btBfCol(v) { return (Math.abs(v) > 1 ? P.red : P.green) + 'ff'; }
+
+    /* ===================== 트리 그리기 ===================== */
+    function btDrawTree(x0, top, w, mob, s, p, fresh, e) {
+        var L = layout(w, mob);
+        var r = L.r, fs = L.fs, fsub = L.fsub;
+        var isRb = mode === 'rb';
+        var slots = btSlots();
+        var cur = btPlace(s.tree, slots, x0, w, r, top, L.dy);
+        var prevPos = fresh ? btPlace(p.tree, slots, x0, w, r, top, L.dy) : null;
+        var prevNd = fresh ? btByKey(p.tree) : {};
+        var mv = fresh ? ez(seg(e, 0, 0.7)) : 1;
+        var cf = fresh ? ez(seg(e, 0.4, 1)) : 1;
+        var curEdges = btEdges(s.tree, []);
+        var prevEdges = fresh ? btEdges(p.tree, []) : [];
+        var hl = s.hl || [];
+        function at(k) {
+            var c = cur[k];
+            var pr = prevPos ? prevPos[k] : null;
+            if (!pr) return { x: c.x, y: c.y };
+            return { x: lerp(pr.x, c.x, mv), y: lerp(pr.y, c.y, mv) };
+        }
+        if (!s.tree) tx('(아직 키가 없습니다)', x0 + w / 2, top + L.treeH / 2, fsub, P.sub + 'ff', 'center', false);
+        prevEdges.forEach(function (ed) {
+            if (btHasEdge(curEdges, ed[0], ed[1])) return;
+            var a = at(ed[0]), b = at(ed[1]);
+            ctx.globalAlpha = 1 - ez(seg(e, 0, 0.5));
+            ln(a.x, a.y, b.x, b.y, P.sub + 'aa', 1.6);
         });
-        if (step.cap) tx(step.cap, x0 + w / 2, capY, fs - 0.5, (step.bad >= 0 ? P.red : P.yellow) + 'ff', 'center', true);
+        curEdges.forEach(function (ed) {
+            var a = at(ed[0]), b = at(ed[1]);
+            var added = fresh && !btHasEdge(prevEdges, ed[0], ed[1]);
+            ctx.globalAlpha = added ? ez(seg(e, 0.55, 1)) : 1;
+            ln(a.x, a.y, b.x, b.y, added ? P.yellow + 'ff' : P.sub + 'aa', added ? 2.4 : 1.6);
+        });
+        btNodes(s.tree, []).forEach(function (nd) {
+            var ps = at(nd.k);
+            var pn = prevNd[nd.k];
+            var isNew = fresh && !pn;
+            var a = isNew ? ez(seg(e, 0.35, 1)) : 1;
+            var rad = isNew ? r * (0.55 + 0.45 * a) : r;
+            var hot = hl.indexOf(nd.k) >= 0;
+            var bad = !isRb && s.bad === nd.k;
+            var st = btStyle(isRb, nd.c);
+            var recolor = isRb && pn && pn.c !== nd.c;
+            if (bad) {
+                ctx.globalAlpha = 0.5 + 0.5 * Math.sin(Math.PI * clamp01(e));
+                circ(ps.x, ps.y, rad + 5, 'none', P.red + 'ff', 1.6);
+            }
+            ctx.globalAlpha = a;
+            if (recolor) {
+                btPaint(ps.x, ps.y, rad, btStyle(true, pn.c), hot, bad);
+                ctx.globalAlpha = cf;
+                btPaint(ps.x, ps.y, rad, st, hot, bad);
+                ctx.globalAlpha = 1 - cf;
+                tx(String(nd.k), ps.x, ps.y, fs, btStyle(true, pn.c).text, 'center', true);
+                ctx.globalAlpha = cf;
+                tx(String(nd.k), ps.x, ps.y, fs, st.text, 'center', true);
+            } else {
+                btPaint(ps.x, ps.y, rad, st, hot, bad);
+                tx(String(nd.k), ps.x, ps.y, fs, st.text, 'center', true);
+            }
+            if (!isRb) {
+                var bfc = avlBf(nd);
+                var bx = ps.x, by = ps.y - rad - 6;
+                if (fresh && pn && avlBf(pn) !== bfc) {
+                    var bcf = ez(seg(e, 0.4, 1));
+                    ctx.globalAlpha = 1 - bcf;
+                    tx(String(avlBf(pn)), bx, by, fsub, btBfCol(avlBf(pn)), 'center', true);
+                    ctx.globalAlpha = bcf;
+                    tx(String(bfc), bx, by, fsub, btBfCol(bfc), 'center', true);
+                } else {
+                    ctx.globalAlpha = a;
+                    tx(String(bfc), bx, by, fsub, btBfCol(bfc), 'center', true);
+                }
+            }
+            ctx.globalAlpha = 1;
+        });
+        var capCol = !isRb && s.bad >= 0 ? P.red + 'ff' : P.yellow + 'ff';
+        ctx.globalAlpha = fresh ? 0.35 + 0.65 * ez(e) : 1;
+        if (s.cap) lines(s.cap, w - 8, fs).forEach(function (txt, i) {
+            tx(txt, x0 + w / 2, top + L.capY + i * (fs + 5) + (fs + 5) / 2, fs, capCol, 'center', true);
+        });
+        ctx.globalAlpha = 1;
+        L.legL.forEach(function (txt, i) {
+            tx(txt, x0 + w / 2, top + L.legY + i * (fsub + 4) + (fsub + 4) / 2, fsub, P.sub + 'ff', 'center', false);
+        });
     }
 
-    /* ===================== 모드: 높이 비교 ===================== */
-    function drawCompare(x0, top, w, mob, step) {
-        var fs = mob ? 10 : 11.5;
-        var k = step ? step.k : 0;
-        var lab = mob ? 86 : 130;
-        var bw = w - lab - 34;
-        var unit = bw / N_SORT;
-        tx('키 1~' + jg(N_SORT, '을', '를') + ' 정렬된 순서로 삽입했을 때 높이', x0, top + 8, fs - 1, P.sub + 'ee', 'left', true);
-        CMP_ROWS.forEach(function (r, i) {
-            if (k < i + 1) return;
-            var y = top + 28 + i * 58;
-            var cur = k === i + 1;
-            var c = P[r.col];
-            tx(r.name, x0, y + 10, fs - 1.5, (cur ? P.text : P.sub) + 'ee', 'left', true);
-            rr(x0 + lab, y, r.h * unit, 20, 3, c + (cur ? '55' : '30'), c + (cur ? 'ff' : '99'), cur ? 1.8 : 1.2);
-            tx(String(r.h), x0 + lab + r.h * unit + 6, y + 10, fs, c + 'ff', 'left', true);
-            tx(r.note, x0, y + 34, fs - 2, P.sub + 'ee', 'left', false);
+    /* ===================== 높이 비교 그리기 ===================== */
+    function btDrawCmp(x0, top, w, mob, s, p, fresh, e) {
+        var L = layout(w, mob);
+        var fs = L.fs, fsub = L.fsub;
+        var k = s.k;
+        var pk = fresh ? p.k : k;
+        L.titleL.forEach(function (txt, i) {
+            tx(txt, x0, top + i * (fs + 4) + (fs + 4) / 2, fs, P.sub + 'ff', 'left', true);
         });
-        if (k >= 4) tx('이론 상한: AVL 약 1.44 log2(n + 2) · 레드-블랙 2 log2(n + 1)', x0 + w / 2, top + 28 + 3 * 58 + 6, fs - 1.5, P.yellow + 'ff', 'center', true);
+        CMP_ROWS.forEach(function (rw, i) {
+            if (k < i + 1) return;
+            var lay = L.rows[i];
+            var cur = k === i + 1;
+            var appear = fresh && pk < i + 1;
+            var g = appear ? ez(seg(e, 0, 0.8)) : 1;
+            var c = P[rw.col];
+            var y = top + lay.y;
+            var barY = y + fs + 8;
+            var bw = rw.h * L.unit * g;
+            var shown = appear ? Math.round(rw.h * g) : rw.h;
+            ctx.globalAlpha = g;
+            tx(rw.name, x0, y + (fs + 4) / 2, fs, (cur ? P.text : P.sub) + 'ff', 'left', true);
+            rr(x0, barY, bw, 16, 3, c + (cur ? '55' : '30'), c + (cur ? 'ff' : '99'), cur ? 1.8 : 1.2);
+            tx(String(shown), x0 + bw + 6, barY + 8, fs, c + 'ff', 'left', true);
+            lay.nl.forEach(function (txt, j) {
+                tx(txt, x0, barY + 22 + j * (fsub + 4) + (fsub + 4) / 2, fsub, P.sub + 'ff', 'left', false);
+            });
+            ctx.globalAlpha = 1;
+        });
+        if (k >= 4) {
+            ctx.globalAlpha = fresh && pk < 4 ? ez(seg(e, 0.3, 1)) : 1;
+            L.sumL.forEach(function (txt, j) {
+                tx(txt, x0 + w / 2, top + L.sumY + j * (fsub + 5) + (fsub + 5) / 2, fsub, P.yellow + 'ff', 'center', true);
+            });
+            ctx.globalAlpha = 1;
+        }
+    }
+
+    /* ===================== 메인 장면 ===================== */
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var steps = currentSteps();
+        var s = step || steps[0];
+        var p = prev || s;
+        var fresh = s !== p;
+        var e = fresh ? clamp01(t) : 1;
+        if (mode === 'cmp') btDrawCmp(x0, top, w, mob, s, p, fresh, e);
+        else btDrawTree(x0, top, w, mob, s, p, fresh, e);
     }
 
     /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
     function draw() {
         P = window.CsFlow.getP();
         ctx.clearRect(0, 0, GW(), GH());
         var W = GW(); var mob = W < 600;
-        var padX = mob ? 16 : 26;
-        var fullW = W - padX * 2;
-        var top = mob ? 18 : 26;
-
         var steps = currentSteps();
         var step = stepIdx >= 0 ? steps[stepIdx] : null;
-
-        if (mode === 'cmp') drawCompare(padX, top, fullW, mob, step);
-        else drawTreeBox(padX, top, fullW, mob, step, mode === 'rb' ? 'rb' : 'avl');
-
-        if (!step) {
-            var hint = '아래 STEP으로 삽입과 재균형을 확인하세요.';
-            ctx.font = '500 ' + (mob ? 11 : 12.5) + 'px "JetBrains Mono",monospace';
-            var hs = mob ? 11 : 12.5;
-            var hl = [hint];
-            if (ctx.measureText(hint).width > W - 16) {
-                var cut = hint.indexOf(' ', Math.floor(hint.length / 2));
-                if (cut < 0) cut = hint.lastIndexOf(' ');
-                hl = [hint.slice(0, cut), hint.slice(cut + 1)];
-            }
-            hl.forEach(function (line, li) {
-                tx(line, W / 2, GH() - (mob ? 12 : 14) - (hl.length - 1 - li) * (hs + 4), hs, P.muted + 'aa', 'center', false);
-            });
-        }
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
         var mob = w < 600;
-        var neededH;
-        if (mode === 'cmp') neededH = mob ? 250 : 260;
-        else neededH = mob ? 250 : 270;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
         canvasWrap.style.height    = 'auto';
-        canvasWrap.style.minHeight = neededH + 'px';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
         var actualH = canvasWrap.offsetHeight || neededH;
         if (actualH < neededH) actualH = neededH;
         canvas.width  = w * dpr;
@@ -500,17 +682,22 @@
     /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        draw();
-        rafId = requestAnimationFrame(function () { rafId = null; if (onDone) onDone(); });
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
     function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
-    function defaultLog() {
-        if (mode === 'rb') return '레드-블랙 트리에 키를 삽입하며 색 바꾸기와 회전이 일어나는 과정을 봅니다.';
-        if (mode === 'cmp') return '정렬된 키를 삽입했을 때 세 트리의 높이를 비교합니다.';
-        return 'AVL 트리에 키를 삽입하며 불균형이 회전으로 복구되는 과정을 봅니다.';
-    }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -549,7 +736,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);
