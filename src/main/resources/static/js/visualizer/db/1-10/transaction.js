@@ -22,8 +22,8 @@
 
     var modeWrap = el('div', 'transaction-viz__mode');
     var modeDefs = [
-        { key: 'acid',     label: 'ACID' },
-        { key: 'commit',   label: '커밋(성공)' },
+        { key: 'acid', label: 'ACID' },
+        { key: 'commit', label: '커밋(성공)' },
         { key: 'rollback', label: '롤백(실패)' }
     ];
     var modeBtns = {};
@@ -39,7 +39,7 @@
     var speedWrap = el('div', 'transaction-viz__speed');
     speedWrap.appendChild(el('span', 'transaction-viz__speed-label', 'SPEED'));
     var speedBtns = [];
-    [['1x', 1700], ['2x', 850], ['3x', 480]].forEach(function (pair, i) {
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
         var b = el('button', 'transaction-viz__speed-btn' + (i === 0 ? ' transaction-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
@@ -72,95 +72,10 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
-
-    /* ===================== 기준 데이터 ===================== */
-    var ACCOUNTS_BASE = [ { id: 1, name: '김민준', balance: 50000 }, { id: 2, name: '이서연', balance: 30000 } ];
-    var TRANSFER_AMOUNT = 20000;
-
-    function clone(x) { return JSON.parse(JSON.stringify(x)); }
-    function sumBalances(rows) { return rows.reduce(function (s, r) { return s + r.balance; }, 0); }
-    function fmt(n) { return n.toLocaleString('ko-KR'); }
-
-    /* ===================== 시나리오 계산 (실제 실행 — 하드코딩 아님) ===================== */
-    function buildCommitScenario() {
-        var before = clone(ACCOUNTS_BASE);
-        var after1 = clone(before); after1[0].balance -= TRANSFER_AMOUNT;
-        var after2 = clone(after1); after2[1].balance += TRANSFER_AMOUNT;
-        return { before: before, after1: after1, after2: after2, sumBefore: sumBalances(before), sumAfter: sumBalances(after2) };
-    }
-    function buildRollbackScenario() {
-        var before = clone(ACCOUNTS_BASE);
-        var after1 = clone(before); after1[0].balance -= TRANSFER_AMOUNT;
-        var reverted = clone(before);
-        return { before: before, after1: after1, reverted: reverted, sumBefore: sumBalances(before), sumAfterRevert: sumBalances(reverted) };
-    }
-    var COMMIT_SC = buildCommitScenario();
-    var ROLLBACK_SC = buildRollbackScenario();
-
-    /* ===================== 스텝 빌더 ===================== */
-    var ACID_LETTERS = [
-        { l: 'A', name: '원자성 (Atomicity)', desc: '트랜잭션 안의 모든 문장은 전부 성공하거나 전부 실패합니다. 하나라도 실패하면 이미 실행된 것도 전부 되돌립니다(ROLLBACK).' },
-        { l: 'C', name: '일관성 (Consistency)', desc: '트랜잭션 전후로 데이터는 항상 규칙을 만족하는 상태여야 합니다. 예: 두 계좌의 잔액 합은 송금 전후로 같아야 합니다.' },
-        { l: 'I', name: '고립성 (Isolation)', desc: '여러 트랜잭션이 동시에 실행되어도, 서로 다른 트랜잭션의 커밋되지 않은 중간 상태는 보이지 않습니다.' },
-        { l: 'D', name: '지속성 (Durability)', desc: 'COMMIT이 완료되면, 이후 시스템이 다운되더라도 그 결과는 디스크에 남아 사라지지 않습니다.' }
-    ];
-
-    function buildAcidSteps() {
-        var steps = [];
-        steps.push({ kind: 'intro', letter: -1,
-            log: '트랜잭션은 여러 SQL 문을 하나의 작업 단위로 묶습니다. 이 단위가 지켜야 할 4가지 성질을 ACID라고 부릅니다.' });
-        ACID_LETTERS.forEach(function (a, i) {
-            steps.push({ kind: 'letter', letter: i, log: a.name + ' — ' + a.desc });
-        });
-        steps.push({ kind: 'done', letter: -1,
-            log: '정리 — A·C·I·D 네 글자를 합쳐 ACID라고 부릅니다. 다음 탭에서 실제 계좌 이체로 커밋/롤백을 확인해보세요.' });
-        return steps;
-    }
-
-    function buildCommitSteps() {
-        var sc = COMMIT_SC;
-        var steps = [];
-        steps.push({ kind: 'intro', stage: -1, balances: sc.before, failed: false,
-            log: '김민준이 이서연에게 ' + fmt(TRANSFER_AMOUNT) + '원을 송금하는 트랜잭션을 실행합니다.' });
-        steps.push({ kind: 'begin', stage: 0, balances: sc.before, failed: false,
-            log: 'BEGIN — 트랜잭션 시작. 이 시점부터 COMMIT 전까지의 변경은 임시 상태입니다.' });
-        steps.push({ kind: 'stmt1', stage: 1, balances: sc.after1, failed: false,
-            log: 'UPDATE: 김민준 잔액 ' + fmt(sc.before[0].balance) + ' → ' + fmt(sc.after1[0].balance) + ' (임시 반영)' });
-        steps.push({ kind: 'stmt2', stage: 2, balances: sc.after2, failed: false,
-            log: 'UPDATE: 이서연 잔액 ' + fmt(sc.after1[1].balance) + ' → ' + fmt(sc.after2[1].balance) + ' (임시 반영)' });
-        steps.push({ kind: 'commit', stage: 3, balances: sc.after2, failed: false,
-            log: 'COMMIT — 두 변경 모두 성공했으므로 확정합니다. 이제 되돌릴 수 없습니다.' });
-        steps.push({ kind: 'done', stage: 3, balances: sc.after2, failed: false,
-            log: '정리 — 커밋 이후 잔액은 영구적으로 저장됩니다(지속성). 총 잔액 합계는 ' + fmt(sc.sumAfter) + '원으로 송금 전(' + fmt(sc.sumBefore) + '원)과 동일합니다(일관성).' });
-        return steps;
-    }
-
-    function buildRollbackSteps() {
-        var sc = ROLLBACK_SC;
-        var steps = [];
-        steps.push({ kind: 'intro', stage: -1, balances: sc.before, failed: false,
-            log: '이번엔 두 번째 갱신에서 문제가 생기는 경우를 봅시다.' });
-        steps.push({ kind: 'begin', stage: 0, balances: sc.before, failed: false,
-            log: 'BEGIN — 트랜잭션 시작.' });
-        steps.push({ kind: 'stmt1', stage: 1, balances: sc.after1, failed: false,
-            log: 'UPDATE: 김민준 잔액 ' + fmt(sc.before[0].balance) + ' → ' + fmt(sc.after1[0].balance) + ' (임시 반영)' });
-        steps.push({ kind: 'stmt2-fail', stage: 2, balances: sc.after1, failed: true,
-            log: 'UPDATE 실패: 이서연의 계좌가 정지 상태라 입금할 수 없습니다.' });
-        steps.push({ kind: 'rollback', stage: 3, balances: sc.reverted, failed: true,
-            log: 'ROLLBACK — 이미 실행됐던 김민준의 변경도 전부 되돌립니다.' });
-        steps.push({ kind: 'done', stage: 3, balances: sc.reverted, failed: true,
-            log: '정리 — 두 번째 문장이 실패했으므로 첫 번째 문장까지 전부 취소됩니다(원자성). 두 계좌 잔액은 트랜잭션 시작 전(합계 ' + fmt(sc.sumAfterRevert) + '원)과 완전히 동일합니다.' });
-        return steps;
-    }
-
-    var ACID_STEPS     = buildAcidSteps();
-    var COMMIT_STEPS   = buildCommitSteps();
-    var ROLLBACK_STEPS = buildRollbackSteps();
 
     /* ===================== 상태 ===================== */
     var mode    = 'acid';
@@ -168,16 +83,11 @@
     var running = false;
     var timer   = null;
     var rafId   = null;
-    var speed   = 1700;
-
-    function currentSteps() {
-        if (mode === 'commit') return COMMIT_STEPS;
-        if (mode === 'rollback') return ROLLBACK_STEPS;
-        return ACID_STEPS;
-    }
+    var speed   = 1900;
+    var anim    = 1;
 
     /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw, dash) {
+    function rr(x, y, w, h, r, fill, stroke, lw) {
         if (w <= 0 || h <= 0) return;
         var rad = Math.min(r, w / 2, h / 2);
         ctx.beginPath();
@@ -187,143 +97,292 @@
         ctx.arcTo(x,     y + h, x,     y,     rad);
         ctx.arcTo(x,     y,     x + w, y,     rad);
         ctx.closePath();
-        if (dash) ctx.setLineDash(dash); else ctx.setLineDash([]);
         if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
         if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
-        ctx.setLineDash([]);
     }
     function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
         ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
         ctx.fillStyle = color;
         ctx.textAlign = align || 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(str, x, y);
     }
-    function seg(x1, y1, x2, y2, col, lw) {
-        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
-        ctx.strokeStyle = col; ctx.lineWidth = lw || 1; ctx.stroke();
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
     }
-    function wrapText(str, maxW, sz) {
-        ctx.font = '500 ' + sz + 'px "JetBrains Mono",monospace';
-        var words = str.split(' ');
-        var lines = []; var cur = '';
-        words.forEach(function (w) {
-            var test = cur ? cur + ' ' + w : w;
-            if (ctx.measureText(test).width > maxW && cur) { lines.push(cur); cur = w; }
-            else cur = test;
-        });
-        if (cur) lines.push(cur);
-        return lines;
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
     }
-
-    /* ===================== 계좌 테이블 ===================== */
-    function drawAccountsTable(x0, y0, w, headerH, rowH, mob, balances) {
-        var cols = ['id', 'name', 'balance'];
-        var colW = { id: mob ? 40 : 52, name: mob ? 74 : 96 };
-        colW.balance = w - colW.id - colW.name;
-        var colX = {}; var acc = 0;
-        cols.forEach(function (c) { colX[c] = acc; acc += colW[c]; });
-
-        tx('ACCOUNTS', x0, y0 - (mob ? 10 : 12), mob ? 10.5 : 12, P.muted + 'aa', 'left', true);
-        rr(x0, y0, w, headerH + balances.length * rowH, 6, 'none', P.muted + '55', 1.3);
-        cols.forEach(function (c) {
-            rr(x0 + colX[c], y0, colW[c], headerH, 0, P.muted + '12', 'none');
-            tx(c, x0 + colX[c] + colW[c] / 2, y0 + headerH / 2, mob ? 9.5 : 10.5, P.text + 'cc', 'center', true);
-        });
-        seg(x0, y0 + headerH, x0 + w, y0 + headerH, P.muted + '55', 1.3);
-        balances.forEach(function (row, ri) {
-            var ry = y0 + headerH + ri * rowH;
-            if (ri > 0) seg(x0, ry, x0 + w, ry, P.muted + '2a', 1);
-            cols.forEach(function (c) {
-                var cx = x0 + colX[c] + colW[c] / 2;
-                var val = c === 'balance' ? fmt(row[c]) + '원' : String(row[c]);
-                tx(val, cx, ry + rowH / 2, mob ? 10 : 11.5, P.text + 'dd', 'center', false);
-            });
-        });
-        var vx = x0; cols.forEach(function (c) { if (vx > x0) seg(vx, y0, vx, y0 + headerH + balances.length * rowH, P.muted + '2a', 1); vx += colW[c]; });
-        return { height: headerH + balances.length * rowH };
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
     }
 
-    /* ===================== 트랜잭션 타임라인 ===================== */
-    function timelineLabels() {
-        if (mode === 'rollback') return ['BEGIN', 'UPDATE 김민준 (-' + fmt(TRANSFER_AMOUNT) + ')', 'UPDATE 이서연 (+' + fmt(TRANSFER_AMOUNT) + ')', 'ROLLBACK'];
-        return ['BEGIN', 'UPDATE 김민준 (-' + fmt(TRANSFER_AMOUNT) + ')', 'UPDATE 이서연 (+' + fmt(TRANSFER_AMOUNT) + ')', 'COMMIT'];
+
+
+    /* ===================== 장면 데이터: 트랜잭션 ===================== */
+    var LETTERS = [
+        { l: 'A', name: '원자성', en: 'Atomicity' },
+        { l: 'C', name: '일관성', en: 'Consistency' },
+        { l: 'I', name: '고립성', en: 'Isolation' },
+        { l: 'D', name: '지속성', en: 'Durability' }
+    ];
+
+    function st(log, o) {
+        var s = { log: log, letter: -1, rail: -1, bal: [50000, 30000], air: false, tok: null, temp: [false, false], done: false, fail: false, cap: '' };
+        for (var k in o) s[k] = o[k];
+        return s;
     }
 
-    function drawTimeline(x0, y0, w, rowH, mob, currentStage, failed) {
-        var labels = timelineLabels();
-        tx('트랜잭션 로그', x0, y0 - (mob ? 10 : 12), mob ? 10.5 : 12, P.muted + 'aa', 'left', true);
-        labels.forEach(function (label, i) {
-            var ry = y0 + i * (rowH + (mob ? 8 : 10));
-            var status;
-            if (i < currentStage) status = (failed && i === 2) ? 'failed' : 'done';
-            else if (i === currentStage) status = failed && i === 2 ? 'failed' : (i === 3 ? (failed ? 'rollback' : 'commit') : 'active');
-            else status = 'pending';
+    var ACID_STEPS = [
+        st('트랜잭션은 여러 SQL 문을 하나의 작업 단위로 묶습니다. 이 단위가 지켜야 할 네 가지 성질을 ACID라고 부릅니다.', { cap: 'BEGIN … COMMIT 사이의 SQL 묶음' }),
+        st('원자성(Atomicity): 트랜잭션 안의 모든 문장은 전부 성공하거나 전부 실패합니다. 하나라도 실패하면 이미 실행된 것도 전부 되돌립니다(ROLLBACK).', { letter: 0, cap: '전부 성공 또는 전부 취소' }),
+        st('일관성(Consistency): 트랜잭션 전후로 데이터는 항상 규칙을 만족하는 상태여야 합니다. 예를 들어 두 계좌의 잔액 합은 송금 전후로 같아야 합니다.', { letter: 1, cap: '합계는 송금 전후로 같음' }),
+        st('고립성(Isolation): 여러 트랜잭션이 동시에 실행되어도, 다른 트랜잭션의 커밋되지 않은 중간 상태는 보이지 않습니다.', { letter: 2, cap: '커밋 전 값은 다른 트랜잭션에 안 보임' }),
+        st('지속성(Durability): COMMIT이 완료되면, 이후 시스템이 다운되더라도 그 결과는 디스크에 남아 사라지지 않습니다.', { letter: 3, cap: '커밋된 값은 정전 후에도 남음' }),
+        st('정리: A·C·I·D 네 글자를 합쳐 ACID라고 부릅니다. 다음 탭에서 실제 계좌 이체로 커밋과 롤백을 확인해 보세요.', { letter: 4, cap: 'A · C · I · D' })
+    ];
 
-            var accent = P.muted;
-            var icon = '○';
-            if (status === 'done') { accent = P.green; icon = '✓'; }
-            else if (status === 'active') { accent = P.orange; icon = '▶'; }
-            else if (status === 'failed') { accent = P.orange; icon = '✕'; }
-            else if (status === 'commit') { accent = P.green; icon = '✓'; }
-            else if (status === 'rollback') { accent = P.orange; icon = '↺'; }
+    var COMMIT_STEPS = [
+        st('김민준이 이서연에게 20,000원을 송금하는 트랜잭션을 실행합니다.', { cap: '50,000 · 30,000 → ?' }),
+        st('BEGIN: 트랜잭션을 시작합니다. 이 시점부터 COMMIT 전까지의 변경은 임시 상태입니다.', { rail: 0, cap: '여기서부터는 임시 상태' }),
+        st('UPDATE: 김민준 잔액 50,000 → 30,000 (임시 반영). 빠진 20,000원은 아직 누구의 잔액도 아닙니다.', { rail: 1, bal: [30000, 30000], air: true, tok: ['A', 'air'], temp: [true, false], cap: '20,000원이 공중에 떠 있음' }),
+        st('UPDATE: 이서연 잔액 30,000 → 50,000 (임시 반영). 두 번째 문장도 성공했습니다.', { rail: 2, bal: [30000, 50000], tok: ['air', 'B'], temp: [true, true], cap: '두 문장 모두 성공' }),
+        st('COMMIT: 두 변경이 모두 성공했으므로 확정합니다. 이제 되돌릴 수 없습니다.', { rail: 3, bal: [30000, 50000], temp: [false, false], done: true, cap: '확정' }),
+        st('정리: 커밋 이후 잔액은 영구적으로 저장됩니다(지속성). 합계는 송금 전과 같습니다(일관성).', { rail: 3, bal: [30000, 50000], done: true, cap: '합계 80,000원 유지' })
+    ];
 
-            rr(x0, ry, w, rowH, 6, status === 'pending' ? 'none' : accent + '14', accent + (status === 'pending' ? '55' : 'cc'), status === 'active' || status === 'commit' || status === 'rollback' ? 2 : 1.3);
-            tx(icon, x0 + (mob ? 18 : 22), ry + rowH / 2, mob ? 12 : 14, status === 'pending' ? (P.text + '66') : (accent + 'ee'), 'center', true);
-            tx(label, x0 + (mob ? 36 : 44), ry + rowH / 2, mob ? 10 : 11.5, status === 'pending' ? (P.text + '77') : (P.text + 'dd'), 'left', status === 'active');
-            if (i > 0) seg(x0 + (mob ? 18 : 22), ry - (mob ? 8 : 10), x0 + (mob ? 18 : 22), ry, P.muted + '33', 1.3);
-        });
-        return { height: labels.length * (rowH + (mob ? 8 : 10)) - (mob ? 8 : 10) };
+    var ROLLBACK_STEPS = [
+        st('이번에는 두 번째 갱신에서 문제가 생기는 경우를 봅니다.', { cap: '50,000 · 30,000 → ?' }),
+        st('BEGIN: 트랜잭션을 시작합니다.', { rail: 0, cap: '임시 상태 시작' }),
+        st('UPDATE: 김민준 잔액 50,000 → 30,000 (임시 반영).', { rail: 1, bal: [30000, 30000], air: true, tok: ['A', 'air'], temp: [true, false], cap: '20,000원이 공중에 떠 있음' }),
+        st('UPDATE 실패: 이서연의 계좌가 정지 상태라 입금할 수 없습니다.', { rail: 2, bal: [30000, 30000], air: true, temp: [true, false], fail: true, cap: '입금 실패 — 돈이 갈 곳이 없음' }),
+        st('ROLLBACK: 이미 실행됐던 김민준의 변경도 전부 되돌립니다.', { rail: 3, bal: [50000, 30000], tok: ['air', 'A'], fail: true, cap: '공중의 20,000원이 돌아옴' }),
+        st('정리: 두 번째 문장이 실패했으므로 첫 번째 문장까지 전부 취소됩니다(원자성). 잔액은 시작 전과 같습니다.', { rail: 3, bal: [50000, 30000], fail: true, cap: '원래 상태로 복구' })
+    ];
+
+    /* ===================== 상태 ===================== */
+    function currentSteps() {
+        if (mode === 'commit') return COMMIT_STEPS;
+        if (mode === 'rollback') return ROLLBACK_STEPS;
+        return ACID_STEPS;
     }
-
-    /* ===================== ACID 배지 ===================== */
-    function drawAcidBadges(x0, y0, w, activeIdx, mob) {
-        var gap = mob ? 10 : 16;
-        var boxW = (w - gap * 3) / 4;
-        var boxH = mob ? 52 : 64;
-        ACID_LETTERS.forEach(function (a, i) {
-            var bx = x0 + i * (boxW + gap);
-            var isActive = activeIdx === i;
-            var col = isActive ? P.orange : P.purple;
-            rr(bx, y0, boxW, boxH, 8, isActive ? col + '20' : 'none', col + (isActive ? 'ee' : '66'), isActive ? 2.2 : 1.4);
-            tx(a.l, bx + boxW / 2, y0 + boxH * 0.4, mob ? 20 : 24, col + 'ee', 'center', true);
-            tx(a.name.split(' ')[0], bx + boxW / 2, y0 + boxH * 0.78, mob ? 10.5 : 12, col + 'cc', 'center', true);
-        });
-        return { height: boxH };
+    function defaultLog() {
+        if (mode === 'commit') return '송금 트랜잭션이 커밋으로 끝나는 과정을 봅니다.';
+        if (mode === 'rollback') return '송금 도중 실패해서 롤백되는 과정을 봅니다.';
+        return '트랜잭션이 지켜야 할 네 가지 성질 ACID를 봅니다.';
     }
 
     /* ===================== 레이아웃 ===================== */
-    function getGeom(mob) {
-        return {
-            padX: mob ? 16 : 26,
-            titleGap: mob ? 18 : 22,
-            headerH: mob ? 28 : 32,
-            rowH: mob ? 34 : 40,
-            sectionGap: mob ? 22 : 28
-        };
+    function layout(w, mob) {
+        return { fs: mob ? 11 : 12, total: mode === 'acid' ? 276 : 282 };
+    }
+    function sceneH(w, mob) { return layout(w, mob).total; }
+
+    function fmt(n) { return Math.round(n).toLocaleString('ko-KR'); }
+    function caption(s, cx, w, y, fs) {
+        if (!s.cap) return;
+        lines(s.cap, w - 20, fs).forEach(function (l, i) {
+            tx(l, cx, y + i * (fs + 5), fs, P.yellow + 'ff', 'center', true);
+        });
+    }
+    function acct(x, y, w, h, name, bal, col, temp, fs, committed, failed) {
+        var c = failed ? P.red : (committed ? P.green : (temp ? P.yellow : col));
+        ctx.setLineDash(temp && !committed ? [5, 3] : []);
+        rr(x, y, w, h, 10, c + '1a', c + 'ff', 2);
+        ctx.setLineDash([]);
+        tx(name, x + w / 2, y + 18, fs, c + 'ff', 'center', true);
+        tx(fmt(bal) + '원', x + w / 2, y + h - 22, fs + 3, P.text + 'ff', 'center', true);
+        tx(committed ? '확정' : (temp ? '임시' : ''), x + w / 2, y + h - 6, fs - 1, c + 'ff', 'center', false);
     }
 
-    function calcH(w) {
-        var mob = w < 600;
-        var G = getGeom(mob);
-        var top = mob ? 16 : 20, bottom = mob ? 18 : 22;
-        if (mode === 'acid') {
-            var badgeH = mob ? 52 : 64;
-            var descLines = mob ? 3 : 2;
-            var descH = descLines * (mob ? 16 : 18) + (mob ? 14 : 18);
-            return top + G.titleGap + badgeH + G.sectionGap + descH + bottom;
+    /* ===================== ACID 장면 ===================== */
+    function drawAcid(x0, top, w, mob, s, e, fs) {
+        var cx = x0 + w / 2;
+        var pw = (w - 18) / 4;
+        for (var i = 0; i < 4; i++) {
+            var act = s.letter === i || s.letter === 4;
+            var col = act ? P.orange : P.purple;
+            var px = x0 + i * (pw + 6);
+            rr(px, top + 4, pw, 34, 8, col + (act ? '30' : '12'), col + (act ? 'ff' : '88'), act ? 2.4 : 1.4);
+            tx(mob ? LETTERS[i].l : LETTERS[i].l + ' ' + LETTERS[i].name, px + pw / 2, top + 21, fs + (mob ? 3 : 0), col + 'ff', 'center', true);
         }
-        var tableH = G.headerH + 2 * G.rowH;
-        var timelineH = 4 * (G.rowH + (mob ? 8 : 10)) - (mob ? 8 : 10);
-        return top + G.titleGap + tableH + G.sectionGap + G.titleGap + timelineH + bottom;
+        var ay = top + 56, ah = 150;
+        var lt = s.letter;
+        if (lt === -1 || lt === 4) {
+            var bw2 = Math.min(w - 20, 340);
+            rr(cx - bw2 / 2, ay + 4, bw2, 128, 12, P.purple + '12', P.purple + 'aa', 1.8);
+            tx(lt === 4 ? 'ACID' : 'TRANSACTION', cx, ay + 18, fs, P.purple + 'ff', 'center', true);
+            ['BEGIN', 'UPDATE 김민준 −20,000', 'UPDATE 이서연 +20,000', 'COMMIT'].forEach(function (t, k) {
+                var a = lt === 4 ? 1 : clamp01(e * 3 - k * 0.5);
+                ctx.globalAlpha = a;
+                tx(t, cx, ay + 42 + k * 24, fs, (k === 0 || k === 3 ? P.sub : P.text) + 'ff', 'center', true);
+                ctx.globalAlpha = 1;
+            });
+        } else if (lt === 0) {
+            var cw = Math.min(150, (w - 30) / 2);
+            var c1x = cx - cw - 8, c2x = cx + 8, cyy = ay + 34;
+            var p1 = clamp01(e * 3), fail = clamp01((e - 0.35) * 4), undo = clamp01((e - 0.65) * 3);
+            var col1 = undo > 0.5 ? P.muted : P.green, col2 = P.red;
+            rr(cx - cw - 20, ay + 4, cw * 2 + 40, 108, 12, 'none', P.muted + '77', 1.4);
+            tx('TRANSACTION', cx, ay + 16, fs - 1, P.sub + 'ff', 'center', false);
+            rr(c1x, cyy, cw, 40, 8, col1 + '22', col1 + 'ff', 1.8);
+            tx('① 김민준 −20,000', c1x + cw / 2, cyy + 20, fs - 0.5, col1 + 'ff', 'center', true);
+            ctx.globalAlpha = p1;
+            rr(c2x, cyy, cw, 40, 8, (fail > 0.3 ? col2 : P.yellow) + '22', (fail > 0.3 ? col2 : P.yellow) + 'ff', 1.8);
+            tx(fail > 0.3 ? '② 이서연 +20,000 ✕' : '② 이서연 +20,000', c2x + cw / 2, cyy + 20, fs - 0.5, (fail > 0.3 ? col2 : P.yellow) + 'ff', 'center', true);
+            ctx.globalAlpha = 1;
+            if (undo > 0) {
+                ctx.globalAlpha = undo;
+                tx('↶ ROLLBACK: ①도 취소', cx, ay + 92, fs, P.red + 'ff', 'center', true);
+                ctx.globalAlpha = 1;
+            }
+        } else if (lt === 1) {
+            var cw2 = Math.min(140, (w - 40) / 2);
+            var a1 = lerp(50000, 30000, e), a2 = lerp(30000, 50000, e);
+            acct(cx - cw2 - 14, ay + 34, cw2, 74, '김민준', a1, P.orange, false, fs, false, false);
+            acct(cx + 14, ay + 34, cw2, 74, '이서연', a2, P.teal, false, fs, false, false);
+            arrow(cx - 8, ay + 70, cx + 8, ay + 70, P.sub + 'ff', 2);
+            var sum = a1 + a2;
+            rr(cx - 90, ay, 180, 26, 13, P.green + '22', P.green + 'ff', 1.6);
+            tx('합계 ' + fmt(sum) + '원 ✓', cx, ay + 13, fs, P.green + 'ff', 'center', true);
+        } else if (lt === 2) {
+            var lw = Math.min(w - 20, 360);
+            var lx = cx - lw / 2;
+            tx('Txn A (쓰는 중)', lx + 10, ay + 10, fs, P.orange + 'ff', 'left', true);
+            rr(lx, ay + 22, lw * 0.46, 40, 8, P.yellow + '1a', P.yellow + 'ff', 1.8);
+            tx('잔액 → 30,000 (미커밋)', lx + lw * 0.23, ay + 42, fs - 0.5, P.yellow + 'ff', 'center', true);
+            tx('Txn B (읽는 중)', lx + 10, ay + 84, fs, P.purple + 'ff', 'left', true);
+            var rd = clamp01(e * 2);
+            rr(lx + lw * 0.54, ay + 70, lw * 0.46, 40, 8, P.purple + '1a', P.purple + 'ff', 1.8);
+            tx(rd > 0.6 ? '읽은 값: 50,000' : 'SELECT 잔액 …', lx + lw * 0.77, ay + 90, fs - 0.5, P.purple + 'ff', 'center', true);
+            ln(lx + lw * 0.5, ay + 18, lx + lw * 0.5, ay + 120, P.red + 'cc', 2.4, [6, 4]);
+            tx('커밋 전 값은 안 보임', lx + lw * 0.5, ay + 134, fs - 1, P.red + 'ff', 'center', true);
+        } else if (lt === 3) {
+            var bw3 = Math.min(130, (w - 60) / 2);
+            var rx = cx - bw3 - 36, dx = cx + 36;
+            var wr = clamp01(e * 2.2), boom = clamp01((e - 0.55) * 3);
+            rr(rx, ay + 18, bw3, 64, 10, (boom > 0.4 ? P.red : P.orange) + '1a', (boom > 0.4 ? P.red : P.orange) + 'ff', 2);
+            tx('메모리', rx + bw3 / 2, ay + 36, fs, P.sub + 'ff', 'center', true);
+            tx(boom > 0.4 ? '사라짐' : '잔액 30,000', rx + bw3 / 2, ay + 62, fs, (boom > 0.4 ? P.red : P.text) + 'ff', 'center', true);
+            rr(dx, ay + 18, bw3, 64, 10, P.green + '1a', P.green + 'ff', 2);
+            tx('디스크', dx + bw3 / 2, ay + 36, fs, P.sub + 'ff', 'center', true);
+            if (wr > 0.5) tx('30,000 ✓', dx + bw3 / 2, ay + 62, fs, P.green + 'ff', 'center', true);
+            var ax1 = rx + bw3 + 4, ax2 = dx - 4;
+            if (wr < 1) circ(lerp(ax1, ax2, wr), ay + 50, 6, P.yellow + 'ff', 'none');
+            ln(ax1, ay + 50, ax2, ay + 50, P.muted + '88', 1.4, [4, 3]);
+            tx('COMMIT', cx, ay + 36, fs - 1, P.yellow + 'ff', 'center', true);
+            if (boom > 0) {
+                tx('⚡ 정전', rx + bw3 / 2, ay + 100, fs + 1, P.red + 'ff', 'center', true);
+                tx('디스크는 그대로', dx + bw3 / 2, ay + 100, fs, P.green + 'ff', 'center', true);
+            }
+        }
+        caption(s, cx, w, top + 232, fs);
+    }
+
+    /* ===================== 송금 장면(커밋/롤백) ===================== */
+    function drawTransfer(x0, top, w, mob, s, prev, e, fs) {
+        var cx = x0 + w / 2;
+        var pr = prev || st('', {});
+        var nodes = mode === 'commit' ? ['BEGIN', 'UPDATE ①', 'UPDATE ②', 'COMMIT'] : ['BEGIN', 'UPDATE ①', 'UPDATE ②', 'ROLLBACK'];
+        var nw = (w - 18) / 4;
+        nodes.forEach(function (n, i) {
+            var on = s.rail >= i;
+            var col = i === 3 ? (mode === 'rollback' ? P.red : P.green) : (i === 2 && s.fail ? P.red : P.purple);
+            var cur = s.rail === i;
+            var px = x0 + i * (nw + 6);
+            rr(px, top + 6, nw, 30, 8, col + (on ? (cur ? '40' : '22') : '0c'), col + (on ? 'ff' : '66'), cur ? 2.4 : 1.4);
+            tx(n, px + nw / 2, top + 21, fs - (mob ? 1.5 : 0.5), col + (on ? 'ff' : '99'), 'center', true);
+        });
+        var cw = Math.min(150, (w - 90) / 2);
+        var ya = top + 78, ch = 86;
+        var xa = x0 + 6, xb = x0 + w - cw - 6;
+        var balA = lerp(pr.bal[0], s.bal[0], e), balB = lerp(pr.bal[1], s.bal[1], e);
+        acct(xa, ya, cw, ch, '김민준', balA, P.orange, s.temp[0], fs, s.done, false);
+        acct(xb, ya, cw, ch, '이서연', balB, P.teal, s.temp[1], fs, s.done, s.fail && s.rail === 2);
+        if (s.fail && s.rail === 2) tx('✕ 정지 계좌', xb + cw / 2, ya - 10, fs, P.red + 'ff', 'center', true);
+        var posOf = { A: [xa + cw / 2, ya], air: [cx, top + 58], B: [xb + cw / 2, ya] };
+        var ax = cx, ay = top + 58;
+        if (s.tok) {
+            var f = posOf[s.tok[0]], t = posOf[s.tok[1]];
+            var px = lerp(f[0], t[0], e), py = lerp(f[1], t[1], e) - Math.sin(e * Math.PI) * 14;
+            rr(px - 36, py - 12, 72, 24, 12, P.yellow + '33', P.yellow + 'ff', 2);
+            tx('20,000', px, py, fs, P.yellow + 'ff', 'center', true);
+        } else if (s.air) {
+            rr(ax - 36, ay - 12, 72, 24, 12, P.yellow + '33', P.yellow + 'ff', 2);
+            tx('20,000', ax, ay, fs, P.yellow + 'ff', 'center', true);
+        }
+        var sum;
+        if (s.tok && s.tok[1] === 'air') sum = balA + balB + 20000 * e;
+        else if (s.tok && s.tok[0] === 'air') sum = balA + balB + 20000 * (1 - e);
+        else if (s.air) sum = balA + balB + 20000;
+        else sum = balA + balB;
+        rr(cx - 100, ya + ch + 22, 200, 26, 13, P.green + '22', P.green + 'ff', 1.6);
+        tx('합계 ' + fmt(sum) + '원', cx, ya + ch + 35, fs, P.green + 'ff', 'center', true);
+        caption(s, cx, w, ya + ch + 72, fs);
+    }
+
+    /* ===================== 장면 그리기 ===================== */
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var fs = mob ? 11 : 12;
+        var e = clamp01(t);
+        var s = step || st('', {});
+        if (mode === 'acid') drawAcid(x0, top, w, mob, s, e, fs);
+        else drawTransfer(x0, top, w, mob, s, prev, e, fs);
+    }
+
+    /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
+    function draw() {
+        P = window.CsFlow.getP();
+        ctx.clearRect(0, 0, GW(), GH());
+        var W = GW(); var mob = W < 600;
+        var steps = currentSteps();
+        var step = stepIdx >= 0 ? steps[stepIdx] : null;
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
-        var neededH = calcH(w);
+        var mob = w < 600;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
         canvasWrap.style.height    = 'auto';
-        canvasWrap.style.minHeight = neededH + 'px';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
         var actualH = canvasWrap.offsetHeight || neededH;
         if (actualH < neededH) actualH = neededH;
         canvas.width  = w * dpr;
@@ -332,51 +391,25 @@
         draw();
     }
 
-    /* ===================== 메인 드로우 ===================== */
-    function draw() {
-        P = window.CsFlow.getP();
-        ctx.clearRect(0, 0, GW(), GH());
-        var W = GW(); var mob = W < 600;
-        var G = getGeom(mob);
-        var neededH = calcH(W);
-        var extra = Math.max(0, GH() - neededH);
-        var top = (mob ? 16 : 20) + extra / 2;
-        var x0 = G.padX;
-        var fullW = W - G.padX * 2;
-
-        var steps = currentSteps();
-        var step = stepIdx >= 0 ? steps[stepIdx] : steps[0];
-
-        if (mode === 'acid') {
-            var badgeRes = drawAcidBadges(x0, top + G.titleGap, fullW, step.letter, mob);
-            var descY = top + G.titleGap + badgeRes.height + G.sectionGap;
-            if (step.letter >= 0) {
-                var a = ACID_LETTERS[step.letter];
-                var lines = wrapText(a.name + ' — ' + a.desc, fullW, mob ? 11 : 12.5);
-                lines.forEach(function (line, i) {
-                    tx(line, x0, descY + i * (mob ? 16 : 18), mob ? 11 : 12.5, P.orange + 'dd', 'left', false);
-                });
-            } else {
-                tx('아래 STEP을 눌러 A → C → I → D 순서로 하나씩 살펴보세요.', x0, descY, mob ? 11 : 12.5, P.muted + 'aa', 'left', false);
-            }
-            return;
-        }
-
-        var tableRes = drawAccountsTable(x0, top + G.titleGap, fullW, G.headerH, G.rowH, mob, step.balances || ACCOUNTS_BASE);
-        var timelineY = top + G.titleGap + tableRes.height + G.sectionGap + G.titleGap;
-        drawTimeline(x0, timelineY, fullW, G.rowH, mob, step.stage, step.failed);
-    }
-
     /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        draw();
-        rafId = requestAnimationFrame(function () { rafId = null; if (onDone) onDone(); });
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
     function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
-    function defaultLog() { return currentSteps()[0].log; }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -415,7 +448,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);
