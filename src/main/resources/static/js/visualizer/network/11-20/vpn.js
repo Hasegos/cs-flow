@@ -39,7 +39,7 @@
     var speedWrap = el('div', 'vpn-viz__speed');
     speedWrap.appendChild(el('span', 'vpn-viz__speed-label', 'SPEED'));
     var speedBtns = [];
-    [['1x', 1700], ['2x', 850], ['3x', 480]].forEach(function (pair, i) {
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
         var b = el('button', 'vpn-viz__speed-btn' + (i === 0 ? ' vpn-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
@@ -72,11 +72,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'tunnel';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 데이터: 주소와 단계 ===================== */
     var VPN_CLIENT = '10.8.0.2';
@@ -124,239 +191,308 @@
     ];
 
     /* ===================== 상태 ===================== */
-    var mode    = 'tunnel';
-    var stepIdx = -1;
-    var running = false;
-    var timer   = null;
-    var rafId   = null;
-    var speed   = 1700;
-
     function currentSteps() {
         if (mode === 'path') return PATH_STEPS;
         if (mode === 'kinds') return KIND_STEPS;
         return TUNNEL_STEPS;
     }
-
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        var rad = Math.min(r, w / 2, h / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + rad, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, rad);
-        ctx.arcTo(x + w, y + h, x,     y + h, rad);
-        ctx.arcTo(x,     y + h, x,     y,     rad);
-        ctx.arcTo(x,     y,     x + w, y,     rad);
-        ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
-    }
-    function tx(str, x, y, sz, color, align, bold) {
-        if (sz < 9.5) sz = 9.5;
-        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
+    function defaultLog() {
+        if (mode === 'path') return '패킷이 노트북에서 사내 서버까지 터널을 지나는 경로를 봅니다.';
+        if (mode === 'kinds') return 'VPN의 두 가지 구성과 대표적인 터널 프로토콜을 봅니다.';
+        return '원래 패킷이 암호화되고 새 헤더에 싸여 터널로 나가는 과정을 봅니다.';
     }
 
-    /* ===================== 공통 ===================== */
-    function colorOf(key) {
-        return P[key] || P.muted;
+    /* ===================== 레이아웃 ===================== */
+    function layout(w, mob) {
+        var t = mode === 'kinds' ? 236 : (mode === 'path' ? (mob ? 232 : 228) : (mob ? 326 : 300));
+        return { fs: mob ? 10.5 : 12, total: t };
     }
+    function sceneH(w, mob) { return layout(w, mob).total; }
+
+    function ez(q) { q = clamp01(q); return q * q * (3 - 2 * q); }
+
     function block(x, y, w, h, label, color, fs, strong) {
         rr(x, y, w, h, 4, color + (strong ? '40' : '22'), color + (strong ? 'ff' : '99'), strong ? 1.8 : 1.2);
-        tx(label, x + w / 2, y + h / 2, fs, P.text + 'ee', 'center', true);
+        if (label) tx(label, x + w / 2, y + h / 2, fs, P.text + 'ff', 'center', true);
+    }
+    function lock(cx, cy, col) {
+        rr(cx - 6, cy - 2, 12, 9, 2, col + 'ff', 'none', 1);
+        ctx.beginPath();
+        ctx.arc(cx, cy - 2, 4, Math.PI, 0);
+        ctx.strokeStyle = col + 'ff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+    }
+    function eye(cx, cy, col, blocked) {
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, 11, 6, 0, 0, Math.PI * 2);
+        ctx.strokeStyle = col + 'ff';
+        ctx.lineWidth = 1.6;
+        ctx.stroke();
+        circ(cx, cy, 3, col + 'ff', 'none', 1);
+        if (blocked) ln(cx - 12, cy + 8, cx + 12, cy - 8, P.red + 'ff', 2.4);
     }
 
-    /* ===================== 모드: 캡슐화 ===================== */
-    function drawTunnel(x0, top, w, mob, step) {
-        var fs = mob ? 10 : 11.5;
-        var k = step ? step.k : 0;
+    /* ===================== 캡슐화 ===================== */
+    function drawTunnel(x0, top, w, mob, s, p, e, fs) {
+        var k = s.k, pk = p.k, q = ez(e);
         var bh = 34;
-        var rowGap = mob ? 74 : 62;
-        var y = top + 4;
+        var pitch = mob ? 82 : 74;
+        var y1 = top + 4, y2 = y1 + pitch, y3 = y2 + pitch;
         var spy = k >= 4;
+        var f1 = k === 1 && pk < 1, f2 = k === 2 && pk < 2, f3 = k === 3 && pk < 3, f4 = k === 4 && pk < 4;
+        var rev = k === 5 && pk < 5;
+
         if (k >= 1) {
-            tx('원래 패킷 (내부 패킷)', x0, y + 6, fs - 1, P.sub + 'ee', 'left', true);
-            block(x0, y + 14, w * 0.36, bh, '내부 IP 헤더', P.teal, fs - 1, false);
-            block(x0 + w * 0.36 + 4, y + 14, w * 0.64 - 4, bh, '데이터', P.teal, fs - 1, false);
-            tx(mob ? INNER_S : INNER_TXT, x0, y + 14 + bh + 11, fs - 2, P.sub + 'ee', 'left', false);
+            var a1 = f1 ? q : 1;
+            ctx.globalAlpha = a1;
+            tx('원래 패킷 (내부 패킷)', x0, y1 + 6, fs - 1, P.sub + 'ff', 'left', true);
+            var dx1 = f1 ? (1 - q) * -40 : 0;
+            block(x0 + dx1, y1 + 14, w * 0.36, bh, '내부 IP 헤더', P.teal, fs - 1, false);
+            block(x0 + w * 0.36 + 4 + dx1 * 0.5, y1 + 14, w * 0.64 - 4, bh, '데이터', P.teal, fs - 1, false);
+            tx(mob ? INNER_S : INNER_TXT, x0, y1 + 14 + bh + 12, fs - 1.5, P.sub + 'ff', 'left', false);
+            ctx.globalAlpha = 1;
         }
-        y += rowGap + 8;
         if (k >= 2) {
-            tx('암호화', x0 + w / 2, y - 12, fs - 1, P.yellow + 'ee', 'center', true);
-            block(x0, y + 4, w, bh, '암호문 (내부 헤더와 데이터를 모두 암호화)', P.red, fs - 1, spy);
+            var enc = f2 ? ez(seg(e, 0.2, 0.7)) : 1;
+            var yy2 = f2 ? lerp(y1 + 14, y2 + 14, ez(seg(e, 0, 0.35))) : y2 + 14;
+            ctx.globalAlpha = f2 ? clamp01(e * 4) : 1;
+            tx('암호화', x0 + w / 2, y2 + 6, fs - 1, P.yellow + 'ff', 'center', true);
+            rr(x0, yy2, w, bh, 4, P.teal + '22', P.teal + '99', 1.2);
+            if (enc > 0) {
+                ctx.globalAlpha = (f2 ? clamp01(e * 4) : 1) * enc;
+                rr(x0, yy2, w * enc, bh, 4, P.red + (spy ? '40' : '22'), P.red + 'ff', spy ? 1.8 : 1.2);
+            }
+            ctx.globalAlpha = f2 ? clamp01(e * 4) : 1;
+            tx(enc > 0.5 ? (mob ? '암호문 (전체 암호화)' : '암호문 (내부 헤더와 데이터를 모두 암호화)') : '평문', x0 + w / 2 + (enc > 0.5 ? 10 : 0), yy2 + bh / 2, fs - 1, P.text + 'ff', 'center', true);
+            if (enc > 0.5) lock(x0 + 12, yy2 + bh / 2 + 1, P.yellow);
+            ctx.globalAlpha = 1;
         }
-        y += rowGap - 8;
         if (k >= 3) {
-            tx('캡슐화한 패킷 (외부 패킷)', x0, y + 6, fs - 1, P.sub + 'ee', 'left', true);
-            block(x0, y + 14, w * 0.3, bh, '외부 IP 헤더', P.orange, fs - 1, spy);
-            block(x0 + w * 0.3 + 4, y + 14, w * 0.14 - 4, bh, 'VPN', P.purple, fs - 1, false);
-            block(x0 + w * 0.44 + 4, y + 14, w * 0.56 - 4, bh, '암호문', P.red, fs - 1, spy);
-            tx(mob ? OUTER_S : OUTER_TXT, x0, y + 14 + bh + 11, fs - 2, P.sub + 'ee', 'left', false);
+            var cp = f3 ? ez(seg(e, 0, 0.5)) : 1;
+            var hd = f3 ? ez(seg(e, 0.3, 0.8)) : 1;
+            ctx.globalAlpha = f3 ? clamp01(e * 4) : 1;
+            tx('캡슐화한 패킷 (외부 패킷)', x0, y3 + 6, fs - 1, P.sub + 'ff', 'left', true);
+            var cx3 = lerp(x0, x0 + w * 0.44 + 4, cp), cw3 = lerp(w, w * 0.56 - 4, cp);
+            var cy3 = f3 ? lerp(y2 + 14, y3 + 14, ez(seg(e, 0, 0.4))) : y3 + 14;
+            block(cx3, cy3, cw3, bh, '암호문', P.red, fs - 1, spy);
+            ctx.globalAlpha = (f3 ? hd : 1);
+            var hx = f3 ? (1 - hd) * -50 : 0;
+            block(x0 + hx, y3 + 14, w * 0.3, bh, '외부 IP 헤더', P.orange, fs - 1, spy);
+            block(x0 + w * 0.3 + 4 + hx, y3 + 14, w * 0.14 - 4, bh, 'VPN', P.purple, fs - 1, false);
+            ctx.globalAlpha = f3 ? clamp01(e * 4) : 1;
+            tx(mob ? OUTER_S : OUTER_TXT, x0, y3 + 14 + bh + 12, fs - 1.5, P.sub + 'ff', 'left', false);
+            ctx.globalAlpha = 1;
         }
-        y += rowGap;
         if (k >= 4) {
-            tx('읽을 수 있는 것: 외부 헤더(주황 · 보라)', x0, y + 6, fs - 1, P.yellow + 'ee', 'left', true);
-            tx('읽을 수 없는 것: 암호문(빨강)', x0, y + 22, fs - 1, P.yellow + 'ee', 'left', true);
+            var ra = f4 ? ez(seg(e, 0.1, 0.5)) : 1;
+            var gl = f4 && e < 1 ? 0.6 + 0.4 * Math.sin(e * 20) : 1;
+            ctx.globalAlpha = ra;
+            eye(x0 + w * 0.22, y3 - 12, P.yellow, false);
+            eye(x0 + w * 0.72, y3 - 12, P.yellow, true);
+            tx('읽을 수 있음', x0 + w * 0.22 + 18, y3 - 12, fs - 1.5, P.yellow + 'ff', 'left', true);
+            tx('읽을 수 없음', x0 + w * 0.72 + 18, y3 - 12, fs - 1.5, P.red + 'ff', 'left', true);
+            ctx.globalAlpha = gl;
+            rr(x0 - 2, y3 + 12, w * 0.44 + 2, bh + 4, 6, 'none', P.yellow + 'ff', 1.8);
+            ctx.globalAlpha = 1;
         }
         if (k >= 5) {
-            tx(mob ? '게이트웨이: 헤더 제거 → 복호화 → 복원' : '게이트웨이: 외부 헤더 제거 → 복호화 → 내부 패킷 복원', x0, y + 44, fs - 1, P.green + 'ff', 'left', true);
+            var sw = rev ? ez(seg(e, 0.1, 0.8)) : 1;
+            ctx.globalAlpha = rev ? clamp01(e * 3) : 1;
+            var gy = y3 + 14 + bh + 30;
+            tx(mob ? '게이트웨이: 헤더 제거 → 복호화 → 복원' : '게이트웨이: 외부 헤더 제거 → 복호화 → 내부 패킷 복원', x0, gy, fs - 1, P.green + 'ff', 'left', true);
+            rr(x0, gy + 12, w, 6, 3, 'none', P.green + '66', 1);
+            rr(x0, gy + 12, w * sw, 6, 3, P.green + '88', 'none', 1);
+            ctx.globalAlpha = 1;
         }
     }
 
-    /* ===================== 모드: 패킷의 여정 ===================== */
-    function drawPath(x0, top, w, mob, step) {
-        var fs = mob ? 10 : 11.5;
-        var s = step || { seg: -1, hl: {}, pkt: [] };
+    /* ===================== 패킷의 여정 ===================== */
+    function drawPath(x0, top, w, mob, s, p, e, fs) {
+        var steps = currentSteps();
+        var idx = steps.indexOf(s);
         var gap = mob ? 14 : 28;
         var bw = (w - gap * 3) / 4;
         var bh = 58;
         var nodes = [
             { id: 'C', name: '노트북', sub: VPN_CLIENT, col: 'orange' },
             { id: 'I', name: '인터넷', sub: '공용망', col: 'red' },
-            { id: 'G', name: '게이트웨이', sub: GW_PUB, col: 'green' },
-            { id: 'S', name: '사내 서버', sub: INNER_DST, col: 'teal' }
+            { id: 'G', name: '게이트웨이', sub: mob ? '' : GW_PUB, col: 'green' },
+            { id: 'S', name: '사내 서버', sub: mob ? '' : INNER_DST, col: 'teal' }
         ];
-        var y = top + 8;
-        nodes.forEach(function (n, i) {
-            if (i === 3) return;
-            var x1 = x0 + i * (bw + gap) + bw;
-            var x2 = x1 + gap;
+        var y = top + 22;
+        var cxN = function (i) { return x0 + i * (bw + gap) + bw / 2; };
+        var arrived = seg(e, 0.6, 0.9);
+        for (var i = 0; i < 3; i++) {
             var on = s.seg === i;
-            ctx.beginPath();
-            ctx.moveTo(x1, y + bh / 2);
-            ctx.lineTo(x2, y + bh / 2);
-            ctx.strokeStyle = on ? P.yellow + 'ff' : P.muted + '77';
-            ctx.lineWidth = on ? 3 : 1.6;
-            ctx.stroke();
-        });
+            ln(x0 + i * (bw + gap) + bw, y + bh / 2, x0 + (i + 1) * (bw + gap), y + bh / 2, on ? P.yellow + 'ff' : P.sub + '88', on ? 3 : 1.6);
+        }
         nodes.forEach(function (n, i) {
             var x = x0 + i * (bw + gap);
             var c = colorOf(n.col);
             var badge = s.hl[n.id];
+            var pb = p.hl[n.id];
+            var ba = badge ? (pb && pb[0] === badge[0] ? 1 : arrived) : 0;
             var bc = badge ? colorOf(badge[1]) : c;
-            rr(x, y, bw, bh, 6, c + '18', (badge ? bc : c) + (badge ? 'ff' : '88'), badge ? 1.9 : 1.2);
-            tx(n.name, x + bw / 2, y + 13, fs - (mob ? 1.5 : 0.5), c + 'ee', 'center', true);
-            tx(n.sub, x + bw / 2, y + 28, fs - 3, P.sub + 'ee', 'center', false);
-            if (badge) tx(badge[0], x + bw / 2, y + 46, fs - 2.5, bc + 'ff', 'center', true);
+            rr(x, y, bw, bh, 6, c + '18', (badge && ba > 0.3 ? bc : c) + (badge ? 'ff' : '88'), badge && ba > 0.3 ? 1.9 : 1.2);
+            tx(n.name, x + bw / 2, y + 13, fs - (mob ? 0.5 : 0), c + 'ff', 'center', true);
+            if (n.sub) tx(n.sub, x + bw / 2, y + 28, fs - 1.5, P.sub + 'ff', 'center', false);
+            if (badge && ba > 0) {
+                ctx.globalAlpha = ba;
+                tx(badge[0], x + bw / 2, y + 46, fs - 1.5, bc + 'ff', 'center', true);
+                ctx.globalAlpha = 1;
+            }
         });
-        var tubeX1 = x0 + bw / 2;
-        var tubeX2 = x0 + 2 * (bw + gap) + bw / 2;
-        var ty = y + bh + 14;
-        ctx.beginPath();
-        ctx.moveTo(tubeX1, ty);
-        ctx.lineTo(tubeX2, ty);
-        ctx.strokeStyle = P.purple + 'cc';
-        ctx.lineWidth = 6;
-        ctx.stroke();
-        tx(mob ? '암호화된 터널' : '암호화된 터널 (노트북 ↔ 게이트웨이)', (tubeX1 + tubeX2) / 2, ty + 16, fs - 1.5, P.purple + 'ff', 'center', true);
-        tx(mob ? '사내망(보호 밖)' : '사내망 (VPN 보호 밖)', x0 + 3 * (bw + gap) + bw / 2, ty + 16, fs - 1.5, P.teal + 'ee', 'center', true);
+        var ty = y + bh + 18;
+        ln(cxN(0), ty, cxN(2), ty, P.purple + '88', 10);
+        tx(mob ? '암호화된 터널' : '암호화된 터널 (노트북 ↔ 게이트웨이)', (cxN(0) + cxN(2)) / 2, ty + 44, fs - 1.5, P.purple + 'ff', 'center', true);
+        tx(mob ? '사내망(보호 밖)' : '사내망 (VPN 보호 밖)', cxN(3), ty + 44, fs - 1.5, P.teal + 'ff', 'center', true);
 
-        var py = ty + 34;
+        var specs = [null, { at: 0, tf: 'enc' }, { from: 0, to: 2, st: 'cipher' }, { at: 2, tf: 'dec' }, { from: 2, to: 3, st: 'inner' }, { from: 3, to: 2, st: 'inner', then: 'enc' }];
+        var sp = specs[idx];
+        var cy = ty;
+        var drawChip = function (cx, st, t01) {
+            var inner = st === 'inner';
+            var wC = mob ? 22 : 28;
+            if (inner) {
+                block(cx - wC, cy - 9, wC * 2, 18, '내부', P.teal, fs - 2, true);
+                return;
+            }
+            var hdw = (mob ? 18 : 24) * t01;
+            block(cx - wC - hdw / 2, cy - 9, wC * 2 + hdw, 18, '', P.red, fs - 2, true);
+            tx('암호문', cx + hdw / 2, cy, fs - 2, P.text + 'ff', 'center', true);
+            if (hdw > 4) block(cx - wC - hdw / 2, cy - 9, hdw, 18, '', P.orange, fs - 2, true);
+        };
+        if (sp) {
+            if (sp.at !== undefined) {
+                var t = ez(seg(e, 0.1, 0.7));
+                var tt = sp.tf === 'enc' ? t : 1 - t;
+                drawChip(cxN(sp.at), tt > 0.5 ? 'cipher' : 'inner', tt > 0.5 ? (tt - 0.5) * 2 : 0);
+                if (tt > 0.5 && sp.tf === 'enc') lock(cxN(sp.at) + (mob ? 40 : 52), cy, P.yellow);
+            } else {
+                var u = ez(seg(e, 0.05, sp.then ? 0.55 : 0.85));
+                var px = lerp(cxN(sp.from), cxN(sp.to), u);
+                var st = sp.st;
+                var hd2 = 1;
+                if (sp.then && u >= 1) {
+                    var t2 = ez(seg(e, 0.55, 0.95));
+                    st = t2 > 0.5 ? 'cipher' : 'inner';
+                    hd2 = t2 > 0.5 ? (t2 - 0.5) * 2 : 0;
+                }
+                drawChip(px, st, st === 'cipher' ? hd2 : 0);
+                if (st === 'cipher' && sp.st === 'cipher') {
+                    var passI = Math.abs(px - cxN(1)) < bw * 0.6;
+                    eye(cxN(1), cy + 24, passI ? P.red : P.sub, passI);
+                }
+            }
+        }
+
+        var py = ty + 62;
         var lh = mob ? 15 : 17;
         var ph = lh * 2 + 22;
-        rr(x0, py, w, ph, 6, 'none', P.muted + '55', 1.2);
-        tx('이 구간의 패킷', x0 + 10, py + 11, fs - 2, P.muted + 'ee', 'left', true);
+        var same = s.pkt.join('|') === p.pkt.join('|');
+        var ca = same ? 1 : ez(seg(e, 0, 0.3));
+        rr(x0, py, w, ph, 6, 'none', P.sub + '66', 1.2);
+        tx('이 구간의 패킷', x0 + 10, py + 12, fs - 1, P.sub + 'ff', 'left', true);
         if (s.pkt.length) {
-            s.pkt.forEach(function (ln, i) {
-                tx(shortTxt(ln, mob), x0 + 10, py + 11 + lh * (i + 1), fs - 1.5, (i === 0 ? P.text : P.yellow) + 'ee', 'left', false);
+            ctx.globalAlpha = ca;
+            s.pkt.forEach(function (l, i) {
+                tx(shortTxt(l, mob), x0 + 10, py + 12 + lh * (i + 1), fs - 1, (i === 0 ? P.text : P.yellow) + 'ff', 'left', false);
             });
+            ctx.globalAlpha = 1;
         } else {
-            tx('(아직 보낸 패킷이 없습니다)', x0 + 10, py + 11 + lh, fs - 1.5, P.muted + 'cc', 'left', false);
+            tx('(아직 보낸 패킷이 없습니다)', x0 + 10, py + 12 + lh, fs - 1, P.sub + 'ff', 'left', false);
         }
     }
 
-    /* ===================== 모드: 종류와 방식 ===================== */
-    function drawKinds(x0, top, w, mob, step) {
-        var fs = mob ? 10 : 11.5;
-        var k = step ? step.k : 0;
-        var bw = mob ? 92 : 110;
-        var bh = 30;
+    /* ===================== 종류와 방식 ===================== */
+    function drawKinds(x0, top, w, mob, s, p, e, fs) {
+        var k = s.k, pk = p.k;
+        var bw = mob ? 92 : 110, bh = 30;
         var y = top + 8;
-        function node(x, yy, label, col) {
+        var node = function (x, yy, label, col, a) {
             var c = colorOf(col);
-            rr(x, yy, bw, bh, 5, c + '18', c + 'cc', 1.4);
-            tx(label, x + bw / 2, yy + bh / 2, fs - 1.5, c + 'ee', 'center', true);
-        }
-        function tube(x1, x2, yy, label, on) {
-            ctx.beginPath();
-            ctx.moveTo(x1, yy);
-            ctx.lineTo(x2, yy);
-            ctx.strokeStyle = (on ? P.purple : P.muted) + (on ? 'ff' : '66');
-            ctx.lineWidth = on ? 6 : 3;
-            ctx.stroke();
-            tx(label, (x1 + x2) / 2, yy - 10, fs - 2, (on ? P.purple : P.sub) + 'ee', 'center', true);
-        }
-        tx('원격 접속 VPN', x0, y, fs - 0.5, (k === 1 ? P.text : P.sub) + 'ee', 'left', true);
-        if (k >= 1) {
-            node(x0, y + 12, '노트북', 'orange');
-            tube(x0 + bw, x0 + w - bw, y + 12 + bh / 2, '터널', k === 1);
-            node(x0 + w - bw, y + 12, mob ? '게이트웨이' : 'VPN 게이트웨이', 'green');
-        }
-        var y2 = y + 66;
-        tx('사이트 간 VPN', x0, y2, fs - 0.5, (k === 2 ? P.text : P.sub) + 'ee', 'left', true);
-        if (k >= 2) {
-            node(x0, y2 + 12, '본사 게이트웨이', 'green');
-            tube(x0 + bw, x0 + w - bw, y2 + 12 + bh / 2, '터널', k === 2);
-            node(x0 + w - bw, y2 + 12, '지사 게이트웨이', 'green');
-        }
-        var y3 = y2 + 66;
-        KINDS.forEach(function (r, i) {
-            if (k < 3 + i) return;
-            var yy = y3 + i * 26;
-            var cur = k === 3 + i;
-            var c = colorOf(r[2]);
-            rr(x0, yy, w, 22, 4, cur ? c + '25' : 'none', c + (cur ? 'ff' : '77'), cur ? 1.8 : 1.2);
-            tx(r[0], x0 + 10, yy + 11, fs - 1, c + 'ff', 'left', true);
-            tx(r[1], x0 + w - 10, yy + 11, fs - 1.5, (cur ? P.text : P.sub) + 'ee', 'right', false);
+            ctx.globalAlpha = a;
+            rr(x, yy, bw, bh, 5, c + '18', c + 'ff', 1.4);
+            tx(label, x + bw / 2, yy + bh / 2, fs - 1, c + 'ff', 'center', true);
+            ctx.globalAlpha = 1;
+        };
+        var tube = function (x1, x2, yy, on, fresh) {
+            var g = fresh ? ez(seg(e, 0.2, 0.7)) : 1;
+            ln(x1, yy, x2, yy, P.sub + '66', 3);
+            ln(x1, yy, lerp(x1, x2, g), yy, P.purple + (on ? 'ff' : '88'), on ? 6 : 4);
+            tx('터널', (x1 + x2) / 2, yy - 12, fs - 1.5, (on ? P.purple : P.sub) + 'ff', 'center', true);
+            if (fresh && g < 1) {
+                for (var i = 0; i < 3; i++) {
+                    var dp = clamp01(g * 1.4 - i * 0.2);
+                    if (dp > 0 && dp < 1) circ(lerp(x1, x2, dp), yy, 5, P.yellow + 'ff', 'none', 1);
+                }
+            }
+        };
+        var blocks = [[1, y, '원격 접속 VPN', '노트북', 'orange', mob ? '게이트웨이' : 'VPN 게이트웨이', 'green'], [2, y + 66, '사이트 간 VPN', '본사 게이트웨이', 'green', '지사 게이트웨이', 'green']];
+        blocks.forEach(function (b) {
+            var on = k >= b[0], cur = k === b[0], fresh = cur && pk < b[0];
+            tx(b[2], x0, b[1], fs - 0.5, (cur ? P.text : P.sub) + 'ff', 'left', true);
+            if (!on) return;
+            var a = fresh ? ez(seg(e, 0, 0.3)) : 1;
+            node(x0, b[1] + 12, b[3], b[4], a);
+            node(x0 + w - bw, b[1] + 12, b[5], b[6], a);
+            ctx.globalAlpha = a;
+            tube(x0 + bw, x0 + w - bw, b[1] + 12 + bh / 2, cur, fresh);
+            ctx.globalAlpha = 1;
         });
+        var y3 = y + 132;
+        KINDS.forEach(function (r, i) {
+            var rowK = 3 + i;
+            if (k < rowK) return;
+            var yy = y3 + i * 28;
+            var cur = k === rowK;
+            var fresh = cur && pk < rowK;
+            var q = fresh ? ez(seg(e, 0, 0.5)) : 1;
+            var c = colorOf(r[2]);
+            ctx.globalAlpha = q;
+            rr(x0 + (1 - q) * 30, yy, w, 24, 4, cur ? c + '25' : 'none', c + (cur ? 'ff' : '88'), cur ? 1.8 : 1.2);
+            tx(r[0], x0 + 10 + (1 - q) * 30, yy + 12, fs - 1, c + 'ff', 'left', true);
+            tx(r[1], x0 + w - 10 + (1 - q) * 30, yy + 12, fs - 1.5, (cur ? P.text : P.sub) + 'ff', 'right', false);
+            ctx.globalAlpha = 1;
+        });
+    }
+
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var L = layout(w, mob);
+        var e = clamp01(t);
+        var s = step || currentSteps()[0];
+        var p = prev || s;
+        if (mode === 'path') drawPath(x0, top, w, mob, s, p, e, L.fs);
+        else if (mode === 'kinds') drawKinds(x0, top, w, mob, s, p, e, L.fs);
+        else drawTunnel(x0, top, w, mob, s, p, e, L.fs);
     }
 
     /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
     function draw() {
         P = window.CsFlow.getP();
         ctx.clearRect(0, 0, GW(), GH());
         var W = GW(); var mob = W < 600;
-        var padX = mob ? 16 : 26;
-        var fullW = W - padX * 2;
-        var top = mob ? 18 : 26;
-
         var steps = currentSteps();
         var step = stepIdx >= 0 ? steps[stepIdx] : null;
-
-        if (mode === 'path') drawPath(padX, top, fullW, mob, step);
-        else if (mode === 'kinds') drawKinds(padX, top, fullW, mob, step);
-        else drawTunnel(padX, top, fullW, mob, step);
-
-        if (!step) {
-            var hint = '아래 STEP으로 패킷이 터널을 지나는 과정을 확인하세요.';
-            ctx.font = '500 ' + (mob ? 11 : 12.5) + 'px "JetBrains Mono",monospace';
-            var hs = mob ? 11 : 12.5;
-            var hl = [hint];
-            if (ctx.measureText(hint).width > W - 16) {
-                var cut = hint.indexOf(' ', Math.floor(hint.length / 2));
-                if (cut < 0) cut = hint.lastIndexOf(' ');
-                hl = [hint.slice(0, cut), hint.slice(cut + 1)];
-            }
-            hl.forEach(function (line, li) {
-                tx(line, W / 2, GH() - (mob ? 12 : 14) - (hl.length - 1 - li) * (hs + 4), hs, P.muted + 'aa', 'center', false);
-            });
-        }
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
         var mob = w < 600;
-        var neededH;
-        if (mode === 'path') neededH = mob ? 270 : 280;
-        else if (mode === 'kinds') neededH = mob ? 340 : 340;
-        else neededH = mob ? 366 : 330;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
         canvasWrap.style.height    = 'auto';
-        canvasWrap.style.minHeight = neededH + 'px';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
         var actualH = canvasWrap.offsetHeight || neededH;
         if (actualH < neededH) actualH = neededH;
         canvas.width  = w * dpr;
@@ -368,17 +504,22 @@
     /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        draw();
-        rafId = requestAnimationFrame(function () { rafId = null; if (onDone) onDone(); });
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
     function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
-    function defaultLog() {
-        if (mode === 'path') return '노트북에서 사내 서버까지 터널을 지나는 패킷의 여정을 봅니다.';
-        if (mode === 'kinds') return 'VPN의 두 가지 형태와 대표 프로토콜을 봅니다.';
-        return '내부 패킷을 암호화해 다른 패킷 안에 넣는 캡슐화 과정을 봅니다.';
-    }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -417,7 +558,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);
