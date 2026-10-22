@@ -39,7 +39,7 @@
     var speedWrap = el('div', 'ft-viz__speed');
     speedWrap.appendChild(el('span', 'ft-viz__speed-label', 'SPEED'));
     var speedBtns = [];
-    [['1x', 1700], ['2x', 850], ['3x', 480]].forEach(function (pair, i) {
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
         var b = el('button', 'ft-viz__speed-btn' + (i === 0 ? ' ft-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
@@ -72,11 +72,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'index';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 엔진: 문서와 역색인 ===================== */
     var DOCS = ['fat cat sat', 'fat rat ran', 'cat ate rat', 'big fat cat', 'dog ran fast', 'big dog sat', 'cat ran fast', 'fast dog'];
@@ -141,52 +208,42 @@
     })();
 
     /* ===================== 상태 ===================== */
-    var mode    = 'index';
-    var stepIdx = -1;
-    var running = false;
-    var timer   = null;
-    var rafId   = null;
-    var speed   = 1700;
-
     function currentSteps() {
         if (mode === 'like') return LIKE_STEPS;
         if (mode === 'tokens') return TOK_STEPS;
         return IDX_STEPS;
     }
-
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        var rad = Math.min(r, w / 2, h / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + rad, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, rad);
-        ctx.arcTo(x + w, y + h, x,     y + h, rad);
-        ctx.arcTo(x,     y + h, x,     y,     rad);
-        ctx.arcTo(x,     y,     x + w, y,     rad);
-        ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
-    }
-    function tx(str, x, y, sz, color, align, bold) {
-        if (sz < 11) sz = 11;
-        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
+    function defaultLog() {
+        if (mode === 'like') return 'LIKE로 훑는 것과 역색인으로 찾는 것을 비교합니다.';
+        if (mode === 'tokens') return '문장이 토큰, 불용어 제거, 어간 추출을 거쳐 tsvector가 되는 과정을 봅니다.';
+        return '문서의 단어가 역색인에 들어가고 검색되는 과정을 봅니다.';
     }
 
-    /* ===================== 공통: 캡션 ===================== */
-    function drawCaps(s, x0, w, y, fs) {
-        if (s.cap) tx(s.cap, x0 + w / 2, y, fs - 0.5, P.yellow + 'ff', 'center', true);
-        if (s.cap2) tx(s.cap2, x0 + w / 2, y + 19, fs - 1, P.text + 'ee', 'center', false);
-        if (s.cap3) tx(s.cap3, x0 + w / 2, y + 38, fs - 1, P.green + 'ee', 'center', true);
+    /* ===================== 레이아웃 ===================== */
+    function layout(w, mob, s) {
+        var st = s || currentSteps()[0];
+        var base = st.kind === 'pipe' ? (st.stage >= 5 ? 234 : (st.stage >= 4 ? 198 : 128)) : 252;
+        return { fs: mob ? 11.5 : 13, total: base + (mob ? 112 : 62) };
+    }
+    function sceneH(w, mob, s) { return layout(w, mob, s).total; }
+
+    function caps(s, cx, w, y, fs) {
+        var yy = y;
+        [[s.cap, P.yellow, true, fs - 0.5], [s.cap2, P.text, false, fs - 1], [s.cap3, P.green, true, fs - 1]].forEach(function (c) {
+            if (!c[0]) return;
+            var ls = lines(c[0], w - 12, c[3]);
+            ls.forEach(function (l, i) { tx(l, cx, yy + i * (c[3] + 5), c[3], c[1] + 'ee', 'center', c[2]); });
+            yy += ls.length * (c[3] + 5) + 3;
+        });
+    }
+
+    function wordRow(list, wd) {
+        for (var i = 0; i < list.length; i++) { if (list[i].w === wd) return i; }
+        return -1;
     }
 
     /* ===================== 문서 목록과 색인 ===================== */
-    function drawIdx(x0, top, w, mob, s) {
+    function drawIdx(x0, top, w, mob, s, p, e) {
         var fs = mob ? 11.5 : 13;
         var rowH = 25;
         var lw = mob ? 148 : 220;
@@ -194,137 +251,216 @@
         var rx = x0 + lw + gap;
         var rw = w - lw - gap;
         var y0 = top + 8;
-        var k;
+        var k, j;
+        var building = !s.info && s.n > p.n;
+        var pr = building ? lerp(p.n, s.n, e) : s.n;
+        var cd = building && e < 1 ? Math.min(s.n - 1, Math.floor(pr)) : -1;
+        var frac = pr - Math.floor(pr);
+        var m = building && e < 1 ? Math.min(s.n, Math.floor(pr + 0.45)) : s.n;
+        var finalList = postings(s.n);
+        var curList = postings(m);
+        var hitChanged = s.hdocs.join() !== p.hdocs.join();
+        var hq = hitChanged && !building ? clamp01((e - 0.3) / 0.5) : 1;
+
         tx('문서', x0 + lw / 2, y0 + 8, fs - 1, P.sub + 'ff', 'center', true);
         tx(s.info ? '검색 방법' : '역색인 (단어 → 문서)', rx + rw / 2, y0 + 8, fs - 1, P.sub + 'ff', 'center', true);
-        for (k = 0; k < DOCS.length; k++) {
-            var y = y0 + 22 + k * rowH;
-            var st = s.marks ? s.marks[k] : 'n';
-            var hit = s.hdocs.indexOf(k) >= 0;
+
+        function docRow(y, kk, st, hit, ut) {
             var col = P.sub;
             var fillA = '11';
             if (st === 'm' || st === 'f') { col = P.green; fillA = '44'; }
             else if (st === 'c') { col = P.orange; fillA = '22'; }
             else if (hit) { col = P.teal; fillA = '44'; }
-            var untouched = s.marks && st === 'n';
-            rr(x0, y, lw, rowH - 3, 4, col + fillA, col + (untouched ? '66' : 'ff'), hit || st !== 'n' ? 1.8 : 1.2);
-            tx('D' + (k + 1) + '  ' + DOCS[k], x0 + 8, y + (rowH - 3) / 2, fs - 0.5, untouched ? P.sub + 'ff' : P.text + 'ff', 'left', hit || st === 'm' || st === 'f');
+            rr(x0, y, lw, rowH - 3, 4, col + fillA, col + (ut ? '66' : 'ff'), hit || st !== 'n' ? 1.8 : 1.2);
+            tx('D' + (kk + 1) + '  ' + DOCS[kk], x0 + 8, y + (rowH - 3) / 2, fs - 0.5, ut ? P.sub + 'ff' : P.text + 'ff', 'left', hit || st === 'm' || st === 'f');
             if (st === 'c') tx('✕', x0 + lw - 10, y + (rowH - 3) / 2, fs - 1, P.orange + 'ff', 'center', true);
             if (st === 'm') tx('✓', x0 + lw - 10, y + (rowH - 3) / 2, fs - 1, P.green + 'ff', 'center', true);
         }
+
+        var reveal = !!s.marks && !!p.marks && s.marks !== p.marks && p.marks.every(function (x) { return x === 'n'; }) && s.marks.some(function (x) { return x === 'c' || x === 'm'; });
+        for (k = 0; k < DOCS.length; k++) {
+            var y = y0 + 22 + k * rowH;
+            var st = s.marks ? s.marks[k] : 'n';
+            var pk = p.marks ? p.marks[k] : 'n';
+            var hit = s.hdocs.indexOf(k) >= 0;
+            if (reveal && e < 1 && e * DOCS.length < k + 1) st = 'n';
+            var ut = !!s.marks && st === 'n';
+            if (hit && hitChanged && !building) {
+                if (hq < 1) docRow(y, k, 'n', false, false);
+                ctx.globalAlpha = hq;
+                docRow(y, k, st, true, ut);
+                ctx.globalAlpha = 1;
+            } else {
+                docRow(y, k, st, hit, ut);
+                if (!reveal && s.marks && st !== pk && e < 1) {
+                    ctx.globalAlpha = 1 - e;
+                    docRow(y, k, pk, false, !!p.marks && pk === 'n');
+                    ctx.globalAlpha = 1;
+                }
+            }
+            if (k === cd) rr(x0 - 2, y - 1, lw + 4, rowH - 1, 5, 'none', P.yellow + 'ff', 2.4);
+        }
+        if (reveal && e < 1) {
+            var sy = y0 + 22 + e * DOCS.length * rowH;
+            ln(x0, sy, x0 + lw, sy, P.yellow + 'ff', 2.4);
+        }
+
+        var srcs = [];
         if (s.info) {
             for (k = 0; k < s.info.length; k++) {
                 var iy = y0 + 22 + k * 40;
-                rr(rx, iy, rw, 34, 5, P.purple + '22', P.purple + 'ff', 1.4);
-                tx(s.info[k], rx + rw / 2, iy + 17, fs - 0.5, P.text + 'ff', 'center', true);
+                var same = p.info && p.info.join('|') === s.info.join('|');
+                var q = same ? 1 : clamp01((e - k * 0.18) / 0.4);
+                ctx.globalAlpha = q;
+                rr(rx + (1 - q) * 14, iy, rw, 34, 5, P.purple + '22', P.purple + 'ff', 1.4);
+                var il = lines(s.info[k], rw - 10, fs - 1);
+                il.forEach(function (l2, li2) {
+                    tx(l2, rx + rw / 2 + (1 - q) * 14, iy + 17 + (li2 - (il.length - 1) / 2) * (fs + 1), fs - 1, P.text + 'ff', 'center', true);
+                });
+                ctx.globalAlpha = 1;
             }
+            srcs.push({ x: rx, y: y0 + 22 + 17 });
         } else {
-            var pl = postings(s.n);
-            if (pl.length === 0) tx('(비어 있음)', rx + rw / 2, y0 + 22 + 60, fs - 1, P.sub + 'ff', 'center', false);
-            for (k = 0; k < pl.length; k++) {
+            if (finalList.length === 0) tx('(비어 있음)', rx + rw / 2, y0 + 22 + 60, fs - 1, P.sub + 'ff', 'center', false);
+            var cdWords = cd >= 0 ? DOCS[cd].split(' ') : [];
+            for (k = 0; k < finalList.length; k++) {
+                var wd = finalList[k].w;
+                var ci = wordRow(curList, wd);
+                if (ci < 0) continue;
                 var py = y0 + 22 + k * 22;
-                var hw = s.hwords.indexOf(pl[k].w) >= 0;
-                var pc = hw ? P.teal : P.sub;
-                rr(rx, py, rw, 19, 4, pc + (hw ? '44' : '11'), pc + (hw ? 'ff' : '66'), hw ? 1.8 : 1);
-                tx(pl[k].w, rx + 8, py + 10, fs - 1, P.text + 'ff', 'left', true);
-                tx(pl[k].d.join(' '), rx + rw - 8, py + 10, fs - 1, hw ? P.green + 'ff' : P.text + 'ee', 'right', hw);
+                var hw = s.hwords.indexOf(wd) >= 0;
+                var busy = cdWords.indexOf(wd) >= 0;
+                var pc = busy ? P.yellow : (hw ? P.teal : P.sub);
+                rr(rx, py, rw, 19, 4, pc + (hw || busy ? '44' : '11'), pc + (hw || busy ? 'ff' : '66'), hw || busy ? 1.8 : 1);
+                tx(wd, rx + 8, py + 10, fs - 1, P.text + 'ff', 'left', true);
+                tx(curList[ci].d.join(' '), rx + rw - 8, py + 10, fs - 1, hw ? P.green + 'ff' : P.text + 'ee', 'right', hw);
+                if (hw) srcs.push({ x: rx, y: py + 10 });
+                if (busy && e < 1) {
+                    var wj = cdWords.indexOf(wd);
+                    var dq = clamp01(frac * 1.4 - wj * 0.15);
+                    if (dq > 0 && dq < 1) circ(lerp(x0 + lw, rx, dq), lerp(y0 + 22 + cd * rowH + 10, py + 10, dq), 4.5, P.yellow + 'ff', 'none');
+                }
             }
         }
-        drawCaps(s, x0, w, y0 + 22 + 8 * rowH + 22, fs);
+
+        if (hitChanged && !building && srcs.length && e < 1) {
+            var tg = s.hdocs;
+            for (j = 0; j < tg.length; j++) {
+                var sc = srcs[j % srcs.length];
+                var tq = clamp01((e - 0.05 - j * 0.04) / 0.6);
+                if (tq > 0 && tq < 1) circ(lerp(sc.x, x0 + lw, tq), lerp(sc.y, y0 + 22 + tg[j] * rowH + 10, tq), 4.5, P.yellow + 'ff', 'none');
+            }
+        } else if (s.info && s.marks && p.marks && !reveal && e < 1) {
+            for (k = 0; k < DOCS.length; k++) {
+                if (s.marks[k] !== 'f' || p.marks[k] === 'f') continue;
+                var fq = clamp01((e - 0.05 - k * 0.03) / 0.6);
+                if (fq > 0 && fq < 1) circ(lerp(srcs[0].x, x0 + lw, fq), lerp(srcs[0].y, y0 + 22 + k * rowH + 10, fq), 4.5, P.yellow + 'ff', 'none');
+            }
+        }
+        caps(s, x0 + w / 2, w, y0 + 22 + 8 * rowH + 22, fs);
     }
 
     /* ===================== 정규화 단계 ===================== */
-    function drawPipe(x0, top, w, mob, s) {
+    function drawPipe(x0, top, w, mob, s, p, e) {
         var fs = mob ? 11.5 : 13;
         var y0 = top + 8;
         var tw = w / 12;
         var k;
-        tx(TEXT, x0 + w / 2, y0 + 10, fs, P.text + 'ff', 'center', true);
-        if (s.stage >= 1) {
+        var grow = s.stage > p.stage;
+        var sg = s.stage;
+        tx(TEXT, x0 + w / 2, y0 + 10, mob ? 11 : fs, P.text + 'ff', 'center', true);
+        if (sg >= 1) {
             for (k = 0; k < 12; k++) {
-                var stop = s.stage >= 2 && STOPS.indexOf(k) >= 0;
-                var stem = s.stage >= 3 && k === 11;
+                var tq = sg === 1 && grow ? clamp01((e - k * 0.04) / 0.5) : 1;
+                var stop = sg >= 2 && STOPS.indexOf(k) >= 0;
+                var stem = sg >= 3 && k === 11;
+                var sq = (sg === 2 && grow && stop) ? clamp01((e - 0.1) / 0.5) : 1;
+                var mq = (sg === 3 && grow && stem) ? clamp01(e * 1.6) : 1;
                 var col = stop ? P.sub : (stem ? P.orange : P.teal);
-                rr(x0 + k * tw + 1, y0 + 30, tw - 2, 24, 3, col + (stop ? '11' : '33'), col + (stop ? '66' : 'ff'), 1.2);
-                tx(stem ? 'rat' : TOKS[k], x0 + k * tw + tw / 2, y0 + 42, fs - 1, stop ? P.sub + 'ff' : P.text + 'ff', 'center', !stop);
+                var ty = lerp(y0 + 10, y0 + 30, tq);
+                ctx.globalAlpha = tq;
+                rr(x0 + k * tw + 1, ty, tw - 2, 24, 3, col + (stop ? '11' : '33'), col + (stop ? '66' : 'ff'), 1.2);
+                tx(stem && mq >= 0.5 ? 'rat' : TOKS[k], x0 + k * tw + tw / 2, ty + 12, fs - 1, stop && sq >= 1 ? P.sub + 'ff' : P.text + 'ff', 'center', !stop);
                 tx(String(k + 1), x0 + k * tw + tw / 2, y0 + 66, fs - 1, P.sub + 'ff', 'center', false);
-                if (stop) {
-                    ctx.beginPath();
-                    ctx.moveTo(x0 + k * tw + 3, y0 + 42);
-                    ctx.lineTo(x0 + (k + 1) * tw - 3, y0 + 42);
-                    ctx.strokeStyle = P.red + 'ff';
-                    ctx.lineWidth = 1.6;
-                    ctx.stroke();
-                }
+                if (stop) ln(x0 + k * tw + 3, y0 + 42, x0 + k * tw + 3 + (tw - 6) * sq, y0 + 42, P.red + 'ff', 1.6);
+                if (stem && sg === 3 && grow && e < 1) circ(x0 + k * tw + tw / 2, y0 + 42, 6 + e * 18, 'none', P.orange + 'ff', 2);
+                ctx.globalAlpha = 1;
             }
         }
-        if (s.stage >= 4) {
+        if (sg >= 4) {
             tx('tsvector', x0 + 2, y0 + 92, fs - 1, P.sub + 'ff', 'left', true);
             var cx = x0;
             var cy = y0 + 112;
             for (k = 0; k < LEX.length; k++) {
                 var cw = LEX[k].length * 7.6 + 18;
                 if (cx + cw > x0 + w) { cx = x0; cy += 30; }
-                rr(cx, cy - 12, cw, 24, 5, P.purple + '33', P.purple + 'ff', 1.6);
-                tx(LEX[k], cx + cw / 2, cy, fs - 0.5, P.text + 'ff', 'center', true);
+                var pos0 = parseInt(LEX[k].split(':')[1], 10);
+                var lq = sg === 4 && grow ? clamp01((e - k * 0.08) / 0.6) : 1;
+                var sx = x0 + (pos0 - 1) * tw + tw / 2;
+                var px = lerp(sx, cx + cw / 2, lq);
+                var py = lerp(y0 + 42, cy, lq);
+                ctx.globalAlpha = clamp01(lq * 2);
+                rr(px - cw / 2, py - 12, cw, 24, 5, P.purple + '33', P.purple + 'ff', 1.6);
+                tx(LEX[k], px, py, fs - 0.5, P.text + 'ff', 'center', true);
+                ctx.globalAlpha = 1;
                 cx += cw + 6;
             }
         }
-        if (s.stage >= 5) {
+        if (sg >= 5) {
             var qy = y0 + 178;
+            var qg = sg === 5 && grow;
+            var q1 = qg ? clamp01(e * 2.5) : 1;
+            var q2 = qg ? clamp01((e - 0.4) * 3) : 1;
             tx('tsquery', x0 + 2, qy - 20, fs - 1, P.sub + 'ff', 'left', true);
+            ctx.globalAlpha = q1;
             rr(x0, qy - 12, 48, 24, 5, P.teal + '33', P.teal + 'ff', 1.6);
             tx('fat', x0 + 24, qy, fs - 0.5, P.text + 'ff', 'center', true);
             tx('&', x0 + 62, qy, fs, P.text + 'ff', 'center', true);
             rr(x0 + 76, qy - 12, 48, 24, 5, P.teal + '33', P.teal + 'ff', 1.6);
             tx('rat', x0 + 100, qy, fs - 0.5, P.text + 'ff', 'center', true);
             tx('@@  →', x0 + 150, qy, fs, P.text + 'ff', 'center', true);
+            ctx.globalAlpha = q2;
             rr(x0 + 178, qy - 12, 40, 24, 5, P.green + '44', P.green + 'ff', 2);
             tx('t', x0 + 198, qy, fs, P.green + 'ff', 'center', true);
+            ctx.globalAlpha = 1;
+            if (qg && e > 0.6 && e < 1) circ(x0 + 198, qy, 10 + (e - 0.6) * 50, 'none', P.green + 'ff', 2);
         }
-        drawCaps(s, x0, w, y0 + (s.stage >= 5 ? 226 : (s.stage >= 4 ? 190 : 120)), fs);
+        caps(s, x0 + w / 2, w, y0 + (sg >= 5 ? 226 : (sg >= 4 ? 190 : 120)), fs);
+    }
+
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var e = clamp01(t);
+        var s = step || currentSteps()[0];
+        var p = prev || s;
+        if (s.kind === 'pipe') drawPipe(x0, top, w, mob, s, p, e);
+        else drawIdx(x0, top, w, mob, s, p.kind === 'idx' ? p : s, e);
     }
 
     /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
     function draw() {
         P = window.CsFlow.getP();
         ctx.clearRect(0, 0, GW(), GH());
         var W = GW(); var mob = W < 600;
-        var padX = mob ? 16 : 26;
-        var fullW = W - padX * 2;
-        var top = mob ? 18 : 26;
-
         var steps = currentSteps();
         var step = stepIdx >= 0 ? steps[stepIdx] : null;
-
-        var dsStep = step || currentSteps()[0];
-        if (dsStep.kind === 'pipe') drawPipe(padX, top, fullW, mob, dsStep);
-        else drawIdx(padX, top, fullW, mob, dsStep);
-
-        if (!step) {
-            var hint = '아래 STEP으로 전문 검색과 역색인의 동작을 확인하세요.';
-            ctx.font = '500 ' + (mob ? 11 : 12.5) + 'px "JetBrains Mono",monospace';
-            var hs = mob ? 11 : 12.5;
-            var hl = [hint];
-            if (ctx.measureText(hint).width > W - 16) {
-                var cut = hint.indexOf(' ', Math.floor(hint.length / 2));
-                if (cut < 0) cut = hint.lastIndexOf(' ');
-                hl = [hint.slice(0, cut), hint.slice(cut + 1)];
-            }
-            hl.forEach(function (line, li) {
-                tx(line, W / 2, GH() - (mob ? 12 : 14) - (hl.length - 1 - li) * (hs + 4), hs, P.muted + 'aa', 'center', false);
-            });
-        }
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
         var mob = w < 600;
-        var neededH;
-        neededH = mob ? 385 : 350;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
         canvasWrap.style.height    = 'auto';
-        canvasWrap.style.minHeight = neededH + 'px';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
         var actualH = canvasWrap.offsetHeight || neededH;
         if (actualH < neededH) actualH = neededH;
         canvas.width  = w * dpr;
@@ -336,17 +472,22 @@
     /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        draw();
-        rafId = requestAnimationFrame(function () { rafId = null; if (onDone) onDone(); });
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
     function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
-    function defaultLog() {
-        if (mode === 'like') return "LIKE '%단어%'와 전문 검색이 문서를 찾는 방식을 비교합니다.";
-        if (mode === 'tokens') return '텍스트가 토큰, 어간, tsvector로 바뀌는 과정을 봅니다.';
-        return '단어에서 문서 목록을 찾는 역색인을 만들고 검색하는 과정을 봅니다.';
-    }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -385,7 +526,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);
