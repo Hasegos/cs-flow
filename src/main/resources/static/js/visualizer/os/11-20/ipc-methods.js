@@ -39,7 +39,7 @@
     var speedWrap = el('div', 'ipc-viz__speed');
     speedWrap.appendChild(el('span', 'ipc-viz__speed-label', 'SPEED'));
     var speedBtns = [];
-    [['1x', 1700], ['2x', 850], ['3x', 480]].forEach(function (pair, i) {
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
         var b = el('button', 'ipc-viz__speed-btn' + (i === 0 ? ' ipc-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
@@ -72,11 +72,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'pipe';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 데이터: 파이프 ===================== */
     var CAP = 4;
@@ -157,90 +224,100 @@
         .concat([{ k: METHODS.length, hl: true, log: '정리 — 다른 컴퓨터의 프로세스와 통신하려면 소켓을, 같은 컴퓨터에서 대량 데이터를 빠르게 주고받으려면 공유 메모리를, 단순한 흐름에는 파이프를 고릅니다.' }]);
 
     /* ===================== 상태 ===================== */
-    var mode    = 'pipe';
-    var stepIdx = -1;
-    var running = false;
-    var timer   = null;
-    var rafId   = null;
-    var speed   = 1700;
-
     function currentSteps() {
         if (mode === 'copy') return COPY_STEPS;
         if (mode === 'choose') return CHOOSE_STEPS;
         return PIPE_STEPS;
     }
-
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        var rad = Math.min(r, w / 2, h / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + rad, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, rad);
-        ctx.arcTo(x + w, y + h, x,     y + h, rad);
-        ctx.arcTo(x,     y + h, x,     y,     rad);
-        ctx.arcTo(x,     y,     x + w, y,     rad);
-        ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
-    }
-    function tx(str, x, y, sz, color, align, bold) {
-        if (sz < 9.5) sz = 9.5;
-        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
+    function defaultLog() {
+        if (mode === 'copy') return '파이프와 공유 메모리가 데이터를 주고받을 때 드는 시스템 콜과 복사 횟수를 비교합니다.';
+        if (mode === 'choose') return '파이프, FIFO, 메시지 큐, 공유 메모리, 소켓, 시그널의 통신 범위와 특징을 비교합니다.';
+        return '한쪽에서 쓰고 다른 쪽에서 읽는 파이프가 버퍼를 거치며 동작하는 과정을 봅니다.';
     }
 
-    /* ===================== 공통: 선 ===================== */
-    function ln(x1, y1, x2, y2, col, lw) {
-        ctx.strokeStyle = col;
-        ctx.lineWidth = lw || 1.4;
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
-        ctx.stroke();
+    /* ===================== 레이아웃 ===================== */
+    function layout(w, mob) {
+        var total = mode === 'copy' ? 330 : (mode === 'choose' ? (mob ? 396 : 322) : 232);
+        return { fs: mob ? 11 : 12, total: total };
     }
+    function sceneH(w, mob) { return layout(w, mob).total; }
 
-    /* ===================== 모드: 파이프 ===================== */
-    function drawPipe(x0, top, w, mob, step) {
-        var fs = mob ? 10.5 : 12;
-        var s  = step ? step.s : null;
-        var bw = mob ? 62 : 84;
+    function ez(q) { q = clamp01(q); return q * q * (3 - 2 * q); }
+
+    /* ===================== 파이프 ===================== */
+    function drawPipe(x0, top, w, mob, step, prev, e, fs) {
+        var s = step.s;
+        var ps = prev.s;
+        var bw = mob ? 74 : 84;
         var bh = 56;
         var gap = mob ? 10 : 16;
         var sw = (w - 2 * bw - 2 * gap - 8) / CAP;
-        var y  = top + 40;
-        rr(x0, y, bw, bh, 6, P.orange + '22', P.orange + 'cc', 1.6);
-        tx('프로세스 A', x0 + bw / 2, y + 18, fs - 1, P.orange + 'ee', 'center', true);
-        tx('쓰는 쪽', x0 + bw / 2, y + 38, fs - 1.5, P.muted + 'ee', 'center', false);
+        var y = top + 40;
+        var buf = s ? s.buf : [];
+        var pbuf = ps ? ps.buf : [];
         var rx = x0 + w - bw;
-        rr(rx, y, bw, bh, 6, P.teal + '22', P.teal + 'cc', 1.6);
-        tx('프로세스 B', rx + bw / 2, y + 18, fs - 1, P.teal + 'ee', 'center', true);
-        tx('읽는 쪽', rx + bw / 2, y + 38, fs - 1.5, P.muted + 'ee', 'center', false);
         var px = x0 + bw + gap;
-        tx('파이프 (커널 버퍼 ' + CAP + '칸)', px, y - 14, fs - 1, P.muted + 'ee', 'left', true);
-        for (var i = 0; i < CAP; i++) {
-            var v = s && s.buf[i] ? s.buf[i] : null;
-            rr(px + i * (sw + 2), y + 8, sw, 40, 4, v ? P.purple + '30' : 'none', v ? P.purple + 'cc' : P.muted + '44', 1.4);
-            if (v) tx(v, px + i * (sw + 2) + sw / 2, y + 28, fs + 1, P.purple + 'ee', 'center', true);
-        }
+        var q = ez(e);
+        var slotX = function (si) { return px + (CAP - 1 - si) * (sw + 2); };
+        var idxIn = function (arr, v) { return arr.indexOf(v); };
+
+        rr(x0, y, bw, bh, 6, P.orange + '22', P.orange + 'cc', 1.6);
+        tx('프로세스 A', x0 + bw / 2, y + 18, fs - 1, P.orange + 'ff', 'center', true);
+        tx('쓰는 쪽', x0 + bw / 2, y + 38, fs - 1.5, P.sub + 'ff', 'center', false);
+        rr(rx, y, bw, bh, 6, P.teal + '22', P.teal + 'cc', 1.6);
+        tx('프로세스 B', rx + bw / 2, y + 18, fs - 1, P.teal + 'ff', 'center', true);
+        tx('읽는 쪽', rx + bw / 2, y + 38, fs - 1.5, P.sub + 'ff', 'center', false);
+        tx('파이프 (커널 버퍼 ' + CAP + '칸, 오른쪽이 먼저 나감)', px, y - 14, fs - 1, P.sub + 'ff', 'left', true);
+        for (var i = 0; i < CAP; i++) rr(slotX(i), y + 8, sw, 40, 4, 'none', P.sub + '66', 1.4);
         ln(x0 + bw, y + 28, px - 2, y + 28, P.orange + 'aa', 1.6);
         ln(px + CAP * (sw + 2), y + 28, rx, y + 28, P.teal + 'aa', 1.6);
-        if (s && s.pending) tx('쓰기 대기(블록): ' + s.pending, x0, y + bh + 22, fs, P.red + 'ee', 'left', true);
-        var cnt = s ? s.buf.length : 0;
-        tx('버퍼 ' + cnt + '/' + CAP, x0 + w, y + bh + 22, fs - 0.5, P.muted + 'ee', 'right', false);
-        tx('B가 읽은 데이터: ' + (s && s.out.length ? s.out.join(', ') : '-'), x0, y + bh + 52, fs + 0.5, P.green + 'ee', 'left', true);
+
+        function chip(letter, cx, a, col) {
+            ctx.globalAlpha = a;
+            rr(cx, y + 12, sw, 32, 4, col + '40', col + 'ff', 1.8);
+            tx(letter, cx + sw / 2, y + 28, fs + 1, col + 'ff', 'center', true);
+            ctx.globalAlpha = 1;
+        }
+        var k;
+        for (k = 0; k < buf.length; k++) {
+            var j = idxIn(pbuf, buf[k]);
+            var tgt = slotX(k);
+            if (j >= 0) chip(buf[k], lerp(slotX(j), tgt, q), 1, P.purple);
+            else chip(buf[k], lerp(x0 + bw, tgt, q), 1, P.purple);
+        }
+        for (k = 0; k < pbuf.length; k++) {
+            if (buf.indexOf(pbuf[k]) >= 0) continue;
+            chip(pbuf[k], lerp(slotX(k), rx, q), 1 - q, P.green);
+        }
+        var pend = s && s.pending;
+        if (pend) {
+            var shake = Math.sin(e * 40) * 2 * (1 - e);
+            rr(x0 + bw + 2 + shake, y + 12, sw, 32, 4, P.red + '30', P.red + 'ff', 2);
+            tx(pend, x0 + bw + 2 + sw / 2 + shake, y + 28, fs + 1, P.red + 'ff', 'center', true);
+            tx('쓰기 대기(블록): ' + pend, x0, y + bh + 22, fs, P.red + 'ff', 'left', true);
+        }
+        tx('버퍼 ' + buf.length + '/' + CAP, x0 + w, y + bh + 22, fs - 0.5, P.sub + 'ff', 'right', false);
+        var outs = s ? s.out : [];
+        var pouts = ps ? ps.out : [];
+        tx('B가 읽은 데이터:', x0, y + bh + 52, fs + 0.5, P.green + 'ff', 'left', true);
+        var ox = x0 + (mob ? 124 : 146);
+        if (!outs.length) tx('-', ox, y + bh + 52, fs + 0.5, P.green + 'ff', 'left', true);
+        outs.forEach(function (o, i) {
+            var fresh = i >= pouts.length;
+            var a = fresh ? clamp01((e - 0.5) / 0.5) : 1;
+            ctx.globalAlpha = a;
+            rr(ox + i * 26, y + bh + 41 - (fresh ? (1 - a) * 8 : 0), 22, 22, 4, P.green + '30', P.green + 'ff', 1.4);
+            tx(o, ox + i * 26 + 11, y + bh + 52 - (fresh ? (1 - a) * 8 : 0), fs, P.green + 'ff', 'center', true);
+            ctx.globalAlpha = 1;
+        });
     }
 
-    /* ===================== 모드: 공유 메모리 vs 파이프 ===================== */
-    function drawCopy(x0, top, w, mob, step) {
-        var fs = mob ? 10.5 : 12;
-        var k  = step ? step.k : 0;
-        var bw = (w - 2 * (mob ? 16 : 28)) / 3;
+    /* ===================== 공유 메모리 vs 파이프 ===================== */
+    function drawCopy(x0, top, w, mob, step, prev, e, fs) {
+        var k = step.k;
+        var pk = prev.k;
         var gap = mob ? 16 : 28;
+        var bw = (w - 2 * gap) / 3;
         var bh = 40;
         var rows = [
             [1, '파이프', top + 22, ['보내는 쪽', '커널 버퍼', '받는 쪽'], P.orange],
@@ -249,108 +326,157 @@
         rows.forEach(function (row) {
             var on = k >= row[0];
             var y = row[2];
-            tx(row[1], x0, y - 8, fs, on ? P.text + 'ee' : P.muted + '88', 'left', true);
+            var fresh = k === row[0] && pk < row[0];
+            var a = on ? (fresh ? clamp01(e * 2) : 1) : 0.35;
+            ctx.globalAlpha = a;
+            tx(row[1], x0, y - 8, fs, on ? P.text + 'ff' : P.sub + 'ff', 'left', true);
             for (var i = 0; i < 3; i++) {
                 var bx = x0 + i * (bw + gap);
-                rr(bx, y, bw, bh, 5, on ? row[4] + (i === 1 ? '30' : '18') : 'none', on ? row[4] + 'cc' : P.muted + '33', 1.4);
-                if (on) tx(row[3][i], bx + bw / 2, y + bh / 2, fs - 1, P.text + 'ee', 'center', true);
+                rr(bx, y, bw, bh, 5, on ? row[4] + (i === 1 ? '30' : '18') : 'none', on ? row[4] + 'cc' : P.sub + '55', 1.4);
+                if (on) tx(row[3][i], bx + bw / 2, y + bh / 2, fs - 1, P.text + 'ff', 'center', true);
             }
+            ctx.globalAlpha = 1;
             if (!on) return;
             if (row[0] === 1) {
                 [0, 1].forEach(function (i) {
                     var ax = x0 + (i + 1) * bw + i * gap;
+                    ctx.globalAlpha = a;
                     ln(ax, y + bh / 2, ax + gap, y + bh / 2, row[4] + 'cc', 1.6);
-                    tx('복사', ax + gap / 2, y - 4, fs - 3, P.yellow + 'ee', 'center', true);
+                    tx('복사', ax + gap / 2, y - 4, fs - 3, P.yellow + 'ff', 'center', true);
+                    ctx.globalAlpha = 1;
                 });
+                if (k === 1 && e < 1) {
+                    for (var m = 0; m < 3; m++) {
+                        var qm = clamp01(e * 1.4 - m * 0.2);
+                        if (qm <= 0 || qm >= 1) continue;
+                        circ(lerp(x0 + bw / 2, x0 + 2 * (bw + gap) + bw / 2, qm), y + bh / 2, 5, P.yellow + 'ff', 'none');
+                    }
+                    var cq = (e * 1.4) % 0.5;
+                    if (cq < 0.25) {
+                        circ(x0 + bw + gap / 2, y + bh / 2, 6 + cq * 40, 'none', P.yellow + 'ff', 1.6);
+                        circ(x0 + 2 * bw + 1.5 * gap, y + bh / 2, 6 + cq * 40, 'none', P.yellow + 'ff', 1.6);
+                    }
+                }
             } else {
-                tx('직접 읽고 씀 — 복사 없음', x0 + w / 2, y + bh + 14, fs - 1, P.green + 'ee', 'center', true);
+                ctx.globalAlpha = a;
+                tx('직접 읽고 씀 — 복사 없음', x0 + w / 2, y + bh + 14, fs - 1, P.green + 'ff', 'center', true);
+                ctx.globalAlpha = 1;
+                if (k === 2 && e < 1) {
+                    var mx = x0 + bw + gap + bw / 2;
+                    var wq = clamp01(e * 2);
+                    circ(lerp(x0 + bw / 2, mx, wq), y + bh / 2, 5, P.yellow + 'ff', 'none');
+                    if (e > 0.5) {
+                        circ(mx, y + bh / 2, 8 + (e - 0.5) * 50, 'none', P.teal + 'ff', 1.8);
+                        ln(x0 + 2 * (bw + gap) + bw / 2, y + bh / 2 + 12, mx + 6, y + bh / 2 + 12, P.teal + 'ff', 1.8);
+                    }
+                }
             }
         });
         if (k >= 3) {
             var by = top + 190;
-            var maxW = w - (mob ? 96 : 130);
+            var maxW = w - (mob ? 112 : 130);
+            var gq = pk >= 3 ? 1 : ez(e);
             var items = [
                 ['시스템 콜', PIPE_COST.sys, SHM_COST.sys, Math.max(PIPE_COST.sys, SHM_COST.sys)],
                 ['복사', PIPE_COST.copy, SHM_COST.copy, Math.max(PIPE_COST.copy, 1)]
             ];
-            tx('메시지 ' + N_MSG + '개 기준', x0, by - 8, fs - 0.5, P.muted + 'ee', 'left', false);
+            tx('메시지 ' + N_MSG + '개 기준', x0, by - 8, fs - 0.5, P.sub + 'ff', 'left', false);
             items.forEach(function (it, ii) {
                 var y = by + ii * 40;
-                tx(it[0], x0, y + 12, fs - 0.5, P.text + 'ee', 'left', true);
+                tx(it[0], x0, y + 12, fs - 0.5, P.text + 'ff', 'left', true);
                 [[it[1], P.orange, 0], [it[2], P.teal, 1]].forEach(function (b) {
                     var yy = y + b[2] * 16;
-                    var bwid = Math.max(2, maxW * b[0] / it[3]);
-                    var bx = x0 + (mob ? 56 : 70);
+                    var bwid = Math.max(2, maxW * b[0] / it[3] * gq);
+                    var bx = x0 + (mob ? 68 : 70);
                     rr(bx, yy + 2, bwid, 12, 3, b[1] + '30', b[1] + 'cc', 1.2);
-                    tx(String(b[0]), bx + bwid + 6, yy + 8, fs - 1.5, b[1] + 'ee', 'left', true);
+                    tx(String(Math.round(b[0] * gq)), bx + bwid + 6, yy + 8, fs - 1.5, b[1] + 'ff', 'left', true);
                 });
             });
         }
-        if (k >= 4) tx('동기화 없는 동시 쓰기: 최종 ' + RACE_BAD + ' (기대 ' + RACE_OK + ')', x0, top + 290, fs, P.red + 'ee', 'left', true);
+        if (k >= 4) {
+            var ry = top + 290;
+            var fresh4 = pk < 4;
+            var val = fresh4 && e < 0.55 ? 0 : RACE_BAD;
+            ctx.globalAlpha = fresh4 ? clamp01(e * 3) : 1;
+            tx('동기화 없는 동시 쓰기: ' + (fresh4 && e < 0.3 ? '둘 다 0을 읽음' : '최종 ' + val + ' (기대 ' + RACE_OK + ')'), x0, ry, fs, P.red + 'ff', 'left', true);
+            ctx.globalAlpha = 1;
+            if (fresh4 && e < 1) {
+                circ(x0 + 14, ry - 18, 5 + (e % 0.3) * 20, 'none', P.red + 'ff', 1.4);
+            }
+        }
     }
 
-    /* ===================== 모드: 방식 비교 ===================== */
-    function drawChoose(x0, top, w, mob, step) {
-        var fs = mob ? 10.5 : 12;
-        var k  = step ? step.k : 0;
-        var rh = mob ? 44 : 38;
-        tx('IPC 방식', x0, top + 10, fs, P.text + 'ee', 'left', true);
-        tx('통신 범위', x0 + w, top + 10, fs - 1, P.muted + 'ee', 'right', true);
+    /* ===================== 방식 비교 ===================== */
+    function drawChoose(x0, top, w, mob, step, prev, e, fs) {
+        var k = step.k;
+        var pk = prev.k;
+        var rh = mob ? 52 : 38;
+        tx('IPC 방식', x0, top + 10, fs, P.text + 'ff', 'left', true);
+        tx('통신 범위', x0 + w, top + 10, fs - 1, P.sub + 'ff', 'right', true);
         METHODS.forEach(function (m, i) {
             var y = top + 26 + i * (rh + 6);
             var on = k > i;
-            var cur = k === i + 1;
+            var cur = k === i + 1 && !step.hl;
+            var fresh = cur && pk < k;
             var col = m.net ? P.orange : P.teal;
-            rr(x0, y, w - 2, rh, 5, on ? col + (cur ? '2a' : '14') : 'none', on ? col + (cur ? 'ff' : '88') : P.muted + '33', cur ? 2 : 1.2);
+            var final = !!step.hl && (i === 0 || i === 3 || i === 4);
+            rr(x0, y, w - 2, rh, 5, on ? col + (cur || final ? '2a' : '14') : 'none', on ? col + (cur || final ? 'ff' : '88') : P.sub + '44', cur || final ? 2 : 1.2);
             if (!on) return;
-            tx(m.name, x0 + 10, y + (mob ? 14 : rh / 2), fs - (mob ? 0.5 : 0), P.text + 'ee', 'left', true);
-            tx(m.scope, x0 + w - 10, y + (mob ? 14 : rh / 2), fs - 1.5, col + 'ee', 'right', true);
-            if (mob) tx(m.note.length > 24 ? m.note.slice(0, 24) + '…' : m.note, x0 + 10, y + 31, fs - 2, P.muted + 'ee', 'left', false);
+            var a = fresh ? clamp01(e * 2) : 1;
+            var dx = fresh ? (1 - a) * 30 : 0;
+            ctx.globalAlpha = a;
+            tx(m.name, x0 + 10 + dx, y + (mob ? 14 : rh / 2), fs - (mob ? 0.5 : 0), P.text + 'ff', 'left', true);
+            tx(m.scope, x0 + w - 10 + dx, y + (mob ? 14 : rh / 2), fs - 1.5, col + 'ff', 'right', true);
+            if (mob) {
+                var nl = lines(m.note, w - 24, fs - 1.5);
+                nl.slice(0, 2).forEach(function (l, li) { tx(l, x0 + 10 + dx, y + 29 + li * 13, fs - 1.5, P.sub + 'ff', 'left', false); });
+            }
+            ctx.globalAlpha = 1;
+            if (fresh && e < 1) circ(x0 + 14, y + rh / 2, 6 + e * 24, 'none', col + 'ff', 1.6);
+            if (final && !mob) {
+                var tag = i === 0 ? '단순한 흐름' : (i === 3 ? '대량 · 빠르게' : '다른 컴퓨터');
+                ctx.globalAlpha = prev.hl ? 1 : clamp01(e * 2);
+                tx('→ ' + tag, x0 + w * 0.5, y + rh / 2, fs - 0.5, P.yellow + 'ff', 'center', true);
+                ctx.globalAlpha = 1;
+            }
         });
     }
 
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var L = layout(w, mob);
+        var e = clamp01(t);
+        var s = step || currentSteps()[0];
+        var p = prev || s;
+        if (mode === 'copy') drawCopy(x0, top, w, mob, s, p, e, L.fs);
+        else if (mode === 'choose') drawChoose(x0, top, w, mob, s, p, e, L.fs);
+        else drawPipe(x0, top, w, mob, s, p, e, L.fs);
+    }
+
     /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
     function draw() {
         P = window.CsFlow.getP();
         ctx.clearRect(0, 0, GW(), GH());
         var W = GW(); var mob = W < 600;
-        var padX = mob ? 16 : 26;
-        var fullW = W - padX * 2;
-        var top = mob ? 18 : 26;
-
         var steps = currentSteps();
         var step = stepIdx >= 0 ? steps[stepIdx] : null;
-
-        if (mode === 'copy') drawCopy(padX, top, fullW, mob, step);
-        else if (mode === 'choose') drawChoose(padX, top, fullW, mob, step);
-        else drawPipe(padX, top, fullW, mob, step);
-
-        if (!step) {
-            var hint = '아래 STEP을 눌러 프로세스 간 통신 방식을 확인하세요.';
-            ctx.font = '500 ' + (mob ? 11 : 12.5) + 'px "JetBrains Mono",monospace';
-            var hs = mob ? 11 : 12.5;
-            var hl = [hint];
-            if (ctx.measureText(hint).width > W - 16) {
-                var cut = hint.indexOf(' ', Math.floor(hint.length / 2));
-                if (cut < 0) cut = hint.lastIndexOf(' ');
-                hl = [hint.slice(0, cut), hint.slice(cut + 1)];
-            }
-            hl.forEach(function (line, li) {
-                tx(line, W / 2, GH() - (mob ? 12 : 14) - (hl.length - 1 - li) * (hs + 4), hs, P.muted + 'aa', 'center', false);
-            });
-        }
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
         var mob = w < 600;
-        var neededH;
-        if (mode === 'copy') neededH = mob ? 340 : 340;
-        else if (mode === 'choose') neededH = mob ? 360 : 330;
-        else neededH = mob ? 230 : 230;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
         canvasWrap.style.height    = 'auto';
-        canvasWrap.style.minHeight = neededH + 'px';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
         var actualH = canvasWrap.offsetHeight || neededH;
         if (actualH < neededH) actualH = neededH;
         canvas.width  = w * dpr;
@@ -362,17 +488,22 @@
     /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        draw();
-        rafId = requestAnimationFrame(function () { rafId = null; if (onDone) onDone(); });
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
     function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
-    function defaultLog() {
-        if (mode === 'copy') return '파이프와 공유 메모리가 데이터를 주고받을 때 드는 시스템 콜과 복사 횟수를 비교합니다.';
-        if (mode === 'choose') return '파이프, FIFO, 메시지 큐, 공유 메모리, 소켓, 시그널의 통신 범위와 특징을 비교합니다.';
-        return '한쪽에서 쓰고 다른 쪽에서 읽는 파이프가 버퍼를 거치며 동작하는 과정을 봅니다.';
-    }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -411,7 +542,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);

@@ -39,7 +39,7 @@
     var speedWrap = el('div', 'bt-viz__speed');
     speedWrap.appendChild(el('span', 'bt-viz__speed-label', 'SPEED'));
     var speedBtns = [];
-    [['1x', 1700], ['2x', 850], ['3x', 480]].forEach(function (pair, i) {
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
         var b = el('button', 'bt-viz__speed-btn' + (i === 0 ? ' bt-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
@@ -72,11 +72,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'bios';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 데이터: 부팅 단계 ===================== */
     var CHAINS = {
@@ -122,105 +189,136 @@
     var KERNEL_STEPS = stepsOf('kernel');
 
     /* ===================== 상태 ===================== */
-    var mode    = 'bios';
-    var stepIdx = -1;
-    var running = false;
-    var timer   = null;
-    var rafId   = null;
-    var speed   = 1700;
-
     function currentSteps() {
         if (mode === 'uefi') return UEFI_STEPS;
         if (mode === 'kernel') return KERNEL_STEPS;
         return BIOS_STEPS;
     }
-
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        var rad = Math.min(r, w / 2, h / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + rad, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, rad);
-        ctx.arcTo(x + w, y + h, x,     y + h, rad);
-        ctx.arcTo(x,     y + h, x,     y,     rad);
-        ctx.arcTo(x,     y,     x + w, y,     rad);
-        ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
-    }
-    function tx(str, x, y, sz, color, align, bold) {
-        if (sz < 9.5) sz = 9.5;
-        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
+    function defaultLog() {
+        if (mode === 'uefi') return INTRO.uefi;
+        if (mode === 'kernel') return INTRO.kernel;
+        return INTRO.bios;
     }
 
-    /* ===================== 공통: 단계 체인 ===================== */
-    function drawChain(x0, top, w, mob, step, key) {
-        var fs = mob ? 10.5 : 12;
-        var up = step ? step.up : -1;
-        var list = CHAINS[key];
+    /* ===================== 레이아웃 ===================== */
+    function layout(w, mob) {
         var bh = mob ? 40 : 42;
-        var gap = mob ? 12 : 12;
-        list.forEach(function (s, i) {
-            var y = top + i * (bh + gap);
+        return { fs: mob ? 11 : 12, bh: bh, gap: 12, total: 32 + 6 * (bh + 12) + 4 };
+    }
+    function sceneH(w, mob) { return layout(w, mob).total; }
+
+    var RAMSEG = {
+        bios: [
+            { at: 2, name: 'MBR', frac: 0.13, col: 'purple' },
+            { at: 3, name: '부트로더', frac: 0.23, col: 'teal' },
+            { at: 4, name: '커널 · initramfs', frac: 0.42, col: 'orange' }
+        ],
+        uefi: [
+            { at: 3, name: '.efi 부트로더', frac: 0.3, col: 'teal' },
+            { at: 4, name: '커널 · initramfs', frac: 0.42, col: 'orange' }
+        ],
+        kernel: [
+            { at: 0, name: '커널', frac: 0.26, col: 'orange' },
+            { at: 1, name: 'initramfs', frac: 0.22, col: 'purple' },
+            { at: 3, name: 'PID 1', frac: 0.16, col: 'green' },
+            { at: 4, name: '서비스', frac: 0.2, col: 'teal' }
+        ]
+    };
+
+    function ez(q) { q = clamp01(q); return q * q * (3 - 2 * q); }
+
+    /* ===================== 단계 체인과 메모리 ===================== */
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var L = layout(w, mob);
+        var fs = L.fs, bh = L.bh, gap = L.gap;
+        var e = clamp01(t);
+        var q = ez(e);
+        var s = step || { up: -1 };
+        var p = prev || s;
+        var up = s.up;
+        var pup = prev ? p.up : up;
+        var list = CHAINS[mode];
+
+        /* RAM 막대 */
+        var bx = x0 + 40;
+        var barW = w - 40;
+        tx('RAM', x0, top + 10, fs - 1, P.sub + 'ff', 'left', true);
+        rr(bx, top, barW, 22, 5, 'none', P.sub + '77', 1.2);
+        var cum = 0;
+        RAMSEG[mode].forEach(function (sg) {
+            var sw = barW * sg.frac;
+            var on = up >= sg.at;
+            if (on) {
+                var grow = pup < sg.at ? q : 1;
+                var col = P[sg.col];
+                rr(bx + cum + 1, top + 1, Math.max(1, (sw - 2) * grow), 20, 4, col + '44', col + 'ff', 1.4);
+                if (grow > 0.7) tx(sg.name, bx + cum + sw / 2, top + 11, fs - 1.5, P.text + 'ff', 'center', true);
+            }
+            cum += sw;
+        });
+
+        var y1 = top + 32;
+        var cy = function (i) { return y1 + i * (bh + gap) + bh / 2; };
+        list.forEach(function (st, i) {
+            var y = y1 + i * (bh + gap);
             var done = i < up;
             var cur = i === up;
-            var col = cur ? P.orange : (done ? P.green : P.muted);
-            var fill = cur ? P.orange + '30' : (done ? P.green + '18' : 'none');
-            rr(x0, y, w, bh, 6, fill, col + (cur ? 'ff' : (done ? 'aa' : '55')), cur ? 1.8 : 1.2);
-            var nc = cur ? P.orange : (done ? P.green : P.muted);
-            rr(x0 + 8, y + bh / 2 - 11, 22, 22, 11, nc + (cur || done ? '40' : '18'), nc + (cur || done ? 'cc' : '55'), 1.2);
-            tx(String(i + 1), x0 + 19, y + bh / 2, fs - 1.5, (cur || done ? P.text : P.muted) + 'ee', 'center', true);
-            tx(s.name, x0 + 40, y + bh / 2 - 8, fs - (mob ? 0.5 : 0), (cur || done ? P.text : P.muted) + 'ee', 'left', true);
-            tx(s.where, x0 + 40, y + bh / 2 + 9, fs - 2, (cur ? P.yellow : P.muted) + 'ee', 'left', false);
-            if (cur) tx('▶', x0 + w - 12, y + bh / 2, fs, P.orange + 'ff', 'center', true);
-            if (i < list.length - 1) tx('▼', x0 + 19, y + bh + gap / 2, fs - 4, (done ? P.green : P.muted) + '99', 'center', false);
+            var fin = i === pup && up > pup;
+            var col = cur ? P.orange : (done ? P.green : P.sub);
+            rr(x0, y, w, bh, 6, cur ? P.orange + '1a' : (done ? P.green + '14' : 'none'), col + (cur ? 'ff' : (done ? 'cc' : '77')), cur ? 2 : 1.2);
+            if (cur && pup !== up) {
+                ctx.save();
+                ctx.beginPath();
+                ctx.rect(x0, y, w * q, bh);
+                ctx.clip();
+                rr(x0, y, w, bh, 6, P.orange + '3a', 'none');
+                ctx.restore();
+            }
+            if (fin && e < 1) rr(x0, y, w, bh, 6, 'none', P.green + 'ff', 2.6 * (1 - e));
+            rr(x0 + 8, y + bh / 2 - 11, 22, 22, 11, col + (cur || done ? '55' : '22'), col + (cur || done ? 'ff' : '77'), 1.4);
+            tx(done ? '✓' : String(i + 1), x0 + 19, y + bh / 2, fs - 1.5, (cur || done ? P.text : P.sub) + 'ff', 'center', true);
+            tx(st.name, x0 + 40, y + bh / 2 - 8, fs - (mob ? 0.5 : 0), (cur || done ? P.text : P.sub) + 'ff', 'left', true);
+            tx(st.where, x0 + 40, y + bh / 2 + 9, fs - 1.5, (cur ? P.yellow : P.sub) + 'ff', 'left', false);
+            if (i < list.length - 1) tx('▼', x0 + 19, y + bh + gap / 2, fs - 4, (done ? P.green : P.sub) + 'cc', 'center', false);
         });
+        if (up >= 0 && up > pup && e < 1) {
+            var fy = pup >= 0 ? cy(pup) : cy(0) - 24;
+            var ty = cy(up);
+            ln(x0 + 19, fy, x0 + 19, lerp(fy, ty, q), P.yellow + 'ff', 2.6);
+            circ(x0 + 19, lerp(fy, ty, q), 7, P.yellow + 'ff', 'none');
+        }
+        if (up >= 0 && pup === up - 1 && e < 1) {
+            ctx.globalAlpha = 1 - e;
+            tx('제어 넘김', x0 + w - 14, cy(up), fs - 1, P.yellow + 'ff', 'right', true);
+            ctx.globalAlpha = 1;
+        }
     }
 
     /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
     function draw() {
         P = window.CsFlow.getP();
         ctx.clearRect(0, 0, GW(), GH());
         var W = GW(); var mob = W < 600;
-        var padX = mob ? 16 : 26;
-        var fullW = W - padX * 2;
-        var top = mob ? 18 : 26;
-
         var steps = currentSteps();
         var step = stepIdx >= 0 ? steps[stepIdx] : null;
-
-        drawChain(padX, top, fullW, mob, step, mode);
-
-        if (!step) {
-            var hint = '아래 STEP으로 제어가 넘어가는 과정을 확인하세요.';
-            ctx.font = '500 ' + (mob ? 11 : 12.5) + 'px "JetBrains Mono",monospace';
-            var hs = mob ? 11 : 12.5;
-            var hl = [hint];
-            if (ctx.measureText(hint).width > W - 16) {
-                var cut = hint.indexOf(' ', Math.floor(hint.length / 2));
-                if (cut < 0) cut = hint.lastIndexOf(' ');
-                hl = [hint.slice(0, cut), hint.slice(cut + 1)];
-            }
-            hl.forEach(function (line, li) {
-                tx(line, W / 2, GH() - (mob ? 12 : 14) - (hl.length - 1 - li) * (hs + 4), hs, P.muted + 'aa', 'center', false);
-            });
-        }
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
         var mob = w < 600;
-        var neededH;
-        neededH = mob ? 340 : 350;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
         canvasWrap.style.height    = 'auto';
-        canvasWrap.style.minHeight = neededH + 'px';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
         var actualH = canvasWrap.offsetHeight || neededH;
         if (actualH < neededH) actualH = neededH;
         canvas.width  = w * dpr;
@@ -232,17 +330,22 @@
     /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        draw();
-        rafId = requestAnimationFrame(function () { rafId = null; if (onDone) onDone(); });
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
     function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
-    function defaultLog() {
-        if (mode === 'uefi') return INTRO.uefi;
-        if (mode === 'kernel') return INTRO.kernel;
-        return INTRO.bios;
-    }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -281,7 +384,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);
