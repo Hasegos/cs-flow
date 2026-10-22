@@ -1,5 +1,5 @@
 /**
- * IEEE 754 부동소수점 시각화
+ * IEEE 754 부동소수점 시각화 시각화
  */
 (function () {
     'use strict';
@@ -39,7 +39,7 @@
     var speedWrap = el('div', 'fp-viz__speed');
     speedWrap.appendChild(el('span', 'fp-viz__speed-label', 'SPEED'));
     var speedBtns = [];
-    [['1x', 1700], ['2x', 850], ['3x', 480]].forEach(function (pair, i) {
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
         var b = el('button', 'fp-viz__speed-btn' + (i === 0 ? ' fp-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
@@ -72,11 +72,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'fields';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 데이터: 비트 구성 ===================== */
     function bits32(x) {
@@ -144,184 +211,264 @@
     ];
 
     /* ===================== 상태 ===================== */
-    var mode    = 'fields';
-    var stepIdx = -1;
-    var running = false;
-    var timer   = null;
-    var rafId   = null;
-    var speed   = 1700;
-
     function currentSteps() {
         if (mode === 'sum') return SUM_STEPS;
         if (mode === 'range') return RANGE_STEPS;
         return FIELD_STEPS;
     }
-
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        var rad = Math.min(r, w / 2, h / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + rad, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, rad);
-        ctx.arcTo(x + w, y + h, x,     y + h, rad);
-        ctx.arcTo(x,     y + h, x,     y,     rad);
-        ctx.arcTo(x,     y,     x + w, y,     rad);
-        ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    function defaultLog() {
+        if (mode === 'sum') return '0.1과 0.2가 2진수로 정확히 저장되지 않아 0.1 + 0.2가 0.3과 달라지는 과정을 봅니다.';
+        if (mode === 'range') return '부동소수점이 표현할 수 있는 수의 간격이 크기에 따라 어떻게 달라지는지 봅니다.';
+        return '32비트 float이 부호, 지수, 가수 세 필드로 하나의 수를 나타내는 방법을 따라가 봅니다.';
     }
-    function tx(str, x, y, sz, color, align, bold) {
-        if (sz < 9.5) sz = 9.5;
-        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
+    function ez(q) { q = clamp01(q); return q * q * (3 - 2 * q); }
+    function fpA(col, a) {
+        var h = Math.round(clamp01(a) * 255).toString(16);
+        return col + (h.length < 2 ? '0' + h : h);
     }
-
-    /* ===================== 모드: 비트 구성 ===================== */
-    function drawFields(x0, top, w, mob, step) {
-        var fs = mob ? 10.5 : 12;
-        var k  = step ? step.k : 0;
-        var cw = w / 32;
-        var by = top + 22;
-        var ch = mob ? 30 : 38;
-        var cols = [P.red, P.orange, P.teal];
-        var groups = [[0, 0, '부호 1'], [1, 8, '지수 8'], [9, 31, '가수 23']];
-        tx(EX + ' (float 32비트)', x0, top + 6, fs + 1, P.text + 'ee', 'left', true);
-        for (var i = 0; i < 32; i++) {
-            var g = i === 0 ? 0 : (i <= 8 ? 1 : 2);
-            var lit = k === 0 || k === 4 || k === g + 1;
-            rr(x0 + i * cw + 0.5, by, cw - 1, ch, 2, cols[g] + (lit ? '30' : '10'), cols[g] + (lit ? 'cc' : '44'), lit && k !== 0 ? 1.6 : 1);
-            if (cw >= 14) tx(B.str.charAt(i), x0 + i * cw + cw / 2, by + ch / 2, fs, lit ? cols[g] + 'ee' : P.muted + '88', 'center', true);
-        }
-        groups.forEach(function (gr, gi) {
-            var gx = x0 + gr[0] * cw;
-            var gw = (gr[1] - gr[0] + 1) * cw;
-            rr(gx + 1, by + ch + 5, gw - 2, 3, 1.5, cols[gi] + 'cc', 'none', 0);
-            tx(gr[2], gx + gw / 2, by + ch + 20, fs, cols[gi] + 'ee', 'center', true);
-        });
-        var ly = by + ch + 52;
-        var lines = [
-            [1, '부호 s = ' + B.s + ' → (−1)^' + B.s + ' = ' + (SIGN > 0 ? '+1' : '−1'), P.red],
-            [2, '지수 e = ' + B.e + ' → ' + B.e + ' − 127 = ' + EXP + ' → 2^' + EXP + ' = ' + Math.pow(2, EXP), P.orange],
-            [3, '가수 f = ' + B.f + ' → 1 + f / 2^23 = ' + MANT, P.teal],
-            [4, '값 = ' + (SIGN > 0 ? '+1' : '−1') + ' × ' + MANT + ' × ' + Math.pow(2, EXP) + ' = ' + (SIGN * MANT * Math.pow(2, EXP)), P.green]
+    function fpW(str, sz, bold) {
+        ctx.font = (bold ? '700 ' : '500 ') + sz + 'px "JetBrains Mono",monospace';
+        return ctx.measureText(str).width;
+    }
+    function fpGroupOf(i) { return i === 0 ? 0 : (i <= 8 ? 1 : 2); }
+    function fpLit(k, g) { return (k === 0 || k === 4 || k === g + 1) ? 1 : 0; }
+    function fpEqRows() {
+        return [
+            { from: 1, c: P.red,    t: '부호 s = ' + B.s + ' → (−1)^' + B.s + ' = ' + (SIGN > 0 ? '+1' : '−1') },
+            { from: 2, c: P.orange, t: '지수 e = ' + B.e + ' → ' + B.e + ' − 127 = ' + EXP + ' → 2^' + EXP + ' = ' + Math.pow(2, EXP) },
+            { from: 3, c: P.teal,   t: '가수 f = ' + B.f + ' → 1 + f / 2^23 = ' + MANT },
+            { from: 4, c: P.green,  t: '값 = ' + (SIGN > 0 ? '+1' : '−1') + ' × ' + MANT + ' × ' + Math.pow(2, EXP) + ' = ' + (SIGN * MANT * Math.pow(2, EXP)) }
         ];
-        lines.forEach(function (ln, i) {
-            var show = k >= ln[0];
-            tx(show ? ln[1] : '', x0, ly + i * (mob ? 26 : 30), fs + 0.5, ln[2] + 'ee', 'left', true);
+    }
+    function fpSumHead() { return 'double로 저장된 실제 값 (소수 ' + DIG + '자리까지)'; }
+    function fpSumRes(ok) { return '0.1 + 0.2 == 0.3  →  ' + ok; }
+    function fpSumDiff() {
+        return '|차이| = ' + String(Math.abs(DIFF)) + ' < ' + String(Number.EPSILON) + '  →  ' + (Math.abs(DIFF) < Number.EPSILON);
+    }
+
+    /* ===================== 레이아웃 ===================== */
+    function fpFieldsLayout(w, mob) {
+        var fs = mob ? 11 : 12;
+        var rows = mob ? 2 : 1;
+        var ch = mob ? 26 : 40;
+        var gridTop = fs + 12;
+        var gridH = rows * ch + (rows - 1) * 10;
+        var lh = fs + 7;
+        var eqTop = gridTop + gridH + (mob ? 30 : 34);
+        var eqH = 0;
+        fpEqRows().forEach(function (r) { eqH += lines(r.t, w, fs).length * lh + 4; });
+        return { fs: fs, ch: ch, gridTop: gridTop, gridH: gridH, eqTop: eqTop, lh: lh, total: eqTop + eqH + 4 };
+    }
+    function fpSumLayout(w, mob) {
+        var fs = mob ? 11 : 12;
+        var rh = mob ? 50 : 54;
+        var hdrH = lines(fpSumHead(), w, fs + 1).length * (fs + 7) + 8;
+        var resY = hdrH + 4 * rh + 6;
+        var diffY = resY + lines(fpSumRes(false), w, fs + 1).length * (fs + 8) + 8;
+        var diffH = lines(fpSumDiff(), w, fs + 1).length * (fs + 8);
+        return { fs: fs, rh: rh, hdrH: hdrH, resY: resY, diffY: diffY, total: diffY + diffH + 4 };
+    }
+    function fpRangeLayout(w, mob) {
+        var fs = mob ? 11 : 12;
+        var lh = fs + 5;
+        var y = fs + 34 + 8;
+        var cards = RANGE_CARDS.map(function (card) {
+            var tl = lines(card.title, w - 24, fs + 1);
+            var ls = [];
+            card.lines.forEach(function (t) { lines(t, w - 24, fs).forEach(function (l) { ls.push(l); }); });
+            var tH = tl.length * (fs + 7);
+            var h = 10 + tH + 4 + ls.length * lh + 8;
+            var c = { y: y, h: h, tl: tl, ls: ls, tH: tH };
+            y += h + 8;
+            return c;
+        });
+        return { fs: fs, lh: lh, cards: cards, total: y - 8 };
+    }
+    function layout(w, mob) {
+        if (mode === 'sum') return fpSumLayout(w, mob);
+        if (mode === 'range') return fpRangeLayout(w, mob);
+        return fpFieldsLayout(w, mob);
+    }
+    function sceneH(w, mob) { return layout(w, mob).total; }
+
+    /* ===================== 비트 구성 장면 ===================== */
+    function fpDrawFields(x0, top, w, mob, s, p, e, fresh) {
+        var L = fpFieldsLayout(w, mob);
+        var fs = L.fs;
+        var k = s.k, pk = p.k;
+        var cpr = mob ? 16 : 32;
+        var cw = w / cpr;
+        var cols = [P.red, P.orange, P.teal];
+        var sizes = [1, 8, 23];
+        tx(EX + ' (float 32비트)', x0, top + L.gridTop / 2, fs + 1, P.text + 'ee', 'left', true);
+        for (var i = 0; i < 32; i++) {
+            var g = fpGroupOf(i);
+            var n = sizes[g];
+            var j = i === 0 ? 0 : (i <= 8 ? i - 1 : i - 9);
+            var sub = fresh ? ez(seg(e, j / n * 0.5, j / n * 0.5 + 0.5)) : 1;
+            var amt = lerp(fpLit(pk, g), fpLit(k, g), sub);
+            var col = cols[g];
+            var row = mob && i >= 16 ? 1 : 0;
+            var cx = x0 + (i % cpr) * cw;
+            var cy = top + L.gridTop + row * (L.ch + 10);
+            rr(cx + 0.5, cy, cw - 1, L.ch, 2, fpA(col, 0.07 + 0.12 * amt), fpA(col, 0.27 + 0.53 * amt), 1 + 0.6 * amt);
+            tx(B.str.charAt(i), cx + cw / 2, cy + L.ch / 2, fs, fpA(col, 0.3 + 0.7 * amt), 'center', true);
+            rr(cx + 0.5, cy + L.ch + 3, cw - 1, 3, 1.5, fpA(col, 0.25 + 0.75 * amt), 'none', 0);
+        }
+        var labY = top + L.gridTop + L.gridH + 16;
+        if (mob) {
+            var names = ['부호 1', '지수 8', '가수 23'];
+            var widths = names.map(function (nm) { return 12 + fpW(nm, fs, true); });
+            var total = widths[0] + widths[1] + widths[2] + 24;
+            var lx = x0 + (w - total) / 2;
+            names.forEach(function (nm, gi) {
+                rr(lx, labY - 4, 8, 8, 2, cols[gi] + 'cc', 'none', 0);
+                tx(nm, lx + 12, labY, fs, cols[gi] + 'ee', 'left', true);
+                lx += widths[gi] + 12;
+            });
+        } else {
+            [[0, 0, '부호 1'], [1, 8, '지수 8'], [9, 31, '가수 23']].forEach(function (gr, gi) {
+                tx(gr[2], x0 + (gr[0] + gr[1] + 1) / 2 * cw, labY, fs, cols[gi] + 'ee', 'center', true);
+            });
+        }
+        var eqs = fpEqRows();
+        var y = top + L.eqTop;
+        eqs.forEach(function (r) {
+            var show = k >= r.from;
+            var newly = fresh && show && !(pk >= r.from);
+            var a = newly ? ez(e) : 1;
+            var sx = newly ? -(1 - a) * 12 : 0;
+            var txts = lines(r.t, w, fs);
+            if (show) {
+                ctx.globalAlpha = a;
+                txts.forEach(function (t1, li) {
+                    tx(t1, x0 + sx, y + li * L.lh + L.lh / 2, fs, r.c + 'ff', 'left', true);
+                });
+                ctx.globalAlpha = 1;
+            }
+            y += txts.length * L.lh + 4;
         });
     }
 
-    /* ===================== 모드: 0.1 + 0.2 ===================== */
-    function drawSum(x0, top, w, mob, step) {
-        var fs = mob ? 10 : 12;
-        var n  = step ? step.n : 0;
+    /* ===================== 0.1 + 0.2 장면 ===================== */
+    function fpDrawSum(x0, top, w, mob, s, p, e, fresh) {
+        var L = fpSumLayout(w, mob);
+        var fs = L.fs;
+        var n = s.n, pn = p.n;
+        lines(fpSumHead(), w, fs + 1).forEach(function (t1, li) {
+            tx(t1, x0, top + 4 + (fs + 7) / 2 + li * (fs + 7), fs + 1, P.text + 'ee', 'left', true);
+        });
         var rows = [
             [1, '0.1', DA.toFixed(DIG), P.purple],
             [2, '0.2', DB.toFixed(DIG), P.purple],
             [3, '0.1 + 0.2', DS.toFixed(DIG), P.orange],
             [4, '0.3', DC.toFixed(DIG), P.teal]
         ];
-        tx('double로 저장된 실제 값 (소수 ' + DIG + '자리까지)', x0, top + 6, fs + 1, P.text + 'ee', 'left', true);
-        var rh = mob ? 54 : 56;
         rows.forEach(function (r, i) {
-            var y = top + 28 + i * rh;
+            var y = top + L.hdrH + i * L.rh;
             var on = n >= r[0];
-            rr(x0, y, w, rh - 8, 6, on ? r[3] + '18' : 'none', on ? r[3] + 'aa' : P.muted + '44', 1.4);
-            tx(r[1], x0 + 12, y + 14, fs + 1, on ? r[3] + 'ee' : P.muted + '88', 'left', true);
-            tx(on ? r[2] + '…' : '?', x0 + 12, y + 33, fs + 1, on ? P.text + 'ee' : P.muted + '77', 'left', true);
+            var newly = fresh && on && !(pn >= r[0]);
+            var a = newly ? ez(e) : 1;
+            var sx = newly ? (1 - a) * 14 : 0;
+            var full = r[2] + '…';
+            var vis = !on ? '?' : (newly ? full.slice(0, Math.max(1, Math.round(full.length * ez(e)))) : full);
+            ctx.globalAlpha = a;
+            rr(x0, y, w, L.rh - 8, 6, on ? fpA(r[3], 0.09) : 'none', on ? fpA(r[3], 0.67) : P.muted + '44', 1.4);
+            tx(r[1], x0 + 12 + sx, y + 14, fs + 1, on ? r[3] + 'ee' : P.muted + '88', 'left', true);
+            tx(vis, x0 + 12 + sx, y + 33, fs + 1, on ? P.text + 'ee' : P.muted + '77', 'left', true);
+            ctx.globalAlpha = 1;
         });
-        var ry = top + 28 + 4 * rh + 6;
+        var ry = top + L.resY;
         if (n >= 4) {
-            tx('0.1 + 0.2 == 0.3  →  ' + (DS === DC), x0, ry, fs + 2, DS === DC ? P.green + 'ee' : P.red + 'ee', 'left', true);
+            var ok = DS === DC;
+            ctx.globalAlpha = fresh && pn < 4 ? ez(e) : 1;
+            lines(fpSumRes(ok), w, fs + 1).forEach(function (t1, li) {
+                tx(t1, x0, ry + li * (fs + 8) + (fs + 8) / 2, fs + 1, (ok ? P.green : P.red) + 'ee', 'left', true);
+            });
+            ctx.globalAlpha = 1;
         }
         if (n >= 5) {
-            var ok = Math.abs(DIFF) < Number.EPSILON;
-            var dtxt = '|차이| = ' + String(Math.abs(DIFF)) + ' < ' + String(Number.EPSILON) + '  →  ' + ok;
-            ctx.font = '700 ' + (fs + 1) + 'px "JetBrains Mono",monospace';
-            window.CsFlow.wrapText(ctx, dtxt, w).forEach(function (ln, li) {
-                tx(ln, x0, ry + 26 + li * (fs + 8), fs + 1, ok ? P.green + 'ee' : P.red + 'ee', 'left', true);
+            var okd = Math.abs(DIFF) < Number.EPSILON;
+            ctx.globalAlpha = fresh && pn < 5 ? ez(e) : 1;
+            lines(fpSumDiff(), w, fs + 1).forEach(function (t1, li) {
+                tx(t1, x0, top + L.diffY + li * (fs + 8) + (fs + 8) / 2, fs + 1, (okd ? P.green : P.red) + 'ee', 'left', true);
             });
+            ctx.globalAlpha = 1;
         }
     }
 
-    /* ===================== 모드: 정밀도와 범위 ===================== */
-    function rangeLayout(w, mob) {
-        var fs = mob ? 10 : 12;
-        var lh = mob ? 16 : 17;
-        ctx.font = '500 ' + (fs - 0.5) + 'px "JetBrains Mono",monospace';
-        var y = mob ? 18 : 26;
-        var cards = RANGE_CARDS.map(function (card) {
-            var ls = [];
-            card.lines.forEach(function (ln) { window.CsFlow.wrapText(ctx, ln, w - 24).forEach(function (l) { ls.push(l); }); });
-            var h = 40 + ls.length * lh;
-            var c = { y: y, h: h, ls: ls, title: card.title };
-            y += h + 8;
-            return c;
+    /* ===================== 정밀도와 범위 장면 ===================== */
+    function fpDrawRange(x0, top, w, mob, s, p, e, fresh) {
+        var L = fpRangeLayout(w, mob);
+        var fs = L.fs;
+        var c = s.c, pc = p.c;
+        var fr = [0.03, 0.1, 0.42, 0.7, 0.96];
+        var ax0 = x0 + 10, ax1 = x0 + w - 10, ay = top + 14;
+        ln(ax0, ay, ax1, ay, P.sub + '99', 1.4);
+        [[0.03, '1'], [0.42, '2^24'], [0.7, '2^53'], [0.96, '∞']].forEach(function (tk) {
+            var mx = ax0 + tk[0] * (ax1 - ax0);
+            ln(mx, ay - 4, mx, ay + 4, P.sub + 'ff', 1.4);
+            tx(tk[1], mx, ay + 17, fs, P.sub + 'ff', 'center', false);
         });
-        return { cards: cards, bottom: y + 10 };
+        var dx = ax0 + (ax1 - ax0) * (fresh ? lerp(fr[pc], fr[c], ez(e)) : fr[c]);
+        circ(dx, ay, 6, P.purple + '55', P.purple + 'ff', 2);
+        L.cards.forEach(function (card, i) {
+            var on = c > i;
+            var newly = fresh && on && !(pc > i);
+            var a = newly ? ez(e) : 1;
+            var sx = newly ? (1 - a) * 14 : 0;
+            var y = top + card.y;
+            ctx.globalAlpha = a;
+            rr(x0, y, w, card.h - 8, 6, on ? P.purple + '14' : 'none', on ? P.purple + 'aa' : P.muted + '44', 1.4);
+            card.tl.forEach(function (t1, li) {
+                tx(t1, x0 + 12 + sx, y + 10 + (fs + 7) / 2 + li * (fs + 7), fs + 1, on ? P.text + 'ee' : P.muted + '77', 'left', true);
+            });
+            if (on) {
+                card.ls.forEach(function (t1, li) {
+                    tx(t1, x0 + 12 + sx, y + 10 + card.tH + 4 + L.lh / 2 + li * L.lh, fs, P.teal + 'ee', 'left', false);
+                });
+            }
+            ctx.globalAlpha = 1;
+        });
     }
 
-    function drawRange(x0, top, w, mob, step) {
-        var fs = mob ? 10 : 12;
-        var lh = mob ? 16 : 17;
-        var c  = step ? step.c : 0;
-        rangeLayout(w, mob).cards.forEach(function (card, i) {
-            var on = c > i;
-            rr(x0, card.y, w, card.h - 6, 6, on ? P.purple + '14' : 'none', on ? P.purple + 'aa' : P.muted + '44', 1.4);
-            tx(card.title, x0 + 12, card.y + 16, fs + 1, on ? P.text + 'ee' : P.muted + '77', 'left', true);
-            card.ls.forEach(function (ln, li) {
-                tx(on ? ln : '', x0 + 12, card.y + 34 + li * lh, fs - 0.5, P.teal + 'ee', 'left', false);
-            });
-        });
+    /* ===================== 장면 ===================== */
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var steps = currentSteps();
+        var s = step || steps[0];
+        var p = prev || s;
+        var fresh = s !== p;
+        var e = fresh ? clamp01(t) : 1;
+        if (mode === 'sum') fpDrawSum(x0, top, w, mob, s, p, e, fresh);
+        else if (mode === 'range') fpDrawRange(x0, top, w, mob, s, p, e, fresh);
+        else fpDrawFields(x0, top, w, mob, s, p, e, fresh);
     }
 
     /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
     function draw() {
         P = window.CsFlow.getP();
         ctx.clearRect(0, 0, GW(), GH());
         var W = GW(); var mob = W < 600;
-        var padX = mob ? 16 : 26;
-        var fullW = W - padX * 2;
-        var top = mob ? 18 : 26;
-
         var steps = currentSteps();
         var step = stepIdx >= 0 ? steps[stepIdx] : null;
-
-        if (mode === 'sum') drawSum(padX, top, fullW, mob, step);
-        else if (mode === 'range') drawRange(padX, top, fullW, mob, step);
-        else drawFields(padX, top, fullW, mob, step);
-
-        if (!step) {
-            var hint = '아래 STEP을 눌러 부동소수점이 어떻게 저장되는지 확인하세요.';
-            ctx.font = '500 ' + (mob ? 11 : 12.5) + 'px "JetBrains Mono",monospace';
-            var hs = mob ? 11 : 12.5;
-            var hl = [hint];
-            if (ctx.measureText(hint).width > W - 16) {
-                var cut = hint.indexOf(' ', Math.floor(hint.length / 2));
-                if (cut < 0) cut = hint.lastIndexOf(' ');
-                hl = [hint.slice(0, cut), hint.slice(cut + 1)];
-            }
-            hl.forEach(function (line, li) {
-                tx(line, W / 2, GH() - (mob ? 12 : 14) - (hl.length - 1 - li) * (hs + 4), hs, P.muted + 'aa', 'center', false);
-            });
-        }
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
         var mob = w < 600;
-        var neededH;
-        if (mode === 'sum') neededH = mob ? 360 : 370;
-        else if (mode === 'range') neededH = Math.max(360, rangeLayout(w - (mob ? 32 : 52), mob).bottom);
-        else neededH = mob ? 300 : 320;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
         canvasWrap.style.height    = 'auto';
-        canvasWrap.style.minHeight = neededH + 'px';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
         var actualH = canvasWrap.offsetHeight || neededH;
         if (actualH < neededH) actualH = neededH;
         canvas.width  = w * dpr;
@@ -333,17 +480,22 @@
     /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        draw();
-        rafId = requestAnimationFrame(function () { rafId = null; if (onDone) onDone(); });
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
     function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
-    function defaultLog() {
-        if (mode === 'sum') return '0.1과 0.2가 2진수로 정확히 저장되지 않아 0.1 + 0.2가 0.3과 달라지는 과정을 봅니다.';
-        if (mode === 'range') return '부동소수점이 표현할 수 있는 수의 간격이 크기에 따라 어떻게 달라지는지 봅니다.';
-        return '32비트 float이 부호, 지수, 가수 세 필드로 하나의 수를 나타내는 방법을 따라가 봅니다.';
-    }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -382,7 +534,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);
