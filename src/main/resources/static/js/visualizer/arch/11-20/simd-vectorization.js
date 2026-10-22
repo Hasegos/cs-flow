@@ -1,5 +1,5 @@
 /**
- * SIMD 벡터 연산 시각화
+ * SIMD 벡터 연산 시각화 시각화
  */
 (function () {
     'use strict';
@@ -22,7 +22,7 @@
 
     var modeWrap = el('div', 'simd-viz__mode');
     var modeDefs = [
-        { key: 'vec',  label: '스칼라 vs SIMD' },
+        { key: 'vec', label: '스칼라 vs SIMD' },
         { key: 'lane', label: '레지스터 폭과 레인' },
         { key: 'mask', label: '나머지와 조건문' }
     ];
@@ -39,7 +39,7 @@
     var speedWrap = el('div', 'simd-viz__speed');
     speedWrap.appendChild(el('span', 'simd-viz__speed-label', 'SPEED'));
     var speedBtns = [];
-    [['1x', 1700], ['2x', 850], ['3x', 480]].forEach(function (pair, i) {
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
         var b = el('button', 'simd-viz__speed-btn' + (i === 0 ? ' simd-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
@@ -72,11 +72,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'vec';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 데이터: 스칼라 vs SIMD ===================== */
     var LANES = 4;
@@ -132,231 +199,323 @@
     ];
 
     /* ===================== 상태 ===================== */
-    var mode    = 'vec';
-    var stepIdx = -1;
-    var running = false;
-    var timer   = null;
-    var rafId   = null;
-    var speed   = 1700;
-
     function currentSteps() {
         if (mode === 'lane') return LANE_STEPS;
         if (mode === 'mask') return MASK_STEPS;
         return VEC_STEPS;
     }
+    function defaultLog() {
+        if (mode === 'lane') return '벡터 레지스터의 폭과 원소 크기에 따라 한 명령이 처리하는 원소 수(레인 수)가 달라집니다.';
+        if (mode === 'mask') return '배열 길이가 레인 수의 배수가 아닐 때의 나머지 처리와, 조건문을 마스크로 처리하는 방법을 봅니다.';
+        return '배열 A와 B를 원소끼리 더하는 같은 일을 스칼라 방식과 SIMD 방식으로 처리할 때 덧셈 명령 수를 비교합니다.';
+    }
 
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        var rad = Math.min(r, w / 2, h / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + rad, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, rad);
-        ctx.arcTo(x + w, y + h, x,     y + h, rad);
-        ctx.arcTo(x,     y + h, x,     y,     rad);
-        ctx.arcTo(x,     y,     x + w, y,     rad);
-        ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    /* ===================== 레이아웃 ===================== */
+    function svLayoutV(mob) {
+        var ch = mob ? 22 : 26;
+        var uh = mob ? 20 : 24;
+        var yA = 20;
+        var yB = yA + ch + 8;
+        var yU = yB + ch + 12;
+        var yC = yU + uh + 12;
+        var h = yC + ch + 4;
+        return { ch: ch, uh: uh, yA: yA, yB: yB, yU: yU, yC: yC, h: h, b2: h + 26, sum: h * 2 + 32, total: h * 2 + 52 };
     }
-    function tx(str, x, y, sz, color, align, bold) {
-        if (sz < 9.5) sz = 9.5;
-        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
+    function svLayoutL(mob) {
+        var barH = mob ? 24 : 28;
+        var rowH = barH + 60;
+        return { barH: barH, by: 34, rowH: rowH, total: rowH * 3 + 4 };
     }
+    function svLayoutM(mob) {
+        var ch = mob ? 26 : 30;
+        var sp = mob ? 34 : 38;
+        var cy = 22;
+        var y2 = cy + ch + 56;
+        var rows0 = y2 + 16;
+        return { ch: ch, sp: sp, cy: cy, y2: y2, rows0: rows0, total: rows0 + sp * 2 + ch + 8 };
+    }
+    function layout(w, mob) {
+        if (mode === 'lane') return svLayoutL(mob);
+        if (mode === 'mask') return svLayoutM(mob);
+        return svLayoutV(mob);
+    }
+    function sceneH(w, mob) { return layout(w, mob).total; }
+
+    function ez(q) { q = clamp01(q); return q * q * (3 - 2 * q); }
 
     /* ===================== 모드: 스칼라 vs SIMD ===================== */
-    function drawBlock(x0, y, w, mob, title, col, started, done, lo, hi, countStr) {
-        var fs     = mob ? 11 : 12.5;
-        var labelW = mob ? 18 : 24;
-        var cellW  = Math.min(64, (w - labelW) / N);
-        var cellH  = mob ? 22 : 26;
-        var rowGap = cellH + 4;
-        var barX   = x0 + labelW;
-        var y1     = y + 20;
-
-        tx(title, x0, y + 6, fs, started ? col + 'ee' : P.muted + '88', 'left', true);
-        tx(countStr, x0 + w, y + 6, fs, started ? col + 'ee' : P.muted + '88', 'right', true);
-
-        [['A', A], ['B', B], ['C', C]].forEach(function (r, ri) {
-            var ry = y1 + ri * rowGap;
-            tx(r[0], x0, ry + cellH / 2, fs, P.muted + 'cc', 'left', true);
-            r[1].forEach(function (v, i) {
-                var cx = barX + i * cellW;
-                var on = i >= lo && i <= hi;
-                if (ri < 2) {
-                    rr(cx + 1, ry, cellW - 2, cellH, 3, on ? col + '30' : P.muted + '12', on ? col + 'cc' : P.muted + '55', on ? 1.8 : 1);
-                    tx(String(v), cx + cellW / 2, ry + cellH / 2, fs, on ? P.text + 'ee' : P.muted + 'cc', 'center', on);
-                } else if (i < done) {
-                    rr(cx + 1, ry, cellW - 2, cellH, 3, col + (on ? '40' : '22'), col + (on ? 'ee' : '88'), on ? 1.8 : 1.2);
-                    tx(String(v), cx + cellW / 2, ry + cellH / 2, fs, col + 'ee', 'center', true);
-                } else {
-                    rr(cx + 1, ry, cellW - 2, cellH, 3, 'none', P.muted + '44', 1);
-                    tx('?', cx + cellW / 2, ry + cellH / 2, fs, P.muted + '88', 'center', false);
-                }
-            });
-        });
-
-        if (hi >= lo && hi >= 0) {
-            rr(barX + lo * cellW - 1, y1 - 3, (hi - lo + 1) * cellW + 2, rowGap * 3 + 2, 6, 'none', col + 'ee', 2);
-        }
-        return y1 + rowGap * 3;
+    function svGrid(x0, w, mob) {
+        var gap = mob ? 3 : 6;
+        var lw = mob ? 16 : 24;
+        var cw = Math.min(60, (w - lw - gap * (N - 1)) / N);
+        var gridW = lw + cw * N + gap * (N - 1);
+        return { gap: gap, lw: lw, cw: cw, gx: x0 + Math.max(0, (w - gridW) / 2) + lw };
     }
-
-    function drawVec(x0, top, w, mob, step) {
-        var sc = step ? step.sc : 0;
-        var vc = step ? step.vc : 0;
-        var vDone = Math.min(N, vc * LANES);
-
-        var y = drawBlock(x0, top, w, mob, mob ? '스칼라' : '스칼라 (명령 1개 = 원소 1개)', P.orange,
-            sc > 0, sc, sc - 1, sc - 1, '덧셈 명령 ' + sc + '개');
-        y += 22;
-        drawBlock(x0, y, w, mob, mob ? 'SIMD' : 'SIMD (명령 1개 = 원소 ' + LANES + '개)', P.teal,
-            vc > 0, vDone, (vc - 1) * LANES, vDone - 1, '벡터 덧셈 ' + vc + '개');
+    function svState(j, from, cnt, jAct) {
+        if (j < from) return 1;
+        if (j >= from + cnt) return 0;
+        if (jAct < 0) return 1;
+        var q = j - from;
+        if (q < jAct) return 1;
+        return q === jAct ? 2 : 0;
+    }
+    function svDone(from, cnt, t) {
+        return from + (cnt > 0 ? Math.min(cnt, Math.floor(t * cnt + 1e-9)) : 0);
+    }
+    function svChip(x, y, str, col, cw, fs) {
+        var wd = Math.max(14, Math.min(cw - 2, 34));
+        rr(x - wd / 2, y - 8, wd, 16, 4, col + 'ff', col + 'ff', 1.2);
+        tx(str, x, y, fs - 1.5, '#111111', 'center', true);
+    }
+    function svBlock(g, r, y, mob, fs, o) {
+        var t = o.t, cnt = o.cnt, from = o.from, per = o.per, col = o.col;
+        var jAct = cnt > 0 && t < 1 ? Math.min(cnt - 1, Math.floor(t * cnt)) : -1;
+        var pAct = jAct >= 0 ? seg(t, jAct / cnt, (jAct + 1) / cnt) : 1;
+        var ch = r.ch, uh = r.uh, cw = g.cw, gap = g.gap;
+        var yA = y + r.yA, yB = y + r.yB, yU = y + r.yU, yC = y + r.yC;
+        var c0 = jAct >= 0 ? (from + jAct) * per : -1;
+        var c1 = c0 >= 0 ? Math.min(N, c0 + per) - 1 : -1;
+        tx('A', g.gx - g.lw, yA + ch / 2, fs, P.sub + 'ff', 'left', true);
+        tx('B', g.gx - g.lw, yB + ch / 2, fs, P.sub + 'ff', 'left', true);
+        tx('C', g.gx - g.lw, yC + ch / 2, fs, P.sub + 'ff', 'left', true);
+        for (var c = 0; c < N; c++) {
+            var st = svState(Math.floor(c / per), from, cnt, jAct);
+            var x = g.gx + c * (cw + gap);
+            var mx = x + cw / 2;
+            var ring = st === 2 ? col + 'ff' : (st > 0 ? col + '88' : P.sub + '55');
+            rr(x, yA, cw, ch, 3, st > 0 ? col + '22' : P.sub + '12', ring, st === 2 ? 1.8 : 1);
+            tx(String(A[c]), mx, yA + ch / 2, fs, P.text + 'ee', 'center', st > 0);
+            rr(x, yB, cw, ch, 3, st > 0 ? col + '22' : P.sub + '12', ring, st === 2 ? 1.8 : 1);
+            tx(String(B[c]), mx, yB + ch / 2, fs, P.text + 'ee', 'center', st > 0);
+            if (st === 1) {
+                rr(x, yC, cw, ch, 3, col + '30', col + 'bb', 1.2);
+                tx(String(C[c]), mx, yC + ch / 2, fs, col + 'ff', 'center', true);
+            } else {
+                rr(x, yC, cw, ch, 3, 'none', P.sub + '55', 1);
+                tx('?', mx, yC + ch / 2, fs, P.sub + 'ff', 'center', false);
+            }
+        }
+        if (c0 < 0) return;
+        var aP = ez(seg(pAct, 0, 0.35)), bP = ez(seg(pAct, 0.3, 0.65)), oP = ez(seg(pAct, 0.7, 1));
+        var lit = seg(pAct, 0.55, 0.7) > 0.5;
+        var ox0 = g.gx + c0 * (cw + gap) - 3, ox1 = g.gx + c1 * (cw + gap) + cw + 3;
+        rr(ox0, yA - 3, ox1 - ox0, yB + ch + 3 - (yA - 3), 6, 'none', col + '88', 1.4);
+        for (var u = c0; u <= c1; u++) {
+            var ux = g.gx + u * (cw + gap);
+            rr(ux, yU, cw, uh, 4, col + (lit ? '70' : '30'), col + 'ff', 1.6);
+            tx('+', ux + cw / 2, yU + uh / 2, fs, P.text + 'ee', 'center', true);
+        }
+        for (var v = c0; v <= c1; v++) {
+            var vx = g.gx + v * (cw + gap) + cw / 2;
+            if (aP > 0 && aP < 1) svChip(vx, lerp(yA + ch / 2, yU + uh / 2, aP), String(A[v]), col, cw, fs);
+            if (bP > 0 && bP < 1) svChip(vx, lerp(yB + ch / 2, yU + uh / 2, bP), String(B[v]), col, cw, fs);
+            if (oP > 0 && oP < 1) svChip(vx, lerp(yU + uh / 2, yC + ch / 2, oP), String(C[v]), P.green, cw, fs);
+        }
+    }
+    function svDrawV(x0, top, w, mob, step, prev, t) {
+        var s = step || VEC_STEPS[0];
+        var p = prev || s;
+        var fs = mob ? 11 : 12.5;
+        var g = svGrid(x0, w, mob);
+        var r = svLayoutV(mob);
+        var fromS = p.sc, cntS = Math.max(0, s.sc - p.sc);
+        var fromV = p.vc, cntV = Math.max(0, s.vc - p.vc);
+        var y2 = top + r.b2;
+        tx(mob ? '스칼라 · 원소 1개씩' : '스칼라 (명령 1개 = 원소 1개)', x0, top + 6, fs, P.orange + 'ff', 'left', true);
+        tx('덧셈 명령 ' + svDone(fromS, cntS, t) + '개', x0 + w, top + 6, fs, P.orange + 'ff', 'right', true);
+        svBlock(g, r, top, mob, fs, { per: 1, col: P.orange, from: fromS, cnt: cntS, t: t });
+        tx(mob ? 'SIMD · 원소 ' + LANES + '개씩' : 'SIMD (명령 1개 = 원소 ' + LANES + '개)', x0, y2 + 6, fs, P.teal + 'ff', 'left', true);
+        tx('벡터 덧셈 ' + svDone(fromV, cntV, t) + '개', x0 + w, y2 + 6, fs, P.teal + 'ff', 'right', true);
+        svBlock(g, r, y2, mob, fs, { per: LANES, col: P.teal, from: fromV, cnt: cntV, t: t });
+        tx(mob ? '원소 ' + N + '개 · 스칼라 ' + N + '번 → SIMD ' + VECS + '번' : '원소 ' + N + '개 — 스칼라 덧셈 ' + N + '번, SIMD 벡터 덧셈 ' + VECS + '번', x0 + w / 2, top + r.sum, fs, P.sub + 'ff', 'center', false);
     }
 
     /* ===================== 모드: 레지스터 폭과 레인 ===================== */
-    function drawLane(x0, top, w, mob, step) {
-        if (!step) return;
-        var fs   = mob ? 10.5 : 12;
-        var barH = mob ? 24 : 30;
-        var rowH = barH + (mob ? 46 : 52);
-
-        step.rows.forEach(function (r, i) {
-            var y     = top + i * rowH;
-            var lanes = lanesOf(r);
-            var title = mob
-                ? r.bits + '비트 · ' + lanes + '레인 × ' + r.elem + '비트'
-                : r.bits + '비트 (' + r.isa + ') — ' + lanes + '레인 × ' + r.elem + '비트';
-            var col   = r.elem === 8 ? P.teal : P.purple;
-            var cw    = (w * r.bits / 512) / lanes;
-
-            tx(title, x0, y + 6, fs + 0.5, P.text + 'ee', 'left', true);
+    function svDrawL(x0, top, w, mob, step, prev, t) {
+        var s = step || LANE_STEPS[0];
+        var p = prev || s;
+        var fs = mob ? 11 : 12.5;
+        var L = svLayoutL(mob);
+        var cntAnim = s.count && !p.count ? t : 1;
+        s.rows.forEach(function (rw, i) {
+            var y = top + i * L.rowH;
+            var by = y + L.by;
+            var fresh = p !== s && p.rows.indexOf(rw) < 0;
+            var lanes = lanesOf(rw);
+            var regW = w * rw.bits / 512;
+            var cw = regW / lanes;
+            var showL = cw - 2 >= String(lanes - 1).length * 0.6 * (fs - 1) + 3;
+            var col = rw.elem === 8 ? P.teal : P.purple;
+            var pr = fresh ? seg(t, 0, 0.6) : 1;
+            var lit = fresh ? seg(t, 0.55, 0.75) : 1;
+            var title = mob ? rw.bits + '비트 · ' + lanes + '레인 × ' + rw.elem + '비트' : rw.bits + '비트 (' + rw.isa + ') — ' + lanes + '레인 × ' + rw.elem + '비트';
+            tx(title, x0, y + 6, fs, P.text + 'ee', 'left', true);
+            if (fresh && pr < 1) {
+                var rx = lerp(x0 + w, x0, ez(pr));
+                rr(rx, y + 18, regW, 12, 3, col + '99', col + 'ff', 1.2);
+            }
+            ctx.globalAlpha = 0.3 + 0.7 * lit;
             for (var k = 0; k < lanes; k++) {
                 var cx = x0 + k * cw;
-                rr(cx + 1, y + 18, cw - 2, barH, 3, col + '30', col + 'aa', 1.2);
-                if (cw >= 16) tx(String(k), cx + cw / 2, y + 18 + barH / 2, fs - 1, col + 'ee', 'center', true);
+                rr(cx + 1, by, cw - 2, L.barH, 3, col + '40', col + 'aa', 1.2);
+                if (showL) tx(String(k), cx + cw / 2, by + L.barH / 2, fs - 1, col + 'ee', 'center', true);
             }
-            if (step.count && r.elem === 32) {
-                tx('float ' + SUM_N + '개 덧셈 → 벡터 덧셈 ' + opsFor(r) + '개', x0, y + 18 + barH + 14, fs, P.green + 'ee', 'left', true);
+            ctx.globalAlpha = 1;
+            if (s.count && rw.elem === 32) {
+                var shown = Math.floor(cntAnim * opsFor(rw) + 1e-9);
+                tx(mob ? 'float ' + SUM_N + ' → 벡터 덧셈 ' + shown + '개' : 'float ' + SUM_N + '개 덧셈 → 벡터 덧셈 ' + shown + '개', x0, by + L.barH + 12, fs, P.green + 'ff', 'left', true);
             }
         });
     }
 
     /* ===================== 모드: 나머지와 조건문 ===================== */
-    function drawMask(x0, top, w, mob, step) {
-        var fs    = mob ? 10.5 : 12;
-        var stage = step ? step.stage : 0;
-        var cond  = step ? step.cond : 0;
-        var gap   = 4;
-        var cellW = Math.min(56, (w - gap * (TOTAL - 1)) / TOTAL);
-        var cellH = mob ? 26 : 30;
-        var cy    = top + 22;
-
-        tx(mob ? '원소 ' + TOTAL + '개, 레인 ' + LANES + '개' : '배열 원소 ' + TOTAL + '개를 레인 ' + LANES + '개씩 처리', x0, top + 6, fs + 0.5, P.text + 'ee', 'left', true);
-
+    function svMFrame(stg, gr) {
+        if (stg === 0) return null;
+        var c0 = stg < 3 ? (stg - 1) * LANES : FULL * LANES;
+        var c1 = stg < 3 ? c0 + LANES - 1 : TOTAL - 1;
+        return { x: gr.x0 + c0 * (gr.cw + gr.gap) - 3, w: (c1 - c0 + 1) * (gr.cw + gr.gap) - gr.gap + 6 };
+    }
+    function svMLit(i, s, p, t) {
+        if (i >= FULL * LANES) {
+            var ri = i - FULL * LANES;
+            if (s.stage < 3) return 0;
+            if (p.stage >= 3) return 1;
+            return seg(t, ri / REM, (ri + 1) / REM);
+        }
+        var g = Math.floor(i / LANES);
+        if (s.stage <= g) return 0;
+        if (p.stage > g) return 1;
+        return seg(t, 0, 0.7);
+    }
+    function svDrawM(x0, top, w, mob, step, prev, t) {
+        var s = step || MASK_STEPS[0];
+        var p = prev || s;
+        var fs = mob ? 11 : 12.5;
+        var L = svLayoutM(mob);
+        var ch = L.ch;
+        var gap = mob ? 3 : 4;
+        var cw = Math.min(56, (w - gap * (TOTAL - 1)) / TOTAL);
+        var sx = x0 + (w - (cw * TOTAL + gap * (TOTAL - 1))) / 2;
+        var gr = { x0: sx, cw: cw, gap: gap };
+        var cy = top + L.cy;
+        tx(mob ? '원소 ' + TOTAL + '개, 레인 ' + LANES + '개' : '배열 원소 ' + TOTAL + '개를 레인 ' + LANES + '개씩 처리', x0, top + 6, fs, P.text + 'ee', 'left', true);
         for (var i = 0; i < TOTAL; i++) {
-            var g       = Math.floor(i / LANES);
-            var isRem   = i >= FULL * LANES;
-            var reached = isRem ? stage >= 3 : stage > g;
-            var current = isRem ? stage === 3 : stage === g + 1;
-            var col     = isRem ? P.orange : P.purple;
-            var cx      = x0 + i * (cellW + gap);
-            rr(cx, cy, cellW, cellH, 4, reached ? col + (current ? '40' : '22') : P.muted + '12', reached ? col + (current ? 'ee' : '88') : P.muted + '55', current ? 2 : 1.2);
-            tx(String(i), cx + cellW / 2, cy + cellH / 2, fs, reached ? col + 'ee' : P.muted + 'cc', 'center', reached);
+            var cx = sx + i * (cw + gap);
+            var isRem = i >= FULL * LANES;
+            var lt = svMLit(i, s, p, t);
+            var col = isRem ? P.orange : P.purple;
+            if (lt > 0) {
+                ctx.globalAlpha = 0.35 + 0.65 * lt;
+                rr(cx, cy, cw, ch, 4, col + '33', col + 'bb', 1.4);
+                tx(String(i), cx + cw / 2, cy + ch / 2, fs, col + 'ff', 'center', true);
+                ctx.globalAlpha = 1;
+            } else {
+                rr(cx, cy, cw, ch, 4, P.sub + '12', P.sub + '55', 1);
+                tx(String(i), cx + cw / 2, cy + ch / 2, fs, P.sub + 'ff', 'center', false);
+            }
         }
-
+        var fr0 = svMFrame(p.stage, gr), fr1 = svMFrame(s.stage, gr);
+        var fr = null, fa = 1;
+        if (p.stage === s.stage) fr = fr1;
+        else if (fr0 && fr1) fr = { x: lerp(fr0.x, fr1.x, ez(t)), w: lerp(fr0.w, fr1.w, ez(t)) };
+        else if (fr1) { fr = fr1; fa = ez(t); }
+        else if (fr0) { fr = fr0; fa = 1 - ez(t); }
+        if (fr && fa > 0) {
+            ctx.globalAlpha = fa;
+            rr(fr.x, cy - 4, fr.w, ch + 8, 6, 'none', P.purple + 'ff', 2);
+            ctx.globalAlpha = 1;
+        }
         for (var gi = 0; gi < FULL; gi++) {
-            if (stage <= gi) continue;
-            var gx = x0 + gi * LANES * (cellW + gap);
-            var gw = LANES * (cellW + gap) - gap;
-            rr(gx, cy + cellH + 6, gw, 3, 1.5, P.purple + 'cc', 'none', 0);
-            tx('벡터 ' + (gi + 1) + '회', gx + gw / 2, cy + cellH + 20, fs, P.purple + 'ee', 'center', true);
+            var gl = svMLit(gi * LANES, s, p, t);
+            if (gl <= 0) continue;
+            var gx = sx + gi * LANES * (cw + gap);
+            var gw = LANES * (cw + gap) - gap;
+            ctx.globalAlpha = gl;
+            rr(gx, cy + ch + 6, gw, 3, 1.5, P.purple + 'cc', 'none', 0);
+            tx('벡터 ' + (gi + 1) + '회', gx + gw / 2, cy + ch + 16, fs, P.purple + 'ff', 'center', true);
+            ctx.globalAlpha = 1;
         }
-        if (stage >= 3 && REM > 0) {
-            var rx = x0 + FULL * LANES * (cellW + gap);
-            var rw = REM * (cellW + gap) - gap;
-            rr(rx, cy + cellH + 6, rw, 3, 1.5, P.orange + 'cc', 'none', 0);
-            tx(mob ? '나머지' : '나머지 ' + REM + '개', rx + rw / 2, cy + cellH + 20, fs, P.orange + 'ee', 'center', true);
-            tx('연산 ' + (FULL + REM) + '번 (원소를 하나씩 처리하면 ' + TOTAL + '번)', x0, cy + cellH + 42, fs, P.green + 'ee', 'left', true);
+        var rl = svMLit(FULL * LANES, s, p, t);
+        if (rl > 0 && REM > 0) {
+            var rx2 = sx + FULL * LANES * (cw + gap);
+            var rw2 = REM * (cw + gap) - gap;
+            ctx.globalAlpha = rl;
+            rr(rx2, cy + ch + 6, rw2, 3, 1.5, P.orange + 'cc', 'none', 0);
+            tx(mob ? '나머지' : '나머지 ' + REM + '개', rx2 + rw2 / 2, cy + ch + 16, fs, P.orange + 'ff', 'center', true);
+            tx(mob ? '연산 ' + (FULL + REM) + '번 (하나씩이면 ' + TOTAL + '번)' : '연산 ' + (FULL + REM) + '번 (원소를 하나씩 처리하면 ' + TOTAL + '번)', x0, cy + ch + 38, fs, P.green + 'ff', 'left', true);
+            ctx.globalAlpha = 1;
         }
-
-        var y2 = cy + cellH + 70;
-        tx(mob ? '조건문: a > 0 이면 a, 아니면 0' : '조건문 — a > 0 이면 a, 아니면 0 (레인 ' + LANES + '개가 동시에)', x0, y2, fs + 0.5, cond ? P.text + 'ee' : P.muted + '88', 'left', true);
-
-        var lw   = mob ? 52 : 130;
-        var cw2  = Math.min(64, (w - lw - gap * (LANES - 1)) / LANES);
-        var defs = [
-            ['a', CA, 1],
-            [mob ? '마스크' : '마스크 (a > 0)', MASK, 1],
-            ['결과', CRES, 2]
-        ];
-        defs.forEach(function (d, ri) {
-            var ry = y2 + 14 + ri * (cellH + 8);
-            var visible = cond >= d[2];
-            tx(d[0], x0, ry + cellH / 2, fs, visible ? P.muted + 'ee' : P.muted + '77', 'left', true);
-            d[1].forEach(function (v, k) {
-                var cx = x0 + lw + k * (cw2 + gap);
-                if (!visible) {
-                    rr(cx, ry, cw2, cellH, 4, 'none', P.muted + '44', 1);
-                    tx('?', cx + cw2 / 2, ry + cellH / 2, fs, P.muted + '88', 'center', false);
-                    return;
+        var y2 = top + L.y2;
+        var cond = s.cond;
+        tx(mob ? '조건: a > 0 → a, 아니면 0' : '조건문 — a > 0 이면 a, 아니면 0 (레인 ' + LANES + '개가 동시에)', x0, y2, fs, cond ? P.text + 'ee' : P.sub + 'ff', 'left', true);
+        var lw = mob ? 44 : 110;
+        var gap2 = mob ? 3 : 6;
+        var cw2 = Math.min(64, (w - lw - gap2 * (LANES - 1)) / LANES);
+        var ry0 = top + L.rows0;
+        var labels = ['a', mob ? '마스크' : '마스크 (a > 0)', '결과'];
+        var needs = [0, 1, 2];
+        for (var ri = 0; ri < 3; ri++) {
+            var yy = ry0 + ri * L.sp;
+            tx(labels[ri], x0, yy + ch / 2, fs, (cond >= needs[ri] ? P.text : P.sub) + 'ff', 'left', true);
+            for (var k = 0; k < LANES; k++) {
+                var kx = x0 + lw + k * (cw2 + gap2);
+                if (ri === 0) {
+                    rr(kx, yy, cw2, ch, 4, P.purple + '26', P.purple + 'bb', 1.4);
+                    tx(String(CA[k]), kx + cw2 / 2, yy + ch / 2, fs, P.purple + 'ff', 'center', true);
+                    continue;
                 }
-                var col = P.purple;
-                if (ri === 1) col = v ? P.green : P.red;
-                if (ri === 2) col = MASK[k] ? P.green : P.muted;
-                rr(cx, ry, cw2, cellH, 4, col + '26', col + 'bb', 1.4);
-                tx(String(v), cx + cw2 / 2, ry + cellH / 2, fs, col + 'ee', 'center', true);
-            });
-        });
+                var lk = 0;
+                if (ri === 1) lk = cond < 1 ? 0 : (p.cond >= 1 ? 1 : seg(t, k * 0.2, k * 0.2 + 0.4));
+                if (ri === 2) lk = cond < 2 ? 0 : (p.cond >= 2 ? 1 : ez(seg(t, k * 0.12, k * 0.12 + 0.6)));
+                if (lk <= 0) {
+                    rr(kx, yy, cw2, ch, 4, 'none', P.sub + '44', 1);
+                    tx('?', kx + cw2 / 2, yy + ch / 2, fs, P.sub + 'ff', 'center', false);
+                } else {
+                    var vcol = ri === 1 ? (MASK[k] ? P.green : P.red) : (MASK[k] ? P.green : P.sub);
+                    ctx.globalAlpha = lk;
+                    rr(kx, yy, cw2, ch, 4, vcol + '26', vcol + 'bb', 1.4);
+                    tx(String(ri === 1 ? MASK[k] : CRES[k]), kx + cw2 / 2, yy + ch / 2, fs, vcol + 'ff', 'center', true);
+                    ctx.globalAlpha = 1;
+                }
+                if (ri === 2 && cond >= 2 && p.cond < 2 && lk > 0 && lk < 1) {
+                    svChip(kx + cw2 / 2, lerp(ry0 + ch / 2, yy + ch / 2, lk), String(CA[k]), P.yellow, cw2, fs);
+                }
+            }
+        }
+    }
+
+    /* ===================== 드로우 ===================== */
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        if (mode === 'lane') svDrawL(x0, top, w, mob, step, prev, t);
+        else if (mode === 'mask') svDrawM(x0, top, w, mob, step, prev, t);
+        else svDrawV(x0, top, w, mob, step, prev, t);
     }
 
     /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
     function draw() {
         P = window.CsFlow.getP();
         ctx.clearRect(0, 0, GW(), GH());
         var W = GW(); var mob = W < 600;
-        var padX = mob ? 16 : 26;
-        var fullW = W - padX * 2;
-        var top = mob ? 18 : 26;
-
         var steps = currentSteps();
         var step = stepIdx >= 0 ? steps[stepIdx] : null;
-
-        if (mode === 'lane') drawLane(padX, top, fullW, mob, step);
-        else if (mode === 'mask') drawMask(padX, top, fullW, mob, step);
-        else drawVec(padX, top, fullW, mob, step);
-
-        if (!step) {
-            var hint = '아래 STEP을 눌러 SIMD가 어떻게 동작하는지 확인하세요.';
-            ctx.font = '500 ' + (mob ? 11 : 12.5) + 'px "JetBrains Mono",monospace';
-            var hs = mob ? 11 : 12.5;
-            var hl = [hint];
-            if (ctx.measureText(hint).width > W - 16) {
-                var cut = hint.indexOf(' ', Math.floor(hint.length / 2));
-                if (cut < 0) cut = hint.lastIndexOf(' ');
-                hl = [hint.slice(0, cut), hint.slice(cut + 1)];
-            }
-            hl.forEach(function (line, li) {
-                tx(line, W / 2, GH() - (mob ? 12 : 14) - (hl.length - 1 - li) * (hs + 4), hs, P.muted + 'aa', 'center', false);
-            });
-        }
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
         var mob = w < 600;
-        var neededH;
-        if (mode === 'lane') neededH = mob ? 290 : 330;
-        else if (mode === 'mask') neededH = mob ? 330 : 380;
-        else neededH = mob ? 300 : 330;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
         canvasWrap.style.height    = 'auto';
-        canvasWrap.style.minHeight = neededH + 'px';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
         var actualH = canvasWrap.offsetHeight || neededH;
         if (actualH < neededH) actualH = neededH;
         canvas.width  = w * dpr;
@@ -368,17 +527,22 @@
     /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        draw();
-        rafId = requestAnimationFrame(function () { rafId = null; if (onDone) onDone(); });
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
     function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
-    function defaultLog() {
-        if (mode === 'lane') return '벡터 레지스터의 폭과 원소 크기에 따라 한 명령이 처리하는 원소 수(레인 수)가 달라집니다.';
-        if (mode === 'mask') return '배열 길이가 레인 수의 배수가 아닐 때의 나머지 처리와, 조건문을 마스크로 처리하는 방법을 봅니다.';
-        return '배열 A와 B를 원소끼리 더하는 같은 일을 스칼라 방식과 SIMD 방식으로 처리할 때 덧셈 명령 수를 비교합니다.';
-    }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -417,7 +581,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);

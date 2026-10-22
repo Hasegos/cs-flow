@@ -1,5 +1,5 @@
 /**
- * RISC vs CISC 시각화
+ * RISC vs CISC 시각화 시각화
  */
 (function () {
     'use strict';
@@ -39,7 +39,7 @@
     var speedWrap = el('div', 'isa-viz__speed');
     speedWrap.appendChild(el('span', 'isa-viz__speed-label', 'SPEED'));
     var speedBtns = [];
-    [['1x', 1700], ['2x', 850], ['3x', 480]].forEach(function (pair, i) {
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
         var b = el('button', 'isa-viz__speed-btn' + (i === 0 ? ' isa-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
@@ -72,11 +72,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'one';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 데이터: 같은 일, 다른 명령어 ===================== */
     var CISC_I  = ['add [x], eax'];
@@ -134,182 +201,278 @@
     ];
 
     /* ===================== 상태 ===================== */
-    var mode    = 'one';
-    var stepIdx = -1;
-    var running = false;
-    var timer   = null;
-    var rafId   = null;
-    var speed   = 1700;
-
     function currentSteps() {
         if (mode === 'decode') return DECODE_STEPS;
         if (mode === 'perf') return PERF_STEPS;
         return ONE_STEPS;
     }
+    function defaultLog() {
+        if (mode === 'decode') return '명령어 길이가 고정일 때와 가변일 때 명령어의 시작 위치를 알아내는 방식의 차이를 봅니다.';
+        if (mode === 'perf') return 'CPU 시간 = 명령어 수 × CPI × 사이클 시간 식으로 RISC와 CISC의 성능을 비교하는 방법을 봅니다.';
+        return '메모리 값에 레지스터를 더해 저장하는 같은 일을 CISC와 RISC가 어떻게 명령어로 표현하는지 봅니다.';
+    }
 
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        var rad = Math.min(r, w / 2, h / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + rad, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, rad);
-        ctx.arcTo(x + w, y + h, x,     y + h, rad);
-        ctx.arcTo(x,     y + h, x,     y,     rad);
-        ctx.arcTo(x,     y,     x + w, y,     rad);
-        ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    /* ===================== 레이아웃 ===================== */
+    var ISA_FORMULA = 'CPU 시간 = 명령어 수 × CPI × 사이클 시간';
+    function ez(q) { q = clamp01(q); return q * q * (3 - 2 * q); }
+    function isaPos(k) { return k < N_I ? CISC_START[k] : TOTAL_C; }
+
+    function isaOneLayout(w, mob) {
+        var fs = mob ? 11 : 12;
+        var nfs = mob ? 11 : 11.5;
+        var nlh = nfs + 3;
+        var instrFs = mob ? 11 : 12.5;
+        var instrLH = instrFs + 5;
+        var pad = mob ? 8 : 12;
+        var gapC = mob ? 10 : 28;
+        var cw = Math.min(260, (w - gapC) / 2);
+        var nMax = 1;
+        RISC_NOTE.forEach(function (nt) { nMax = Math.max(nMax, lines(nt, cw - 2 * pad, nfs).length); });
+        var bh = 12 + instrLH + nMax * nlh;
+        var bgap = 12;
+        var colTop = 46;
+        var countOff = colTop + 3 * bh + 2 * bgap + 12;
+        var offL = (w - (2 * cw + gapC)) / 2;
+        return { fs: fs, nfs: nfs, nlh: nlh, instrFs: instrFs, instrLH: instrLH, pad: pad, cw: cw,
+                 cxL: offL, cxR: offL + cw + gapC, bh: bh, bgap: bgap, colTop: colTop, countOff: countOff,
+                 total: countOff + 16 };
     }
-    function tx(str, x, y, sz, color, align, bold) {
-        if (sz < 9.5) sz = 9.5;
-        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
+
+    function isaDecodeLayout(w, mob) {
+        var fs = mob ? 11 : 12;
+        var bh = mob ? 30 : 34;
+        var lhS = fs + 5;
+        var capN = 1;
+        for (var k = 1; k < N_I; k++) {
+            capN = Math.max(capN, lines('I' + k + '의 길이를 해석해야 I' + (k + 1) + '의 위치를 앎', w, fs).length);
+        }
+        capN = Math.max(capN, lines('같은 ' + N_I + '개 명령어: ' + TOTAL_R + '바이트 vs ' + TOTAL_C + '바이트', w, fs).length);
+        var riscBot = 34 + bh;
+        var ciscSec = riscBot + 40;
+        var ciscBot = ciscSec + 34 + bh;
+        var capTop = ciscBot + 18;
+        return { fs: fs, bh: bh, lhS: lhS, riscBot: riscBot, ciscSec: ciscSec, ciscBot: ciscBot, capTop: capTop,
+                 total: capTop + capN * lhS + 8 };
     }
+
+    function isaPerfLayout(w, mob) {
+        var fs = mob ? 11 : 12;
+        var lhR = fs + 5;
+        var bh = mob ? 18 : 22;
+        var lhF = fs + 6;
+        var nF = lines(ISA_FORMULA, w, fs + 0.5).length;
+        var rowsTop = nF * lhF + 12;
+        var rowH = lhR + 4 + 2 * bh + 6 + 12;
+        return { fs: fs, lhR: lhR, bh: bh, lhF: lhF, rowsTop: rowsTop, rowH: rowH,
+                 barOff: mob ? 46 : 62, valW: mob ? 66 : 84, total: rowsTop + 3 * rowH };
+    }
+
+    function layout(w, mob) {
+        if (mode === 'decode') return isaDecodeLayout(w, mob);
+        if (mode === 'perf') return isaPerfLayout(w, mob);
+        return isaOneLayout(w, mob);
+    }
+    function sceneH(w, mob) { return layout(w, mob).total; }
 
     /* ===================== 모드: 같은 일, 다른 명령어 ===================== */
-    function drawOne(x0, top, w, mob, step) {
-        var fs  = mob ? 10.5 : 12;
-        var cw  = Math.min(260, (w - 24) / 2);
-        var gx  = x0 + (w - 2 * cw - 24) / 2;
-        var cx  = [gx, gx + cw + 24];
-        var bh  = mob ? 34 : 38;
-        var c   = step ? step.c : 0;
-        var r   = step ? step.r : 0;
-        var u   = step ? step.u : false;
-        tx('CISC (x86)', cx[0], top + 6, fs + 1, P.orange + 'ee', 'left', true);
-        tx('RISC (RISC-V)', cx[1], top + 6, fs + 1, P.teal + 'ee', 'left', true);
-        tx('x = x + r', x0 + w / 2, top + 6, fs - 0.5, P.muted + 'dd', 'center', false);
+    function isaDrawOne(x0, top, w, mob, s, p, e) {
+        var L = layout(w, mob);
+        var fs = L.fs;
+        var cw = L.cw;
+        var cxL = x0 + L.cxL;
+        var cxR = x0 + L.cxR;
+        var colY = top + L.colTop;
+        var bh = L.bh;
 
-        for (var i = 0; i < 3; i++) {
-            var y = top + 28 + i * (bh + 10);
-            var cShow = i === 0 && c >= 1;
-            rr(cx[0], y, cw, bh, 6, cShow ? P.orange + '26' : 'none', cShow ? P.orange + 'cc' : P.muted + '44', 1.4);
-            if (cShow) tx(CISC_I[0], cx[0] + 12, y + bh / 2, fs + 0.5, P.text + 'ee', 'left', true);
-            var rShow = r > i;
-            rr(cx[1], y, cw, bh, 6, rShow ? P.teal + '26' : 'none', rShow ? P.teal + 'cc' : P.muted + '44', 1.4);
-            if (rShow) {
-                tx(RISC_I[i], cx[1] + 12, y + bh / 2 - 6, fs + 0.5, P.text + 'ee', 'left', true);
-                tx(RISC_NOTE[i], cx[1] + 12, y + bh / 2 + 9, fs - 1.5, P.muted + 'dd', 'left', false);
-            }
+        tx('x = x + r', x0 + w / 2, top + 8, fs, P.sub + 'ff', 'center', false);
+        tx('CISC (x86)', cxL, top + 28, fs + 1, P.orange + 'ee', 'left', true);
+        tx('RISC (RISC-V)', cxR, top + 28, fs + 1, P.teal + 'ee', 'left', true);
+
+        var cA = s.c >= 1 ? (p.c >= 1 ? 1 : ez(e)) : 0;
+        if (cA > 0) {
+            ctx.globalAlpha = cA;
+            var kx = cxL + (1 - cA) * -18;
+            rr(kx, colY, cw, bh, 6, P.orange + '26', P.orange + 'cc', 1.4);
+            tx(CISC_I[0], kx + L.pad, colY + bh / 2, L.instrFs, P.text + 'ee', 'left', true);
+            ctx.globalAlpha = 1;
         }
-        var cy = top + 28 + 3 * (bh + 10) + 6;
-        tx('명령어 ' + (c ? CISC_I.length : 0) + '개', cx[0], cy, fs + 1, c ? P.orange + 'ee' : P.muted + '88', 'left', true);
-        tx('명령어 ' + r + '개', cx[1], cy, fs + 1, r ? P.teal + 'ee' : P.muted + '88', 'left', true);
-        if (u) {
-            tx('내부에서 마이크로 연산으로 분해(개념도)', cx[0], cy + 26, fs - 0.5, P.muted + 'ee', 'left', true);
-            var uw = (cw - 16) / 3;
-            UOPS.forEach(function (name, k) {
-                var ux = cx[0] + k * (uw + 8);
-                rr(ux, cy + 38, uw, 28, 5, P.purple + '26', P.purple + 'cc', 1.3);
-                tx(name, ux + uw / 2, cy + 52, fs, P.purple + 'ee', 'center', true);
-            });
+
+        for (var i = 0; i < RISC_I.length; i++) {
+            var rA = s.r > i ? (p.r > i ? 1 : ez(e)) : 0;
+            if (rA <= 0) continue;
+            var ry = colY + i * (bh + L.bgap);
+            var rx = cxR + (1 - rA) * 18;
+            ctx.globalAlpha = rA;
+            rr(rx, ry, cw, bh, 6, P.teal + '26', P.teal + 'cc', 1.4);
+            tx(RISC_I[i], rx + L.pad, ry + 6 + L.instrLH / 2, L.instrFs, P.text + 'ee', 'left', true);
+            var nl = lines(RISC_NOTE[i], cw - 2 * L.pad, L.nfs);
+            for (var li = 0; li < nl.length; li++) {
+                tx(nl[li], rx + L.pad, ry + 6 + L.instrLH + li * L.nlh + L.nlh / 2, L.nfs, P.sub + 'ff', 'left', false);
+            }
+            ctx.globalAlpha = 1;
+        }
+
+        var cyN = top + L.countOff;
+        tx('명령어 ' + (s.c ? CISC_I.length : 0) + '개', cxL, cyN, fs + 1, s.c ? P.orange + 'ee' : P.muted + '88', 'left', true);
+        tx('명령어 ' + s.r + '개', cxR, cyN, fs + 1, s.r ? P.teal + 'ee' : P.muted + '88', 'left', true);
+
+        var uA = s.u ? (p.u ? 1 : ez(e)) : 0;
+        if (uA > 0) {
+            var uw = (cw - 6) / 3;
+            var chipY = colY + bh + L.bgap;
+            ctx.globalAlpha = uA;
+            for (var k = 0; k < UOPS.length; k++) {
+                var ux = cxL + k * (uw + 3);
+                var uy = lerp(colY + bh - 36, chipY, uA);
+                rr(ux, uy, uw, 26, 5, P.purple + '26', P.purple + 'cc', 1.3);
+                tx(UOPS[k], ux + uw / 2, uy + 13, L.nfs, P.purple + 'ee', 'center', true);
+            }
+            var cl = lines('내부에서 마이크로 연산으로 분해(개념도)', cw, L.nfs);
+            for (var ci = 0; ci < cl.length; ci++) {
+                tx(cl[ci], cxL, chipY + 32 + ci * L.nlh + L.nlh / 2, L.nfs, P.sub + 'ff', 'left', true);
+            }
+            ctx.globalAlpha = 1;
         }
     }
 
     /* ===================== 모드: 명령어 길이와 디코딩 ===================== */
-    function drawStrip(x0, y, w, lens, starts0, known, col, fs, title, total, mob) {
-        tx(title, x0, y, fs + 1, col + 'ee', 'left', true);
-        var unit = (w - 2) / Math.max(TOTAL_R, TOTAL_C);
-        var by = y + 14;
-        var bh = mob ? 30 : 34;
-        lens.forEach(function (l, i) {
-            var bx = x0 + starts0[i] * unit;
-            var on = i < known;
-            rr(bx + 1, by, l * unit - 2, bh, 4, on ? col + '2a' : P.muted + '10', on ? col + 'cc' : P.muted + '55', on ? 1.6 : 1);
-            tx(on ? 'I' + (i + 1) : '', bx + l * unit / 2, by + bh / 2 - (on && l * unit > 40 ? 6 : 0), fs, col + 'ee', 'center', true);
-            if (on && l * unit > 40) tx(l + 'B', bx + l * unit / 2, by + bh / 2 + 8, fs - 2, P.muted + 'ee', 'center', false);
-        });
-        tx('전체 ' + total + '바이트', x0 + w, y, fs - 0.5, P.muted + 'dd', 'right', false);
+    function isaStrip(x0, y, w, unit, lens, starts0, known, prevKnown, col, title, total, fs, e, bh) {
+        tx(title, x0, y + 8, fs + 1, col + 'ee', 'left', true);
+        tx('전체 ' + total + '바이트', x0 + w, y + 8, fs, P.sub + 'ff', 'right', false);
+        var by = y + 34;
+        for (var i = 0; i < lens.length; i++) {
+            var bx = x0 + starts0[i] * unit + 1;
+            var bw = lens[i] * unit - 2;
+            rr(bx, by, bw, bh, 4, P.muted + '10', P.muted + '55', 1);
+            var a = i < known ? (i < prevKnown ? 1 : ez(e)) : 0;
+            if (a <= 0) continue;
+            ctx.globalAlpha = a;
+            rr(bx, by, bw, bh, 4, col + '2a', col + 'cc', 1.6);
+            tx('I' + (i + 1), bx + bw / 2, y + 24, fs, col + 'ee', 'center', true);
+            if (bw >= 16) tx(lens[i] + 'B', bx + bw / 2, by + bh / 2, fs, P.text + 'ee', 'center', true);
+            ctx.globalAlpha = 1;
+        }
     }
 
-    function drawDecode(x0, top, w, mob, step) {
-        var fs = mob ? 10.5 : 12;
-        var rk = step ? step.rk : 0;
-        var ck = step ? step.ck : 0;
-        drawStrip(x0, top + 8, w, RISC_LEN, RISC_START, rk, P.teal, fs, mob ? 'RISC 고정 4바이트' : 'RISC — 고정 길이 4바이트', TOTAL_R, mob);
-        drawStrip(x0, top + 110, w, CISC_LEN, CISC_START, ck, P.orange, fs, mob ? 'CISC 가변 길이' : 'CISC — 가변 길이(예시)', TOTAL_C, mob);
-        if (rk > 0) tx('경계를 한 번에 알 수 있음', x0, top + 76, fs, P.teal + 'ee', 'left', true);
-        if (ck > 0 && ck < N_I) tx('I' + ck + '의 길이를 해석해야 I' + (ck + 1) + '의 위치를 앎', x0, top + 178, fs, P.orange + 'ee', 'left', true);
-        if (ck >= N_I) tx('같은 ' + N_I + '개 명령어: ' + TOTAL_R + '바이트 vs ' + TOTAL_C + '바이트', x0, top + 178, fs, P.green + 'ee', 'left', true);
+    function isaDrawDecode(x0, top, w, mob, s, p, e) {
+        var L = layout(w, mob);
+        var fs = L.fs;
+        var unit = (w - 2) / Math.max(TOTAL_R, TOTAL_C);
+        isaStrip(x0, top, w, unit, RISC_LEN, RISC_START, s.rk, p.rk, P.teal,
+            mob ? 'RISC 고정 4바이트' : 'RISC — 고정 길이 4바이트', TOTAL_R, fs, e, L.bh);
+        isaStrip(x0, top + L.ciscSec, w, unit, CISC_LEN, CISC_START, s.ck, p.ck, P.orange,
+            mob ? 'CISC 가변 길이' : 'CISC — 가변 길이(예시)', TOTAL_C, fs, e, L.bh);
+
+        if (s.rk > 0) tx('경계를 한 번에 알 수 있음', x0, top + L.riscBot + 14, fs, P.teal + 'ee', 'left', true);
+
+        var cap = '';
+        var capCol = P.orange;
+        if (s.ck > 0 && s.ck < N_I) {
+            cap = 'I' + s.ck + '의 길이를 해석해야 I' + (s.ck + 1) + '의 위치를 앎';
+        } else if (s.ck >= N_I) {
+            cap = '같은 ' + N_I + '개 명령어: ' + TOTAL_R + '바이트 vs ' + TOTAL_C + '바이트';
+            capCol = P.green;
+        }
+        if (cap) {
+            var cl = lines(cap, w, fs);
+            for (var ci = 0; ci < cl.length; ci++) {
+                tx(cl[ci], x0, top + L.capTop + ci * L.lhS + L.lhS / 2, fs, capCol + 'ee', 'left', true);
+            }
+        }
+
+        var px = x0 + 1 + lerp(isaPos(p.ck), isaPos(s.ck), ez(e)) * unit;
+        var tipY = top + L.ciscBot + 3;
+        ctx.beginPath();
+        ctx.moveTo(px, tipY);
+        ctx.lineTo(px - 5, tipY + 8);
+        ctx.lineTo(px + 5, tipY + 8);
+        ctx.closePath();
+        ctx.fillStyle = P.orange + 'ff';
+        ctx.fill();
     }
 
     /* ===================== 모드: 성능 식 ===================== */
-    function drawPerf(x0, top, w, mob, step) {
-        var fs = mob ? 10.5 : 12;
-        var k  = step ? step.k : 0;
-        var barX = x0 + (mob ? 56 : 70);
-        var maxW = w - (barX - x0) - (mob ? 70 : 100);
-        var bh = mob ? 22 : 26;
-        tx('CPU 시간 = 명령어 수 × CPI × 사이클 시간', x0, top + 8, fs + 1, P.text + 'ee', 'left', true);
+    function isaDrawPerf(x0, top, w, mob, s, p, e) {
+        var L = layout(w, mob);
+        var fs = L.fs;
+        var fl = lines(ISA_FORMULA, w, fs + 0.5);
+        for (var fi = 0; fi < fl.length; fi++) {
+            tx(fl[fi], x0, top + fi * L.lhF + L.lhF / 2, fs + 0.5, P.text + 'ee', 'left', true);
+        }
+
         var rows = [
-            [1, '명령어 수', function (p) { return p.ic; }, Math.max(PA.ic, PB.ic), function (p) { return fmtN(p.ic); }],
-            [2, 'CPI', function (p) { return p.cpi; }, Math.max(PA.cpi, PB.cpi), function (p) { return String(p.cpi); }],
-            [3, 'CPU 시간', cpuTimeMs, Math.max(cpuTimeMs(PA), cpuTimeMs(PB)), function (p) { return cpuTimeMs(p) + 'ms'; }]
+            { k: 1, name: '명령어 수', v: function (q) { return q.ic; }, max: Math.max(PA.ic, PB.ic),
+              f: function (q) { return fmtN(q.ic); } },
+            { k: 2, name: 'CPI', v: function (q) { return q.cpi; }, max: Math.max(PA.cpi, PB.cpi),
+              f: function (q) { return String(q.cpi); } },
+            { k: 3, name: 'CPU 시간', v: cpuTimeMs, max: Math.max(cpuTimeMs(PA), cpuTimeMs(PB)),
+              f: function (q) { return cpuTimeMs(q) + 'ms'; } }
         ];
-        rows.forEach(function (row, ri) {
-            var gy = top + 36 + ri * (2 * bh + 44);
-            var on = k >= row[0];
-            tx(row[1], x0, gy, fs + 0.5, on ? P.text + 'ee' : P.muted + '88', 'left', true);
-            [[PA, P.orange], [PB, P.teal]].forEach(function (pc, pi) {
-                var y = gy + 12 + pi * (bh + 6);
-                tx(pc[0].name, x0, y + bh / 2, fs - 0.5, on ? pc[1] + 'ee' : P.muted + '77', 'left', true);
-                rr(barX, y, maxW, bh, 4, 'none', P.muted + '33', 1);
-                if (on) {
-                    var bw = maxW * row[2](pc[0]) / row[3];
-                    rr(barX, y, bw, bh, 4, pc[1] + '30', pc[1] + 'cc', 1.5);
-                    tx(row[4](pc[0]), barX + bw + 6, y + bh / 2, fs - 0.5, pc[1] + 'ee', 'left', true);
+        var cols = [[PA, P.orange], [PB, P.teal]];
+        var barX = x0 + L.barOff;
+        var maxW = w - L.barOff - L.valW;
+
+        for (var ri = 0; ri < rows.length; ri++) {
+            var row = rows[ri];
+            var on = s.k >= row.k;
+            var wasOn = p.k >= row.k;
+            var gy = top + L.rowsTop + ri * L.rowH;
+            tx(row.name, x0, gy + L.lhR / 2, fs + 0.5, on ? P.text + 'ee' : P.muted + '88', 'left', true);
+            for (var ci = 0; ci < 2; ci++) {
+                var q = cols[ci][0];
+                var col = cols[ci][1];
+                var by = gy + L.lhR + 4 + ci * (L.bh + 6);
+                tx(q.name, x0, by + L.bh / 2, fs, on ? col + 'ee' : P.muted + '77', 'left', true);
+                rr(barX, by, maxW, L.bh, 4, 'none', P.muted + '33', 1);
+                if (!on) continue;
+                var g = wasOn ? 1 : ez(e);
+                var bw = maxW * row.v(q) / row.max * g;
+                rr(barX, by, bw, L.bh, 4, col + '30', col + 'cc', 1.5);
+                var la = wasOn ? 1 : seg(e, 0.6, 1);
+                if (la > 0) {
+                    ctx.globalAlpha = la;
+                    tx(row.f(q), barX + bw + 6, by + L.bh / 2, fs, col + 'ee', 'left', true);
+                    ctx.globalAlpha = 1;
                 }
-            });
-        });
+            }
+        }
+    }
+
+    /* ===================== 장면 진입 ===================== */
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var s = step || currentSteps()[0];
+        var p = prev || s;
+        var e = clamp01(t);
+        if (mode === 'decode') isaDrawDecode(x0, top, w, mob, s, p, e);
+        else if (mode === 'perf') isaDrawPerf(x0, top, w, mob, s, p, e);
+        else isaDrawOne(x0, top, w, mob, s, p, e);
     }
 
     /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
     function draw() {
         P = window.CsFlow.getP();
         ctx.clearRect(0, 0, GW(), GH());
         var W = GW(); var mob = W < 600;
-        var padX = mob ? 16 : 26;
-        var fullW = W - padX * 2;
-        var top = mob ? 18 : 26;
-
         var steps = currentSteps();
         var step = stepIdx >= 0 ? steps[stepIdx] : null;
-
-        if (mode === 'decode') drawDecode(padX, top, fullW, mob, step);
-        else if (mode === 'perf') drawPerf(padX, top, fullW, mob, step);
-        else drawOne(padX, top, fullW, mob, step);
-
-        if (!step) {
-            var hint = '아래 STEP으로 RISC와 CISC의 차이를 확인하세요.';
-            ctx.font = '500 ' + (mob ? 11 : 12.5) + 'px "JetBrains Mono",monospace';
-            var hs = mob ? 11 : 12.5;
-            var hl = [hint];
-            if (ctx.measureText(hint).width > W - 16) {
-                var cut = hint.indexOf(' ', Math.floor(hint.length / 2));
-                if (cut < 0) cut = hint.lastIndexOf(' ');
-                hl = [hint.slice(0, cut), hint.slice(cut + 1)];
-            }
-            hl.forEach(function (line, li) {
-                tx(line, W / 2, GH() - (mob ? 12 : 14) - (hl.length - 1 - li) * (hs + 4), hs, P.muted + 'aa', 'center', false);
-            });
-        }
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
         var mob = w < 600;
-        var neededH;
-        if (mode === 'decode') neededH = mob ? 300 : 300;
-        else if (mode === 'perf') neededH = mob ? 360 : 380;
-        else neededH = mob ? 360 : 340;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
         canvasWrap.style.height    = 'auto';
-        canvasWrap.style.minHeight = neededH + 'px';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
         var actualH = canvasWrap.offsetHeight || neededH;
         if (actualH < neededH) actualH = neededH;
         canvas.width  = w * dpr;
@@ -321,17 +484,22 @@
     /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        draw();
-        rafId = requestAnimationFrame(function () { rafId = null; if (onDone) onDone(); });
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
     function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
-    function defaultLog() {
-        if (mode === 'decode') return '명령어 길이가 고정일 때와 가변일 때 명령어의 시작 위치를 알아내는 방식의 차이를 봅니다.';
-        if (mode === 'perf') return 'CPU 시간 = 명령어 수 × CPI × 사이클 시간 식으로 RISC와 CISC의 성능을 비교하는 방법을 봅니다.';
-        return '메모리 값에 레지스터를 더해 저장하는 같은 일을 CISC와 RISC가 어떻게 명령어로 표현하는지 봅니다.';
-    }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -370,7 +538,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);
