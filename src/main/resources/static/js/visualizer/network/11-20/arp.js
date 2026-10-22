@@ -39,7 +39,7 @@
     var speedWrap = el('div', 'arp-viz__speed');
     speedWrap.appendChild(el('span', 'arp-viz__speed-label', 'SPEED'));
     var speedBtns = [];
-    [['1x', 1700], ['2x', 850], ['3x', 480]].forEach(function (pair, i) {
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
         var b = el('button', 'arp-viz__speed-btn' + (i === 0 ? ' arp-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
@@ -72,11 +72,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'same';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 데이터: 호스트와 프레임 ===================== */
     var HOSTS = [
@@ -171,150 +238,206 @@
     ];
 
     /* ===================== 상태 ===================== */
-    var mode    = 'same';
-    var stepIdx = -1;
-    var running = false;
-    var timer   = null;
-    var rafId   = null;
-    var speed   = 1700;
-
     function currentSteps() {
         if (mode === 'cache') return CACHE_STEPS;
         if (mode === 'gateway') return GW_STEPS;
         return SAME_STEPS;
     }
-
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        var rad = Math.min(r, w / 2, h / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + rad, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, rad);
-        ctx.arcTo(x + w, y + h, x,     y + h, rad);
-        ctx.arcTo(x,     y + h, x,     y,     rad);
-        ctx.arcTo(x,     y,     x + w, y,     rad);
-        ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
-    }
-    function tx(str, x, y, sz, color, align, bold) {
-        if (sz < 9.5) sz = 9.5;
-        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
+    function defaultLog() {
+        if (mode === 'cache') return 'ARP 캐시가 있으면 요청 없이 바로 보내고, 없으면 ARP로 알아내는 과정을 봅니다.';
+        if (mode === 'gateway') return '다른 네트워크로 보낼 때 목적지가 아니라 게이트웨이의 MAC 주소를 ARP로 알아내는 과정을 봅니다.';
+        return '같은 LAN에서 IP 주소만 아는 상대의 MAC 주소를 ARP로 알아내는 과정을 봅니다.';
     }
 
-    /* ===================== 공통: 네트워크와 프레임 ===================== */
-    function colorOf(key) {
-        return P[key] || P.muted;
+    /* ===================== 레이아웃 ===================== */
+    function layout(w, mob) {
+        var bh = mob ? 66 : 56;
+        var cardH = mob ? 128 : 104;
+        var swY = bh + 22;
+        var cardY = swY + 30;
+        var cacheY = cardY + cardH + 12;
+        return { fs: mob ? 10.5 : 12, bh: bh, swY: swY, cardY: cardY, cardH: cardH, cacheY: cacheY, total: cacheY + 60 };
     }
-    function drawNet(x0, top, w, mob, step) {
-        var fs = mob ? 10 : 11.5;
+    function sceneH(w, mob) { return layout(w, mob).total; }
+
+    function ez(q) { q = clamp01(q); return q * q * (3 - 2 * q); }
+
+    function kindTag(label) {
+        if (label.indexOf('요청') >= 0) return 'ARP?';
+        if (label.indexOf('응답') >= 0) return 'ARP!';
+        return 'DATA';
+    }
+
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var L = layout(w, mob);
+        var e = clamp01(t);
+        var s = step || currentSteps()[0];
+        var p = prev || s;
+        var fs = L.fs;
         var gap = mob ? 8 : 16;
         var bw = (w - gap * 3) / 4;
-        var bh = 56;
-        var swY = top + bh + 22;
-        var s = step || { send: null, to: [], kind: '', label: '', hl: {}, pkt: [], cache: [] };
+        var bh = L.bh, swY = top + L.swY;
         var cx = [];
         HOSTS.forEach(function (h, i) { cx.push(x0 + i * (bw + gap) + bw / 2); });
-        ctx.beginPath();
-        ctx.moveTo(cx[0], swY);
-        ctx.lineTo(cx[3], swY);
-        ctx.strokeStyle = P.muted + '66';
-        ctx.lineWidth = 2;
-        ctx.stroke();
+        var idxOf = function (id) { var r = 0; HOSTS.forEach(function (h, i) { if (h.id === id) r = i; }); return r; };
+        var travel = s.send ? ez(seg(e, 0.05, 0.6)) : 0;
+        var arrived = s.send ? seg(e, 0.55, 0.85) : seg(e, 0.1, 0.4);
+        var pulseCol = s.kind === 'bc' ? P.yellow : P.teal;
         var active = {};
         if (s.send) active[s.send] = true;
         s.to.forEach(function (id) { active[id] = true; });
-        var pulse = s.kind === 'bc' ? P.yellow : P.teal;
+
+        ln(cx[0], swY, cx[3], swY, P.sub + '88', 2);
+        if (s.send && travel > 0 && travel < 1) {
+            var xs = cx[idxOf(s.send)];
+            var lo = xs, hi = xs;
+            s.to.forEach(function (id) { var xv = cx[idxOf(id)]; lo = Math.min(lo, xv); hi = Math.max(hi, xv); });
+            var ext = (hi - lo) * Math.max(0, travel * 1.2 - 0.2);
+            ln(Math.max(lo, xs - ext), swY, Math.min(hi, xs + ext), swY, pulseCol + 'ff', 3);
+        }
         HOSTS.forEach(function (h, i) {
             var x = x0 + i * (bw + gap);
             var c = colorOf(h.col);
             var on = !!active[h.id];
-            ctx.beginPath();
-            ctx.moveTo(cx[i], top + bh);
-            ctx.lineTo(cx[i], swY);
-            ctx.strokeStyle = on ? pulse + 'ff' : P.muted + '55';
-            ctx.lineWidth = on ? 2.4 : 1.4;
-            ctx.stroke();
+            var live = on && (h.id === s.send || arrived > 0.3 || !s.send);
+            ln(cx[i], top + bh, cx[i], swY, live ? pulseCol + 'ff' : P.sub + '66', live ? 2.4 : 1.4);
             var badge = s.hl[h.id];
+            var pb = p.hl[h.id];
+            var ba = badge ? (pb && pb[0] === badge[0] ? 1 : arrived) : 0;
             var bc = badge ? colorOf(badge[1]) : c;
-            rr(x, top, bw, bh, 6, (badge && badge[1] !== 'muted' ? bc : c) + '18', (badge ? bc : c) + (badge || on ? 'ff' : '77'), badge || on ? 1.8 : 1.2);
-            tx(h.name, x + bw / 2, top + 13, fs, c + 'ee', 'center', true);
-            tx(h.ip, x + bw / 2, top + 29, fs - 2.5, P.muted + 'ee', 'center', false);
-            if (badge) tx(badge[0], x + bw / 2, top + 45, fs - 1.5, bc + 'ff', 'center', true);
+            var muted = badge && badge[1] === 'muted';
+            rr(x, top, bw, bh, 6, (badge && !muted ? bc : c) + '18', (badge && ba > 0.3 ? bc : c) + (badge || on ? 'ff' : '77'), badge && ba > 0.3 ? 1.8 : 1.2);
+            tx(h.name, x + bw / 2, top + 13, fs, c + 'ff', 'center', true);
+            tx(mob ? '.' + h.ip.split('.').pop() : h.ip, x + bw / 2, top + 29, fs - 1.5, P.sub + 'ff', 'center', false);
+            if (badge && ba > 0) {
+                ctx.globalAlpha = ba;
+                lines(badge[0], bw - 8, fs - 1.5).forEach(function (l, li) {
+                    tx(l, x + bw / 2, top + 45 + li * 13, fs - 1.5, bc + 'ff', 'center', true);
+                });
+                ctx.globalAlpha = 1;
+                if (!muted && badge[0].indexOf('일치') >= 0 && e > 0.6 && e < 1) {
+                    ctx.globalAlpha = 1 - seg(e, 0.6, 1);
+                    circ(cx[i], top + bh / 2, 10 + seg(e, 0.6, 1) * 28, 'none', bc + 'ff', 2);
+                    ctx.globalAlpha = 1;
+                }
+            }
         });
-        tx(s.label || '스위치로 연결된 같은 LAN', x0 + w / 2, swY + 14, fs - 0.5, (s.label ? pulse : P.muted) + 'ee', 'center', true);
 
-        var py = swY + 30;
-        var lh = mob ? 14 : 16;
-        var ph = lh * 4 + 22;
-        rr(x0, py, w, ph, 6, 'none', P.muted + '55', 1.2);
-        tx('프레임 내용', x0 + 10, py + 11, fs - 2, P.muted + 'ee', 'left', true);
-        if (s.pkt.length) {
-            s.pkt.forEach(function (ln, i) {
-                tx(ln, x0 + 10, py + 26 + i * lh, fs - 1.5, (i < 2 ? P.text : P.yellow) + 'ee', 'left', false);
+        if (s.send && travel > 0 && travel < 1) {
+            var xsend = cx[idxOf(s.send)];
+            var tag = kindTag(s.label);
+            var cw = tag.length * 7.2 + 14;
+            s.to.forEach(function (id) {
+                var xt = cx[idxOf(id)];
+                var d1 = swY - (top + bh), d2 = Math.abs(xt - xsend), d3 = d1;
+                var u = travel * (d1 + d2 + d3);
+                var px, py;
+                if (u <= d1) { px = xsend; py = top + bh + u; }
+                else if (u <= d1 + d2) { px = xsend + (xt > xsend ? 1 : -1) * (u - d1); py = swY; }
+                else { px = xt; py = swY - (u - d1 - d2); }
+                rr(px - cw / 2, py - 9, cw, 18, 5, pulseCol + 'ff', pulseCol + 'ff', 1.4);
+                tx(tag, px, py, fs - 1.5, '#111111', 'center', true);
             });
+        }
+        ctx.globalAlpha = s.label ? clamp01(e * 3) : 1;
+        tx(s.label || '스위치로 연결된 같은 LAN', x0 + w / 2, swY + 16, fs - 0.5, (s.label ? pulseCol : P.sub) + 'ff', 'center', true);
+        ctx.globalAlpha = 1;
+
+        var py0 = top + L.cardY;
+        var same = s.pkt.join('|') === p.pkt.join('|');
+        var ca = same ? 1 : ez(seg(e, 0, 0.3));
+        var cdy = same ? 0 : (1 - ca) * -10;
+        rr(x0, py0, w, L.cardH, 6, 'none', P.sub + '66', 1.2);
+        tx('프레임 내용', x0 + 10, py0 + 12, fs - 1, P.sub + 'ff', 'left', true);
+        if (s.pkt.length) {
+            ctx.globalAlpha = ca;
+            var dst = s.pkt[0].replace('이더넷 dst ', '');
+            var dm = dst.split(' ');
+            var srcM = s.pkt[1].replace(/^\s*src\s*/, '');
+            var rowY = py0 + 30 + cdy;
+            var lh = fs + 4;
+            var isBc = dst.indexOf('브로드캐스트') >= 0;
+            var dc = isBc ? P.yellow : P.text;
+            tx('dst', x0 + 10, rowY, fs - 0.5, P.sub + 'ff', 'left', true);
+            rr(x0 + 40, rowY - 9, 17 * 7.1 + 10, 18, 4, isBc ? P.yellow + '30' : 'none', isBc ? P.yellow + 'ff' : P.sub + '66', 1.2);
+            tx(dm[0], x0 + 45, rowY, fs - 0.5, dc + 'ff', 'left', true);
+            if (dm[1]) tx(dm[1], x0 + 40 + 17 * 7.1 + 18, rowY, fs - 1, (isBc ? P.yellow : P.teal) + 'ff', 'left', true);
+            tx('src', x0 + 10, rowY + lh, fs - 0.5, P.sub + 'ff', 'left', true);
+            tx(srcM, x0 + 45, rowY + lh, fs - 0.5, P.text + 'ff', 'left', true);
+            var yy = rowY + 2 * lh + 2;
+            var l2 = lines(s.pkt[2], w - 20, fs - 0.5);
+            l2.forEach(function (l, li) {
+                tx(l, x0 + 10, yy + li * (fs + 3), fs - 0.5, P.yellow + 'ff', 'left', true);
+            });
+            lines(s.pkt[3], w - 20, fs - 0.5).forEach(function (l, li) {
+                tx(l, x0 + 10, yy + (l2.length + li) * (fs + 3), fs - 0.5, P.sub + 'ff', 'left', false);
+            });
+            ctx.globalAlpha = 1;
         } else {
-            tx('(아직 보낸 프레임이 없습니다)', x0 + 10, py + 28, fs - 1.5, P.muted + 'cc', 'left', false);
+            tx(currentSteps().indexOf(s) > 0 ? '(이 단계에서는 프레임을 보내지 않습니다)' : '(아직 보낸 프레임이 없습니다)', x0 + 10, py0 + 36, fs - 0.5, P.sub + 'ff', 'left', false);
         }
 
-        var cy = py + ph + 12;
-        var rows = Math.max(1, s.cache.length);
-        var ch = 24 + rows * lh;
-        rr(x0, cy, w, ch, 6, 'none', P.muted + '55', 1.2);
-        tx('A의 ARP 캐시 (IP → MAC)', x0 + 10, cy + 11, fs - 2, P.muted + 'ee', 'left', true);
-        if (!s.cache.length) {
-            tx('(비어 있음)', x0 + 10, cy + 26, fs - 1.5, P.muted + 'cc', 'left', false);
-        }
+        var cy = top + L.cacheY;
+        var lhc = mob ? 15 : 17;
+        rr(x0, cy, w, 24 + 2 * lhc, 6, 'none', P.sub + '66', 1.2);
+        tx('A의 ARP 캐시 (IP → MAC)', x0 + 10, cy + 12, fs - 1, P.sub + 'ff', 'left', true);
+        var inPrev = function (ip) { return p.cache.some(function (r) { return r[0] === ip; }); };
+        var inNow = function (ip) { return s.cache.some(function (r) { return r[0] === ip; }); };
+        if (!s.cache.length && !p.cache.length) tx('(비어 있음)', x0 + 10, cy + 28, fs - 0.5, P.sub + 'ff', 'left', false);
+        var rowAt = s.send ? 0.6 : 0.1;
         s.cache.forEach(function (r, i) {
-            var stale = r[2] === 'stale';
-            tx(r[0] + ' → ' + r[1] + (stale ? '  (만료)' : ''), x0 + 10, cy + 26 + i * lh, fs - 1.5, (stale ? P.red : P.green) + 'ee', 'left', false);
+            var y = cy + 28 + i * lhc;
+            var isNew = !inPrev(r[0]);
+            var pr = null;
+            p.cache.forEach(function (q2) { if (q2[0] === r[0]) pr = q2; });
+            var turnStale = r[2] === 'stale' && pr && pr[2] !== 'stale';
+            var a = isNew ? seg(e, rowAt, rowAt + 0.3) : 1;
+            if (isNew && e < 1) {
+                var hi2 = 1 - seg(e, rowAt + 0.1, 1);
+                if (hi2 > 0) { ctx.globalAlpha = hi2; rr(x0 + 4, y - 8, w - 8, lhc, 3, P.yellow + '33', P.yellow + 'ff', 1.2); ctx.globalAlpha = 1; }
+            }
+            var txt = r[0] + ' → ' + r[1] + (r[2] === 'stale' ? '  (만료)' : '');
+            var redA = r[2] === 'stale' ? (turnStale ? seg(e, 0.2, 0.6) : 1) : 0;
+            ctx.globalAlpha = a * (1 - redA);
+            tx(r[0] + ' → ' + r[1], x0 + 10 + (isNew ? (1 - a) * 18 : 0), y, fs - 0.5, P.green + 'ff', 'left', false);
+            ctx.globalAlpha = a * redA;
+            tx(txt, x0 + 10, y, fs - 0.5, P.red + 'ff', 'left', false);
+            if (redA > 0.5) ln(x0 + 10, y, x0 + 10 + (r[0] + ' → ' + r[1]).length * 6.6 * Math.min(1, (redA - 0.5) * 2), y, P.red + 'ff', 1.4);
+            ctx.globalAlpha = 1;
+        });
+        p.cache.forEach(function (r, i) {
+            if (inNow(r[0])) return;
+            ctx.globalAlpha = 1 - seg(e, 0, 0.4);
+            tx(r[0] + ' → ' + r[1], x0 + 10, cy + 28 + i * lhc, fs - 0.5, P.red + 'ff', 'left', false);
+            ctx.globalAlpha = 1;
         });
     }
 
     /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
     function draw() {
         P = window.CsFlow.getP();
         ctx.clearRect(0, 0, GW(), GH());
         var W = GW(); var mob = W < 600;
-        var padX = mob ? 16 : 26;
-        var fullW = W - padX * 2;
-        var top = mob ? 18 : 26;
-
         var steps = currentSteps();
         var step = stepIdx >= 0 ? steps[stepIdx] : null;
-
-        drawNet(padX, top, fullW, mob, step);
-
-        if (!step) {
-            var hint = '아래 STEP으로 MAC 주소를 알아내는 과정을 확인하세요.';
-            ctx.font = '500 ' + (mob ? 11 : 12.5) + 'px "JetBrains Mono",monospace';
-            var hs = mob ? 11 : 12.5;
-            var hl = [hint];
-            if (ctx.measureText(hint).width > W - 16) {
-                var cut = hint.indexOf(' ', Math.floor(hint.length / 2));
-                if (cut < 0) cut = hint.lastIndexOf(' ');
-                hl = [hint.slice(0, cut), hint.slice(cut + 1)];
-            }
-            hl.forEach(function (line, li) {
-                tx(line, W / 2, GH() - (mob ? 12 : 14) - (hl.length - 1 - li) * (hs + 4), hs, P.muted + 'aa', 'center', false);
-            });
-        }
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
         var mob = w < 600;
-        var neededH;
-        neededH = mob ? 345 : 350;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
         canvasWrap.style.height    = 'auto';
-        canvasWrap.style.minHeight = neededH + 'px';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
         var actualH = canvasWrap.offsetHeight || neededH;
         if (actualH < neededH) actualH = neededH;
         canvas.width  = w * dpr;
@@ -326,17 +449,22 @@
     /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        draw();
-        rafId = requestAnimationFrame(function () { rafId = null; if (onDone) onDone(); });
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
     function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
-    function defaultLog() {
-        if (mode === 'cache') return 'ARP 캐시가 있으면 요청 없이 바로 보내고, 없으면 ARP로 알아내는 과정을 봅니다.';
-        if (mode === 'gateway') return '다른 네트워크로 보낼 때 목적지가 아니라 게이트웨이의 MAC 주소를 ARP로 알아내는 과정을 봅니다.';
-        return '같은 LAN에서 IP 주소만 아는 상대의 MAC 주소를 ARP로 알아내는 과정을 봅니다.';
-    }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -375,7 +503,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);
