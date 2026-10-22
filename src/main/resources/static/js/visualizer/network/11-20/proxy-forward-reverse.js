@@ -39,7 +39,7 @@
     var speedWrap = el('div', 'px-viz__speed');
     speedWrap.appendChild(el('span', 'px-viz__speed-label', 'SPEED'));
     var speedBtns = [];
-    [['1x', 1700], ['2x', 850], ['3x', 480]].forEach(function (pair, i) {
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
         var b = el('button', 'px-viz__speed-btn' + (i === 0 ? ' px-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
@@ -72,11 +72,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'fwd';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 데이터: 주소와 단계 ===================== */
     var C_IP = '10.0.0.5';
@@ -156,123 +223,178 @@
     ];
 
     /* ===================== 상태 ===================== */
-    var mode    = 'fwd';
-    var stepIdx = -1;
-    var running = false;
-    var timer   = null;
-    var rafId   = null;
-    var speed   = 1700;
-
     function currentSteps() {
         if (mode === 'rev') return REV_STEPS;
         if (mode === 'cmp') return CMP_STEPS;
         return FWD_STEPS;
     }
-
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        var rad = Math.min(r, w / 2, h / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + rad, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, rad);
-        ctx.arcTo(x + w, y + h, x,     y + h, rad);
-        ctx.arcTo(x,     y + h, x,     y,     rad);
-        ctx.arcTo(x,     y,     x + w, y,     rad);
-        ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
-    }
-    function tx(str, x, y, sz, color, align, bold) {
-        if (sz < 9.5) sz = 9.5;
-        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
+    function defaultLog() {
+        if (mode === 'rev') return '서버 앞에서 요청을 받아 백엔드로 나눠 주는 리버스 프록시의 중계를 봅니다.';
+        if (mode === 'cmp') return '포워드 프록시와 리버스 프록시의 차이를 표로 비교합니다.';
+        return '클라이언트를 대신해 외부 서버에 요청하는 포워드 프록시의 중계를 봅니다.';
     }
 
-    /* ===================== 공통 ===================== */
-    function drawArrow(x1, y1, x2, y2, color) {
-        var ang = Math.atan2(y2 - y1, x2 - x1);
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 2.6;
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(x2, y2);
-        ctx.lineTo(x2 - 9 * Math.cos(ang - 0.45), y2 - 9 * Math.sin(ang - 0.45));
-        ctx.lineTo(x2 - 9 * Math.cos(ang + 0.45), y2 - 9 * Math.sin(ang + 0.45));
-        ctx.closePath();
-        ctx.fillStyle = color;
-        ctx.fill();
+    /* ===================== 레이아웃 ===================== */
+    function layout(w, mob) {
+        var lh = mob ? 15 : 17;
+        var ph = lh * (mob ? 4 : 3) + 14;
+        var py = 6 + 104 + 12;
+        var ty = py + ph + 12;
+        var total = mode === 'cmp' ? (mob ? 300 : 300) : ty + 24 + lh + 40;
+        return { fs: mob ? 10.5 : 12, lh: lh, ph: ph, py: py, ty: ty, total: total };
+    }
+    function sceneH(w, mob) { return layout(w, mob).total; }
+
+    function ez(q) { q = clamp01(q); return q * q * (3 - 2 * q); }
+
+    function fit(str, maxW, fs) {
+        ctx.font = '500 ' + fs + 'px "JetBrains Mono",monospace';
+        var out = str;
+        while (out.length > 3 && ctx.measureText(out).width > maxW) out = '…' + out.slice(2);
+        return out;
     }
 
-    /* ===================== 모드: 장면 (포워드, 리버스) ===================== */
-    function drawScene(x0, top, w, mob, step, nodes, rev) {
-        var fs = mob ? 10 : 11.5;
+    function backendCounts(idx) {
+        var a = 0, b = 0;
+        for (var i = 0; i <= idx; i++) {
+            var m = /A (\d+)개 · B (\d+)개/.exec(REV_STEPS[i].val || '');
+            if (m) { a = +m[1]; b = +m[2]; }
+        }
+        return [a, b];
+    }
+
+    /* ===================== 장면 ===================== */
+    function drawFlow(x0, top, w, mob, s, p, e, fs, nodes, rev) {
         var bw = mob ? 78 : 120;
         var bh = rev ? 44 : 50;
         var areaH = 104;
         var xs = [x0, x0 + (w - bw) / 2, x0 + w - bw, x0 + w - bw];
-        var ys = [];
+        var ys, hs;
         if (rev) {
             ys = [top + 6 + (areaH - 50) / 2, top + 6 + (areaH - 50) / 2, top + 6, top + 6 + areaH - bh];
+            hs = [50, 50, bh, bh];
         } else {
             ys = [top + 6 + (areaH - bh) / 2, top + 6 + (areaH - bh) / 2, top + 6 + (areaH - bh) / 2];
+            hs = [bh, bh, bh];
         }
-        var hs = rev ? [50, 50, bh, bh] : [bh, bh, bh];
-        var hot = step ? step.hot : [];
+        var steps = currentSteps();
+        var idx = steps.indexOf(s);
+        var counts = rev ? backendCounts(idx) : null;
+        var pcounts = rev ? backendCounts(steps.indexOf(p)) : null;
         nodes.forEach(function (n, i) {
             var c = P[n.c];
-            var on = hot.indexOf(i) >= 0;
-            rr(xs[i], ys[i], bw, hs[i], 6, c + (on ? '30' : '18'), c + (on ? 'ff' : 'aa'), on ? 2 : 1.3);
-            tx(n.t, xs[i] + bw / 2, ys[i] + hs[i] * 0.34, fs - (mob ? 1 : 0), c + 'ff', 'center', true);
-            tx(n.s, xs[i] + bw / 2, ys[i] + hs[i] * 0.72, fs - 3, P.sub + 'ee', 'center', false);
+            var on = s.hot.indexOf(i) >= 0;
+            var pon = p.hot.indexOf(i) >= 0;
+            var ha = on && !pon ? seg(e, 0.4, 0.8) : 1;
+            rr(xs[i], ys[i], bw, hs[i], 6, c + (on ? '30' : '18'), c + (on && ha > 0.3 ? 'ff' : 'aa'), on && ha > 0.3 ? 2 : 1.3);
+            tx(mob ? n.t.replace(' 프록시', '') : n.t, xs[i] + bw / 2, ys[i] + hs[i] * 0.34, fs - (mob ? 1 : 0), c + 'ff', 'center', true);
+            tx(fit(n.s, bw - 6, fs - 1.5), xs[i] + bw / 2, ys[i] + hs[i] * 0.72, fs - 1.5, P.sub + 'ff', 'center', false);
+            if (rev && (i === 2 || i === 3)) {
+                var cv = counts[i - 2], pv = pcounts[i - 2];
+                if (cv > 0) {
+                    var pop = cv !== pv ? ez(seg(e, 0.6, 0.9)) : 1;
+                    circ(xs[i] + bw - 4, ys[i] + 2, 9 * pop, c + 'ff', 'none', 1);
+                    if (pop > 0.6) tx(String(cv), xs[i] + bw - 4, ys[i] + 2, fs - 1.5, '#111111', 'center', true);
+                }
+            }
         });
-        if (step) {
-            step.a.forEach(function (ar) {
-                var a = ar[0];
-                var b = ar[1];
-                var fwdDir = xs[b] > xs[a];
-                var off = fwdDir ? -6 : 6;
-                var x1 = fwdDir ? xs[a] + bw : xs[a];
-                var x2 = fwdDir ? xs[b] : xs[b] + bw;
-                drawArrow(x1, ys[a] + hs[a] / 2 + off, x2, ys[b] + hs[b] / 2 + off, P[ar[2]] + 'ff');
-            });
+
+        var sameA = JSON.stringify(s.a) === JSON.stringify(p.a);
+        var n = s.a.length;
+        var cpx = null;
+        s.a.forEach(function (ar, ai) {
+            var a = ar[0], b = ar[1];
+            var fwdDir = xs[b] > xs[a];
+            var off = fwdDir ? -6 : 6;
+            var x1 = fwdDir ? xs[a] + bw : xs[a];
+            var x2 = fwdDir ? xs[b] : xs[b] + bw;
+            var y1 = ys[a] + hs[a] / 2 + off, y2 = ys[b] + hs[b] / 2 + off;
+            var col = P[ar[2]] + 'ff';
+            var u = sameA ? 1 : ez(seg(e, 0.05 + ai / n * 0.6, 0.05 + (ai + 1) / n * 0.6 + 0.1));
+            var blocked = ar[2] === 'red';
+            var ue = blocked ? Math.min(u, 0.55) : u;
+            var xe = lerp(x1, x2, ue), ye = lerp(y1, y2, ue);
+            if (u >= 1 && !blocked) arrow(x1, y1, x2, y2, col, 2.6);
+            else if (ue > 0) ln(x1, y1, xe, ye, col, 2.6);
+            if (u > 0 && u < 1) {
+                var lab = ar[2] === 'teal' ? '응답' : '요청';
+                if (Math.abs(x2 - x1) >= 60) {
+                    var cwid = lab.length * 11 + 12;
+                    rr(xe - cwid / 2, ye - 22, cwid, 18, 5, col, col, 1.2);
+                    tx(lab, xe, ye - 13, fs - 1.5, '#111111', 'center', true);
+                } else {
+                    circ(xe, ye, 6, col, 'none', 1);
+                }
+            }
+            if (blocked && u >= 0.55) {
+                var xm = lerp(x1, x2, 0.55);
+                var xa = sameA ? 1 : seg(e, 0.4, 0.7);
+                ctx.globalAlpha = xa;
+                ln(xm - 8, ye - 8, xm + 8, ye + 8, P.red + 'ff', 3.4);
+                ln(xm - 8, ye + 8, xm + 8, ye - 8, P.red + 'ff', 3.4);
+                ctx.globalAlpha = 1;
+            }
+        });
+        if (!rev && s.lab && s.lab.indexOf('프록시 캐시') === 0) {
+            var hit = (s.val || '').indexOf('적중') >= 0;
+            var ta = s.lab === p.lab && s.val === p.val ? 1 : ez(seg(e, 0.5, 0.9));
+            ctx.globalAlpha = ta;
+            tx(hit ? '캐시 적중' : '캐시: example.com/', xs[1] + bw / 2, ys[1] + hs[1] + 12, fs - 1, (hit ? P.green : P.yellow) + 'ff', 'center', true);
+            ctx.globalAlpha = 1;
+        } else if (!rev && s.lab === '프록시 정책') {
+            ctx.globalAlpha = s.lab === p.lab ? 1 : ez(seg(e, 0.5, 0.9));
+            tx('차단 목록: ' + BLK, xs[1] + bw / 2, ys[1] + hs[1] + 12, fs - 1, P.red + 'ff', 'center', true);
+            ctx.globalAlpha = 1;
         }
-        var py = top + 6 + areaH + 12;
-        var lh = mob ? 15 : 17;
-        var ph = lh * 3 + 14;
-        rr(x0, py, w, ph, 6, 'none', P.muted + '55', 1.2);
-        tx('요청과 판단', x0 + 10, py + 11, fs - 2, P.sub + 'ee', 'left', true);
-        if (step && step.lines.length) {
-            step.lines.forEach(function (ln, i) {
-                tx(ln, x0 + 10, py + 11 + lh * (i + 1), fs - 1.5, (i === 0 ? P.text : P.yellow) + 'ee', 'left', false);
+
+        var L = layout(w, mob);
+        var lh = L.lh;
+        var py0 = top + L.py;
+        var same = s.lines.join('|') === p.lines.join('|');
+        var ca = same ? 1 : ez(seg(e, 0.2, 0.6));
+        rr(x0, py0, w, L.ph, 6, 'none', P.sub + '66', 1.2);
+        tx('요청과 판단', x0 + 10, py0 + 12, fs - 1, P.sub + 'ff', 'left', true);
+        if (s.lines.length) {
+            ctx.globalAlpha = ca;
+            var yy = py0 + 12 + lh;
+            s.lines.forEach(function (l, i) {
+                lines(l, w - 20, fs - 1).forEach(function (m) {
+                    tx(m, x0 + 10, yy, fs - 1, (i === 0 ? P.text : P.yellow) + 'ff', 'left', false);
+                    yy += lh;
+                });
             });
+            ctx.globalAlpha = 1;
         } else {
-            tx('(아직 요청이 없습니다)', x0 + 10, py + 11 + lh, fs - 1.5, P.sub + 'ee', 'left', false);
+            tx('(아직 요청이 없습니다)', x0 + 10, py0 + 12 + lh, fs - 1, P.sub + 'ff', 'left', false);
         }
-        var ty = py + ph + 12;
+        var ty0 = top + L.ty;
         var th = 24 + lh;
-        rr(x0, ty, w, th, 6, 'none', P.muted + '55', 1.2);
-        tx(step && step.lab ? step.lab : '확인할 값', x0 + 10, ty + 11, fs - 2, P.sub + 'ee', 'left', true);
-        tx(step && step.val ? step.val : '(없음)', x0 + 10, ty + 11 + lh, fs - 1.5, (step && step.val ? P.green : P.sub) + 'ee', 'left', false);
-        if (step && step.ver) tx('결과: ' + step.ver, x0 + w / 2, ty + th + 18, fs, P[step.vc] + 'ff', 'center', true);
+        rr(x0, ty0, w, th, 6, 'none', P.sub + '66', 1.2);
+        tx(s.lab || '확인할 값', x0 + 10, ty0 + 12, fs - 1, P.sub + 'ff', 'left', true);
+        var va = s.val === p.val ? 1 : ez(seg(e, 0.4, 0.8));
+        ctx.globalAlpha = s.val ? va : 1;
+        tx(s.val || '(없음)', x0 + 10, ty0 + 12 + lh, fs - 1, (s.val ? P.green : P.sub) + 'ff', 'left', false);
+        ctx.globalAlpha = 1;
+        if (s.ver) {
+            var vp = s.ver === p.ver ? 1 : ez(seg(e, 0.6, 0.95));
+            var vc = P[s.vc];
+            var label = '결과: ' + s.ver;
+            var vw = Math.min(w, label.length * 10 + 24);
+            ctx.globalAlpha = vp;
+            rr(x0 + w / 2 - vw / 2 * vp, ty0 + th + 6, vw * vp, 24, 8, vc + '30', vc + 'ff', 1.8);
+            if (vp > 0.7) tx(label, x0 + w / 2, ty0 + th + 18, fs - 0.5, vc + 'ff', 'center', true);
+            ctx.globalAlpha = 1;
+        }
     }
 
-    /* ===================== 모드: 비교 ===================== */
-    function drawCompare(x0, top, w, mob, step) {
-        var fs = mob ? 10 : 11.5;
-        var k = step ? step.k : 0;
+    /* ===================== 비교 ===================== */
+    function drawCompare(x0, top, w, mob, s, p, e, fs) {
+        var k = s.k, pk = p.k;
         var gap = 8;
         var cw = (w - gap) / 2;
         var cols = [
-            { key: 'fwd', title: '포워드 프록시', col: P.orange, x: x0 },
-            { key: 'rev', title: '리버스 프록시', col: P.teal, x: x0 + cw + gap }
+            { key: 'fwd', title: '포워드 프록시', col: P.orange, x: x0, dir: -1 },
+            { key: 'rev', title: '리버스 프록시', col: P.teal, x: x0 + cw + gap, dir: 1 }
         ];
         cols.forEach(function (c) {
             rr(c.x, top, cw, 24, 5, c.col + '25', c.col + 'ff', 1.6);
@@ -283,55 +405,55 @@
             if (k < i + 1) return;
             var y = y0 + i * 50;
             var cur = k === i + 1;
-            tx(r.name, x0, y, fs - 0.5, (cur ? P.text : P.sub) + 'ee', 'left', true);
+            var fresh = cur && pk < k;
+            var q = fresh ? ez(seg(e, 0, 0.55)) : 1;
+            ctx.globalAlpha = fresh ? clamp01(e * 4) : 1;
+            tx(r.name, x0, y, fs - 0.5, (cur ? P.text : P.sub) + 'ff', 'left', true);
+            ctx.globalAlpha = q;
             cols.forEach(function (c) {
-                rr(c.x, y + 8, cw, 26, 5, c.col + (cur ? '30' : '18'), c.col + (cur ? 'ff' : '88'), cur ? 1.8 : 1.2);
-                tx(r[c.key], c.x + cw / 2, y + 21, fs - 0.5, c.col + 'ff', 'center', true);
+                var dx = (1 - q) * 40 * c.dir;
+                rr(c.x + dx, y + 8, cw, 26, 5, c.col + (cur ? '30' : '18'), c.col + (cur ? 'ff' : '88'), cur ? 1.8 : 1.2);
+                tx(r[c.key], c.x + cw / 2 + dx, y + 21, fs - 0.5, c.col + 'ff', 'center', true);
             });
+            ctx.globalAlpha = 1;
         });
     }
 
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var L = layout(w, mob);
+        var e = clamp01(t);
+        var s = step || currentSteps()[0];
+        var p = prev || s;
+        if (mode === 'rev') drawFlow(x0, top, w, mob, s, p, e, L.fs, REV_NODES, true);
+        else if (mode === 'cmp') drawCompare(x0, top, w, mob, s, p, e, L.fs);
+        else drawFlow(x0, top, w, mob, s, p, e, L.fs, FWD_NODES, false);
+    }
+
     /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
     function draw() {
         P = window.CsFlow.getP();
         ctx.clearRect(0, 0, GW(), GH());
         var W = GW(); var mob = W < 600;
-        var padX = mob ? 16 : 26;
-        var fullW = W - padX * 2;
-        var top = mob ? 18 : 26;
-
         var steps = currentSteps();
         var step = stepIdx >= 0 ? steps[stepIdx] : null;
-
-        if (mode === 'rev') drawScene(padX, top, fullW, mob, step, REV_NODES, true);
-        else if (mode === 'cmp') drawCompare(padX, top, fullW, mob, step);
-        else drawScene(padX, top, fullW, mob, step, FWD_NODES, false);
-
-        if (!step) {
-            var hint = '아래 STEP으로 프록시의 중계를 확인하세요.';
-            ctx.font = '500 ' + (mob ? 11 : 12.5) + 'px "JetBrains Mono",monospace';
-            var hs = mob ? 11 : 12.5;
-            var hl = [hint];
-            if (ctx.measureText(hint).width > W - 16) {
-                var cut = hint.indexOf(' ', Math.floor(hint.length / 2));
-                if (cut < 0) cut = hint.lastIndexOf(' ');
-                hl = [hint.slice(0, cut), hint.slice(cut + 1)];
-            }
-            hl.forEach(function (line, li) {
-                tx(line, W / 2, GH() - (mob ? 12 : 14) - (hl.length - 1 - li) * (hs + 4), hs, P.muted + 'aa', 'center', false);
-            });
-        }
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
         var mob = w < 600;
-        var neededH;
-        if (mode === 'cmp') neededH = mob ? 300 : 310;
-        else neededH = mob ? 300 : 310;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
         canvasWrap.style.height    = 'auto';
-        canvasWrap.style.minHeight = neededH + 'px';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
         var actualH = canvasWrap.offsetHeight || neededH;
         if (actualH < neededH) actualH = neededH;
         canvas.width  = w * dpr;
@@ -343,17 +465,22 @@
     /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        draw();
-        rafId = requestAnimationFrame(function () { rafId = null; if (onDone) onDone(); });
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
     function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
-    function defaultLog() {
-        if (mode === 'rev') return '서버 쪽에서 요청을 대신 받는 리버스 프록시의 동작을 봅니다.';
-        if (mode === 'cmp') return '포워드 프록시와 리버스 프록시의 차이를 표로 비교합니다.';
-        return '클라이언트를 대신해 외부 서버에 요청하는 포워드 프록시의 동작을 봅니다.';
-    }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -392,7 +519,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);
