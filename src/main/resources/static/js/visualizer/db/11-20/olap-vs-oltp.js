@@ -39,7 +39,7 @@
     var speedWrap = el('div', 'ol-viz__speed');
     speedWrap.appendChild(el('span', 'ol-viz__speed-label', 'SPEED'));
     var speedBtns = [];
-    [['1x', 1700], ['2x', 850], ['3x', 480]].forEach(function (pair, i) {
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
         var b = el('button', 'ol-viz__speed-btn' + (i === 0 ? ' ol-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
@@ -72,11 +72,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'oltp';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 엔진: 표와 저장 배치 ===================== */
     var NAMES = ['id', 'date', 'region', 'product', 'amount'];
@@ -142,136 +209,166 @@
     }
 
     /* ===================== 상태 ===================== */
-    var mode    = 'oltp';
-    var stepIdx = -1;
-    var running = false;
-    var timer   = null;
-    var rafId   = null;
-    var speed   = 1700;
-
     function currentSteps() {
         if (mode === 'olap') return OLAP_STEPS;
         if (mode === 'store') return STORE_STEPS;
         return OLTP_STEPS;
     }
-
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        var rad = Math.min(r, w / 2, h / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + rad, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, rad);
-        ctx.arcTo(x + w, y + h, x,     y + h, rad);
-        ctx.arcTo(x,     y + h, x,     y,     rad);
-        ctx.arcTo(x,     y,     x + w, y,     rad);
-        ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
-    }
-    function tx(str, x, y, sz, color, align, bold) {
-        if (sz < 11) sz = 11;
-        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
+    function defaultLog() {
+        if (mode === 'olap') return '많은 행을 집계하는 분석 쿼리(OLAP)가 표를 어떻게 읽는지 봅니다.';
+        if (mode === 'store') return '같은 표를 행 지향과 컬럼 지향으로 저장할 때 읽는 양이 어떻게 달라지는지 봅니다.';
+        return '행 하나를 짧게 읽고 쓰는 업무 처리(OLTP)가 표를 어떻게 다루는지 봅니다.';
     }
 
-    /* ===================== 공통: 캡션 ===================== */
-    function drawCaps(s, x0, w, y, fs) {
-        if (s.cap) tx(s.cap, x0 + w / 2, y, fs - 0.5, P.yellow + 'ff', 'center', true);
-        if (s.cap2) tx(s.cap2, x0 + w / 2, y + 19, fs - 1, P.text + 'ee', 'center', false);
-        if (s.cap3) tx(s.cap3, x0 + w / 2, y + 38, fs - 1, P.green + 'ee', 'center', true);
+    /* ===================== 레이아웃 ===================== */
+    function layout(w, mob, s) {
+        var strips = mode === 'store' ? 2 : 0;
+        return { fs: mob ? 11 : 12, total: 8 + (mob ? 20 : 24) * 7 + 18 + strips * 44 + (mob ? 150 : 116) };
+    }
+    function sceneH(w, mob, s) { return layout(w, mob, s).total; }
+
+    function caps(s, cx, w, y, fs) {
+        var yy = y;
+        [[s.cap, P.yellow, true, fs], [s.cap2, P.text, false, fs - 1], [s.cap3, P.green, true, fs - 1]].forEach(function (c) {
+            if (!c[0]) return;
+            var ls = lines(c[0], w - 12, c[3]);
+            ls.forEach(function (l, i) { tx(l, cx, yy + i * (c[3] + 5), c[3], c[1] + 'ee', 'center', c[2]); });
+            yy += ls.length * (c[3] + 5) + 3;
+        });
     }
 
     /* ===================== 표와 저장 배치 ===================== */
-    function drawGrid(x0, top, w, mob, s) {
-        var fs = mob ? 11.5 : 13;
-        var ch = mob ? 19 : 22;
-        var cw = w / 5;
+    function drawGrid(x0, top, w, mob, s, prev, e, fs) {
+        var cx = x0 + w / 2;
+        var showSide = mode !== 'store';
+        var tw = showSide ? (mob ? w * 0.64 : w * 0.56) : w;
+        var ch = mob ? 20 : 24;
+        var cw = tw / 5;
         var y0 = top + 8;
         var CC = { a: P.teal, b: P.orange, i: P.green, u: P.purple, p: P.purple };
-        var r;
-        var c;
-        for (c = 0; c < 5; c++) tx(NAMES[c], x0 + c * cw + cw / 2, y0 + ch / 2, fs - 1, P.sub + 'ff', 'center', true);
+        var hot = [];
+        for (var r = 0; r < 6; r++) {
+            if (s.hl[r] !== NONE[r]) hot.push(r);
+        }
+        var sweeping = mode === 'olap' && hot.length > 1;
+        var heads = showSide && mob ? ['id', 'date', 'reg', 'prod', 'amt'] : NAMES;
+        for (var c = 0; c < 5; c++) tx(heads[c], x0 + c * cw + cw / 2, y0 + ch / 2, fs - 1, P.sub + 'ff', 'center', true);
+        var p = prev && prev.hl ? prev : s;
         for (r = 0; r < 6; r++) {
             for (c = 0; c < 5; c++) {
                 var code = s.hl[r].charAt(c);
+                var pcode = p.hl[r].charAt(c);
+                var cxp = x0 + c * cw, cyp = y0 + ch * (r + 1);
+                var delay = sweeping ? 0.08 + r * 0.1 : (r === hot[0] ? 0.1 : 0);
+                var a = code === pcode ? 1 : seg(e, delay, delay + 0.25);
                 var col = CC[code];
-                var cx = x0 + c * cw;
-                var cy = y0 + ch * (r + 1);
-                if (col) rr(cx + 1, cy + 1, cw - 2, ch - 2, 3, col + '44', col + 'ff', 1.4);
-                else rr(cx + 1, cy + 1, cw - 2, ch - 2, 3, 'none', P.sub + '44', 1);
-                tx(String(ROWS[r][c]), cx + cw / 2, cy + ch / 2, fs - 0.5, col ? P.text + 'ff' : P.sub + 'ff', 'center', !!col);
+                var pc = CC[pcode];
+                var useCol = a > 0.5 ? col : pc;
+                if (useCol) rr(cxp + 1, cyp + 1, cw - 2, ch - 2, 3, useCol + '44', useCol + 'ff', 1.4);
+                else rr(cxp + 1, cyp + 1, cw - 2, ch - 2, 3, 'none', P.sub + '44', 1);
+                tx(String(ROWS[r][c]), cxp + cw / 2, cyp + ch / 2, fs - 0.5, useCol ? P.text + 'ff' : P.sub + 'ff', 'center', !!useCol);
             }
         }
+        if (sweeping && e < 1) {
+            var sy2 = y0 + ch + ch * 6 * seg(e, 0.05, 0.85);
+            ln(x0, sy2, x0 + tw, sy2, P.yellow + 'ff', 2.4);
+        }
+
+        /* 오른쪽: 사용자 요청 또는 집계 결과 */
+        if (showSide) {
+            var sx = x0 + tw + 14, sw = w - tw - 14;
+            if (mode === 'oltp') {
+                if (hot.length === 1) {
+                    var ty = y0 + ch * (hot[0] + 1) + ch / 2;
+                    for (var u = 0; u < 3; u++) circ(sx + sw / 2, y0 + ch * (u * 2 + 1.2), 8, P.orange + '44', P.orange + 'ff', 1.6);
+                    var ux = sx + sw / 2 - 10, uy = y0 + ch * 1.2;
+                    var tt = clamp01(e * 1.5);
+                    var ex = lerp(ux, x0 + tw + 2, tt), ey = lerp(uy, ty, tt);
+                    ln(ux, uy, ex, ey, P.green + 'aa', 1.6, [4, 3]);
+                    if (tt < 1) circ(ex, ey, 4, P.green + 'ff', 'none');
+                    tx('요청 1건', sx + sw / 2, y0 + ch * 6.6, fs - 1, P.green + 'ff', 'center', true);
+                } else {
+                    tx('동시 사용자', sx + sw / 2, y0 + ch * 2.2, fs - 1, P.sub + 'ff', 'center', true);
+                    for (var u2 = 0; u2 < 4; u2++) circ(sx + sw / 2, y0 + ch * (u2 * 1.2 + 3.1), 7, P.orange + '44', P.orange + 'ff', 1.6);
+                }
+            } else {
+                if (s.hl === GRP) {
+                    var res = [['KR', 350], ['US', 450], ['JP', 80]];
+                    tx('결과', sx + sw / 2, y0 + ch / 2, fs - 1, P.sub + 'ff', 'center', true);
+                    res.forEach(function (rw, i) {
+                        var a2 = seg(e, 0.2 + i * 0.18, 0.5 + i * 0.18);
+                        var col2 = [P.teal, P.orange, P.purple][i];
+                        ctx.globalAlpha = a2;
+                        rr(sx, y0 + ch * (i * 1.4 + 1.2), sw, ch + 4, 5, col2 + '33', col2 + 'ff', 1.6);
+                        tx(rw[0] + ' ' + rw[1], sx + sw / 2, y0 + ch * (i * 1.4 + 1.2) + ch / 2 + 2, fs - 0.5, col2 + 'ff', 'center', true);
+                        ctx.globalAlpha = 1;
+                    });
+                } else if (hot.length > 1) {
+                    tx('전부 읽음', sx + sw / 2, y0 + ch * 3, fs, P.yellow + 'ff', 'center', true);
+                }
+            }
+        }
+
+        /* 디스크 배치 */
         var gb = y0 + ch * 7;
-        var k;
-        for (k = 0; k < s.strips.length; k++) {
-            var lay = s.strips[k];
+        s.strips.forEach(function (lay, k) {
             var gs = lay === 'row' ? 5 : 6;
             var nb = 30 / gs - 1;
             var inner = 29 - nb;
             var scw = (w - inner - nb * 4) / 30;
-            var sy = gb + 28 + k * 40;
+            var sy = gb + 28 + k * 44;
             var xx = x0;
             tx(lay === 'row' ? '행 지향 저장 (디스크에 놓인 순서)' : '컬럼 지향 저장 (디스크에 놓인 순서)', x0, sy - 12, fs - 1, P.sub + 'ff', 'left', true);
-            var i;
-            for (i = 0; i < 30; i++) {
+            for (var i = 0; i < 30; i++) {
                 var rr2 = lay === 'row' ? Math.floor(i / 5) : i % 6;
                 var cc2 = lay === 'row' ? i % 5 : Math.floor(i / 6);
-                var cd = s.hl[rr2].charAt(cc2);
-                var cl = CC[cd];
-                rr(xx, sy, scw, 16, 2, cl ? cl + '88' : 'none', cl ? cl + 'ff' : P.sub + '66', 1);
+                var cl = CC[s.hl[rr2].charAt(cc2)];
+                var on = seg(e, 0.05 + (i / 30) * 0.7, 0.2 + (i / 30) * 0.7);
+                rr(xx, sy, scw, 18, 2, cl ? cl + (on > 0.5 ? '88' : '22') : 'none', cl ? cl + (on > 0.5 ? 'ff' : '66') : P.sub + '66', 1);
                 xx += scw + (((i + 1) % gs === 0) ? 4 : 1);
             }
-        }
-        var yb = gb + 14 + s.strips.length * 40;
-        if (s.count) tx(s.count, x0 + w / 2, yb + 6, fs, P.orange + 'ff', 'center', true);
-        drawCaps(s, x0, w, yb + (s.count ? 34 : 10), fs);
+            var hx = x0 + (w - 8) * seg(e, 0.05, 0.9);
+            if (e < 1 && e > 0.02) ln(hx, sy - 4, hx, sy + 22, P.yellow + 'ff', 2.2);
+        });
+        var yb = gb + 16 + s.strips.length * 44;
+        var yy = yb;
+        if (s.count) { tx(s.count, cx, yy + 6, fs, P.orange + 'ff', 'center', true); yy += 28; }
+        caps(s, cx, w, yy + 12, fs);
+    }
+
+    /* ===================== 장면 그리기 ===================== */
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var fs = mob ? 11 : 12;
+        var e = clamp01(t);
+        var s = step || { hl: NONE, strips: [], count: '', cap: '', cap2: '', cap3: '' };
+        drawGrid(x0, top, w, mob, s, prev, e, fs);
     }
 
     /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
     function draw() {
         P = window.CsFlow.getP();
         ctx.clearRect(0, 0, GW(), GH());
         var W = GW(); var mob = W < 600;
-        var padX = mob ? 16 : 26;
-        var fullW = W - padX * 2;
-        var top = mob ? 18 : 26;
-
         var steps = currentSteps();
         var step = stepIdx >= 0 ? steps[stepIdx] : null;
-
-        var dsStep = step || currentSteps()[0];
-        drawGrid(padX, top, fullW, mob, dsStep);
-
-        if (!step) {
-            var hint = '아래 STEP으로 OLTP와 OLAP의 차이를 확인하세요.';
-            ctx.font = '500 ' + (mob ? 11 : 12.5) + 'px "JetBrains Mono",monospace';
-            var hs = mob ? 11 : 12.5;
-            var hl = [hint];
-            if (ctx.measureText(hint).width > W - 16) {
-                var cut = hint.indexOf(' ', Math.floor(hint.length / 2));
-                if (cut < 0) cut = hint.lastIndexOf(' ');
-                hl = [hint.slice(0, cut), hint.slice(cut + 1)];
-            }
-            hl.forEach(function (line, li) {
-                tx(line, W / 2, GH() - (mob ? 12 : 14) - (hl.length - 1 - li) * (hs + 4), hs, P.muted + 'aa', 'center', false);
-            });
-        }
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
         var mob = w < 600;
-        var neededH;
-        neededH = mode === 'store' ? (mob ? 360 : 370) : (mob ? 290 : 300);
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
         canvasWrap.style.height    = 'auto';
-        canvasWrap.style.minHeight = neededH + 'px';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
         var actualH = canvasWrap.offsetHeight || neededH;
         if (actualH < neededH) actualH = neededH;
         canvas.width  = w * dpr;
@@ -283,17 +380,22 @@
     /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        draw();
-        rafId = requestAnimationFrame(function () { rafId = null; if (onDone) onDone(); });
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
     function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
-    function defaultLog() {
-        if (mode === 'olap') return '대량의 데이터를 집계하는 OLAP의 쿼리를 봅니다.';
-        if (mode === 'store') return '행 지향 저장과 컬럼 지향 저장이 읽는 양이 어떻게 다른지 봅니다.';
-        return '행 하나를 짧게 읽고 쓰는 OLTP의 트랜잭션을 봅니다.';
-    }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -332,7 +434,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);
