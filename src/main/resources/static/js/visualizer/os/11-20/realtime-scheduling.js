@@ -39,7 +39,7 @@
     var speedWrap = el('div', 'rt-viz__speed');
     speedWrap.appendChild(el('span', 'rt-viz__speed-label', 'SPEED'));
     var speedBtns = [];
-    [['1x', 1700], ['2x', 850], ['3x', 480]].forEach(function (pair, i) {
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
         var b = el('button', 'rt-viz__speed-btn' + (i === 0 ? ' rt-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
@@ -72,11 +72,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'rm';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 데이터: 작업 집합과 시뮬레이션 ===================== */
     var TASKS = [
@@ -182,178 +249,235 @@
     ];
 
     /* ===================== 상태 ===================== */
-    var mode    = 'rm';
-    var stepIdx = -1;
-    var running = false;
-    var timer   = null;
-    var rafId   = null;
-    var speed   = 1700;
-
     function currentSteps() {
         if (mode === 'edf') return EDF_STEPS;
         if (mode === 'bound') return BOUND_STEPS;
         return RM_STEPS;
     }
+    function defaultLog() {
+        if (mode === 'edf') return '같은 작업 집합을 마감이 가까운 순서(EDF)로 실행하는 모습을 봅니다.';
+        if (mode === 'bound') return 'CPU 이용률과 알고리즘별 보장 한계를 비교합니다.';
+        return '주기가 짧은 작업에 높은 고정 우선순위를 주는 RM 실행을 봅니다.';
+    }
 
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        var rad = Math.min(r, w / 2, h / 2);
+    /* ===================== 레이아웃 ===================== */
+    function layout(w, mob) {
+        var t = mode === 'bound' ? (mob ? 224 : 214) : (mob ? 244 : 256);
+        return { fs: mob ? 10.5 : 12, total: t };
+    }
+    function sceneH(w, mob) { return layout(w, mob).total; }
+
+    function ez(q) { q = clamp01(q); return q * q * (3 - 2 * q); }
+
+    function head(x, y, down, col) {
         ctx.beginPath();
-        ctx.moveTo(x + rad, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, rad);
-        ctx.arcTo(x + w, y + h, x,     y + h, rad);
-        ctx.arcTo(x,     y + h, x,     y,     rad);
-        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.moveTo(x, y);
+        ctx.lineTo(x - 4, y + (down ? -7 : 7));
+        ctx.lineTo(x + 4, y + (down ? -7 : 7));
         ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
-    }
-    function tx(str, x, y, sz, color, align, bold) {
-        if (sz < 9.5) sz = 9.5;
-        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
+        ctx.fillStyle = col;
+        ctx.fill();
     }
 
-    /* ===================== 공통: 간트 차트 ===================== */
-    function drawGantt(x0, top, w, mob, step, pol) {
-        var fs = mob ? 10 : 11.5;
-        var upTo = step ? step.up : -1;
-        var sim = step ? step.sim : (pol === 'edf' ? SIM_EDF : SIM_RM);
-        var lw = mob ? 30 : 44;
+    /* ===================== 간트 차트 ===================== */
+    function drawGantt(x0, top, w, mob, s, p, e, fs) {
+        var sim = s.sim;
+        var upTo = s.up;
+        var pUp = p.sim === sim ? p.up : upTo;
+        var q = ez(e);
+        var revealF = lerp(pUp, upTo, q);
+        var lw = mob ? 34 : 44;
         var cw = (w - lw) / HORIZON;
-        var rh = mob ? 30 : 36;
-        var gap = mob ? 34 : 36;
+        var rh = mob ? 30 : 34;
+        var pitch = rh + 14;
+        var y0 = top + 46;
         var colOf = [P.orange, P.teal];
-        var info = pol === 'edf' ? '우선순위: 마감이 가까운 작업이 높음 (동적)' : '우선순위: 주기가 짧은 작업이 높음 (고정, T1 > T2)';
-        tx(info, x0, top + 6, fs - 0.5, P.text + 'ee', 'left', true);
-        var y0 = top + 34;
+        var visA = function (t) { return t > upTo ? 0 : (t <= pUp ? 1 : clamp01(revealF - (t - 1))); };
+
+        var curT = Math.max(-1, Math.min(upTo, Math.floor(revealF + 0.0001)));
+        var cur = curT >= 0 ? sim.timeline[curT] : null;
+        var cc = cur && cur.run ? colOf[cur.run === TASKS[0].id ? 0 : 1] : P.sub;
+        tx('CPU', x0, top + 12, fs - 0.5, P.sub + 'ff', 'left', true);
+        rr(x0 + lw, top + 1, mob ? 96 : 120, 22, 5, cc + '30', cc + 'ff', 1.6);
+        tx(cur && cur.run ? cur.run + ' 실행' : (curT >= 0 ? '쉬는 중' : '대기'), x0 + lw + (mob ? 48 : 60), top + 12, fs - 0.5, cc + 'ff', 'center', true);
+        if (curT >= 0) tx('t=' + curT, x0 + lw + (mob ? 106 : 132), top + 12, fs - 1, P.sub + 'ff', 'left', true);
+
         TASKS.forEach(function (tk, ri) {
-            var y = y0 + ri * (rh + gap);
+            var y = y0 + ri * pitch;
             var col = colOf[ri];
-            tx(tk.id, x0, y + rh / 2, fs, col + 'ee', 'left', true);
+            tx(tk.id, x0, y + rh / 2, fs, col + 'ff', 'left', true);
             for (var t = 0; t < HORIZON; t++) {
                 var cx = x0 + lw + t * cw;
-                var e = t <= upTo ? sim.timeline[t] : null;
-                if (e && e.run === tk.id) {
-                    if (e.late) rr(cx + 1, y, cw - 2, rh, 3, P.red + '40', P.red + 'ff', 1.6);
-                    else rr(cx + 1, y, cw - 2, rh, 3, col + '55', col + 'ff', 1.4);
-                    tx(String(e.job + 1), cx + cw / 2, y + rh / 2, fs - 0.5, P.text + 'ff', 'center', true);
-                } else if (e && e.ready[tk.id]) {
-                    rr(cx + 1, y, cw - 2, rh, 3, 'none', P.sub + 'bb', 1.3);
-                } else {
-                    rr(cx + 1, y, cw - 2, rh, 3, 'none', P.muted + '22', 1);
+                rr(cx + 1, y, cw - 2, rh, 3, 'none', P.sub + '33', 1);
+                var a = visA(t);
+                if (a <= 0) continue;
+                var ev = sim.timeline[t];
+                ctx.globalAlpha = a;
+                if (ev.run === tk.id) {
+                    var c2 = ev.late ? P.red : col;
+                    rr(cx + 1, y, cw - 2, rh, 3, c2 + '66', c2 + 'ff', 1.6);
+                } else if (ev.ready[tk.id]) {
+                    rr(cx + 1, y, cw - 2, rh, 3, 'none', P.sub + 'dd', 1.4);
                 }
+                ctx.globalAlpha = 1;
             }
-            for (var k = 0; k * tk.P <= HORIZON; k++) {
-                var rx = x0 + lw + k * tk.P * cw;
-                if (k * tk.P < HORIZON) tx('▲', rx, y + rh + 9, fs - 1.5, P.green + 'ff', 'center', true);
-                var dx = x0 + lw + (k + 1) * tk.P * cw;
-                if ((k + 1) * tk.P <= HORIZON) {
-                    var missed = sim.misses.some(function (j) { return TASKS[j.ti].id === tk.id && j.n === k; });
-                    var shown = upTo >= (k + 1) * tk.P - 1;
-                    tx('▼', dx, y - 9, fs - 1.5, (missed && shown ? P.red : P.yellow) + 'ff', 'center', true);
+            for (var kk = 0; kk * tk.P < HORIZON; kk++) {
+                var rx = x0 + lw + kk * tk.P * cw;
+                ln(rx, y + rh + 1, rx, y + rh + 12, col + 'ff', 1.6);
+                head(rx, y + rh + 1, false, col + 'ff');
+            }
+            for (var dk = 1; dk * tk.P <= HORIZON; dk++) {
+                var dx = x0 + lw + dk * tk.P * cw;
+                var missed = sim.misses.some(function (j) { return j.ti === ri && j.dl === dk * tk.P; });
+                var seen = revealF + 1 >= dk * tk.P;
+                var dc = missed && seen ? P.red : P.sub;
+                ln(dx, y - 12, dx, y - 1, dc + 'ff', missed && seen ? 2.2 : 1.4);
+                head(dx, y - 1, true, dc + 'ff');
+                if (missed && seen) {
+                    var pulse = e < 1 && revealF + 1 - dk * tk.P < 1.2 ? 1 - e : 0;
+                    if (pulse > 0) {
+                        ctx.globalAlpha = pulse;
+                        circ(dx, y - 6, 6 + (1 - pulse) * 14, 'none', P.red + 'ff', 2);
+                        ctx.globalAlpha = 1;
+                    }
                 }
             }
         });
-        var ay = y0 + 2 * (rh + gap) - gap + 26;
-        for (var t2 = 0; t2 <= HORIZON; t2 += 1) {
-            if (mob && t2 % 2 === 1) continue;
-            tx(String(t2), x0 + lw + t2 * cw, ay, fs - 1.5, P.muted + 'cc', 'center', false);
+
+        var cy = y0 + 2 * pitch;
+        tx('CPU', x0, cy + rh / 2, fs - 0.5, P.sub + 'ff', 'left', true);
+        for (var t2 = 0; t2 < HORIZON; t2++) {
+            var cx2 = x0 + lw + t2 * cw;
+            rr(cx2 + 1, cy, cw - 2, rh, 3, 'none', P.sub + '33', 1);
+            var a2 = visA(t2);
+            var ev2 = a2 > 0 ? sim.timeline[t2] : null;
+            if (ev2 && ev2.run) {
+                var ci = ev2.run === TASKS[0].id ? 0 : 1;
+                var c3 = ev2.late ? P.red : colOf[ci];
+                ctx.globalAlpha = a2;
+                rr(cx2 + 1, cy, cw - 2, rh, 3, c3 + '66', c3 + 'ff', 1.6);
+                tx(ev2.run, cx2 + cw / 2, cy + rh / 2, fs - 1.5, P.text + 'ff', 'center', true);
+                ctx.globalAlpha = 1;
+            }
+            tx(String(t2), cx2 + cw / 2, cy + rh + 12, fs - 1.5, P.sub + 'ff', 'center', false);
         }
-        tx('▲ 도착   ▼ 마감 (빨강 = 마감 실패)', x0, ay + 24, fs - 0.5, P.muted + 'ee', 'left', false);
-        if (mob) {
-            tx('채움 = 실행(숫자는 몇 번째 작업)', x0, ay + 42, fs - 0.5, P.muted + 'ee', 'left', false);
-            tx('회색 테두리 = CPU 대기', x0, ay + 58, fs - 0.5, P.muted + 'ee', 'left', false);
-        } else {
-            tx('채움 = 실행(숫자는 몇 번째 작업), 회색 테두리 = CPU 대기', x0, ay + 42, fs - 0.5, P.muted + 'ee', 'left', false);
+        if (e < 1 && upTo > pUp) {
+            var cxr = x0 + lw + (revealF + 1) * cw;
+            ln(cxr, y0 - 6, cxr, cy + rh + 3, P.yellow + 'ff', 2);
+        }
+
+        var missN = sim.misses.filter(function (j) { return revealF + 1 >= j.dl; }).length;
+        var done = revealF >= HORIZON - 1.01;
+        var ly = cy + rh + 36;
+        var txt = '↑ 도착  ↓ 마감  채움 = 실행  테두리 = 대기  빨강 = 마감 후 실행';
+        lines(txt, w, fs - 0.5).forEach(function (l, li) {
+            tx(l, x0, ly + li * (fs + 3), fs - 0.5, P.sub + 'ff', 'left', false);
+        });
+        if (missN > 0 || done) {
+            var mc = missN > 0 ? P.red : P.green;
+            tx('마감 실패 ' + missN + '번', x0 + w, top + 12, fs, mc + 'ff', 'right', true);
         }
     }
 
-    /* ===================== 모드: 이용률 한계 ===================== */
-    function drawBound(x0, top, w, mob, step) {
-        var fs = mob ? 10.5 : 12;
-        var k = step ? step.k : 0;
-        var bh = mob ? 28 : 34;
-        var lw = mob ? 96 : 150;
-        var maxW = w - lw - (mob ? 50 : 64);
-        tx('CPU 이용률 (0% ~ 100%)', x0, top + 12, fs, P.text + 'ee', 'left', true);
-        var rows = [
-            ['작업 집합 U', UTIL, P.orange, 1],
-            ['RM 보장 한계(n=' + TASKS.length + ')', RM_BOUND, P.teal, 2],
-            ['EDF 한계', 1, P.green, 3]
-        ];
-        var rowsTop = top + 30;
-        rows.forEach(function (r, i) {
-            var y = rowsTop + i * (bh + 22);
-            var on = k >= r[3];
-            tx(r[0], x0, y + bh / 2, fs - (mob ? 1.5 : 0.5), on ? r[2] + 'ee' : P.muted + '77', 'left', true);
-            rr(x0 + lw, y, maxW, bh, 4, 'none', P.muted + '33', 1);
-            if (on) {
-                var bw = maxW * r[1];
-                var bad = i === 0 && k >= 2 && UTIL > RM_BOUND;
-                rr(x0 + lw, y, bw, bh, 4, r[2] + '30', r[2] + 'cc', 1.5);
-                tx(pct(r[1]), x0 + lw + bw + 8, y + bh / 2, fs, r[2] + 'ee', 'left', true);
-                if (bad) tx('RM 한계 초과', x0 + lw + 8, y + bh / 2, fs - 2, P.red + 'ee', 'left', true);
+    /* ===================== 이용률 한계 ===================== */
+    function drawBound(x0, top, w, mob, s, p, e, fs) {
+        var k = s.k, pk = p.k, q = ez(e);
+        var bw = w - 24;
+        var xAt = function (u) { return x0 + 4 + bw * u; };
+        var by = top + 64, bh = mob ? 34 : 40;
+        var ccols = [P.orange, P.teal];
+        var g = k >= 1 ? (pk >= 1 ? 1 : q) : 0;
+
+        tx('CPU 이용률 U = ΣC/P', x0, top + 12, fs, P.text + 'ff', 'left', true);
+        if (k >= 1) tx('U = ' + pct(UTIL * g), x0 + w, top + 12, fs, P.text + 'ff', 'right', true);
+        rr(x0 + 4, by, bw, bh, 4, 'none', P.sub + '66', 1.2);
+        var acc = 0;
+        TASKS.forEach(function (tk, i) {
+            var u = tk.C / tk.P;
+            var vis = Math.min(u, Math.max(0, UTIL * g - acc));
+            if (vis > 0) {
+                rr(xAt(acc) + 0.5, by, bw * vis - 1, bh, 3, ccols[i] + '44', ccols[i] + 'ff', 1.5);
+                if (vis >= u * 0.98) tx(tk.id + ' ' + pct(u), xAt(acc) + bw * u / 2, by + bh / 2, fs - 0.5, ccols[i] + 'ff', 'center', true);
             }
+            acc += u;
         });
-        if (k >= 4) {
-            var yR = rowsTop + (bh + 22);
-            var lx = x0 + lw + maxW * RM_LIMIT;
-            ctx.beginPath();
-            ctx.moveTo(lx, yR - 4);
-            ctx.lineTo(lx, yR + bh + 4);
-            ctx.strokeStyle = P.yellow + 'cc';
-            ctx.lineWidth = 1.5;
-            ctx.stroke();
-            tx('n→∞: ' + pct(RM_LIMIT), lx, yR + bh + 11, fs - 2, P.yellow + 'ee', 'center', true);
+
+        if (k >= 2) {
+            var fresh2 = pk < 2;
+            var a2 = fresh2 ? clamp01(e * 2) : 1;
+            var rmPos = k >= 4 ? lerp(RM_BOUND, RM_LIMIT, pk >= 4 ? 1 : q) : RM_BOUND;
+            ctx.globalAlpha = a2;
+            if (UTIL > rmPos) {
+                var ox = xAt(rmPos), ow = bw * (UTIL - rmPos);
+                rr(ox, by, ow, bh, 3, P.red + '40', 'none', 1);
+            }
+            if (k >= 4) {
+                ln(xAt(RM_BOUND), by - 4, xAt(RM_BOUND), by + bh + 4, P.yellow + '66', 1.2);
+            }
+            ln(xAt(rmPos), by - 8, xAt(rmPos), by + bh + 8, P.yellow + 'ff', 2.2);
+            tx(k >= 4 ? 'n↑ → ln2 ' + pct(RM_LIMIT) : 'RM 한계 ' + pct(RM_BOUND), xAt(rmPos), by - 18, fs - 0.5, P.yellow + 'ff', 'center', true);
+            ctx.globalAlpha = 1;
         }
+        if (k >= 3) {
+            var a3 = pk < 3 ? clamp01(e * 2) : 1;
+            ctx.globalAlpha = a3;
+            ln(xAt(1), by - 8, xAt(1), by + bh + 8, P.green + 'ff', 2.2);
+            tx('EDF 100%', x0 + w, by + bh + 22, fs - 0.5, P.green + 'ff', 'right', true);
+            ctx.globalAlpha = 1;
+        }
+
+        var vy = by + bh + 44;
+        var lh = fs + 3;
+        if (k >= 2) {
+            ctx.globalAlpha = pk >= 2 ? 1 : clamp01((e - 0.3) / 0.7);
+            var rmTxt = 'RM: 한계 초과 · 실패 ' + SIM_RM.misses.length + '번';
+            var rl = lines(rmTxt, w, fs - 0.5);
+            rl.forEach(function (l, li) { tx(l, x0, vy + li * lh, fs - 0.5, P.red + 'ff', 'left', true); });
+            vy += rl.length * lh + 6;
+            ctx.globalAlpha = 1;
+        }
+        if (k >= 3) {
+            ctx.globalAlpha = pk >= 3 ? 1 : clamp01((e - 0.3) / 0.7);
+            var edfTxt = 'EDF: 100% 이하 · 실패 ' + SIM_EDF.misses.length + '번';
+            lines(edfTxt, w, fs - 0.5).forEach(function (l, li) { tx(l, x0, vy + li * lh, fs - 0.5, P.green + 'ff', 'left', true); });
+            ctx.globalAlpha = 1;
+        }
+    }
+
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var L = layout(w, mob);
+        var e = clamp01(t);
+        var s = step || currentSteps()[0];
+        var p = prev || s;
+        if (mode === 'bound') drawBound(x0, top, w, mob, s, p, e, L.fs);
+        else drawGantt(x0, top, w, mob, s, p, e, L.fs);
     }
 
     /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
     function draw() {
         P = window.CsFlow.getP();
         ctx.clearRect(0, 0, GW(), GH());
         var W = GW(); var mob = W < 600;
-        var padX = mob ? 16 : 26;
-        var fullW = W - padX * 2;
-        var top = mob ? 18 : 26;
-
         var steps = currentSteps();
         var step = stepIdx >= 0 ? steps[stepIdx] : null;
-
-        if (mode === 'bound') drawBound(padX, top, fullW, mob, step);
-        else drawGantt(padX, top, fullW, mob, step, mode);
-
-        if (!step) {
-            var hint = '아래 STEP으로 RM과 EDF의 차이를 확인하세요.';
-            ctx.font = '500 ' + (mob ? 11 : 12.5) + 'px "JetBrains Mono",monospace';
-            var hs = mob ? 11 : 12.5;
-            var hl = [hint];
-            if (ctx.measureText(hint).width > W - 16) {
-                var cut = hint.indexOf(' ', Math.floor(hint.length / 2));
-                if (cut < 0) cut = hint.lastIndexOf(' ');
-                hl = [hint.slice(0, cut), hint.slice(cut + 1)];
-            }
-            hl.forEach(function (line, li) {
-                tx(line, W / 2, GH() - (mob ? 12 : 14) - (hl.length - 1 - li) * (hs + 4), hs, P.muted + 'aa', 'center', false);
-            });
-        }
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
         var mob = w < 600;
-        var neededH;
-        if (mode === 'bound') neededH = mob ? 220 : 230;
-        else neededH = mob ? 250 : 260;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
         canvasWrap.style.height    = 'auto';
-        canvasWrap.style.minHeight = neededH + 'px';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
         var actualH = canvasWrap.offsetHeight || neededH;
         if (actualH < neededH) actualH = neededH;
         canvas.width  = w * dpr;
@@ -365,17 +489,22 @@
     /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        draw();
-        rafId = requestAnimationFrame(function () { rafId = null; if (onDone) onDone(); });
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
     function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
-    function defaultLog() {
-        if (mode === 'edf') return '마감이 가장 가까운 작업을 먼저 실행하는 EDF의 동적 우선순위를 봅니다.';
-        if (mode === 'bound') return 'RM과 EDF가 마감을 보장하는 CPU 이용률 한계를 비교합니다.';
-        return '주기가 짧은 작업에 고정 우선순위를 주는 RM이 마감을 지키는지 봅니다.';
-    }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -414,7 +543,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);

@@ -39,7 +39,7 @@
     var speedWrap = el('div', 'ct-viz__speed');
     speedWrap.appendChild(el('span', 'ct-viz__speed-label', 'SPEED'));
     var speedBtns = [];
-    [['1x', 1700], ['2x', 850], ['3x', 480]].forEach(function (pair, i) {
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
         var b = el('button', 'ct-viz__speed-btn' + (i === 0 ? ' ct-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
@@ -72,11 +72,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'stack';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 데이터: 구조 비교 ===================== */
     var N_APPS = 3;
@@ -125,190 +192,273 @@
     ];
 
     /* ===================== 상태 ===================== */
-    var mode    = 'stack';
-    var stepIdx = -1;
-    var running = false;
-    var timer   = null;
-    var rafId   = null;
-    var speed   = 1700;
-
     function currentSteps() {
         if (mode === 'cost') return COST_STEPS;
         if (mode === 'isolate') return ISO_STEPS;
         return STACK_STEPS;
     }
-
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        var rad = Math.min(r, w / 2, h / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + rad, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, rad);
-        ctx.arcTo(x + w, y + h, x,     y + h, rad);
-        ctx.arcTo(x,     y + h, x,     y,     rad);
-        ctx.arcTo(x,     y,     x + w, y,     rad);
-        ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
-    }
-    function tx(str, x, y, sz, color, align, bold) {
-        if (sz < 9.5) sz = 9.5;
-        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
+    function defaultLog() {
+        if (mode === 'cost') return 'VM과 컨테이너가 쓰는 자원과 시작 시간을 막대로 비교합니다.';
+        if (mode === 'isolate') return '커널이 뚫렸을 때 영향이 어디까지 번지는지 비교합니다.';
+        return 'VM과 컨테이너가 같은 하드웨어 위에 쌓이는 층을 비교합니다.';
     }
 
-    /* ===================== 모드: 구조 비교 ===================== */
-    function layer(x, y, w, h, label, col, on, fs) {
-        rr(x, y, w, h, 5, on ? col + '24' : 'none', on ? col + 'cc' : P.muted + '33', 1.4);
-        if (on) tx(label, x + w / 2, y + h / 2, fs, P.text + 'ee', 'center', true);
+    /* ===================== 레이아웃 ===================== */
+    function layout(w, mob) {
+        var t = mode === 'cost' ? (mob ? 226 : 240) : (mode === 'isolate' ? 204 : 252);
+        return { fs: mob ? 10.5 : 12, total: t };
     }
+    function sceneH(w, mob) { return layout(w, mob).total; }
 
-    function drawStack(x0, top, w, mob, step) {
-        var fs = mob ? 10 : 11.5;
-        var k = step ? step.k : 0;
+    function ez(q) { q = clamp01(q); return q * q * (3 - 2 * q); }
+
+    /* ===================== 구조 비교 ===================== */
+    function drawStack(x0, top, w, mob, s, p, e, fs) {
+        var k = s.k, pk = p.k, q = ez(e);
         var gap = mob ? 14 : 28;
         var cw = (w - gap) / 2;
         var lh = mob ? 30 : 34;
-        var base = top + 236;
+        var base = top + 244;
         var cols = [
             { x: x0, name: '가상 머신', col: P.orange, mid: '하이퍼바이저', guest: true },
             { x: x0 + cw + gap, name: '컨테이너', col: P.teal, mid: mob ? '호스트 OS + 런타임' : '호스트 OS(커널) + 런타임', guest: false }
         ];
+        var layer = function (x, y, lw2, label, col, lk, fs2) {
+            var on = k >= lk;
+            if (!on) {
+                rr(x, y, lw2, lh, 5, 'none', P.sub + '44', 1.2);
+                return;
+            }
+            var fresh = pk < lk;
+            var dy = fresh ? -(1 - q) * 28 : 0;
+            ctx.globalAlpha = fresh ? clamp01(e * 2) : 1;
+            rr(x, y + dy, lw2, lh, 5, col + '28', col + 'ff', 1.5);
+            tx(label, x + lw2 / 2, y + dy + lh / 2, fs2, P.text + 'ff', 'center', true);
+            ctx.globalAlpha = 1;
+        };
         cols.forEach(function (c) {
-            tx(c.name, c.x, top + 12, fs + 1.5, c.col + 'ee', 'left', true);
-            layer(c.x, base - lh, cw, lh, '하드웨어', P.muted, k >= 1, fs);
-            layer(c.x, base - 2 * lh - 4, cw, lh, c.mid, P.purple, k >= 2, fs);
+            tx(c.name, c.x, top + 12, fs + 1.5, c.col + 'ff', 'left', true);
+            layer(c.x, base - lh, cw, '하드웨어', P.sub, 1, fs);
+            var midCol = (k >= 4 && !c.guest) ? P.green : P.purple;
+            layer(c.x, base - 2 * lh - 4, cw, c.mid, midCol, 2, fs);
             var aw = (cw - 2 * 6) / N_APPS;
+            var yMid = base - 2 * lh - 4;
             for (var i = 0; i < N_APPS; i++) {
                 var ax = c.x + i * (aw + 6);
-                var yBottom = base - 2 * lh - 4;
                 if (c.guest) {
-                    layer(ax, yBottom - 4 - lh, aw, lh, mob ? 'OS' : '게스트 OS', P.red, k >= 4, fs - 1);
-                    layer(ax, yBottom - 4 - lh - 4 - lh, aw, lh, '앱 ' + (i + 1), c.col, k >= 3, fs - 0.5);
+                    var gy = yMid - 4 - lh;
+                    var gOn = k >= 4;
+                    var gf = gOn && pk < 4;
+                    var gh = gOn ? (gf ? lh * ez(clamp01((e - i * 0.15) / 0.6)) : lh) : 0;
+                    rr(ax, gy, aw, lh, 5, 'none', P.sub + '33', 1);
+                    if (gh > 0) {
+                        rr(ax, yMid - 4 - gh, aw, gh, 5, P.red + '28', P.red + 'ff', 1.5);
+                        if (gh > lh * 0.7) tx(mob ? 'OS' : '게스트 OS', ax + aw / 2, gy + lh / 2, fs - 1, P.text + 'ff', 'center', true);
+                    }
+                    layer(ax, gy - 4 - lh, aw, '앱 ' + (i + 1), c.col, 3, fs - 0.5);
                 } else {
-                    layer(ax, yBottom - 4 - lh, aw, lh, '앱 ' + (i + 1), c.col, k >= 3, fs - 0.5);
+                    layer(ax, yMid - 4 - lh, aw, '앱 ' + (i + 1), c.col, 3, fs - 0.5);
                 }
             }
         });
         if (k >= 4) {
-            tx('추가 커널 ' + GUEST_KERNELS + '개', cols[0].x, top + 30, fs, P.red + 'ee', 'left', true);
-            tx('추가 커널 ' + CT_EXTRA_KERNELS + '개 (호스트 커널 공유)', cols[1].x, top + 30, fs - (mob ? 1.5 : 0), P.green + 'ee', 'left', true);
+            var vmN = pk >= 4 ? GUEST_KERNELS : Math.round(GUEST_KERNELS * q);
+            tx('추가 커널 ' + vmN + '개', cols[0].x, top + 32, fs, P.red + 'ff', 'left', true);
+            ctx.globalAlpha = pk >= 4 ? 1 : clamp01(e * 2);
+            tx('추가 커널 ' + CT_EXTRA_KERNELS + '개', cols[1].x, top + 32, fs, P.green + 'ff', 'left', true);
+            tx('호스트 커널 공유', cols[1].x, top + 48, fs - 0.5, P.green + 'ff', 'left', true);
+            ctx.globalAlpha = 1;
         }
     }
 
-    /* ===================== 모드: 자원과 시작 ===================== */
-    function drawCost(x0, top, w, mob, step) {
-        var fs = mob ? 10.5 : 12;
-        var k = step ? step.k : 0;
+    /* ===================== 자원과 시작 ===================== */
+    function drawCost(x0, top, w, mob, s, p, e, fs) {
+        var k = s.k, pk = p.k;
         var bh = mob ? 26 : 30;
         var lw = mob ? 56 : 70;
         var maxW = w - lw - (mob ? 70 : 90);
-        var rows = [
-            [1, '디스크·메모리(앱 ' + N_APPS + '개, MB)', [[VM_TOTAL, P.orange, 'VM', fmt(VM_TOTAL)], [CT_TOTAL, P.teal, '컨테이너', fmt(CT_TOTAL)]], VM_TOTAL, top + 36],
-            [3, '시작 시간 (상대 단위, 가정)', [[BOOT_VM, P.orange, 'VM', String(BOOT_VM)], [BOOT_CT, P.teal, '컨테이너', String(BOOT_CT)]], BOOT_VM, top + 36 + 2 * bh + 62]
-        ];
-        rows.forEach(function (row) {
-            var y = row[4];
-            var on = k >= row[0];
-            tx(row[1], x0, y - 8, fs, on ? P.text + 'ee' : P.muted + '88', 'left', true);
-            row[2].forEach(function (b, bi) {
-                var by = y + 6 + bi * (bh + 6);
-                tx(b[2], x0, by + bh / 2, fs - 1.5, on ? b[1] + 'ee' : P.muted + '77', 'left', true);
-                rr(x0 + lw, by, maxW, bh, 4, 'none', P.muted + '33', 1);
-                if (on) {
-                    var bw = Math.max(3, maxW * b[0] / row[3]);
-                    rr(x0 + lw, by, bw, bh, 4, b[1] + '30', b[1] + 'cc', 1.5);
-                    tx(b[3], x0 + lw + bw + 6, by + bh / 2, fs - 0.5, b[1] + 'ee', 'left', true);
+        var unit = maxW / VM_TOTAL;
+        var memY = top + 36;
+        var bootY = top + 36 + 2 * bh + 62;
+        var vmSegs = [], ctSegs = [];
+        for (var i = 0; i < N_APPS; i++) {
+            vmSegs.push([GUEST_OS_MB, P.red, 'OS'], [APP_MB, P.orange, '']);
+            ctSegs.push([APP_MB, P.teal, '']);
+        }
+        var drawSegs = function (segs, bx, by, shown) {
+            var start = 0;
+            segs.forEach(function (sg) {
+                var vis = Math.min(sg[0], shown - start);
+                if (vis > 0) {
+                    rr(bx + start * unit + 0.5, by, Math.max(1, vis * unit - 1), bh, 2, sg[1] + '44', sg[1] + 'ff', 1.2);
+                    if (sg[2] && vis >= sg[0] && sg[0] * unit > 26) tx(sg[2], bx + start * unit + sg[0] * unit / 2, by + bh / 2, fs - 1, sg[1] + 'ff', 'center', true);
                 }
+                start += sg[0];
             });
+        };
+
+        var memOn = k >= 1, memFresh = memOn && pk < 1;
+        var mg = memOn ? (memFresh ? ez(e) : 1) : 0;
+        tx('디스크·메모리(앱 ' + N_APPS + '개, MB)', x0, memY - 8, fs, memOn ? P.text + 'ff' : P.sub + 'ff', 'left', true);
+        [['VM', vmSegs, VM_TOTAL, P.orange], ['컨테이너', ctSegs, CT_TOTAL, P.teal]].forEach(function (b, bi) {
+            var by = memY + 6 + bi * (bh + 6);
+            tx(b[0], x0, by + bh / 2, fs - 1.5, memOn ? b[3] + 'ff' : P.sub + 'ff', 'left', true);
+            rr(x0 + lw, by, maxW, bh, 4, 'none', P.sub + '44', 1);
+            if (!memOn) return;
+            var shown = b[2] * mg;
+            if (memFresh) shown = Math.min(b[2], VM_TOTAL * mg);
+            drawSegs(b[1], x0 + lw, by, shown);
+            var vis = Math.min(b[2], shown);
+            if (vis > 0) tx(fmt(Math.round(vis)), x0 + lw + vis * unit + 6, by + bh / 2, fs - 0.5, b[3] + 'ff', 'left', true);
+        });
+
+        var bootOn = k >= 3, bootFresh = bootOn && pk < 3;
+        var tt = bootOn ? (bootFresh ? e : 1) : 0;
+        tx('시작 시간 (상대 단위, 가정)', x0, bootY - 8, fs, bootOn ? P.text + 'ff' : P.sub + 'ff', 'left', true);
+        [['VM', BOOT_VM, P.orange], ['컨테이너', BOOT_CT, P.teal]].forEach(function (b, bi) {
+            var by = bootY + 6 + bi * (bh + 6);
+            tx(b[0], x0, by + bh / 2, fs - 1.5, bootOn ? b[2] + 'ff' : P.sub + 'ff', 'left', true);
+            rr(x0 + lw, by, maxW, bh, 4, 'none', P.sub + '44', 1);
+            if (!bootOn) return;
+            var elapsed = Math.min(b[1], tt * BOOT_VM);
+            var bw = Math.max(3, maxW * elapsed / BOOT_VM);
+            rr(x0 + lw, by, bw, bh, 4, b[2] + '44', b[2] + 'ff', 1.5);
+            tx(String(Math.round(elapsed)), x0 + lw + bw + 6, by + bh / 2, fs - 0.5, b[2] + 'ff', 'left', true);
         });
     }
 
-    /* ===================== 모드: 격리의 경계 ===================== */
-    function drawIsolate(x0, top, w, mob, step) {
-        var fs = mob ? 10 : 11.5;
-        var k = step ? step.k : 0;
+    /* ===================== 격리의 경계 ===================== */
+    function drawIsolate(x0, top, w, mob, s, p, e, fs) {
+        var k = s.k, pk = p.k;
         var gap = mob ? 14 : 28;
         var cw = (w - gap) / 2;
         var bh = mob ? 40 : 44;
         var aw = (cw - 2 * 6) / N_APPS;
         var y0 = top + 40;
         var panels = [
-            { x: x0, name: '컨테이너', on: k >= 1, bad: k >= 2, hit: CT_HIT, col: P.teal, shared: true },
-            { x: x0 + cw + gap, name: '가상 머신', on: k >= 3, bad: k >= 4, hit: VM_HIT, col: P.orange, shared: false }
+            { x: x0, name: '컨테이너', onK: 1, badK: 2, hit: CT_HIT, col: P.teal, shared: true },
+            { x: x0 + cw + gap, name: '가상 머신', onK: 3, badK: 4, hit: VM_HIT, col: P.orange, shared: false }
         ];
-        panels.forEach(function (p) {
-            tx(p.name, p.x, top + 12, fs + 1.5, p.on ? p.col + 'ee' : P.muted + '88', 'left', true);
+        panels.forEach(function (pn) {
+            var on = k >= pn.onK, bad = k >= pn.badK;
+            var onFresh = on && pk < pn.onK;
+            var b = bad ? (pk >= pn.badK ? 1 : e) : 0;
+            var oa = on ? (onFresh ? ez(e) : 1) : 0;
+            tx(pn.name, pn.x, top + 12, fs + 1.5, on ? pn.col + 'ff' : P.sub + 'ff', 'left', true);
+            var kernY = y0 + bh + 6;
+            var redA = ez(b / 0.35);
+            var hitN = 0;
             for (var i = 0; i < N_APPS; i++) {
-                var ax = p.x + i * (aw + 6);
-                var hit = p.bad && p.hit[i];
-                var col = hit ? P.red : p.col;
-                rr(ax, y0, aw, bh, 5, p.on ? col + (hit ? '40' : '22') : 'none', p.on ? col + 'cc' : P.muted + '33', hit ? 2 : 1.4);
-                if (p.on) tx('앱 ' + (i + 1), ax + aw / 2, y0 + bh / 2, fs, P.text + 'ee', 'center', true);
-                if (!p.shared) {
-                    rr(ax, y0 + bh + 6, aw, 30, 5, p.on ? col + (hit ? '40' : '14') : 'none', p.on ? col + 'aa' : P.muted + '33', hit ? 2 : 1.2);
-                    if (p.on) tx(mob ? '커널' : '게스트 커널', ax + aw / 2, y0 + bh + 21, fs - 1, P.text + 'dd', 'center', true);
+                var ax = pn.x + i * (aw + 6);
+                var hit = pn.hit[i];
+                var ha = bad && hit ? clamp01((b - 0.35 - (pn.shared ? i * 0.15 : 0)) / 0.3) : 0;
+                if (ha > 0.5) hitN++;
+                rr(ax, y0, aw, bh, 5, 'none', P.sub + '44', 1.2);
+                if (on) {
+                    ctx.globalAlpha = oa;
+                    rr(ax, y0, aw, bh, 5, pn.col + '22', pn.col + 'cc', 1.4);
+                    tx('앱 ' + (i + 1), ax + aw / 2, y0 + bh / 2, fs, P.text + 'ff', 'center', true);
+                    ctx.globalAlpha = 1;
+                    if (ha > 0) {
+                        ctx.globalAlpha = ha;
+                        rr(ax, y0, aw, bh, 5, P.red + '55', P.red + 'ff', 2.2);
+                        ctx.globalAlpha = 1;
+                    }
+                }
+                if (!pn.shared) {
+                    rr(ax, kernY, aw, 30, 5, 'none', P.sub + '44', 1.2);
+                    if (on) {
+                        ctx.globalAlpha = oa;
+                        rr(ax, kernY, aw, 30, 5, P.sub + '22', P.sub + 'aa', 1.2);
+                        tx(mob ? '커널' : '게스트 커널', ax + aw / 2, kernY + 15, fs - 1, P.text + 'ff', 'center', true);
+                        ctx.globalAlpha = 1;
+                        if (bad && hit) {
+                            ctx.globalAlpha = redA;
+                            rr(ax, kernY, aw, 30, 5, P.red + '55', P.red + 'ff', 2.2);
+                            ctx.globalAlpha = 1;
+                        }
+                    }
                 }
             }
-            if (p.shared) {
-                var any = p.bad;
-                rr(p.x, y0 + bh + 6, cw, 30, 5, p.on ? (any ? P.red + '40' : P.muted + '24') : 'none', p.on ? (any ? P.red + 'ff' : P.muted + 'aa') : P.muted + '33', any ? 2 : 1.2);
-                if (p.on) tx('호스트 커널 (공유)', p.x + cw / 2, y0 + bh + 21, fs - 0.5, P.text + 'ee', 'center', true);
+            if (pn.shared) {
+                rr(pn.x, kernY, cw, 30, 5, 'none', P.sub + '44', 1.2);
+                if (on) {
+                    ctx.globalAlpha = oa;
+                    rr(pn.x, kernY, cw, 30, 5, P.sub + '22', P.sub + 'aa', 1.2);
+                    tx('호스트 커널 (공유)', pn.x + cw / 2, kernY + 15, fs - 0.5, P.text + 'ff', 'center', true);
+                    ctx.globalAlpha = 1;
+                    if (bad) {
+                        ctx.globalAlpha = redA;
+                        rr(pn.x, kernY, cw, 30, 5, P.red + '55', P.red + 'ff', 2.2);
+                        ctx.globalAlpha = 1;
+                        if (b < 1) {
+                            ctx.globalAlpha = 1 - b;
+                            circ(pn.x + cw / 2, kernY + 15, 8 + b * 40, 'none', P.red + 'ff', 2);
+                            ctx.globalAlpha = 1;
+                        }
+                    }
+                }
+            } else {
+                var hy = kernY + 36;
+                rr(pn.x, hy, cw, 22, 5, 'none', P.sub + '44', 1.2);
+                if (on) {
+                    ctx.globalAlpha = oa;
+                    rr(pn.x, hy, cw, 22, 5, P.purple + '28', P.purple + 'ff', 1.5);
+                    tx('하이퍼바이저 (경계)', pn.x + cw / 2, hy + 11, fs - 1, P.text + 'ff', 'center', true);
+                    ctx.globalAlpha = 1;
+                    if (bad) {
+                        var la = clamp01((b - 0.45) / 0.3);
+                        var ax0 = pn.x + aw / 2;
+                        ctx.globalAlpha = la;
+                        ln(ax0, kernY + 32, ax0, hy - 2, P.red + 'ff', 2);
+                        ln(ax0 - 8, hy - 12, ax0 + 8, hy + 4, P.red + 'ff', 3);
+                        ln(ax0 - 8, hy + 4, ax0 + 8, hy - 12, P.red + 'ff', 3);
+                        ctx.globalAlpha = 1;
+                    }
+                }
             }
-            if (p.on) {
-                var n = p.bad ? p.hit.filter(Boolean).length : 0;
-                tx(p.bad ? '영향 ' + n + '/' + N_APPS : '영향 없음', p.x, y0 + bh + 62, fs + 1, p.bad ? P.red + 'ee' : P.muted + 'ee', 'left', true);
+            if (on) {
+                var label = bad ? '영향 ' + hitN + '/' + N_APPS : '영향 없음';
+                tx(label, pn.x, kernY + 82, fs + 1, bad ? P.red + 'ff' : P.sub + 'ff', 'left', true);
             }
         });
     }
 
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var L = layout(w, mob);
+        var e = clamp01(t);
+        var s = step || currentSteps()[0];
+        var p = prev || s;
+        if (mode === 'cost') drawCost(x0, top, w, mob, s, p, e, L.fs);
+        else if (mode === 'isolate') drawIsolate(x0, top, w, mob, s, p, e, L.fs);
+        else drawStack(x0, top, w, mob, s, p, e, L.fs);
+    }
+
     /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
     function draw() {
         P = window.CsFlow.getP();
         ctx.clearRect(0, 0, GW(), GH());
         var W = GW(); var mob = W < 600;
-        var padX = mob ? 16 : 26;
-        var fullW = W - padX * 2;
-        var top = mob ? 18 : 26;
-
         var steps = currentSteps();
         var step = stepIdx >= 0 ? steps[stepIdx] : null;
-
-        if (mode === 'cost') drawCost(padX, top, fullW, mob, step);
-        else if (mode === 'isolate') drawIsolate(padX, top, fullW, mob, step);
-        else drawStack(padX, top, fullW, mob, step);
-
-        if (!step) {
-            var hint = '아래 STEP을 눌러 가상 머신과 컨테이너의 차이를 확인하세요.';
-            ctx.font = '500 ' + (mob ? 11 : 12.5) + 'px "JetBrains Mono",monospace';
-            var hs = mob ? 11 : 12.5;
-            var hl = [hint];
-            if (ctx.measureText(hint).width > W - 16) {
-                var cut = hint.indexOf(' ', Math.floor(hint.length / 2));
-                if (cut < 0) cut = hint.lastIndexOf(' ');
-                hl = [hint.slice(0, cut), hint.slice(cut + 1)];
-            }
-            hl.forEach(function (line, li) {
-                tx(line, W / 2, GH() - (mob ? 12 : 14) - (hl.length - 1 - li) * (hs + 4), hs, P.muted + 'aa', 'center', false);
-            });
-        }
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
         var mob = w < 600;
-        var neededH;
-        if (mode === 'cost') neededH = mob ? 270 : 280;
-        else if (mode === 'isolate') neededH = mob ? 220 : 220;
-        else neededH = mob ? 270 : 276;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
         canvasWrap.style.height    = 'auto';
-        canvasWrap.style.minHeight = neededH + 'px';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
         var actualH = canvasWrap.offsetHeight || neededH;
         if (actualH < neededH) actualH = neededH;
         canvas.width  = w * dpr;
@@ -320,17 +470,22 @@
     /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        draw();
-        rafId = requestAnimationFrame(function () { rafId = null; if (onDone) onDone(); });
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
     function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
-    function defaultLog() {
-        if (mode === 'cost') return '앱을 여러 개 띄울 때 가상 머신과 컨테이너가 쓰는 자원과 시작 시간을 비교합니다.';
-        if (mode === 'isolate') return '커널 취약점이 악용되었을 때 컨테이너와 가상 머신에서 영향을 받는 범위를 비교합니다.';
-        return '가상 머신과 컨테이너가 같은 하드웨어 위에 어떤 층으로 쌓이는지 비교합니다.';
-    }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -369,7 +524,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);
