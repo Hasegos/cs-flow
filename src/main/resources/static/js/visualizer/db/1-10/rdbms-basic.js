@@ -23,8 +23,8 @@
     var modeWrap = el('div', 'rdbms-viz__mode');
     var modeDefs = [
         { key: 'structure', label: '테이블 구조' },
-        { key: 'pk',        label: '기본키' },
-        { key: 'fk',        label: '외래키 관계' }
+        { key: 'pk', label: '기본키' },
+        { key: 'fk', label: '외래키 관계' }
     ];
     var modeBtns = {};
     modeDefs.forEach(function (m, i) {
@@ -39,7 +39,7 @@
     var speedWrap = el('div', 'rdbms-viz__speed');
     speedWrap.appendChild(el('span', 'rdbms-viz__speed-label', 'SPEED'));
     var speedBtns = [];
-    [['1x', 1800], ['2x', 900], ['3x', 500]].forEach(function (pair, i) {
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
         var b = el('button', 'rdbms-viz__speed-btn' + (i === 0 ? ' rdbms-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
@@ -72,11 +72,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'structure';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 기준 데이터 (두 테이블) ===================== */
     var USERS_COLS = ['id', 'name', 'email'];
@@ -193,367 +260,363 @@
     var PK_STEPS        = buildPkSteps();
     var FK_STEPS         = buildFkSteps();
 
-    /* ===================== 상태 변수 ===================== */
-    var mode    = 'structure';
-    var stepIdx = -1;
-    var running = false;
-    var timer   = null;
-    var rafId   = null;
-    var speed   = 1800;
-
+    /* ===================== 상태 ===================== */
     function currentSteps() {
         if (mode === 'pk') return PK_STEPS;
         if (mode === 'fk') return FK_STEPS;
         return STRUCTURE_STEPS;
     }
-
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw, dash) {
-        if (w <= 0 || h <= 0) return;
-        var rad = Math.min(r, w / 2, h / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + rad, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, rad);
-        ctx.arcTo(x + w, y + h, x,     y + h, rad);
-        ctx.arcTo(x,     y + h, x,     y,     rad);
-        ctx.arcTo(x,     y,     x + w, y,     rad);
-        ctx.closePath();
-        if (dash) ctx.setLineDash(dash); else ctx.setLineDash([]);
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
-        ctx.setLineDash([]);
+    function defaultLog() {
+        if (mode === 'pk') return '기본키가 행을 구별하는 방법과 중복 · 빈 값이 거부되는 모습을 봅니다.';
+        if (mode === 'fk') return '외래키가 다른 테이블의 행을 가리키는 방법을 봅니다.';
+        return '테이블이 컬럼과 행으로 이루어진 구조를 봅니다.';
     }
 
-    function tx(str, x, y, sz, color, align, bold) {
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
+    /* ===================== 레이아웃 ===================== */
+    function geom(w, mob) {
+        var uCW = USERS_COL_W[mob ? 'm' : 'd'], oCW = ORDERS_COL_W[mob ? 'm' : 'd'];
+        var uW = 0, oW = 0;
+        USERS_COLS.forEach(function (c) { uW += uCW[c]; });
+        ORDERS_COLS.forEach(function (c) { oW += oCW[c]; });
+        var hH = mob ? 32 : 40, rH = mob ? 30 : 38;
+        return { hH: hH, rH: rH, tg: mob ? 18 : 22, uCW: uCW, oCW: oCW, uW: uW, oW: oW, uH: hH + USERS_ROWS.length * rH, oH: hH + ORDERS_ROWS.length * rH, side: !mob && w >= uW + oW + 130, fs: mob ? 11.5 : 13 };
     }
-
-    function seg(x1, y1, x2, y2, col, lw) {
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
-        ctx.strokeStyle = col; ctx.lineWidth = lw || 1;
-        ctx.stroke();
+    function layout(w, mob) {
+        var g = geom(w, mob);
+        var tot;
+        if (mode === 'structure') tot = g.tg + g.uH + 40;
+        else if (mode === 'pk') tot = g.tg + g.uH + 7 + g.rH + (mob ? 46 : 34) + 8;
+        else if (g.side) tot = g.tg + Math.max(g.uH, g.oH + 7 + g.rH + 44) + 10;
+        else tot = g.tg + g.uH + 58 + g.oH + 7 + g.rH + 44 + 10;
+        return { fs: g.fs, total: tot, g: g };
     }
+    function sceneH(w, mob) { return layout(w, mob).total; }
 
-    function arrowUp(x1, y1, x2, y2, col, lw, dash, bow) {
-        bow = bow || 0;
-        var midY = (y1 + y2) / 2;
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.bezierCurveTo(x1 + bow, midY, x2 + bow, midY, x2, y2 + 9);
-        ctx.strokeStyle = col; ctx.lineWidth = lw || 1.6;
-        if (dash) ctx.setLineDash(dash); else ctx.setLineDash([]);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.beginPath();
-        ctx.moveTo(x2, y2);
-        ctx.lineTo(x2 - 5, y2 + 9);
-        ctx.lineTo(x2 + 5, y2 + 9);
-        ctx.closePath();
-        ctx.fillStyle = col;
-        ctx.fill();
-    }
-
-    function elbowBelow(x1, y1, laneY, x2, y2, col, lw) {
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x1, laneY);
-        ctx.lineTo(x2, laneY);
-        ctx.lineTo(x2, y2 + 9);
-        ctx.strokeStyle = col; ctx.lineWidth = lw || 1.6;
-        ctx.lineJoin = 'round';
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(x2, y2);
-        ctx.lineTo(x2 - 5, y2 + 9);
-        ctx.lineTo(x2 + 5, y2 + 9);
-        ctx.closePath();
-        ctx.fillStyle = col;
-        ctx.fill();
-    }
-
-    /* ===================== 테이블 렌더 (열/행/셀 공용) ===================== */
-    function drawTable(x0, y0, cols, colW, rows, headerH, rowH, mob, opts) {
-        opts = opts || {};
-        var colX = {};
-        var totalW = 0;
+    /* ===================== 표 ===================== */
+    function drawTbl(x0, y0, cols, colW, rows, g, o) {
+        var hH = g.hH, rH = g.rH, fs = g.fs;
+        var colX = {}, totalW = 0;
         cols.forEach(function (c) { colX[c] = totalW; totalW += colW[c]; });
-
-        if (opts.title) tx(opts.title, x0, y0 - (mob ? 11 : 13), mob ? 11 : 12.5, P.muted + 'aa', 'left', true);
-
-        var bodyRows = rows.length + (opts.reserveAttempt ? 1 : 0);
-        var totalH = headerH + bodyRows * rowH;
-
-        rr(x0, y0, totalW, headerH + rows.length * rowH, 6, 'none', P.muted + '55', 1.3);
-
+        var cc = { header: {} };
+        tx(o.title, x0, y0 - 11, fs - 0.5, P.sub + 'ff', 'left', true);
+        var ha = o.headerA === undefined ? 1 : o.headerA;
+        ctx.globalAlpha = ha;
+        rr(x0, y0 + (1 - ha) * -14, totalW, hH + rows.length * rH, 6, 'none', P.sub + '88', 1.3);
         cols.forEach(function (c) {
             var cx = x0 + colX[c];
-            var isHighlighted = opts.highlightCols && opts.highlightCols.indexOf(c) !== -1;
-            var isPk = opts.pkCol === c;
-            var isFk = opts.fkCol === c;
-            var headerFill = isHighlighted ? P.orange + '22' : (P.muted + '12');
-            rr(cx, y0, colW[c], headerH, 0, headerFill, 'none');
-            var labelColor = isHighlighted ? P.orange + 'ee' : P.text + 'cc';
-            var labelY = (isPk || isFk) ? y0 + headerH * 0.38 : y0 + headerH / 2;
-            tx(c, cx + colW[c] / 2, labelY, mob ? 11.5 : 13, labelColor, 'center', true);
-            if (isPk) {
-                var pkColor = opts.pkOn ? P.purple + 'ee' : P.muted + '99';
-                tx('PK', cx + colW[c] / 2, y0 + headerH * 0.76, mob ? 10 : 11, pkColor, 'center', true);
-            }
-            if (isFk) {
-                var fkColor = opts.fkOn ? P.teal + 'ee' : P.muted + '99';
-                tx('FK', cx + colW[c] / 2, y0 + headerH * 0.76, mob ? 10 : 11, fkColor, 'center', true);
-            }
+            var hi = o.colHi ? o.colHi(c) : 0;
+            var isPk = o.pkCol === c, isFk = o.fkCol === c;
+            var col = isPk && o.pkOn ? P.purple : P.orange;
+            rr(cx, y0 + (1 - ha) * -14, colW[c], hH, 0, hi > 0 ? col + (hi > 0.7 ? '44' : '28') : P.sub + '14', 'none');
+            tx(c, cx + colW[c] / 2, ((isPk || isFk) ? y0 + hH * 0.38 : y0 + hH / 2) + (1 - ha) * -14, fs - 0.5, hi > 0 ? col + 'ff' : P.text + 'ee', 'center', true);
+            if (isPk) tx('PK', cx + colW[c] / 2, y0 + hH * 0.76, fs - 2, o.pkOn ? P.purple + 'ff' : P.sub + 'ff', 'center', true);
+            if (isFk) tx('FK', cx + colW[c] / 2, y0 + hH * 0.76, fs - 2, o.fkOn ? P.teal + 'ff' : P.sub + 'ff', 'center', true);
+            cc.header[c] = { x: cx + colW[c] / 2, y: y0 + hH / 2 };
         });
-
-        seg(x0, y0 + headerH, x0 + totalW, y0 + headerH, P.muted + '55', 1.3);
-
-        var cellCenters = { header: {} };
-        cols.forEach(function (c) { cellCenters.header[c] = { x: x0 + colX[c] + colW[c] / 2, y: y0 + headerH / 2 }; });
-
+        ln(x0, y0 + hH, x0 + totalW, y0 + hH, P.sub + '88', 1.3);
+        ctx.globalAlpha = 1;
         rows.forEach(function (row, ri) {
-            var ry = y0 + headerH + ri * rowH;
-            var rowOn = opts.highlightRows === 'all' || (opts.highlightRows && opts.highlightRows.indexOf(ri) !== -1);
-            cellCenters[ri] = {};
+            var ry = y0 + hH + ri * rH;
+            var ra = o.rowA ? o.rowA(ri) : 1;
+            var dx = (1 - ra) * 26;
+            var rowHi = o.rowHi ? o.rowHi(ri) : 0;
+            cc[ri] = {};
+            ctx.globalAlpha = ra;
+            if (ri > 0) ln(x0, ry, x0 + totalW, ry, P.sub + '44', 1);
             cols.forEach(function (c) {
-                var cx = x0 + colX[c];
-                var isCellHi = opts.highlightCell && opts.highlightCell.row === ri && opts.highlightCell.col === c;
-                var isColHi  = opts.pkCol === c && opts.pkOn;
-                var isFkHi   = opts.fkCol === c && opts.fkOn;
-                var fill = 'none';
-                if (isCellHi) fill = P.orange + '2a';
-                else if (isColHi) fill = P.purple + '16';
-                else if (isFkHi) fill = P.teal + '16';
-                else if (rowOn) fill = P.orange + '14';
-                if (fill !== 'none') rr(cx, ry, colW[c], rowH, 0, fill, 'none');
-                var txtColor = isCellHi ? P.orange + 'ee' : (P.text + 'dd');
-                tx(String(row[c]), cx + colW[c] / 2, ry + rowH / 2, mob ? 11 : 13, txtColor, 'center', isCellHi);
-                cellCenters[ri][c] = { x: cx + colW[c] / 2, y: ry + rowH / 2 };
+                var cx = x0 + colX[c] + dx;
+                var colHi = o.colHi ? o.colHi(c) : 0;
+                var isCell = o.cell && o.cell.row === ri && o.cell.col === c;
+                var isErr = o.err && o.err.row === ri && o.err.col === c;
+                var fill = null;
+                if (isErr) fill = P.red + '44';
+                else if (isCell) fill = P.orange + '44';
+                else if (o.pkCol === c && o.pkOn && o.pkHi) fill = P.purple + '22';
+                else if (o.fkCol === c && o.fkOn) fill = P.teal + '22';
+                else if (rowHi > 0) fill = P.orange + (rowHi > 0.7 ? '30' : '18');
+                else if (colHi > 0) fill = P.orange + '16';
+                if (fill) rr(cx, ry, colW[c], rH, 0, fill, 'none');
+                if (isErr || isCell) rr(cx + 1, ry + 1, colW[c] - 2, rH - 2, 3, 'none', (isErr ? P.red : P.orange) + 'ff', 2);
+                tx(String(row[c]), cx + colW[c] / 2, ry + rH / 2, fs - 0.5, (isCell || isErr) ? (isErr ? P.red : P.orange) + 'ff' : P.text + 'ee', 'center', isCell || isErr);
+                cc[ri][c] = { x: cx + colW[c] / 2, y: ry + rH / 2 };
             });
-            if (ri > 0) seg(x0, ry, x0 + totalW, ry, P.muted + '2a', 1);
+            ctx.globalAlpha = 1;
         });
         var vx = x0;
+        cols.forEach(function (c) { if (vx > x0) ln(vx, y0, vx, y0 + hH + rows.length * rH, P.sub + '44', 1); vx += colW[c]; });
+        return { cc: cc, colX: colX, w: totalW };
+    }
+
+    function attemptRow(x0, y, cols, colW, g, row, res, e, onErr) {
+        var rH = g.rH, fs = g.fs;
+        var totalW = 0, colX = {};
+        cols.forEach(function (c) { colX[c] = totalW; totalW += colW[c]; });
+        var q = clamp01(e * 2.2);
+        var verdict = clamp01((e - 0.5) / 0.3);
+        var acc = verdict > 0 ? (res.ok ? P.green : P.red) : P.yellow;
+        var sx = !res.ok && verdict > 0 && e < 1 ? Math.sin(e * 60) * 3 * (1 - e) : 0;
+        var oy = (1 - q) * 22;
+        ctx.globalAlpha = q;
+        rr(x0 + sx, y + oy, totalW, rH, 4, acc + '22', acc + 'cc', 1.6, [4, 3]);
+        var centers = {};
         cols.forEach(function (c) {
-            if (vx > x0) seg(vx, y0, vx, y0 + headerH + rows.length * rowH, P.muted + '2a', 1);
-            vx += colW[c];
+            var v = row[c];
+            var disp = (v === null || v === undefined) ? 'NULL' : String(v);
+            var cx = x0 + colX[c] + colW[c] / 2 + sx;
+            tx(disp, cx, y + oy + rH / 2, fs - 0.5, (onErr === c && verdict > 0 ? P.red : acc) + 'ff', 'center', true);
+            centers[c] = { x: cx, y: y + oy + rH / 2 };
         });
+        ctx.globalAlpha = 1;
+        return { centers: centers, verdict: verdict, y: y + oy };
+    }
 
-        var attemptCenters = null;
-        var dataBottom = y0 + headerH + rows.length * rowH;
-        var channelGap = opts.channelGap || 0;
-        var channelTop = dataBottom;
-        var channelBottom = dataBottom + channelGap;
-        var attemptTop = channelBottom;
-        if (opts.attemptRow) {
-            var res = opts.attemptResult;
-            var accent = res.ok ? P.green : P.orange;
-            var ay = attemptTop + 7;
-            rr(x0, ay, totalW, rowH, 4, accent + '18', accent + 'aa', 1.3, [4, 3]);
-            attemptCenters = {};
-            cols.forEach(function (c) {
-                var cx = x0 + colX[c];
-                var v = opts.attemptRow[c];
-                var display = (v === null || v === undefined) ? 'NULL' : String(v);
-                tx(display, cx + colW[c] / 2, ay + rowH / 2, mob ? 11 : 13, accent + 'ee', 'center', true);
-                attemptCenters[c] = { x: cx + colW[c] / 2, y: ay + rowH / 2 };
-            });
-            var capY = ay + rowH + (mob ? 14 : 16);
-            var capText = (res.ok ? '✓ 추가됨 — ' : '✕ 거부 — ') + res.msg;
-            tx(capText, x0, capY, mob ? 10.5 : 12, accent + 'ee', 'left', true);
+    function caption(txt, x0, y, w, fs, col, bold) {
+        var ls = lines(txt, w, fs - 0.5);
+        ls.forEach(function (l, i) { tx(l, x0, y + i * (fs + 3), fs - 0.5, col, 'left', bold); });
+    }
+
+    /* ===================== 선 따라 가기 ===================== */
+    function polyPos(pts, q) {
+        var tot = 0, i;
+        var lens = [];
+        for (i = 1; i < pts.length; i++) { var l = Math.abs(pts[i].x - pts[i - 1].x) + Math.abs(pts[i].y - pts[i - 1].y); lens.push(l); tot += l; }
+        var d = clamp01(q) * tot;
+        for (i = 0; i < lens.length; i++) {
+            if (d <= lens[i] || i === lens.length - 1) {
+                var f = lens[i] === 0 ? 1 : Math.min(1, d / lens[i]);
+                return { x: lerp(pts[i].x, pts[i + 1].x, f), y: lerp(pts[i].y, pts[i + 1].y, f), seg: i, f: f };
+            }
+            d -= lens[i];
         }
-
-        var baseH = headerH + rows.length * rowH + channelGap;
-        var fullH = baseH + (opts.reserveAttempt ? (7 + rowH + (mob ? 26 : 30)) : 0);
-        return { width: totalW, height: fullH,
-                 cellCenters: cellCenters, attemptCenters: attemptCenters, colX: colX,
-                 channelTop: channelTop, channelBottom: channelBottom };
+        return { x: pts[pts.length - 1].x, y: pts[pts.length - 1].y, seg: lens.length - 1, f: 1 };
+    }
+    function drawRoute(pts, q, col, lw) {
+        var pos = polyPos(pts, q);
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+        for (var i = 1; i <= pos.seg; i++) ctx.lineTo(pts[i].x, pts[i].y);
+        ctx.lineTo(pos.x, pos.y);
+        ctx.strokeStyle = col;
+        ctx.lineWidth = lw;
+        ctx.stroke();
+        if (q >= 1) {
+            var a = pts[pts.length - 1], b = pts[pts.length - 2];
+            var dir = a.x >= b.x ? 1 : -1;
+            ctx.beginPath();
+            ctx.moveTo(a.x, a.y);
+            ctx.lineTo(a.x - dir * 9, a.y - 5);
+            ctx.lineTo(a.x - dir * 9, a.y + 5);
+            ctx.closePath();
+            ctx.fillStyle = col;
+            ctx.fill();
+        }
+        return pos;
     }
 
-    /* ===================== 레이아웃 계산 ===================== */
-    function getGeom(mob) {
-        return {
-            headerH: mob ? 32 : 40,
-            rowH:    mob ? 30 : 38,
-            padX:    mob ? 14 : 24,
-            titleGap: mob ? 18 : 20,
-            arrowGap: mob ? 66 : 92
-        };
-    }
+    /* ===================== 장면 ===================== */
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var L = layout(w, mob);
+        var g = L.g;
+        var fs = L.fs;
+        var e = clamp01(t);
+        var s = step || currentSteps()[0];
+        var p = prev || s;
+        var oy = top + g.tg;
+        var uX = x0 + Math.max(0, (w - g.uW) / 2);
+        var k;
 
-    function fkDecideLayout(W, mob) {
-        var G = getGeom(mob);
-        var uColW = USERS_COL_W[mob ? 'm' : 'd'];
-        var oColW = ORDERS_COL_W[mob ? 'm' : 'd'];
-        var usersW = 0; USERS_COLS.forEach(function (c) { usersW += uColW[c]; });
-        var ordersW = 0; ORDERS_COLS.forEach(function (c) { ordersW += oColW[c]; });
-        var horizGap = mob ? 90 : 110;
-        var marginH = 60;
-        var needed = G.padX * 2 + usersW + horizGap + ordersW;
-        return { side: !mob && W >= needed, uColW: uColW, oColW: oColW, usersW: usersW, ordersW: ordersW, horizGap: horizGap, marginH: marginH, G: G };
-    }
-
-    function calcH(w) {
-        var mob = w < 600;
-        var G = getGeom(mob);
-        var top = mob ? 14 : 18, bottom = mob ? 16 : 20;
         if (mode === 'structure') {
-            return top + G.titleGap + G.headerH + USERS_ROWS.length * G.rowH + bottom;
+            var kind = s.kind;
+            var res = drawTbl(uX, oy, USERS_COLS, g.uCW, USERS_ROWS, g, {
+                title: 'USERS',
+                headerA: kind === 'intro' ? clamp01(e * 3) : 1,
+                rowA: function (ri) { return kind === 'intro' ? clamp01((e - 0.25 - ri * 0.15) / 0.3) : 1; },
+                colHi: function (c) {
+                    var i = USERS_COLS.indexOf(c);
+                    if (kind === 'columns') return e * 3 > i ? (e * 3 - i < 1 ? 1 : 0.8) : 0;
+                    if (kind === 'cell') return c === 'name' ? 0.4 : 0;
+                    return 0;
+                },
+                rowHi: function (ri) {
+                    if (kind === 'rows') return e * 3 > ri ? (e * 3 - ri < 1 ? 1 : 0.8) : 0;
+                    if (kind === 'cell') return ri === 0 ? 0.4 : 0;
+                    return 0;
+                },
+                cell: kind === 'cell' && e > 0.4 ? s.highlightCell : null
+            });
+            if (kind === 'cell' && e < 1) {
+                var cp = res.cc[0].name;
+                circ(cp.x, cp.y, 8 + e * 30, 'none', P.orange + 'ff', 2);
+            }
+            var ay = oy + g.uH + 22;
+            var ann = { intro: '', columns: '컬럼(열) = 속성: id · name · email', rows: '행(레코드) × ' + USERS_ROWS.length, cell: '셀 = 행 × 열  →  "' + USERS_ROWS[0].name + '"', done: '테이블 = 컬럼 여러 개 × 행 여러 개' }[kind];
+            ctx.globalAlpha = p.kind === kind ? 1 : clamp01(e * 1.5);
+            tx(ann, x0 + w / 2, ay, fs, kind === 'done' ? P.green + 'ff' : P.orange + 'ff', 'center', true);
+            ctx.globalAlpha = 1;
+            return;
         }
+
         if (mode === 'pk') {
-            var usersReserved = G.headerH + USERS_ROWS.length * G.rowH + 7 + G.rowH + (mob ? 26 : 30);
-            return top + G.titleGap + usersReserved + bottom;
+            var kd = s.kind;
+            var att = kd === 'attempt';
+            var errCol = att && s.attemptResult && !s.attemptResult.ok ? 'id' : null;
+            var dupIdx = att && !s.attemptResult.ok && s.attemptRow.id !== null ? findRowIdx(USERS_ROWS, 'id', s.attemptRow.id) : -1;
+            var r2 = drawTbl(uX, oy, USERS_COLS, g.uCW, USERS_ROWS, g, {
+                title: 'USERS', pkCol: 'id', pkOn: s.pkOn, pkHi: s.pkOn,
+                colHi: function (c) { return c === 'id' && kd === 'pkcol' ? (e < 1 ? 1 : 0.8) : 0; },
+                rowHi: function (ri) { return kd === 'pkcol' && e * 3 > ri ? 0.4 : 0; },
+                err: dupIdx >= 0 && e > 0.55 ? { row: dupIdx, col: 'id' } : null
+            });
+            if (kd === 'pkcol' && e < 1) {
+                for (k = 0; k < USERS_ROWS.length; k++) {
+                    if (e * 3 > k && e * 3 - k < 1) circ(r2.cc[k].id.x, r2.cc[k].id.y, 6 + (e * 3 - k) * 14, 'none', P.purple + 'ff', 2);
+                }
+            }
+            var ty = oy + g.uH + 7;
+            if (att) {
+                var ar = attemptRow(uX, ty, USERS_COLS, g.uCW, g, s.attemptRow, s.attemptResult, e, s.attemptRow.id === null ? 'id' : null);
+                var rs = s.attemptResult;
+                var capCol = rs.ok ? P.green : P.red;
+                ctx.globalAlpha = ar.verdict;
+                caption((rs.ok ? '✓ 추가됨 — ' : '✕ 거부 — ') + rs.msg, uX, ty + g.rH + 16, Math.max(g.uW, w - 4), fs, capCol + 'ff', true);
+                ctx.globalAlpha = 1;
+                if (dupIdx >= 0 && e > 0.5 && e < 1) {
+                    ln(ar.centers.id.x, ar.centers.id.y - g.rH / 2, r2.cc[dupIdx].id.x, r2.cc[dupIdx].id.y + g.rH / 2, P.red + 'ff', 1.8);
+                }
+            } else if (kd === 'done') {
+                tx('PK = UNIQUE + NOT NULL', x0 + w / 2, ty + g.rH / 2, fs, P.purple + 'ff', 'center', true);
+            }
+            return;
         }
-        var L = fkDecideLayout(w, mob);
-        var usersH = G.headerH + USERS_ROWS.length * G.rowH;
-        var ordersReserved = G.headerH + ORDERS_ROWS.length * G.rowH + 7 + G.rowH + (mob ? 26 : 30);
-        if (L.side) {
-            return top + G.titleGap + Math.max(usersH, ordersReserved) + L.marginH + bottom;
+
+        /* 외래키 */
+        var uY = oy;
+        var oX, oY;
+        if (g.side) {
+            var tot = g.uW + 130 + g.oW;
+            uX = x0 + (w - tot) / 2;
+            oX = uX + g.uW + 130;
+            oY = oy;
+        } else {
+            uX = x0 + 4;
+            oX = x0 + 4;
+            oY = uY + g.uH + 58;
         }
-        return top + G.titleGap + usersH + G.arrowGap + G.titleGap + ordersReserved + bottom;
+        var revealed = s.revealed;
+        var act = s.kind === 'match' ? s.activeIdx : -1;
+        var ur = drawTbl(uX, uY, USERS_COLS, g.uCW, USERS_ROWS, g, {
+            title: 'USERS', pkCol: 'id', pkOn: true, pkHi: s.fkOn,
+            rowHi: function (ri) {
+                for (var i = 0; i < revealed.length; i++) { if (revealed[i].userIdx === ri) return act >= 0 && revealed[i].orderIdx === act ? (e < 1 ? 1 : 0.5) : 0.35; }
+                return 0;
+            }
+        });
+        var or = drawTbl(oX, oY, ORDERS_COLS, g.oCW, ORDERS_ROWS, g, {
+            title: 'ORDERS', fkCol: 'user_id', fkOn: s.fkOn,
+            rowHi: function (ri) {
+                for (var i = 0; i < revealed.length; i++) { if (revealed[i].orderIdx === ri) return ri === act ? (e < 1 ? 1 : 0.5) : 0.35; }
+                return 0;
+            }
+        });
+        function route(oRowY, uRowY, lane) {
+            if (g.side) {
+                var gx = (uX + g.uW + oX) / 2 + (lane - 1) * 14;
+                return [{ x: oX, y: oRowY }, { x: gx, y: oRowY }, { x: gx, y: uRowY }, { x: uX + g.uW, y: uRowY }];
+            }
+            var rx = Math.max(oX + g.oW, uX + g.uW) + 8 + lane * 7;
+            return [{ x: oX + g.oW, y: oRowY }, { x: rx, y: oRowY }, { x: rx, y: uRowY }, { x: uX + g.uW, y: uRowY }];
+        }
+        for (k = 0; k < revealed.length; k++) {
+            var rv = revealed[k];
+            var pts = route(or.cc[rv.orderIdx].user_id.y, ur.cc[rv.userIdx].id.y, rv.orderIdx);
+            var growing = rv.orderIdx === act;
+            var q = growing ? clamp01(e * 1.3) : 1;
+            drawRoute(pts, q, (growing ? P.teal : P.teal + '99'), growing ? 2.6 : 1.8);
+            if (growing && e < 1) {
+                var dpos = polyPos(pts, q);
+                circ(dpos.x, dpos.y, 5, P.yellow + 'ff', 'none');
+            }
+        }
+        if (s.kind === 'attempt') {
+            var aY = oY + g.oH + 7;
+            var cols3 = ORDERS_COLS;
+            var ar2 = attemptRow(oX, aY, cols3, g.oCW, g, s.attemptRow, s.attemptResult, e, 'user_id');
+            var lastU = ur.cc[USERS_ROWS.length - 1].id;
+            var pts2 = route(ar2.centers.user_id.y, lastU.y + g.rH * 0.9, 3);
+            var go = clamp01(e / 0.5);
+            if (e < 0.5) {
+                var dp = polyPos(pts2, go);
+                circ(dp.x, dp.y, 5, P.yellow + 'ff', 'none');
+                ctx.setLineDash([4, 3]);
+                drawRoute(pts2, go, P.yellow + 'ff', 1.6);
+                ctx.setLineDash([]);
+            } else if (e < 1) {
+                var back = clamp01((e - 0.5) / 0.5);
+                var bp = polyPos(pts2, 1 - back);
+                circ(bp.x, bp.y, 5, P.red + 'ff', 'none');
+                tx('?', pts2[3].x + 10, pts2[3].y, fs, P.red + 'ff', 'left', true);
+            }
+            ctx.globalAlpha = ar2.verdict;
+            tx('✕ ' + s.attemptResult.msg.split(' (')[0], oX, aY + g.rH + 16, fs - 1, P.red + 'ff', 'left', true);
+            ctx.globalAlpha = 1;
+        }
+        if (s.kind === 'done' && e < 1) {
+            for (k = 0; k < revealed.length; k++) circ(or.cc[revealed[k].orderIdx].user_id.x, or.cc[revealed[k].orderIdx].user_id.y, 6 + e * 22, 'none', P.teal + 'ff', 1.6);
+        }
+    }
+
+    /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
+    function draw() {
+        P = window.CsFlow.getP();
+        ctx.clearRect(0, 0, GW(), GH());
+        var W = GW(); var mob = W < 600;
+        var steps = currentSteps();
+        var step = stepIdx >= 0 ? steps[stepIdx] : null;
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
-        var neededH = calcH(w);
+        var mob = w < 600;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
         canvasWrap.style.height    = 'auto';
-        canvasWrap.style.minHeight = neededH + 'px';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
         var actualH = canvasWrap.offsetHeight || neededH;
         if (actualH < neededH) actualH = neededH;
-
         canvas.width  = w * dpr;
         canvas.height = actualH * dpr;
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         draw();
     }
 
-    /* ===================== 메인 드로우 ===================== */
-    function draw() {
-        P = window.CsFlow.getP();
-        ctx.clearRect(0, 0, GW(), GH());
-        var W   = GW();
-        var mob = W < 600;
-        var G   = getGeom(mob);
-
-        var neededH = calcH(W);
-        var extra = Math.max(0, GH() - neededH);
-        var top = (mob ? 14 : 18) + extra / 2;
-
-        var steps = currentSteps();
-        var step  = stepIdx >= 0 ? steps[stepIdx] : steps[0];
-        var x0 = G.padX;
-
-        if (mode === 'structure') {
-            drawTable(x0, top + G.titleGap, USERS_COLS, USERS_COL_W[mob ? 'm' : 'd'], USERS_ROWS, G.headerH, G.rowH, mob, {
-                title: 'USERS',
-                pkCol: 'id', pkOn: false,
-                highlightCols: step.highlightCols || [],
-                highlightRows: step.highlightRows || null,
-                highlightCell: step.highlightCell || null
-            });
-        } else if (mode === 'pk') {
-            drawTable(x0, top + G.titleGap, USERS_COLS, USERS_COL_W[mob ? 'm' : 'd'], USERS_ROWS, G.headerH, G.rowH, mob, {
-                title: 'USERS',
-                pkCol: 'id', pkOn: !!step.pkOn,
-                attemptRow: step.attemptRow || null,
-                attemptResult: step.attemptResult || null,
-                reserveAttempt: true
-            });
-        } else {
-            var L = fkDecideLayout(W, mob);
-            var uColW = L.uColW, oColW = L.oColW;
-            var usersRes, ordersRes;
-
-            if (L.side) {
-                var usersX  = x0;
-                var ordersX = x0 + L.usersW + L.horizGap;
-                usersRes = drawTable(usersX, top + G.titleGap, USERS_COLS, uColW, USERS_ROWS, G.headerH, G.rowH, mob, {
-                    title: 'USERS', pkCol: 'id', pkOn: !!step.fkOn
-                });
-                ordersRes = drawTable(ordersX, top + G.titleGap, ORDERS_COLS, oColW, ORDERS_ROWS, G.headerH, G.rowH, mob, {
-                    title: 'ORDERS', fkCol: 'user_id', fkOn: !!step.fkOn,
-                    attemptRow: step.attemptRow || null, attemptResult: step.attemptResult || null,
-                    reserveAttempt: true
-                });
-
-                var tablesBottom = top + G.titleGap + Math.max(
-                    G.headerH + USERS_ROWS.length * G.rowH,
-                    G.headerH + ORDERS_ROWS.length * G.rowH + 7 + G.rowH + (mob ? 26 : 30)
-                );
-                var marginTop = tablesBottom + 6;
-                var laneYFor = function (idx) { return marginTop + 8 + idx * 15; };
-
-                (step.revealed || []).forEach(function (link) {
-                    var offset = (link.orderIdx - (ORDERS_ROWS.length - 1) / 2) * 9;
-                    var from = ordersRes.cellCenters[link.orderIdx].user_id;
-                    var to   = usersRes.cellCenters[link.userIdx].id;
-                    var active = step.activeIdx === link.orderIdx;
-                    var col = active ? P.teal + 'ee' : P.teal + '77';
-                    var laneY = laneYFor(link.orderIdx);
-                    elbowBelow(from.x + offset, from.y + G.rowH / 2, laneY, to.x + offset, to.y, col, active ? 2.2 : 1.3);
-                });
-
-                if (step.attemptRow && ordersRes.attemptCenters) {
-                    var fromBadS = ordersRes.attemptCenters.user_id;
-                    var badLaneY = laneYFor(ORDERS_ROWS.length);
-                    seg(fromBadS.x, fromBadS.y + G.rowH / 2, fromBadS.x, badLaneY, P.orange + 'cc', 1.6);
-                    seg(fromBadS.x, badLaneY, fromBadS.x - 42, badLaneY, P.orange + 'cc', 1.6);
-                    tx('✕', fromBadS.x - 58, badLaneY, 13, P.orange + 'ee', 'center', true);
-                }
-            } else {
-                usersRes = drawTable(x0, top + G.titleGap, USERS_COLS, uColW, USERS_ROWS, G.headerH, G.rowH, mob, {
-                    title: 'USERS', pkCol: 'id', pkOn: !!step.fkOn
-                });
-                var ordersTop = top + G.titleGap + (G.headerH + USERS_ROWS.length * G.rowH) + G.arrowGap;
-                ordersRes = drawTable(x0, ordersTop, ORDERS_COLS, oColW, ORDERS_ROWS, G.headerH, G.rowH, mob, {
-                    title: 'ORDERS', fkCol: 'user_id', fkOn: !!step.fkOn,
-                    attemptRow: step.attemptRow || null, attemptResult: step.attemptResult || null, reserveAttempt: true
-                });
-
-                (step.revealed || []).forEach(function (link) {
-                    var from = ordersRes.cellCenters[link.orderIdx].user_id;
-                    var to   = usersRes.cellCenters[link.userIdx].id;
-                    var active = step.activeIdx === link.orderIdx;
-                    var col = active ? P.teal + 'ee' : P.teal + '66';
-                    var bow = (link.orderIdx - (ORDERS_ROWS.length - 1) / 2) * (mob ? 16 : 20);
-                    arrowUp(from.x, from.y - G.rowH / 2 + 2, to.x, to.y + G.rowH / 2 - 2, col, active ? 2 : 1.3, null, bow);
-                });
-
-                if (step.attemptRow && ordersRes.attemptCenters) {
-                    var fromBad = ordersRes.attemptCenters.user_id;
-                    var stubY = fromBad.y - G.rowH * 1.4;
-                    seg(fromBad.x, fromBad.y - G.rowH / 2 + 2, fromBad.x, stubY, P.orange + 'cc', 1.6);
-                    tx('✕', fromBad.x, stubY - (mob ? 10 : 12), mob ? 13 : 15, P.orange + 'ee', 'center', true);
-                    var leftSide = fromBad.x > GW() / 2;
-                    tx('(대상 없음)', fromBad.x + (leftSide ? -12 : 12), stubY - (mob ? 10 : 12), mob ? 11 : 11.5, P.orange + 'cc', leftSide ? 'right' : 'left', false);
-                }
-            }
-        }
-    }
-
     /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        draw();
-        rafId = requestAnimationFrame(function () {
-            rafId = null;
-            if (onDone) onDone();
-        });
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
-    function setSpeedDisabled(v) {
-        speedBtns.forEach(function (b) { b.disabled = v; });
-    }
-
-    function defaultLog() {
-        return currentSteps()[0].log;
-    }
+    function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -583,7 +646,7 @@
     function vizStep() {
         if (running) return;
         var steps = currentSteps();
-        var next  = stepIdx + 1;
+        var next = stepIdx + 1;
         if (next >= steps.length) return;
         applyStep(next, null);
         if (next === steps.length - 1) { btnPlay.disabled = true; btnStep.disabled = true; }
@@ -592,7 +655,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);
@@ -608,9 +671,7 @@
     function switchMode(m) {
         if (mode === m) return;
         mode = m;
-        modeDefs.forEach(function (d) {
-            modeBtns[d.key].classList.toggle('rdbms-viz__mode-btn--active', d.key === m);
-        });
+        modeDefs.forEach(function (d) { modeBtns[d.key].classList.toggle('rdbms-viz__mode-btn--active', d.key === m); });
         vizReset();
     }
 
