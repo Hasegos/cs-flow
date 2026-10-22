@@ -39,7 +39,7 @@
     var speedWrap = el('div', 'cn-viz__speed');
     speedWrap.appendChild(el('span', 'cn-viz__speed-label', 'SPEED'));
     var speedBtns = [];
-    [['1x', 1700], ['2x', 850], ['3x', 480]].forEach(function (pair, i) {
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
         var b = el('button', 'cn-viz__speed-btn' + (i === 0 ? ' cn-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
@@ -72,11 +72,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'pool';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 엔진: 요청, 풀, DB ===================== */
     function pstep(reqs, slots, ptitle, hot, cap, cap2, cap3, log) {
@@ -117,146 +184,153 @@
     })();
 
     /* ===================== 상태 ===================== */
-    var mode    = 'pool';
-    var stepIdx = -1;
-    var running = false;
-    var timer   = null;
-    var rafId   = null;
-    var speed   = 1700;
-
     function currentSteps() {
         if (mode === 'size') return SIZE_STEPS;
         if (mode === 'leak') return LEAK_STEPS;
         return POOL_STEPS;
     }
-
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        var rad = Math.min(r, w / 2, h / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + rad, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, rad);
-        ctx.arcTo(x + w, y + h, x,     y + h, rad);
-        ctx.arcTo(x,     y + h, x,     y,     rad);
-        ctx.arcTo(x,     y,     x + w, y,     rad);
-        ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
-    }
-    function tx(str, x, y, sz, color, align, bold) {
-        if (sz < 11) sz = 11;
-        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
+    function defaultLog() {
+        if (mode === 'size') return '풀 크기보다 요청이 많을 때 어떻게 되는지 봅니다.';
+        if (mode === 'leak') return '연결을 반납하지 않으면 풀이 어떻게 고갈되는지 봅니다.';
+        return '연결을 미리 만들어 두고 빌려 쓰고 반납하는 풀의 동작을 봅니다.';
     }
 
-    /* ===================== 공통: 캡션 ===================== */
-    function drawCaps(s, x0, w, y, fs) {
-        if (s.cap) tx(s.cap, x0 + w / 2, y, fs - 0.5, P.yellow + 'ff', 'center', true);
-        if (s.cap2) tx(s.cap2, x0 + w / 2, y + 19, fs - 1, P.text + 'ee', 'center', false);
-        if (s.cap3) tx(s.cap3, x0 + w / 2, y + 38, fs - 1, P.green + 'ee', 'center', true);
+    /* ===================== 레이아웃 ===================== */
+    function layout(w, mob) {
+        return { fs: mob ? 11 : 12, rh: 26, rg: 7, total: 20 + 5 * 33 - 7 + (mob ? 148 : 120) };
+    }
+    function sceneH(w, mob) { return layout(w, mob).total; }
+
+    function caps(s, cx, w, y, fs) {
+        var yy = y;
+        [[s.cap, P.yellow, true, fs], [s.cap2, P.text, false, fs - 1], [s.cap3, P.green, true, fs - 1]].forEach(function (c) {
+            if (!c[0]) return;
+            var ls = lines(c[0], w - 12, c[3]);
+            ls.forEach(function (l, i) { tx(l, cx, yy + i * (c[3] + 5), c[3], c[1] + 'ee', 'center', c[2]); });
+            yy += ls.length * (c[3] + 5) + 3;
+        });
     }
 
     /* ===================== 요청, 풀, DB ===================== */
-    function drawPool(x0, top, w, mob, s) {
-        var fs = mob ? 11.5 : 13;
-        var rh = 24;
-        var rg = 6;
-        var lw = mob ? 86 : 112;
-        var dw = mob ? 72 : 100;
-        var gap = mob ? 10 : 26;
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var L = layout(w, mob);
+        var fs = L.fs, rh = L.rh, rg = L.rg;
+        var e = clamp01(t);
+        var s = step || { reqs: 'iii', slots: [], ptitle: '', hot: false, cap: '', cap2: '', cap3: '' };
+        var p = prev || s;
+        var lw = mob ? 90 : 118, dw = mob ? 72 : 104, gap = mob ? 12 : 30;
         var pw = w - lw - dw - gap * 2;
         var H = 5 * (rh + rg) - rg;
         var y0 = top + 20;
-        var px = x0 + lw + gap;
-        var dx = x0 + w - dw;
-        var k;
+        var px = x0 + lw + gap, dx = x0 + w - dw;
         var RC = { i: P.sub, r: P.teal, w: P.orange, d: P.sub, f: P.red, l: P.red };
         var RT = { i: '', r: ' 실행', w: ' 대기', d: ' 완료', f: ' 실패', l: ' 미반납' };
+        var SC = { i: P.green, u: P.orange, l: P.red, n: P.purple };
+        var ST = { i: '놀고 있음', u: '사용 중', l: '누수', n: '새 연결' };
+
         tx('요청', x0 + lw / 2, top + 8, fs - 1, P.sub + 'ff', 'center', true);
         tx(s.ptitle, px + pw / 2, top + 8, fs - 1, P.sub + 'ff', 'center', true);
         tx('DB', dx + dw / 2, top + 8, fs - 1, P.sub + 'ff', 'center', true);
-        for (k = 0; k < s.reqs.length; k++) {
-            var c = s.reqs.charAt(k);
-            var y = y0 + k * (rh + rg);
-            rr(x0, y, lw, rh, 5, RC[c] + (c === 'i' || c === 'd' ? '11' : '33'), RC[c] + (c === 'i' ? '88' : 'ff'), c === 'i' ? 1.2 : 1.8);
-            tx('R' + (k + 1) + RT[c], x0 + lw / 2, y + rh / 2, fs - 1, c === 'i' || c === 'd' ? P.sub + 'ff' : P.text + 'ff', 'center', c !== 'i');
-        }
-        rr(px, y0, pw, H, 8, P.sub + '11', P.sub + 'ff', 1.6);
+
+        /* DB */
         var hot = s.hot;
-        rr(dx, y0, dw, H, 8, (hot ? P.red : P.teal) + '22', (hot ? P.red : P.teal) + 'ff', hot ? 2.6 : 1.8);
-        tx('DB 서버', dx + dw / 2, y0 + H / 2 - (hot ? 12 : 0), fs, P.text + 'ff', 'center', true);
+        var hc = hot ? P.red : P.teal;
+        var shake = hot ? Math.sin(e * 30) * 2 : 0;
+        rr(dx + shake, y0, dw, H, 8, hc + '22', hc + 'ff', hot ? 2.6 : 1.8);
+        tx('DB 서버', dx + dw / 2 + shake, y0 + H / 2 - (hot ? 12 : 0), fs, P.text + 'ff', 'center', true);
         if (hot) tx('경합', dx + dw / 2, y0 + H / 2 + 12, fs, P.red + 'ff', 'center', true);
+
+        /* 풀 */
+        rr(px, y0, pw, H, 8, P.sub + '11', P.sub + 'ff', 1.6);
         var m = s.slots.length;
         if (m === 0) tx('(없음)', px + pw / 2, y0 + H / 2, fs - 1, P.sub + 'ff', 'center', false);
         var sp = (H - 12) / Math.max(m, 1);
         var sh = sp * 0.75;
-        var SC = { i: P.green, u: P.orange, l: P.red, n: P.purple };
-        var ST = { i: '놀고 있음', u: '사용 중', l: '누수', n: '새 연결' };
-        for (k = 0; k < m; k++) {
+        var slotY = [];
+        for (var k = 0; k < m; k++) {
             var code = s.slots[k].charAt(0);
             var who = s.slots[k].length > 2 ? s.slots[k].substring(2) : '';
             var sy = y0 + 6 + k * sp + (sp - sh) / 2;
+            slotY.push(sy + sh / 2);
+            var pc = p.slots[k] ? p.slots[k].charAt(0) : null;
+            var changed = pc !== code;
             var col = SC[code];
-            rr(px + 6, sy, pw - 12, sh, 5, col + '33', col + 'ff', 1.6);
-            if (sh >= 24) tx((who ? who + ' ' : '') + ST[code], px + pw / 2, sy + sh / 2, fs - 1, P.text + 'ff', 'center', true);
+            var a = changed && pc === null ? clamp01(e * 2) : 1;
+            ctx.globalAlpha = a;
+            rr(px + 6, sy, pw - 12, sh, 6, col + (changed ? '55' : '33'), col + 'ff', changed ? 2.6 : 1.6);
+            if (sh >= 22) tx((who ? who + ' ' : '') + ST[code], px + pw / 2, sy + sh / 2, fs - 1, P.text + 'ff', 'center', true);
             if (code !== 'i') {
-                ctx.beginPath();
-                ctx.moveTo(px + pw - 6, sy + sh / 2);
-                ctx.lineTo(dx, sy + sh / 2);
-                ctx.strokeStyle = col + 'ff';
-                ctx.lineWidth = code === 'l' ? 1.4 : 2.2;
-                ctx.setLineDash(code === 'n' ? [4, 3] : []);
-                ctx.stroke();
-                ctx.setLineDash([]);
+                ln(px + pw - 6, sy + sh / 2, dx, sy + sh / 2, col + 'ff', code === 'l' ? 1.4 : 2.2, code === 'n' || code === 'l' ? [4, 3] : []);
+            }
+            ctx.globalAlpha = 1;
+            if (code === 'n' && changed && e < 1) {
+                ctx.globalAlpha = 1 - e;
+                circ(px + pw / 2, sy + sh / 2, 10 + e * 26, 'none', P.purple + 'ff', 2);
+                ctx.globalAlpha = 1;
             }
         }
-        drawCaps(s, x0, w, y0 + H + 24, fs);
+        if (s.slots.some(function (x) { return x.charAt(0) === 'n'; })) {
+            var nn = s.slots.filter(function (x) { return x.charAt(0) === 'n'; }).length;
+            tx('연결 생성 ' + nn + '번', px + pw / 2, y0 + H + 12, fs - 0.5, P.purple + 'ff', 'center', true);
+        }
+
+        /* 요청 칩과 이동 점 */
+        function slotOf(rn) {
+            for (var q = 0; q < m; q++) { if (s.slots[q].length > 2 && s.slots[q].substring(2) === 'R' + rn) return q; }
+            return -1;
+        }
+        for (var r = 0; r < s.reqs.length; r++) {
+            var c = s.reqs.charAt(r);
+            var pcode = p.reqs.charAt(r);
+            var y = y0 + r * (rh + rg);
+            var sway = (c === 'f' && pcode !== 'f' && e < 1) ? Math.sin(e * 26) * 3 : (c === 'w' ? Math.sin(e * 8) * 1.5 : 0);
+            rr(x0 + sway, y, lw, rh, 6, RC[c] + (c === 'i' || c === 'd' ? '11' : '33'), RC[c] + (c === 'i' ? '88' : 'ff'), c === 'i' ? 1.2 : 1.8);
+            tx('R' + (r + 1) + RT[c], x0 + lw / 2 + sway, y + rh / 2, fs - 1, c === 'i' || c === 'd' ? P.sub + 'ff' : P.text + 'ff', 'center', c !== 'i');
+            if (c === pcode) continue;
+            var yc = y + rh / 2;
+            var si = slotOf(r + 1);
+            if (c === 'r' && si >= 0 && e < 1) {
+                var ph = e < 0.5 ? e * 2 : 1;
+                var xx = e < 0.5 ? lerp(x0 + lw, px + 6, ph) : lerp(px + 6, dx, (e - 0.5) * 2);
+                var yy = e < 0.5 ? lerp(yc, slotY[si], ph) : slotY[si];
+                circ(xx, yy, 6, P.yellow + 'ff', 'none');
+            } else if (c === 'r' && s.slots.some(function (q) { return q.charAt(0) === 'n'; }) && e < 1) {
+                circ(lerp(x0 + lw, dx, e), yc, 6, P.purple + 'ff', 'none');
+            } else if (c === 'd' && pcode === 'r' && e < 1) {
+                var rsi = -1;
+                for (var q2 = 0; q2 < p.slots.length; q2++) { if (p.slots[q2].length > 2 && p.slots[q2].substring(2) === 'R' + (r + 1)) rsi = q2; }
+                var fy = rsi >= 0 ? slotY[Math.min(rsi, m - 1)] : yc;
+                circ(lerp(px + 6, x0 + lw, e), lerp(fy, yc, e), 6, P.green + 'ff', 'none');
+            }
+        }
+        caps(s, x0 + w / 2, w, y0 + H + 40, fs);
     }
 
     /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
     function draw() {
         P = window.CsFlow.getP();
         ctx.clearRect(0, 0, GW(), GH());
         var W = GW(); var mob = W < 600;
-        var padX = mob ? 16 : 26;
-        var fullW = W - padX * 2;
-        var top = mob ? 18 : 26;
-
         var steps = currentSteps();
         var step = stepIdx >= 0 ? steps[stepIdx] : null;
-
-        var dsStep = step || currentSteps()[0];
-        drawPool(padX, top, fullW, mob, dsStep);
-
-        if (!step) {
-            var hint = '아래 STEP으로 커넥션 풀의 동작을 확인하세요.';
-            ctx.font = '500 ' + (mob ? 11 : 12.5) + 'px "JetBrains Mono",monospace';
-            var hs = mob ? 11 : 12.5;
-            var hl = [hint];
-            if (ctx.measureText(hint).width > W - 16) {
-                var cut = hint.indexOf(' ', Math.floor(hint.length / 2));
-                if (cut < 0) cut = hint.lastIndexOf(' ');
-                hl = [hint.slice(0, cut), hint.slice(cut + 1)];
-            }
-            hl.forEach(function (line, li) {
-                tx(line, W / 2, GH() - (mob ? 12 : 14) - (hl.length - 1 - li) * (hs + 4), hs, P.muted + 'aa', 'center', false);
-            });
-        }
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
         var mob = w < 600;
-        var neededH;
-        neededH = mob ? 300 : 290;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
         canvasWrap.style.height    = 'auto';
-        canvasWrap.style.minHeight = neededH + 'px';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
         var actualH = canvasWrap.offsetHeight || neededH;
         if (actualH < neededH) actualH = neededH;
         canvas.width  = w * dpr;
@@ -268,17 +342,22 @@
     /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        draw();
-        rafId = requestAnimationFrame(function () { rafId = null; if (onDone) onDone(); });
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
     function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
-    function defaultLog() {
-        if (mode === 'size') return '풀 크기보다 요청이 많을 때와 풀을 너무 크게 잡을 때를 봅니다.';
-        if (mode === 'leak') return '빌린 연결을 반납하지 않아 풀이 비어 가는 과정을 봅니다.';
-        return '풀 없이 쓸 때와 풀을 쓸 때 연결이 어떻게 달라지는지 봅니다.';
-    }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -317,7 +396,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);
