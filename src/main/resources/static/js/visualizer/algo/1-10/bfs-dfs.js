@@ -1,5 +1,5 @@
 /**
- * BFS / DFS 시각화
+ * BFS / DFS 시각화 시각화
  */
 (function () {
     'use strict';
@@ -22,9 +22,9 @@
 
     var modeWrap = el('div', 'graph-search-viz__mode');
     var modeDefs = [
-        { key: 'bfs',     label: 'BFS 탐색' },
-        { key: 'dfs',     label: 'DFS 탐색' },
-        { key: 'compare', label: '동시 비교' },
+        { key: 'bfs', label: 'BFS 탐색' },
+        { key: 'dfs', label: 'DFS 탐색' },
+        { key: 'compare', label: '동시 비교' }
     ];
     var modeBtns = {};
     modeDefs.forEach(function (m, i) {
@@ -39,7 +39,7 @@
     var speedWrap = el('div', 'graph-search-viz__speed');
     speedWrap.appendChild(el('span', 'graph-search-viz__speed-label', 'SPEED'));
     var speedBtns = [];
-    [['1x', 1600], ['2x', 800], ['3x', 500]].forEach(function (pair, i) {
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
         var b = el('button', 'graph-search-viz__speed-btn' + (i === 0 ? ' graph-search-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
@@ -72,11 +72,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'bfs';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 그래프 데이터 (고정 트리 구조) ===================== */
     var NODES = [
@@ -182,255 +249,313 @@
 
     var COMPARE_STEPS = buildCompareSteps();
 
-    /* ===================== 상태 변수 ===================== */
-    var mode    = 'bfs';
-    var stepIdx = -1;
-    var running = false;
-    var timer   = null;
-    var rafId   = null;
-    var speed   = 1600;
-
+    /* ===================== 상태 ===================== */
     function currentSteps() {
-        if (mode === 'bfs') return BFS_STEPS;
         if (mode === 'dfs') return DFS_STEPS;
-        return COMPARE_STEPS;
+        if (mode === 'compare') return COMPARE_STEPS;
+        return BFS_STEPS;
     }
-
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        var rad = Math.min(r, w / 2, h / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + rad, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, rad);
-        ctx.arcTo(x + w, y + h, x,     y + h, rad);
-        ctx.arcTo(x,     y + h, x,     y,     rad);
-        ctx.arcTo(x,     y,     x + w, y,     rad);
-        ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.5; ctx.stroke(); }
-    }
-
-    function tx(str, x, y, sz, color, align, bold) {
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
-    }
-
-    function line(x1, y1, x2, y2, col, lw) {
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
-        ctx.strokeStyle = col; ctx.lineWidth = lw || 1.5;
-        ctx.stroke();
-    }
-
-    /* ===================== 스텝 → 렌더 스펙 변환 ===================== */
-    function computeGraphSpec(step) {
-        var spec = { nodeStatus: {}, badge: {}, badgeDual: null, chipLabel: '', chipItems: [], allGreen: step.type === 'done' && mode !== 'compare' };
-
-        if (mode === 'bfs' || mode === 'dfs') {
-            var order = step.order || [];
-            order.forEach(function (nodeId, idx) {
-                spec.nodeStatus[nodeId] = 'visited';
-                spec.badge[nodeId] = idx + 1;
-            });
-            if (step.node != null) spec.nodeStatus[step.node] = 'current';
-            spec.chipLabel = mode === 'bfs' ? '큐 (맨 왼쪽이 다음 차례)' : '스택 (맨 오른쪽이 다음 차례)';
-            spec.chipItems = mode === 'bfs' ? (step.queue || []) : (step.stack || []);
-        } else {
-            var upTo = step.node != null && step.node >= 0 ? step.node : -1;
-            spec.badgeDual = {};
-            for (var n = 0; n <= upTo && n < N; n++) {
-                spec.nodeStatus[n] = (n === upTo) ? 'current' : 'visited';
-                spec.badgeDual[n] = { bfs: BFS_POS[n], dfs: DFS_POS[n] };
-            }
-        }
-        return spec;
-    }
-
-    /* ===================== 그래프 다이어그램 렌더 ===================== */
-    function drawGraphDiagram(top, h, mob, W, spec) {
-        var padX = mob ? 26 : 44;
-        var padTop = top + (mob ? 12 : 16);
-        var usableH = h - (mob ? 24 : 32);
-        var R = mob ? 15 : 19;
-
-        function px(node) { return { x: padX + node.x * (W - 2 * padX), y: padTop + node.y * usableH }; }
-
-        EDGES.forEach(function (e) {
-            var p1 = px(NODES[e[0]]), p2 = px(NODES[e[1]]);
-            line(p1.x, p1.y, p2.x, p2.y, P.muted + '55', 1.6);
-        });
-
-        NODES.forEach(function (node) {
-            var p = px(node);
-            var status = spec.nodeStatus[node.id] || 'unvisited';
-            var col = P.muted;
-            if (status === 'current') col = P.orange;
-            else if (status === 'visited') col = P.teal;
-            if (spec.allGreen) col = P.green;
-
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, R, 0, Math.PI * 2);
-            ctx.fillStyle = col + '22';
-            ctx.fill();
-            ctx.strokeStyle = col + 'ee';
-            ctx.lineWidth = status === 'current' ? 2.6 : 1.6;
-            ctx.stroke();
-
-            tx(String(node.id), p.x, p.y, mob ? 11 : 13, P.text + 'ee', 'center', true);
-
-            if (spec.badge[node.id] != null) {
-                var bR = mob ? 9 : 10;
-                var bx = p.x + R * 0.95, by = p.y - R * 0.95;
-                ctx.beginPath(); ctx.arc(bx, by, bR, 0, Math.PI * 2);
-                ctx.fillStyle = P.green + 'ee'; ctx.fill();
-                tx(String(spec.badge[node.id]), bx, by, mob ? 9 : 10, '#0f0f1a', 'center', true);
-            }
-            if (spec.badgeDual && spec.badgeDual[node.id]) {
-                var d = spec.badgeDual[node.id];
-                var dR = mob ? 8 : 9;
-                var lx = p.x - R * 0.95, ly = p.y - R * 0.95;
-                var rx = p.x + R * 0.95, ry = p.y - R * 0.95;
-                ctx.beginPath(); ctx.arc(lx, ly, dR, 0, Math.PI * 2);
-                ctx.fillStyle = P.teal + 'ee'; ctx.fill();
-                tx(String(d.bfs), lx, ly, mob ? 8 : 9, '#0f0f1a', 'center', true);
-                ctx.beginPath(); ctx.arc(rx, ry, dR, 0, Math.PI * 2);
-                ctx.fillStyle = P.purple + 'ee'; ctx.fill();
-                tx(String(d.dfs), rx, ry, mob ? 8 : 9, '#0f0f1a', 'center', true);
-            }
-        });
-    }
-
-    /* ===================== 큐/스택 칩 목록 (BFS/DFS 모드) ===================== */
-    function drawChipsRow(x0, top, mob, label, items) {
-        var fLbl = mob ? 10 : 11;
-        tx(label, x0, top, fLbl, P.muted + 'aa', 'left', true);
-        var chipY = top + (mob ? 16 : 18);
-        var chipH = mob ? 24 : 28, chipW = mob ? 30 : 36, gap = mob ? 6 : 8;
-        if (items.length === 0) {
-            tx('(비어 있음 — 탐색 종료)', x0, chipY + chipH / 2, fLbl, P.text + '77', 'left', false);
-            return;
-        }
-        var x = x0;
-        items.forEach(function (v) {
-            rr(x, chipY, chipW, chipH, 4, P.orange + '18', P.orange + '88', 1.2);
-            tx(String(v), x + chipW / 2, chipY + chipH / 2, fLbl, P.text + 'ee', 'center', true);
-            x += chipW + gap;
-        });
-    }
-
-    /* ===================== BFS/DFS 순서 비교 표 (동시 비교 모드) ===================== */
-    function drawCompareTable(x0, top, mob, step) {
-        var upTo = step.node != null && step.node >= 0 ? step.node : -1;
-        var fLbl = mob ? 10 : 11;
-        var fVal = mob ? 11 : 12.5;
-        var colW = mob ? 60 : 76;
-        var rowH = mob ? 22 : 26;
-        var headH = mob ? 24 : 28;
-
-        tx('노드', x0, top + headH / 2, fLbl, P.muted + 'aa', 'left', true);
-        tx('BFS 순서', x0 + colW, top + headH / 2, fLbl, P.teal + 'cc', 'center', true);
-        tx('DFS 순서', x0 + colW * 2, top + headH / 2, fLbl, P.purple + 'cc', 'center', true);
-
-        for (var n = 0; n < N; n++) {
-            var ry = top + headH + n * rowH;
-            var on = n <= upTo;
-            tx(String(n), x0, ry + rowH / 2, fVal, on ? P.text + 'ee' : P.muted + '66', 'left', true);
-            if (on) {
-                var same = BFS_POS[n] === DFS_POS[n];
-                tx(String(BFS_POS[n]), x0 + colW, ry + rowH / 2, fVal, P.teal + 'ee', 'center', false);
-                tx(String(DFS_POS[n]), x0 + colW * 2, ry + rowH / 2, fVal, P.purple + 'ee', 'center', false);
-                if (!same) tx('≠', x0 + colW * 2 + colW * 0.62, ry + rowH / 2, fVal, P.orange + 'cc', 'left', true);
-            } else {
-                tx('·', x0 + colW, ry + rowH / 2, fVal, P.muted + '66', 'center', false);
-                tx('·', x0 + colW * 2, ry + rowH / 2, fVal, P.muted + '66', 'center', false);
-            }
-        }
+    function defaultLog() {
+        return currentSteps()[0].log;
     }
 
     /* ===================== 레이아웃 ===================== */
-    function getLayout(mob) {
-        var compareRows = N;
+    function ez(q) { q = clamp01(q); return q * q * (3 - 2 * q); }
+    function gsLayout(w, mob) {
+        var gH = mob ? 215 : 265;
+        var gap = mob ? 12 : 16;
+        var rowH = mob ? 56 : 62;
+        if (mode === 'compare') rowH = mob ? 60 : 70;
         return {
-            top:       mob ? 16 : 22,
-            graphH:    mob ? 215 : 265,
-            gapMid:    mob ? 12 : 16,
-            chipRowH:  mob ? 56 : 62,
-            compareH:  mode === 'compare' ? ((mob ? 24 : 28) + compareRows * (mob ? 22 : 26) + (mob ? 10 : 12)) : 0,
+            mob: mob, fs: mob ? 11 : 12, R: mob ? 15 : 19,
+            padX: mob ? 12 : 20, padY: mob ? 12 : 16, usableH: gH - (mob ? 24 : 32),
+            bottomY: gH + gap, total: gH + gap + rowH
         };
+    }
+    function sceneH(w, mob) { return gsLayout(w, mob).total; }
+
+    /* ===================== 상태 조회 ===================== */
+    function gsUp(st) { return st.node != null && st.node >= 0 ? st.node : -1; }
+    function gsList(st) {
+        if (mode === 'bfs') return st.queue || [];
+        if (mode === 'dfs') return st.stack || [];
+        return [];
+    }
+    function gsDisc(st) { return (mode === 'bfs' ? st.newly : st.pushed) || []; }
+    function gsVisited(st, id) {
+        if (mode === 'compare') return id <= gsUp(st);
+        return (st.order || []).indexOf(id) >= 0;
+    }
+    function gsNodeState(st, id) {
+        if (mode === 'compare') {
+            var up = gsUp(st);
+            return id === up ? 'cur' : (id < up ? 'vis' : 'unv');
+        }
+        if (gsVisited(st, id)) {
+            if (st.type === 'done') return 'done';
+            return st.node === id ? 'cur' : 'vis';
+        }
+        return gsList(st).indexOf(id) >= 0 ? 'front' : 'unv';
+    }
+
+    /* ===================== 그래프 그리기 ===================== */
+    function gsSty(state) {
+        if (state === 'cur') return { f: P.orange + '33', s: P.orange + 'ff', lw: 2.6 };
+        if (state === 'front') return { f: P.yellow + '22', s: P.yellow + 'ee', lw: 1.8 };
+        if (state === 'vis') return { f: P.teal + '33', s: P.teal + 'ee', lw: 1.6 };
+        if (state === 'done') return { f: P.green + '33', s: P.green + 'ee', lw: 1.6 };
+        return { f: P.surf2 + 'ff', s: P.sub + 'aa', lw: 1.6 };
+    }
+    function gsPt(L, x0, top, w, id) {
+        var nd = NODES[id];
+        return { x: x0 + L.padX + nd.x * (w - 2 * L.padX), y: top + L.padY + nd.y * L.usableH };
+    }
+    function gsAlphaOf(id, s, fresh, e) {
+        if (!fresh) return 1;
+        if (id === s.node) return ez(seg(e, 0, 0.3));
+        if (gsDisc(s).indexOf(id) >= 0) return ez(seg(e, 0.55, 0.9));
+        return ez(seg(e, 0.3, 0.6));
+    }
+    function gsDrawNode(c, R, state, alpha) {
+        var sy = gsSty(state);
+        ctx.globalAlpha = alpha;
+        circ(c.x, c.y, R, sy.f);
+        circ(c.x, c.y, R, 'none', sy.s, sy.lw);
+        ctx.globalAlpha = 1;
+    }
+    function gsBadge(x, y, r, col, label, sc, fsz) {
+        if (sc <= 0) return;
+        ctx.globalAlpha = sc;
+        circ(x, y, r * sc, col + 'ee');
+        tx(String(label), x, y, fsz, '#0f0f1a', 'center', true);
+        ctx.globalAlpha = 1;
+    }
+    function gsEdges(L, x0, top, w, s, p, fresh, e) {
+        EDGES.forEach(function (ed) {
+            var pa = gsPt(L, x0, top, w, ed[0]), pb = gsPt(L, x0, top, w, ed[1]);
+            ln(pa.x, pa.y, pb.x, pb.y, P.sub + '55', 1.6);
+            if (!(gsVisited(s, ed[0]) && gsVisited(s, ed[1]))) return;
+            var was = gsVisited(p, ed[0]) && gsVisited(p, ed[1]);
+            ctx.globalAlpha = fresh && !was ? ez(seg(e, 0.55, 0.9)) : 1;
+            ln(pa.x, pa.y, pb.x, pb.y, P.teal + 'cc', 2.2);
+            ctx.globalAlpha = 1;
+        });
+    }
+    function gsNodes(L, x0, top, w, s, p, fresh, e) {
+        var R = L.R, mob = L.mob;
+        var bR = mob ? 9 : 10, dR = mob ? 8 : 9, bF = mob ? 9.5 : 10;
+        NODES.forEach(function (nd) {
+            var id = nd.id;
+            var c = gsPt(L, x0, top, w, id);
+            var ps = gsNodeState(p, id), ss = gsNodeState(s, id);
+            if (ps !== ss) {
+                gsDrawNode(c, R, ps, 1);
+                gsDrawNode(c, R, ss, gsAlphaOf(id, s, fresh, e));
+            } else {
+                gsDrawNode(c, R, ss, 1);
+            }
+            if (fresh && e < 1 && id === s.node) {
+                ctx.globalAlpha = 1 - e;
+                circ(c.x, c.y, R + 4 + 12 * ez(e), 'none', P.orange + 'ff', 2);
+                ctx.globalAlpha = 1;
+            }
+            tx(String(id), c.x, c.y, mob ? 11 : 13, P.text + 'ee', 'center', true);
+            if (mode === 'compare') {
+                if (gsVisited(s, id)) {
+                    var sc2 = fresh && id === s.node ? ez(seg(e, 0.5, 0.9)) : 1;
+                    gsBadge(c.x - R * 0.95, c.y - R * 0.95, dR, P.teal, BFS_POS[id], sc2, bF);
+                    gsBadge(c.x + R * 0.95, c.y - R * 0.95, dR, P.purple, DFS_POS[id], sc2, bF);
+                }
+            } else {
+                var oi = (s.order || []).indexOf(id);
+                if (oi >= 0) {
+                    var sc = fresh && id === s.node ? ez(seg(e, 0.15, 0.5)) : 1;
+                    gsBadge(c.x + R * 0.95, c.y - R * 0.95, bR, P.green, oi + 1, sc, bF);
+                }
+            }
+        });
+    }
+    function gsDiscover(L, x0, top, w, s, fresh, e) {
+        if (!fresh || s.node == null || s.node < 0) return;
+        var pc = gsPt(L, x0, top, w, s.node);
+        gsDisc(s).forEach(function (d) {
+            var q = seg(e, 0.05, 0.55);
+            if (q <= 0) return;
+            var pd = gsPt(L, x0, top, w, d);
+            var dx = lerp(pc.x, pd.x, q), dy = lerp(pc.y, pd.y, q);
+            ln(pc.x, pc.y, dx, dy, P.yellow + 'cc', 2.4);
+            if (q < 1) circ(dx, dy, 5, P.yellow + 'ff');
+        });
+    }
+
+    /* ===================== 큐 · 스택 칩 (BFS/DFS 모드) ===================== */
+    function gsChipAt(cx, cy, cw, ch, id, a, fsz) {
+        if (a <= 0) return;
+        ctx.globalAlpha = a;
+        rr(cx - cw / 2, cy - ch / 2, cw, ch, 4, P.orange + '22', P.orange + 'aa', 1.2);
+        tx(String(id), cx, cy, fsz, P.text + 'ee', 'center', true);
+        ctx.globalAlpha = 1;
+    }
+    function gsChipRow(L, x0, top, w, s, p, fresh, e) {
+        var fs = L.fs;
+        var bottomTop = top + L.bottomY;
+        var lbl = mode === 'bfs' ? '큐 (맨 왼쪽이 다음 차례)' : '스택 (맨 오른쪽이 다음 차례)';
+        var chipY = bottomTop + 4;
+        var chipH = L.mob ? 24 : 28;
+        tx(lbl, x0, chipY + chipH + 16, fs, P.sub + 'ff', 'left', true);
+        var pitch = Math.min(w / N, L.mob ? 40 : 52);
+        var chipW = pitch - (L.mob ? 4 : 8);
+        var cy = chipY + chipH / 2;
+        var sl = gsList(s);
+        var pl = fresh ? gsList(p) : sl;
+        function slotCx(k) { return x0 + k * pitch + chipW / 2; }
+        var k;
+        ctx.globalAlpha = sl.length ? 1 : (fresh ? 1 - seg(e, 0.4, 0.9) : 0);
+        for (k = 0; k < N; k++) rr(x0 + k * pitch, chipY, chipW, chipH, 4, 'none', P.sub + '33', 1);
+        ctx.globalAlpha = 1;
+        if (!fresh) {
+            sl.forEach(function (id, i) { gsChipAt(slotCx(i), cy, chipW, chipH, id, 1, fs); });
+        } else {
+            pl.forEach(function (id, i) {
+                if (sl.indexOf(id) >= 0) return;
+                var c = gsPt(L, x0, top, w, id);
+                var m = 0.6 * ez(seg(e, 0, 0.6));
+                gsChipAt(lerp(slotCx(i), c.x, m), lerp(cy, c.y, m), chipW, chipH, id, 1 - seg(e, 0.2, 0.6), fs);
+            });
+            sl.forEach(function (id, i) {
+                var pi = pl.indexOf(id);
+                if (pi >= 0) {
+                    gsChipAt(lerp(slotCx(pi), slotCx(i), ez(seg(e, 0.1, 0.6))), cy, chipW, chipH, id, 1, fs);
+                    return;
+                }
+                var m2 = ez(seg(e, 0.5, 0.9));
+                gsChipAt(slotCx(i), cy + (1 - m2) * 16, chipW, chipH, id, m2, fs);
+            });
+        }
+        if (!sl.length) {
+            ctx.globalAlpha = fresh ? seg(e, 0.5, 1) : 1;
+            tx('(비어 있음 — 탐색 종료)', x0, cy, fs, P.sub + 'ff', 'left', false);
+            ctx.globalAlpha = 1;
+        } else {
+            var mk = mode === 'bfs' ? 0 : sl.length - 1;
+            var mx = slotCx(mk), my = chipY + chipH + 3;
+            ctx.beginPath();
+            ctx.moveTo(mx, my);
+            ctx.lineTo(mx - 4, my + 5);
+            ctx.lineTo(mx + 4, my + 5);
+            ctx.closePath();
+            ctx.fillStyle = P.yellow + 'cc';
+            ctx.fill();
+        }
+    }
+
+    /* ===================== 비교 타일 (동시 비교 모드) ===================== */
+    function gsTile(cx, cy, tW, tH, n, col, stroke, fsz, a) {
+        if (a <= 0) return;
+        ctx.globalAlpha = a;
+        rr(cx - tW / 2, cy - tH / 2, tW, tH, 4, col + '33', stroke, 1.6);
+        tx(String(n), cx, cy, fsz, P.text + 'ff', 'center', true);
+        ctx.globalAlpha = 1;
+    }
+    function gsCompareRows(L, x0, top, w, s, fresh, e) {
+        var fs = L.fs, mob = L.mob;
+        var bottomTop = top + L.bottomY;
+        var y1 = bottomTop + 2, y2 = y1 + (mob ? 30 : 36);
+        var tH = mob ? 22 : 26;
+        var labW = mob ? 30 : 44;
+        var pitch = Math.min((w - labW) / N, mob ? 34 : 56);
+        var tW = pitch - 4;
+        var up = gsUp(s);
+        var k;
+        tx('BFS', x0, y1 + tH / 2, fs, P.teal + 'ff', 'left', true);
+        tx('DFS', x0, y2 + tH / 2, fs, P.purple + 'ff', 'left', true);
+        for (k = 0; k < N; k++) {
+            rr(x0 + labW + k * pitch + 2, y1, tW, tH, 4, 'none', P.sub + '44', 1);
+            rr(x0 + labW + k * pitch + 2, y2, tW, tH, 4, 'none', P.sub + '44', 1);
+        }
+        for (k = 0; k <= up && k < N; k++) {
+            var match = BFS_POS[k] === DFS_POS[k];
+            var fly = fresh && k === up && e < 1;
+            var m = fly ? ez(seg(e, 0.1, 0.8)) : 1;
+            var c = gsPt(L, x0, top, w, k);
+            var bx = x0 + labW + (BFS_POS[k] - 1) * pitch + 2 + tW / 2;
+            var dx = x0 + labW + (DFS_POS[k] - 1) * pitch + 2 + tW / 2;
+            var ys = y1 + tH / 2, yd = y2 + tH / 2;
+            var ringCol = match ? P.green + 'ff' : P.orange + 'ff';
+            var sB = fly && e < 0.8 ? P.teal + 'ff' : ringCol;
+            var sD = fly && e < 0.8 ? P.purple + 'ff' : ringCol;
+            var fa = fly ? seg(e, 0.25, 0.4) : 1;
+            gsTile(lerp(c.x, bx, m), lerp(c.y, ys, m), tW, tH, k, P.teal, sB, fs, fa);
+            gsTile(lerp(c.x, dx, m), lerp(c.y, yd, m), tW, tH, k, P.purple, sD, fs, fa);
+        }
+    }
+
+    /* ===================== 메인 장면 ===================== */
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var L = gsLayout(w, mob);
+        var s = step || currentSteps()[0];
+        var p = prev || s;
+        var fresh = s !== p;
+        var e = fresh ? clamp01(t) : 1;
+        gsEdges(L, x0, top, w, s, p, fresh, e);
+        gsNodes(L, x0, top, w, s, p, fresh, e);
+        gsDiscover(L, x0, top, w, s, fresh, e);
+        if (mode === 'compare') gsCompareRows(L, x0, top, w, s, fresh, e);
+        else gsChipRow(L, x0, top, w, s, p, fresh, e);
+    }
+
+    /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
+    function draw() {
+        P = window.CsFlow.getP();
+        ctx.clearRect(0, 0, GW(), GH());
+        var W = GW(); var mob = W < 600;
+        var steps = currentSteps();
+        var step = stepIdx >= 0 ? steps[stepIdx] : null;
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
-    function calcH(W) {
-        var mob = W < 600;
-        var L = getLayout(mob);
-        var bottomH = mode === 'compare' ? L.compareH : L.chipRowH;
-        return L.top + L.graphH + L.gapMid + bottomH + L.top;
-    }
-
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
-        var neededH = calcH(w);
+        var mob = w < 600;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
         canvasWrap.style.height    = 'auto';
-        canvasWrap.style.minHeight = neededH + 'px';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
         var actualH = canvasWrap.offsetHeight || neededH;
         if (actualH < neededH) actualH = neededH;
-
         canvas.width  = w * dpr;
         canvas.height = actualH * dpr;
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         draw();
     }
 
-    /* ===================== 메인 드로우 ===================== */
-    function draw() {
-        P = window.CsFlow.getP();
-        ctx.clearRect(0, 0, GW(), GH());
-        var W   = GW();
-        var mob = W < 600;
-        var L   = getLayout(mob);
-
-        var neededH = calcH(W);
-        var extra = Math.max(0, GH() - neededH);
-        L.top = L.top + extra / 2;
-
-        var steps = currentSteps();
-        var step  = stepIdx >= 0 ? steps[stepIdx] : steps[0];
-        var spec  = computeGraphSpec(step);
-
-        drawGraphDiagram(L.top, L.graphH, mob, W, spec);
-
-        var bottomTop = L.top + L.graphH + L.gapMid;
-        var padX = mob ? 12 : 24;
-        if (mode === 'compare') {
-            drawCompareTable(padX, bottomTop, mob, step);
-        } else {
-            drawChipsRow(padX, bottomTop, mob, spec.chipLabel, spec.chipItems);
-        }
-    }
-
-    /* ===================== 애니메이션(스텝 전환 타이밍) ===================== */
+    /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        draw();
-        rafId = requestAnimationFrame(function () {
-            rafId = null;
-            if (onDone) onDone();
-        });
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
-    function setSpeedDisabled(v) {
-        speedBtns.forEach(function (b) { b.disabled = v; });
-    }
-
-    function defaultLog() {
-        return currentSteps()[0].log;
-    }
+    function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -450,7 +575,7 @@
                 if (next === steps.length - 1) {
                     running = false; btnStep.disabled = true; setSpeedDisabled(false);
                 } else {
-                    timer = setTimeout(tick, speed * 0.5);
+                    timer = setTimeout(tick, speed * 0.6);
                 }
             });
         }
@@ -460,7 +585,7 @@
     function vizStep() {
         if (running) return;
         var steps = currentSteps();
-        var next  = stepIdx + 1;
+        var next = stepIdx + 1;
         if (next >= steps.length) return;
         applyStep(next, null);
         if (next === steps.length - 1) { btnPlay.disabled = true; btnStep.disabled = true; }
@@ -469,7 +594,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);
@@ -485,9 +610,7 @@
     function switchMode(m) {
         if (mode === m) return;
         mode = m;
-        modeDefs.forEach(function (d) {
-            modeBtns[d.key].classList.toggle('graph-search-viz__mode-btn--active', d.key === m);
-        });
+        modeDefs.forEach(function (d) { modeBtns[d.key].classList.toggle('graph-search-viz__mode-btn--active', d.key === m); });
         vizReset();
     }
 
@@ -506,9 +629,9 @@
                 tooltipHits: [],
                 hoveredKey: function () { return null; },
                 setHoveredKey: function () {},
-                draw: draw,
+                draw: draw
             };
-        },
+        }
     });
 
     setTimeout(resize, 60);
