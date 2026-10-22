@@ -1,5 +1,5 @@
 /**
- * 암달의 법칙 시각화
+ * 암달의 법칙 시각화 시각화
  */
 (function () {
     'use strict';
@@ -22,9 +22,9 @@
 
     var modeWrap = el('div', 'amdahl-viz__mode');
     var modeDefs = [
-        { key: 'time',  label: '시간 분할' },
+        { key: 'time', label: '시간 분할' },
         { key: 'curve', label: '속도 향상 곡선' },
-        { key: 'bars',  label: '병렬 비율 비교' }
+        { key: 'bars', label: '병렬 비율 비교' }
     ];
     var modeBtns = {};
     modeDefs.forEach(function (m, i) {
@@ -39,7 +39,7 @@
     var speedWrap = el('div', 'amdahl-viz__speed');
     speedWrap.appendChild(el('span', 'amdahl-viz__speed-label', 'SPEED'));
     var speedBtns = [];
-    [['1x', 1700], ['2x', 850], ['3x', 480]].forEach(function (pair, i) {
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
         var b = el('button', 'amdahl-viz__speed-btn' + (i === 0 ? ' amdahl-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
@@ -72,11 +72,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'time';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 데이터 ===================== */
     function speedup(p, n) { return 1 / ((1 - p) + p / n); }
@@ -120,238 +187,273 @@
     ];
 
     /* ===================== 상태 ===================== */
-    var mode    = 'time';
-    var stepIdx = -1;
-    var running = false;
-    var timer   = null;
-    var rafId   = null;
-    var speed   = 1700;
-
     function currentSteps() {
         if (mode === 'curve') return CURVE_STEPS;
         if (mode === 'bars') return BARS_STEPS;
         return TIME_STEPS;
     }
+    function defaultLog() {
+        if (mode === 'curve') return '코어 수에 따른 속도 향상 곡선 — 병렬 비율이 높을수록 곡선이 더 높이 올라갑니다.';
+        if (mode === 'bars') return '코어 8개로 고정 — 병렬 비율에 따라 속도 향상이 얼마나 달라지는지 비교합니다.';
+        return '암달의 법칙: 코어를 늘려도 병렬화할 수 없는 직렬 구간은 줄어들지 않습니다.';
+    }
+
+    /* ===================== 레이아웃 ===================== */
+    function layout(w, mob) {
+        var fs = mob ? 11 : 13;
+        if (mode === 'curve') {
+            var plotTop = mob ? 42 : 46;
+            var plotH = mob ? 150 : 230;
+            return { fs: fs, padL: mob ? 34 : 54, padR: mob ? 12 : 14, plotTop: plotTop, plotH: plotH, plotBot: plotTop + plotH, total: plotTop + plotH + 40 };
+        }
+        if (mode === 'bars') {
+            var bLabelW = mob ? 50 : 76;
+            var bValW = mob ? 44 : 68;
+            var bRowH = mob ? 36 : 44;
+            var bBarH = mob ? 22 : 28;
+            var bY0 = mob ? 26 : 30;
+            var bYb = bY0 + 4 * bRowH + bBarH + 14;
+            return { fs: fs, labelW: bLabelW, barMaxW: Math.max(60, w - bLabelW - bValW - 8), y0: bY0, rowH: bRowH, barH: bBarH, yb: bYb, total: bYb + 24 };
+        }
+        var tLabelW = mob ? 50 : 78;
+        var tValW = mob ? 84 : 140;
+        var tRowH = mob ? 36 : 44;
+        var tBarH = mob ? 22 : 28;
+        var tY0 = (mob ? 34 : 20) + 14;
+        return { fs: fs, labelW: tLabelW, valW: tValW, barMaxW: Math.max(60, w - tLabelW - tValW - 6), y0: tY0, rowH: tRowH, barH: tBarH, total: tY0 + 5 * tRowH + 24 };
+    }
+    function sceneH(w, mob) { return layout(w, mob).total; }
 
     /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        var rad = Math.min(r, w / 2, h / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + rad, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, rad);
-        ctx.arcTo(x + w, y + h, x,     y + h, rad);
-        ctx.arcTo(x,     y + h, x,     y,     rad);
-        ctx.arcTo(x,     y,     x + w, y,     rad);
-        ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    function ez(q) { q = clamp01(q); return q * q * (3 - 2 * q); }
+    function amdHex(a) { var v = Math.round(clamp01(a) * 255); return (v < 16 ? '0' : '') + v.toString(16); }
+    function amdA(c, a) { return c + amdHex(a); }
+    function amdTW(str, fs) {
+        var n = 0;
+        for (var i = 0; i < str.length; i++) n += str.charCodeAt(i) < 128 ? 0.6 : 1;
+        return n * fs;
     }
-    function tx(str, x, y, sz, color, align, bold) {
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
-    }
-    function line(x1, y1, x2, y2, color, lw) {
-        ctx.strokeStyle = color;
-        ctx.lineWidth = lw || 1;
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
-        ctx.stroke();
-    }
-    function dashedLine(x1, y1, x2, y2, color) {
-        ctx.save();
-        ctx.setLineDash([5, 4]);
-        line(x1, y1, x2, y2, color, 1.6);
-        ctx.restore();
-    }
-    function dot(cx, cy, r, fill) {
+    function amdDot(cx, cy, r, fill) {
         ctx.beginPath();
         ctx.arc(cx, cy, r, 0, Math.PI * 2);
         ctx.fillStyle = fill;
         ctx.fill();
     }
 
-    /* ===================== 모드별 드로우 ===================== */
-    function drawTime(x0, top, w, mob, step) {
-        var fs      = mob ? 11.5 : 13;
-        var labelW  = mob ? 56 : 78;
-        var rightW  = mob ? 98 : 140;
-        var barX    = x0 + labelW;
-        var barMaxW = Math.max(120, w - labelW - rightW - 6);
-        var rowH    = mob ? 40 : 46;
-        var barH    = mob ? 26 : 30;
-        var rows    = step ? step.rows : 0;
-
-        var ly = top + 8;
-        rr(x0, ly - 6, 12, 12, 3, P.orange + 'cc', null);
-        tx('직렬(병렬화 불가)', x0 + 18, ly, fs, P.text + 'cc', 'left', false);
-        var serLabelW = ctx.measureText('직렬(병렬화 불가)').width;
-        var lx2 = x0 + 18 + serLabelW + 22;
-        rr(lx2, ly - 6, 12, 12, 3, P.teal + 'cc', null);
-        tx('병렬(코어로 분할)', lx2 + 18, ly, fs, P.text + 'cc', 'left', false);
-
-        var y0 = top + 34;
-        var serW = barMaxW * TIME_SER / 100;
-
+    /* ===================== 시간 분할 장면 ===================== */
+    function amdDrawTime(x0, top, w, mob, s, p, e, L) {
+        var fs = L.fs;
+        var rows = s.rows;
+        var pRows = p ? p.rows : 0;
+        var grew = rows !== pRows;
+        var cur = rows - 1;
+        var pCur = pRows - 1;
+        var barX = x0 + L.labelW;
+        var serW = L.barMaxW * TIME_SER / 100;
+        var rightX = barX + L.barMaxW + 8;
+        var legend = [['직렬(병렬화 불가)', P.orange], ['병렬(코어로 분할)', P.teal]];
+        legend.forEach(function (it, k) {
+            var lx = mob ? x0 : x0 + (k === 0 ? 0 : 18 + amdTW(legend[0][0], fs) + 22);
+            var ly = top + (mob ? 8 + k * 18 : 8);
+            rr(lx, ly - 6, 12, 12, 3, amdA(it[1], 0.8), null);
+            tx(it[0], lx + 18, ly, fs, amdA(P.text, 0.8), 'left', false);
+        });
         for (var i = 0; i < rows; i++) {
-            var n     = TIME_CORES[i];
-            var par   = TIME_PAR / n;
+            var n = TIME_CORES[i];
+            var par = TIME_PAR / n;
             var total = TIME_SER + par;
-            var y     = y0 + i * rowH;
-            var isCur = (i === rows - 1);
-            var parW  = barMaxW * par / 100;
-
-            tx('코어 ' + n, x0, y + barH / 2, fs, isCur ? P.text + 'ee' : P.text + 'aa', 'left', true);
-
-            rr(barX, y, serW, barH, 4, P.orange + (isCur ? '55' : '30'), P.orange + (isCur ? 'ee' : '88'), isCur ? 2.2 : 1.4);
-            rr(barX + serW, y, parW, barH, 4, P.teal + (isCur ? '55' : '30'), P.teal + (isCur ? 'ee' : '88'), isCur ? 2.2 : 1.4);
-
-            if (serW >= 30) tx('20', barX + serW / 2, y + barH / 2, fs - 1, P.orange + 'ee', 'center', true);
-            if (parW >= 30) tx(String(par), barX + serW + parW / 2, y + barH / 2, fs - 1, P.teal + 'ee', 'center', true);
-
-            var endX = barX + serW + parW;
-            var label = (mob ? '' : '총 ') + total + ' → ' + (100 / total).toFixed(2) + 'x';
-            tx(label, endX + 10, y + barH / 2, fs, isCur ? P.text + 'ee' : P.muted + 'dd', 'left', isCur);
+            var fresh = i >= pRows;
+            var isCur = i === cur;
+            var hw = isCur ? (grew ? ez(seg(e, 0.35, 1)) : 1) : (grew && i === pCur ? 1 - ez(seg(e, 0, 0.4)) : 0);
+            var rowA = fresh ? ez(seg(e, 0, 0.35)) : 1;
+            var y = top + L.y0 + i * L.rowH + (fresh ? (1 - rowA) * -8 : 0);
+            var cy = y + L.barH / 2;
+            var parTgt = L.barMaxW * par / 100;
+            var parFrom = i === 0 ? 0 : L.barMaxW * (TIME_PAR / TIME_CORES[i - 1]) / 100;
+            var parW = fresh ? lerp(parFrom, parTgt, ez(seg(e, 0.2, 0.85))) : parTgt;
+            var serDraw = (fresh && i === 0) ? serW * ez(seg(e, 0, 0.5)) : serW;
+            var lw = lerp(1.4, 2.2, hw);
+            ctx.globalAlpha = rowA;
+            tx('코어 ' + n, x0, cy, fs, amdA(P.text, lerp(0.67, 0.93, hw)), 'left', true);
+            rr(barX, y, serDraw, L.barH, 4, amdA(P.orange, lerp(0.19, 0.33, hw)), amdA(P.orange, lerp(0.53, 0.93, hw)), lw);
+            rr(barX + serDraw, y, parW, L.barH, 4, amdA(P.teal, lerp(0.19, 0.33, hw)), amdA(P.teal, lerp(0.53, 0.93, hw)), lw);
+            if (serDraw >= 22) tx(String(TIME_SER), barX + serDraw / 2, cy, fs, amdA(P.orange, 0.93), 'center', true);
+            if (parW >= 22) tx(String(par), barX + serDraw + parW / 2, cy, fs, amdA(P.teal, 0.93), 'center', true);
+            ctx.globalAlpha = fresh ? seg(e, 0.6, 1) : 1;
+            tx((mob ? '' : '총 ') + total + ' → ' + (100 / total).toFixed(2) + 'x', rightX, cy, fs, isCur ? amdA(P.text, 0.93) : P.sub, 'left', isCur);
+            ctx.globalAlpha = 1;
         }
-
-        if (step && step.limit) {
+        if (s.limit) {
+            var lim = !(p && p.limit);
             var lineX = barX + serW;
-            dashedLine(lineX, y0 - 6, lineX, y0 + rows * rowH - 8, P.purple + 'dd');
-            tx('최소 시간 20 → 최대 5x', lineX + 8, y0 + rows * rowH + 8, fs, P.purple + 'ee', 'left', true);
+            var yTop = top + L.y0 - 6;
+            var yBot = top + L.y0 + rows * L.rowH - 8;
+            var yEnd = lim ? yTop + (yBot - yTop) * ez(seg(e, 0, 0.6)) : yBot;
+            ln(lineX, yTop, lineX, yEnd, amdA(P.purple, 0.87), 1.6, [5, 4]);
+            var lbl = '최소 시간 20 → 최대 5x';
+            var lblX = Math.min(lineX + 8, x0 + w - amdTW(lbl, fs));
+            ctx.globalAlpha = lim ? seg(e, 0.5, 1) : 1;
+            tx(lbl, lblX, top + L.y0 + rows * L.rowH + 8, fs, amdA(P.purple, 0.93), 'left', true);
+            ctx.globalAlpha = 1;
         }
     }
 
-    function drawCurve(x0, top, w, mob, step) {
-        var fs     = mob ? 11.5 : 13;
-        var padL   = mob ? 40 : 54;
-        var padR   = mob ? 6 : 14;
-        var plotL  = x0 + padL;
-        var plotR  = x0 + w - padR;
-        var plotW  = plotR - plotL;
-        var plotTop = top + 40;
-        var plotH   = mob ? 190 : 240;
-        var plotBot = plotTop + plotH;
-        var shown   = step ? step.curves : 0;
-        var yMax    = 20;
-
-        function yOf(v) { return plotBot - (v / yMax) * plotH; }
-        function xOf(i) { return plotL + plotW * i / (CURVE_N.length - 1); }
-
-        var lx = plotL;
-        CURVE_PS.forEach(function (c, idx) {
-            var on = idx < shown;
+    /* ===================== 곡선 장면 ===================== */
+    function amdDrawCurve(x0, top, w, mob, s, p, e, L) {
+        var fs = L.fs;
+        var plotL = x0 + L.padL;
+        var plotR = x0 + w - L.padR;
+        var plotW = plotR - plotL;
+        var plotBot = top + L.plotBot;
+        var plotH = L.plotH;
+        var nN = CURVE_N.length;
+        var pShown = p ? p.curves : 0;
+        var yOf = function (v) { return plotBot - (v / 20) * plotH; };
+        var xOf = function (i) { return plotL + plotW * i / (nN - 1); };
+        var lx = x0;
+        CURVE_PS.forEach(function (c, k) {
+            var on = k < s.curves;
             var label = 'p=' + c.p;
-            rr(lx, top + 2, 12, 12, 3, P[c.color] + (on ? 'cc' : '44'), null);
-            tx(label, lx + 18, top + 8, fs, on ? P.text + 'ee' : P.muted + 'aa', 'left', on);
-            lx += 18 + ctx.measureText(label).width + 22;
+            ctx.globalAlpha = (on && k >= pShown) ? seg(e, 0, 0.3) : 1;
+            rr(lx, top + 2, 12, 12, 3, amdA(P[c.color], on ? 0.8 : 0.27), null);
+            tx(label, lx + 18, top + 8, fs, on ? amdA(P.text, 0.93) : P.sub, 'left', on);
+            ctx.globalAlpha = 1;
+            lx += 18 + amdTW(label, fs) + 22;
         });
-
         [0, 5, 10, 15, 20].forEach(function (v) {
-            var y = yOf(v);
-            line(plotL, y, plotR, y, P.muted + (v === 0 ? '88' : '33'), 1);
-            tx(v + 'x', plotL - 8, y, fs - 1, P.muted + 'cc', 'right', false);
+            var gy = yOf(v);
+            ln(plotL, gy, plotR, gy, amdA(P.sub, v === 0 ? 0.53 : 0.2), 1);
+            tx(v + 'x', plotL - 6, gy, fs, P.sub, 'right', false);
         });
         CURVE_N.forEach(function (n, i) {
-            tx(String(n), xOf(i), plotBot + 16, fs - 1, P.muted + 'cc', 'center', false);
+            tx(String(n), xOf(i), plotBot + 14, fs, P.sub, 'center', false);
         });
-        tx('코어 수(N)', (plotL + plotR) / 2, plotBot + 36, fs, P.muted + 'cc', 'center', false);
-
-        for (var k = 0; k < shown; k++) {
+        tx('코어 수(N)', (plotL + plotR) / 2, plotBot + 32, fs, P.sub, 'center', false);
+        for (var k = 0; k < s.curves; k++) {
             var c = CURVE_PS[k];
             var col = P[c.color];
             var limit = 1 / (1 - c.p);
-
-            dashedLine(plotL, yOf(limit), plotR, yOf(limit), col + 'aa');
-            tx('한계 ' + Math.round(limit) + 'x', plotR - 4, yOf(limit) - 10, fs, col + 'ee', 'right', true);
-
-            ctx.strokeStyle = col + 'ee';
+            var fresh = k >= pShown;
+            var f = fresh ? ez(seg(e, 0, 0.8)) : 1;
+            ctx.globalAlpha = fresh ? seg(e, 0.75, 1) : 1;
+            ln(plotL, yOf(limit), plotR, yOf(limit), amdA(col, 0.67), 1.6, [5, 4]);
+            tx('한계 ' + Math.round(limit) + 'x', plotR - 4, yOf(limit) - 10, fs, amdA(col, 0.93), 'right', true);
+            ctx.globalAlpha = 1;
+            var pos = (nN - 1) * f;
+            ctx.strokeStyle = amdA(col, 0.93);
             ctx.lineWidth = 2.6;
             ctx.beginPath();
-            CURVE_N.forEach(function (n, i) {
-                var px = xOf(i), py = yOf(speedup(c.p, n));
-                if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
-            });
+            ctx.moveTo(xOf(0), yOf(speedup(c.p, CURVE_N[0])));
+            for (var i = 1; i < nN && i <= pos; i++) ctx.lineTo(xOf(i), yOf(speedup(c.p, CURVE_N[i])));
+            var i0 = Math.floor(pos);
+            if (i0 < nN - 1 && pos > i0) {
+                var fr = pos - i0;
+                ctx.lineTo(lerp(xOf(i0), xOf(i0 + 1), fr), lerp(yOf(speedup(c.p, CURVE_N[i0])), yOf(speedup(c.p, CURVE_N[i0 + 1])), fr));
+            }
             ctx.stroke();
-            CURVE_N.forEach(function (n, i) {
-                dot(xOf(i), yOf(speedup(c.p, n)), 3.6, col + 'ee');
-            });
+            for (var j = 0; j < nN; j++) {
+                if (j <= pos) amdDot(xOf(j), yOf(speedup(c.p, CURVE_N[j])), 3.6, amdA(col, 0.93));
+            }
+        }
+        if (s === CURVE_STEPS[CURVE_STEPS.length - 1]) {
+            var c3 = CURVE_PS[2];
+            var sp = (nN - 1) * ez(seg(e, 0, 0.9));
+            var q0 = Math.min(Math.floor(sp), nN - 2);
+            var fq = sp - q0;
+            var mx = lerp(xOf(q0), xOf(q0 + 1), fq);
+            var my = lerp(yOf(speedup(c3.p, CURVE_N[q0])), yOf(speedup(c3.p, CURVE_N[q0 + 1])), fq);
+            var near = Math.round(sp);
+            var mtxt = 'N=' + CURVE_N[near] + ' → ' + speedup(c3.p, CURVE_N[near]).toFixed(1) + 'x';
+            var mw = amdTW(mtxt, fs);
+            var mlx = Math.max(plotL, Math.min(mx - mw / 2, plotR - mw));
+            amdDot(mx, my, 5, amdA(P.yellow, 0.93));
+            tx(mtxt, mlx + mw / 2, my - 12, fs, P.yellow, 'center', true);
         }
     }
 
-    function drawBars(x0, top, w, mob, step) {
-        var fs      = mob ? 11.5 : 13;
-        var labelW  = mob ? 56 : 76;
-        var valW    = mob ? 54 : 68;
-        var barX    = x0 + labelW;
-        var barMaxW = Math.max(120, w - labelW - valW - 8);
-        var rowH    = mob ? 40 : 46;
-        var barH    = mob ? 24 : 28;
-        var y0      = top + 30;
-        var rows    = step ? step.rows : 0;
-        var idealX  = barX + barMaxW;
-
-        dashedLine(idealX, y0 - 8, idealX, y0 + BARS_P.length * rowH - 10, P.purple + 'cc');
-        tx('이상적 ' + BARS_N + 'x', idealX, top + 10, fs, P.purple + 'ee', 'center', true);
-
+    /* ===================== 병렬 비율 장면 ===================== */
+    function amdDrawBars(x0, top, w, mob, s, p, e, L) {
+        var fs = L.fs;
+        var rows = s.rows;
+        var pRows = p ? p.rows : 0;
+        var grew = rows !== pRows;
+        var cur = rows - 1;
+        var pCur = pRows - 1;
+        var barX = x0 + L.labelW;
+        var idealX = barX + L.barMaxW;
+        ln(idealX, top + L.y0 - 8, idealX, top + L.y0 + 5 * L.rowH - 10, amdA(P.purple, 0.8), 1.6, [5, 4]);
+        tx('이상적 ' + BARS_N + 'x', idealX, top + 10, fs, amdA(P.purple, 0.93), 'center', true);
         for (var i = 0; i < rows; i++) {
-            var p     = BARS_P[i];
-            var s     = speedup(p, BARS_N);
-            var len   = barMaxW * s / BARS_N;
-            var y     = y0 + i * rowH;
-            var isCur = (i === rows - 1);
-
-            tx('p=' + p.toFixed(2), x0, y + barH / 2, fs, isCur ? P.text + 'ee' : P.text + 'aa', 'left', true);
-            rr(barX, y, len, barH, 4, P.teal + (isCur ? '55' : '30'), P.teal + (isCur ? 'ee' : '88'), isCur ? 2.2 : 1.4);
-            tx(s.toFixed(2) + 'x', idealX + 10, y + barH / 2, fs, isCur ? P.text + 'ee' : P.muted + 'dd', 'left', isCur);
+            var pv = BARS_P[i];
+            var sv = speedup(pv, BARS_N);
+            var fresh = i >= pRows;
+            var isCur = i === cur;
+            var hw = isCur ? (grew ? ez(seg(e, 0.35, 1)) : 1) : (grew && i === pCur ? 1 - ez(seg(e, 0, 0.4)) : 0);
+            var rowA = fresh ? ez(seg(e, 0, 0.35)) : 1;
+            var y = top + L.y0 + i * L.rowH + (fresh ? (1 - rowA) * -8 : 0);
+            var cy = y + L.barH / 2;
+            var len = L.barMaxW * sv / BARS_N * (fresh ? ez(seg(e, 0.1, 0.85)) : 1);
+            ctx.globalAlpha = rowA;
+            tx('p=' + pv.toFixed(2), x0, cy, fs, amdA(P.text, lerp(0.67, 0.93, hw)), 'left', true);
+            rr(barX, y, len, L.barH, 4, amdA(P.teal, lerp(0.19, 0.33, hw)), amdA(P.teal, lerp(0.53, 0.93, hw)), lerp(1.4, 2.2, hw));
+            ctx.globalAlpha = fresh ? seg(e, 0.6, 1) : 1;
+            tx(sv.toFixed(2) + 'x', idealX + 10, cy, fs, isCur ? amdA(P.text, 0.93) : P.sub, 'left', isCur);
+            ctx.globalAlpha = 1;
         }
+        if (s === BARS_STEPS[BARS_STEPS.length - 1]) {
+            var bp = p ? ez(seg(e, 0.2, 0.9)) : 1;
+            var first = BARS_P[0];
+            var last = BARS_P[BARS_P.length - 1];
+            var x1 = barX + L.barMaxW * speedup(first, BARS_N) / BARS_N;
+            var x5 = barX + L.barMaxW * speedup(last, BARS_N) / BARS_N;
+            var yb = top + L.yb;
+            var xe = x1 + (x5 - x1) * bp;
+            var bcol = amdA(P.yellow, 0.93);
+            ln(x1, yb, xe, yb, bcol, 1.8);
+            ln(x1, yb - 5, x1, yb + 5, bcol, 1.8);
+            ln(xe, yb - 5, xe, yb + 5, bcol, 1.8);
+            ctx.globalAlpha = p ? seg(e, 0.6, 1) : 1;
+            tx(speedup(first, BARS_N).toFixed(2) + 'x → ' + speedup(last, BARS_N).toFixed(2) + 'x', x1, yb + 14, fs, bcol, 'left', true);
+            ctx.globalAlpha = 1;
+        }
+    }
+
+    /* ===================== 메인 장면 ===================== */
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var L = layout(w, mob);
+        var e = clamp01(t);
+        var s = step || currentSteps()[0];
+        if (mode === 'curve') amdDrawCurve(x0, top, w, mob, s, prev, e, L);
+        else if (mode === 'bars') amdDrawBars(x0, top, w, mob, s, prev, e, L);
+        else amdDrawTime(x0, top, w, mob, s, prev, e, L);
+        ctx.globalAlpha = 1;
     }
 
     /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
     function draw() {
         P = window.CsFlow.getP();
         ctx.clearRect(0, 0, GW(), GH());
         var W = GW(); var mob = W < 600;
-        var padX = mob ? 16 : 26;
-        var fullW = W - padX * 2;
-        var top = mob ? 18 : 26;
-
         var steps = currentSteps();
         var step = stepIdx >= 0 ? steps[stepIdx] : null;
-
-        if (mode === 'curve') drawCurve(padX, top, fullW, mob, step);
-        else if (mode === 'bars') drawBars(padX, top, fullW, mob, step);
-        else drawTime(padX, top, fullW, mob, step);
-
-        if (!step) {
-            var hint = '아래 STEP을 눌러 병렬 처리의 이득이 어떻게 변하는지 확인하세요.';
-            var hs = mob ? 11 : 12.5;
-            var hl = [hint];
-            ctx.font = '500 ' + hs + 'px "JetBrains Mono",monospace';
-            if (ctx.measureText(hint).width > W - 16) {
-                var cut = hint.indexOf(' ', Math.floor(hint.length / 2));
-                if (cut < 0) cut = hint.lastIndexOf(' ');
-                hl = [hint.slice(0, cut), hint.slice(cut + 1)];
-            }
-            hl.forEach(function (line, li) {
-                tx(line, W / 2, GH() - (mob ? 12 : 14) - (hl.length - 1 - li) * (hs + 4), hs, P.muted + 'aa', 'center', false);
-            });
-        }
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
         var mob = w < 600;
-        var neededH;
-        if (mode === 'curve') neededH = mob ? 322 : 384;
-        else if (mode === 'bars') neededH = mob ? 300 : 340;
-        else neededH = mob ? 310 : 340;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
         canvasWrap.style.height    = 'auto';
-        canvasWrap.style.minHeight = neededH + 'px';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
         var actualH = canvasWrap.offsetHeight || neededH;
         if (actualH < neededH) actualH = neededH;
         canvas.width  = w * dpr;
@@ -363,17 +465,22 @@
     /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        draw();
-        rafId = requestAnimationFrame(function () { rafId = null; if (onDone) onDone(); });
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
     function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
-    function defaultLog() {
-        if (mode === 'curve') return '코어 수에 따른 속도 향상 곡선 — 병렬 비율이 높을수록 곡선이 더 높이 올라갑니다.';
-        if (mode === 'bars') return '코어 8개로 고정 — 병렬 비율에 따라 속도 향상이 얼마나 달라지는지 비교합니다.';
-        return '암달의 법칙: 코어를 늘려도 병렬화할 수 없는 직렬 구간은 줄어들지 않습니다.';
-    }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -412,7 +519,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);
