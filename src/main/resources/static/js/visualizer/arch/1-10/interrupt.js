@@ -1,82 +1,177 @@
 /**
- * 인터럽트 인터랙티브 시각화
+ * 인터럽트 인터랙티브 시각화 시각화
  */
 (function () {
     'use strict';
 
-    const container = document.getElementById('visualizer-container');
+    var container = document.getElementById('visualizer-container');
     if (!container) return;
 
-    /* ===================== UI 구성 ===================== */
     function el(tag, cls, txt) {
-        const e = document.createElement(tag);
+        var e = document.createElement(tag);
         if (cls) e.className = cls;
-        if (txt) e.textContent = txt;
+        if (txt !== undefined && txt !== null) e.textContent = txt;
         return e;
     }
 
-    const root    = el('div', 'intr');
-    const toolbar = el('div', 'intr__toolbar');
-    const tbLeft  = el('div', 'intr__toolbar-left');
+    /* ===================== DOM ===================== */
+    var root    = el('div', 'intr');
+    var toolbar = el('div', 'intr__toolbar');
+    var tbLeft  = el('div', 'intr__toolbar-left');
     tbLeft.appendChild(el('span', 'intr__title', 'INTERRUPT'));
-    const badge = el('span', 'intr__step-badge', 'IDLE');
-    tbLeft.appendChild(badge);
+
+    var modeWrap = el('div', 'intr__mode');
+    var modeDefs = [
+
+    ];
+    var modeBtns = {};
+    modeDefs.forEach(function (m, i) {
+        var b = el('button', 'intr__mode-btn' + (i === 0 ? ' intr__mode-btn--active' : ''), m.label);
+        b.addEventListener('click', function () { if (!running) switchMode(m.key); });
+        modeWrap.appendChild(b);
+        modeBtns[m.key] = b;
+    });
+    if (modeDefs.length) tbLeft.appendChild(modeWrap);
     toolbar.appendChild(tbLeft);
 
-    const speedWrap = el('div', 'intr__speed');
+    var speedWrap = el('div', 'intr__speed');
     speedWrap.appendChild(el('span', 'intr__speed-label', 'SPEED'));
-    [['1x', 1000], ['2x', 500], ['3x', 200]].forEach(function(pair, i) {
-        const lbl = pair[0], ms = pair[1];
-        const b = el('button', 'intr__speed-btn' + (i === 0 ? ' intr__speed-btn--active' : ''), lbl);
-        b.addEventListener('click', function () { if (!running) setSpeed(ms, b); });
+    var speedBtns = [];
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
+        var b = el('button', 'intr__speed-btn' + (i === 0 ? ' intr__speed-btn--active' : ''), pair[0]);
+        b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
+        speedBtns.push(b);
     });
     toolbar.appendChild(speedWrap);
     root.appendChild(toolbar);
 
-    const canvasWrap = el('div', 'intr__canvas-wrap');
-    const canvas     = document.createElement('canvas');
+    var canvasWrap = el('div', 'intr__canvas-wrap');
+    var canvas     = document.createElement('canvas');
     canvas.className = 'intr__canvas';
     canvasWrap.appendChild(canvas);
     root.appendChild(canvasWrap);
 
-    const logEl = el('div', 'intr__log', '▶ PLAY를 눌러 인터럽트 처리 과정을 확인하세요.');
+    var logEl = el('div', 'intr__log', '');
     root.appendChild(logEl);
 
-    const controls = el('div', 'intr__controls');
-    const btnPlay  = el('button', 'intr__btn intr__btn--primary', '▶ PLAY');
-    const btnStep  = el('button', 'intr__btn', '▶| STEP');
-    const btnReset = el('button', 'intr__btn', '↺ RESET');
-    btnPlay.addEventListener('click',  intrStart);
-    btnStep.addEventListener('click',  intrStep);
-    btnReset.addEventListener('click', intrReset);
+    var controls = el('div', 'intr__controls');
+    var btnPlay  = el('button', 'intr__btn intr__btn--primary', '▶ PLAY');
+    var btnStep  = el('button', 'intr__btn', '▶| STEP');
+    var btnReset = el('button', 'intr__btn', '↺ RESET');
+    btnPlay.addEventListener('click',  vizStart);
+    btnStep.addEventListener('click',  vizStep);
+    btnReset.addEventListener('click', vizReset);
     controls.appendChild(btnPlay);
     controls.appendChild(btnStep);
     controls.appendChild(btnReset);
     root.appendChild(controls);
     container.appendChild(root);
 
-    /* ===================== 캔버스 ===================== */
-    const ctx = canvas.getContext('2d');
-    const dpr = window.devicePixelRatio || 1;
-    const GW  = function () { return canvas.width  / dpr; };
-    const GH  = function () { return canvas.height / dpr; };
+    var ctx = canvas.getContext('2d');
+    var dpr = window.devicePixelRatio || 1;
+    function GW() { return canvas.width / dpr; }
+    function GH() { return canvas.height / dpr; }
 
-    function resize() {
-        const w   = canvasWrap.offsetWidth;
-        const mob = w < 520;
-        const minH = mob ? 260 : 460;
-        canvasWrap.style.minHeight = minH + 'px';
-        const h    = Math.max(canvasWrap.offsetHeight, minH);
-        canvas.width  = w * dpr;
-        canvas.height = h * dpr;
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        draw();
+    var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = '';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
     }
-
-    /* ===================== 팔레트 ===================== */
-    const PALETTE = window.CsFlow.PALETTE;
-    let P = window.CsFlow.getP();
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    var tipHits = [];
+    var mousePos = { x: -1, y: -1 };
+    var hoveredKey = null;
+    function tipHit(x, y, w, h, key) { tipHits.push({ x: x, y: y, w: w, h: h, key: key }); }
+    function tipBadge(cx, cy, key) {
+        var on = hoveredKey === key;
+        circ(cx, cy, 7, on ? P.purple + '44' : 'none', P.purple + (on ? 'ff' : '99'), 1.2);
+        tx('?', cx, cy, 9.5, on ? P.text + 'ff' : P.sub + 'ff', 'center', true);
+        tipHit(cx - 10, cy - 10, 20, 20, key);
+    }
+    function drawTip(mx, my, text) {
+        var parts = text.split('\n');
+        var title = parts[0], desc = parts[1] || '';
+        ctx.font = '700 14px "JetBrains Mono",monospace';
+        var titleW = ctx.measureText(title).width;
+        ctx.font = '400 13px "JetBrains Mono",monospace';
+        var descW = ctx.measureText(desc).width;
+        var W = GW(), H = GH();
+        var pad = 14;
+        var tw = Math.min(W - 16, Math.max(titleW, descW) + pad * 2);
+        var th = desc ? 60 : 36;
+        var bx = mx + 14, by = my - th - 8;
+        if (bx + tw > W - 8) bx = mx - tw - 14;
+        if (bx < 8) bx = 8;
+        if (by < 8) by = my + 14;
+        if (by + th > H - 8) by = H - th - 8;
+        rr(bx, by, tw, th, 6, P.surf2, P.purple + 'cc', 2);
+        tx(title, bx + pad, by + (desc ? 18 : th / 2), 14, P.text + 'ff', 'left', true);
+        if (desc) tx(desc, bx + pad, by + 42, 13, P.sub + 'ff', 'left', false);
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 툴팁 ===================== */
     const TOOLTIPS = {
@@ -127,479 +222,399 @@
     ];
 
     /* ===================== 상태 ===================== */
-    let stepIdx   = -1;
-    let running   = false;
-    let timer     = null;
-    let speed     = 1800;
-    let activeSet = new Set();
-    let phase     = 'normal';
+    var TIPS = TOOLTIPS;
+    var IV_MAIN = ['mov ax,1', 'add bx,ax', 'inc cx', 'cmp cx,10'];
+    var IV_MAIN_AD = ['0100', '0102', '0104', '0106'];
+    var IV_ISR = ['push ax', 'in al,60h', 'mov buf,al', 'iret'];
+    var IV_ISR_AD = ['0204', '0206', '0208', '020A'];
+    var IV_EDGES = [['CPU', 'PIC'], ['CPU', 'STACK'], ['CPU', 'IVT'], ['IVT', 'ISR'], ['ISR', 'STACK']];
+    var IV_NODE_COL = { CPU: 'purple', PIC: 'orange', IVT: 'yellow', STACK: 'teal', ISR: 'green' };
+    var IV_TYPE_COL = { signal: 'orange', save: 'teal', lookup: 'yellow', jump: 'green', restore: 'teal', resume: 'purple' };
+    var IV_PHASE = {
+        normal: ['IRQ1 감지 (키보드)', 'orange'],
+        save: ['PC + Registers → Stack', 'teal'],
+        ivt: ['IRQ1 → ISR 주소: 0x0204', 'yellow'],
+        isr: ['ISR 실행 중 (키 입력 처리)', 'green'],
+        'return': ['IRET → 원래 작업 복귀', 'purple']
+    };
+    var IV_ANIM = {
+        1: [['PIC', 'CPU', 'IRQ', 'orange', 0, 0.3], ['CPU', 'STACK', 'CTX', 'teal', 0.3, 0.75]],
+        2: [['CPU', 'IVT', 'VEC', 'yellow', 0, 0.5]],
+        3: [['IVT', 'ISR', 'JMP', 'green', 0, 0.3]],
+        4: [['ISR', 'STACK', 'RST', 'teal', 0.3, 0.6], ['STACK', 'CPU', 'RET', 'purple', 0.6, 0.9]]
+    };
 
-    let pktQueue   = [];
-    let pktCurrent = null;
-    let pktProg    = 0;
-    let pktDone    = null;
-    let rafId      = null;
-
-    let tooltipHits = [];
-    let mousePos    = { x: -1, y: -1 };
-    let hoveredKey  = null;
-
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        ctx.beginPath();
-        ctx.moveTo(x + r, y);
-        ctx.arcTo(x + w, y, x + w, y + h, r);
-        ctx.arcTo(x + w, y + h, x, y + h, r);
-        ctx.arcTo(x, y + h, x, y, r);
-        ctx.arcTo(x, y, x + w, y, r);
-        ctx.closePath();
-        if (fill)   { ctx.fillStyle = fill;   ctx.fill(); }
-        if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.5; ctx.stroke(); }
-    }
-
-    function tx(str, x, y, sz, color, align, bold) {
-        ctx.font = (bold ? '700' : '400') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
-    }
+    /* ===================== 단계 ===================== */
+    function currentSteps() { return STEPS; }
+    function defaultLog() { return '▶ PLAY를 눌러 인터럽트 처리 과정을 확인하세요.'; }
+    function ez(q) { var c = clamp01(q); return c * c * (3 - 2 * c); }
 
     /* ===================== 레이아웃 ===================== */
-    function buildLayout() {
-        const W = GW(), H = GH();
-        const mob = W < 520;
-
-        const nw = mob ? 80  : 120;
-        const nh = mob ? 52  : 70;
-
-        if (mob) {
-            const colX0 = 6;
-            const colX1 = W - nw - 6;
-            const usableH = H - 30 - 10;
-            const gap     = Math.max(14, (usableH - nh * 3) / 2);
-            const rowY0   = 10;
-            const rowY1   = rowY0 + nh + gap;
-            const rowY2   = rowY1 + nh + gap;
-
-            const nodes = {
-                CPU:   { x: colX0, y: rowY0, w: nw, h: nh, col: P.purple, lbl: 'CPU',   sub: 'Processor' },
-                PIC:   { x: colX1, y: rowY0, w: nw, h: nh, col: P.orange, lbl: 'PIC',   sub: 'IRQ 컨트롤러' },
-                STACK: { x: colX0, y: rowY1, w: nw, h: nh, col: P.teal,   lbl: 'STACK', sub: '컨텍스트' },
-                IVT:   { x: colX1, y: rowY1, w: nw, h: nh, col: P.yellow, lbl: 'IVT',   sub: '벡터 테이블' },
-                ISR:   { x: W/2 - nw/2, y: rowY2, w: nw, h: nh, col: P.green, lbl: 'ISR', sub: '처리 루틴' },
-            };
-            return { W, H, mob, nw, nh, nodes };
-        }
-
-        const padX = 32;
-        const colW = (W - padX * 2 - nw) / 3;
-        const x0   = padX;
-        const x1   = padX + colW + nw / 2;
-        const x2   = padX + (colW + nw / 2) * 2;
-        const rowY0 = 30;
-        const rowY1 = rowY0 + nh + 80;
-
-        const nodes = {
-            CPU:   { x: x0,              y: rowY0, w: nw, h: nh, col: P.purple, lbl: 'CPU',   sub: 'Processor' },
-            PIC:   { x: x1,              y: rowY0, w: nw, h: nh, col: P.orange, lbl: 'PIC',   sub: 'IRQ Controller' },
-            STACK: { x: x0,              y: rowY1, w: nw, h: nh, col: P.teal,   lbl: 'STACK', sub: 'Context Save' },
-            IVT:   { x: x1,              y: rowY1, w: nw, h: nh, col: P.yellow, lbl: 'IVT',   sub: 'Vector Table' },
-            ISR:   { x: x2,              y: rowY1, w: nw, h: nh, col: P.green,  lbl: 'ISR',   sub: 'Service Routine' },
+    function layout(w, mob) {
+        var g = mob ? 22 : 56;
+        var cw = (w - g) / 2;
+        var hA = mob ? 56 : 62;
+        var hB = mob ? 102 : 146;
+        var hC = mob ? 70 : 92;
+        var yA = mob ? 30 : 36;
+        var yB = yA + hA + (mob ? 26 : 50);
+        var yC = yB + hB + (mob ? 26 : 44);
+        return {
+            mob: mob, g: g, cw: cw,
+            PIC: { x: 0, y: yA, w: cw, h: hA },
+            IVT: { x: cw + g, y: yA, w: cw, h: hA },
+            CPU: { x: 0, y: yB, w: cw, h: hB },
+            ISR: { x: cw + g, y: yB, w: cw, h: hB },
+            STACK: { x: 0, y: yC, w: cw, h: hC },
+            capY: yC + hC + (mob ? 12 : 16)
         };
-        return { W, H, mob, nw, nh, nodes };
+    }
+    function ivAbs(L, x0, top) {
+        var out = { mob: L.mob, g: L.g, cw: L.cw, capY: L.capY + top };
+        ['PIC', 'IVT', 'CPU', 'ISR', 'STACK'].forEach(function (k) {
+            out[k] = { x: L[k].x + x0, y: L[k].y + top, w: L[k].w, h: L[k].h };
+        });
+        return out;
+    }
+    function ivRowY(n, i, mob) { return n.y + (mob ? 36 : 50) + i * (mob ? 15 : 22) + (mob ? 7.5 : 11); }
+    function sceneH(w, mob) {
+        var L = layout(w, mob);
+        var fs = mob ? 11 : 13;
+        var n = 1;
+        Object.keys(IV_PHASE).forEach(function (k) { n = Math.max(n, lines(IV_PHASE[k][0], w - 16, fs).length); });
+        return L.capY + n * (fs + 4) + 6;
     }
 
-    function nc(n) { return { x: n.x + n.w / 2, y: n.y + n.h / 2 }; }
+    /* ===================== 상태 계산 ===================== */
+    function ivState(idx, tt) {
+        var st = { pc: { box: 'main', line: 3 }, stack: 0, ivt: false };
+        if (idx >= 1) st.stack = idx === 1 && tt < 0.75 ? 0 : 2;
+        if (idx === 2) st.ivt = tt >= 0.5;
+        if (idx === 3) {
+            st.ivt = true;
+            st.stack = 2;
+            if (tt >= 0.3 && tt < 0.42) st.pc = { box: 'jump', f: seg(tt, 0.3, 0.42) };
+            else if (tt >= 0.42) st.pc = { box: 'isr', line: Math.min(2, Math.floor(seg(tt, 0.42, 1) * 3)) };
+        }
+        if (idx === 4) {
+            st.stack = tt < 0.6 ? 2 : 0;
+            if (tt < 0.15) st.pc = { box: 'isr', line: 2 };
+            else if (tt < 0.6) st.pc = { box: 'isr', line: 3 };
+            else if (tt < 0.9) st.pc = { box: 'ret', f: seg(tt, 0.6, 0.9) };
+            else st.pc = { box: 'main', line: 3 };
+        }
+        return st;
+    }
 
-    /* ===================== 엣지 그리기 ===================== */
-    function drawArrow(x1, y1, x2, y2, col, active) {
-        const dx = x2 - x1, dy = y2 - y1;
-        const len = Math.sqrt(dx * dx + dy * dy);
-        if (len < 2) return;
-        const ux = dx / len, uy = dy / len;
-        const ex = x2 - ux * 10, ey = y2 - uy * 10;
-
+    /* ===================== 선과 경로 ===================== */
+    function ivExit(n, ux, uy) {
+        var a = Math.abs(ux), b = Math.abs(uy);
+        return Math.min(a > 1e-6 ? n.w / 2 / a : 1e9, b > 1e-6 ? n.h / 2 / b : 1e9);
+    }
+    function ivClip(na, nb, pad) {
+        var ax = na.x + na.w / 2, ay = na.y + na.h / 2;
+        var bx = nb.x + nb.w / 2, by = nb.y + nb.h / 2;
+        var len = Math.hypot(bx - ax, by - ay) || 1;
+        var ux = (bx - ax) / len, uy = (by - ay) / len;
+        var ta = ivExit(na, ux, uy) + pad, tb = ivExit(nb, -ux, -uy) + pad;
+        return { x1: ax + ux * ta, y1: ay + uy * ta, x2: bx - ux * tb, y2: by - uy * tb };
+    }
+    function ivEdgeCol(s, a, b) {
+        var hit = null;
+        s.arrow.forEach(function (arr) {
+            if ((arr[0] === a && arr[1] === b) || (arr[0] === b && arr[1] === a)) hit = P[IV_TYPE_COL[arr[2]]] + 'ff';
+        });
+        return hit;
+    }
+    function ivDrawEdges(L, s) {
+        IV_EDGES.forEach(function (pr) {
+            var c = ivEdgeCol(s, pr[0], pr[1]);
+            var e = ivClip(L[pr[0]], L[pr[1]], 3);
+            ctx.beginPath();
+            ctx.setLineDash(c ? [] : [4, 5]);
+            ctx.moveTo(e.x1, e.y1);
+            ctx.lineTo(e.x2, e.y2);
+            ctx.strokeStyle = c || P.border;
+            ctx.lineWidth = c ? 2.5 : 1;
+            ctx.stroke();
+            ctx.setLineDash([]);
+        });
+    }
+    function ivPaths(L) {
+        var mob = L.mob, cpuR = L.CPU.x + L.cw, isrL = L.ISR.x;
+        var yc = ivRowY(L.CPU, 3, mob), yi = ivRowY(L.ISR, 0, mob);
+        var mx = cpuR + L.g * 0.4;
+        return {
+            jump: [[cpuR, yc - 4], [mx, yc - 4], [mx, yi], [isrL, yi]],
+            back: [[isrL, yc + 4], [cpuR, yc + 4]]
+        };
+    }
+    function ivPolyAt(pts, f) {
+        var lens = [], total = 0, i;
+        for (i = 0; i < pts.length - 1; i++) {
+            lens.push(Math.hypot(pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1]));
+            total += lens[i];
+        }
+        var want = f * total;
+        for (i = 0; i < lens.length; i++) {
+            if (want <= lens[i] || i === lens.length - 1) {
+                var k = lens[i] ? Math.min(1, want / lens[i]) : 0;
+                return [pts[i][0] + (pts[i + 1][0] - pts[i][0]) * k, pts[i][1] + (pts[i + 1][1] - pts[i][1]) * k];
+            }
+            want -= lens[i];
+        }
+        return pts[0];
+    }
+    function ivDash(pts, col) {
         ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(ex, ey);
-        ctx.strokeStyle = active ? col : P.border;
-        ctx.lineWidth   = active ? 2.5 : 1;
-        ctx.setLineDash(active ? [] : [4, 5]);
+        ctx.setLineDash([3, 3]);
+        ctx.moveTo(pts[0][0], pts[0][1]);
+        for (var i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+        ctx.strokeStyle = col;
+        ctx.lineWidth = 1.2;
         ctx.stroke();
         ctx.setLineDash([]);
-
-        if (!active) return;
-        const p = 5;
-        ctx.beginPath();
-        ctx.moveTo(x2, y2);
-        ctx.lineTo(ex - uy * p, ey + ux * p);
-        ctx.lineTo(ex + uy * p, ey - ux * p);
-        ctx.closePath();
-        ctx.fillStyle = col;
-        ctx.fill();
-    }
-
-    function edgeMid(a, b, margin) {
-        const m = margin || 0.18;
-        const ca = nc(a), cb = nc(b);
-        return {
-            x1: ca.x + (cb.x - ca.x) * m,
-            y1: ca.y + (cb.y - ca.y) * m,
-            x2: ca.x + (cb.x - ca.x) * (1 - m),
-            y2: ca.y + (cb.y - ca.y) * (1 - m),
-        };
-    }
-
-    /* ===================== 엣지 정의 ===================== */
-    const EDGES = [
-        ['CPU', 'PIC'],
-        ['CPU', 'STACK'],
-        ['CPU', 'IVT'],
-        ['IVT', 'ISR'],
-        ['ISR', 'STACK'],
-    ];
-
-    function getArrowCol(a, b) {
-        if (stepIdx < 0) return P.border;
-        const step = STEPS[stepIdx];
-        for (let i = 0; i < step.arrow.length; i++) {
-            const arr = step.arrow[i];
-            if ((arr[0] === a && arr[1] === b) || (arr[0] === b && arr[1] === a)) {
-                const type = arr[2];
-                if (type === 'signal')  return P.orange;
-                if (type === 'save')    return P.teal;
-                if (type === 'lookup')  return P.yellow;
-                if (type === 'jump')    return P.green;
-                if (type === 'restore') return P.teal;
-                if (type === 'resume')  return P.purple;
-            }
-        }
-        return null;
-    }
-
-    function drawEdges(L) {
-        const { nodes } = L;
-        EDGES.forEach(function (pair) {
-            const a = pair[0], b = pair[1];
-            if (!nodes[a] || !nodes[b]) return;
-            const col = getArrowCol(a, b);
-            const e   = edgeMid(nodes[a], nodes[b]);
-            drawArrow(e.x1, e.y1, e.x2, e.y2, col || P.border, !!col);
-        });
     }
 
     /* ===================== 노드 그리기 ===================== */
-    function drawNodes(L) {
-        const { nodes, mob } = L;
-        const fMd = mob ? 12 : 15;
-        const fSm = mob ? 9  : 11;
-
-        Object.entries(nodes).forEach(function (entry) {
-            const key = entry[0], n = entry[1];
-            const isAct = activeSet.has(key);
-            const isHov = hoveredKey === key;
-            const col   = n.col;
-
-            rr(n.x, n.y, n.w, n.h, 8,
-                isAct ? col + '28' : isHov ? P.purple + '18' : P.surf,
-                isAct ? col : isHov ? P.purple : P.border,
-                isAct ? 2.5 : isHov ? 2 : 1.5);
-
-            const cx = n.x + n.w / 2, cy = n.y + n.h / 2;
-            tx(n.lbl, cx, cy - (mob ? 7 : 9), fMd, isAct ? col : isHov ? P.purple : P.text, 'center', true);
-            tx(n.sub, cx, cy + (mob ? 7 : 10), fSm, P.muted, 'center', false);
-
-            const qx = n.x + n.w - 9, qy = n.y + 9;
-            const isHovQ = hoveredKey === key;
-            ctx.beginPath();
-            ctx.arc(qx, qy, 6, 0, Math.PI * 2);
-            ctx.fillStyle   = isHovQ ? col : P.surf2; ctx.fill();
-            ctx.strokeStyle = isHovQ ? col : P.muted;  ctx.lineWidth = 1; ctx.stroke();
-            tx('?', qx, qy, 7, isHovQ ? '#fff' : P.muted, 'center', true);
-            tooltipHits.push({ x: qx - 6, y: qy - 6, w: 12, h: 12, key: key });
+    function ivBadge(s, x0, top, w, mob) {
+        var bw = mob ? 120 : 170, bh = mob ? 20 : 24;
+        rr(x0 + (w - bw) / 2, top, bw, bh, bh / 2, P.purple + '33', P.purple + '99', 1);
+        tx(s.badge, x0 + w / 2, top + bh / 2, mob ? 11 : 13, P.text, 'center', true);
+    }
+    function ivBox(n, key, s, mob) {
+        var on = s.active.indexOf(key) >= 0;
+        var c = P[IV_NODE_COL[key]];
+        var hov = hoveredKey === key;
+        var title = key;
+        var sub = {
+            PIC: mob ? 'IRQ 중재' : 'IRQ 컨트롤러',
+            IVT: '벡터 테이블',
+            CPU: '메인 프로그램',
+            ISR: mob ? '키보드 처리' : '키보드 처리 루틴',
+            STACK: '컨텍스트 저장'
+        }[key];
+        rr(n.x, n.y, n.w, n.h, 8, P.surf, hov ? P.purple : (on ? c : P.border), on || hov ? 2.2 : 1.4);
+        if (on) rr(n.x, n.y, n.w, n.h, 8, c + '28', null);
+        tx(title, n.x + (mob ? 8 : 12), n.y + (mob ? 9 : 14), mob ? 12 : 15, on ? c : P.text, 'left', true);
+        tx(sub, n.x + (mob ? 8 : 12), n.y + (mob ? 24 : 34), mob ? 11 : 12, P.sub, 'left', false);
+    }
+    function ivNote(n, mob, txt, col) {
+        tx(txt, n.x + (mob ? 8 : 12), n.y + (mob ? 42 : 52), mob ? 11 : 12, col, 'left', false);
+    }
+    function ivRows(n, mob, rows, adr, cur, col) {
+        var lh = mob ? 15 : 22;
+        rows.forEach(function (txt, i) {
+            var y = ivRowY(n, i, mob);
+            if (i === cur) {
+                rr(n.x + 5, y - lh / 2 + 1, n.w - 10, lh - 2, 4, col + '2a', null);
+                circ(n.x + (mob ? 8 : 13), y, mob ? 3.5 : 4.5, col + 'ff', null);
+            }
+            if (!mob) tx(adr[i], n.x + 24, y, 13, P.sub, 'left', false);
+            tx(txt, n.x + (mob ? 14 : 72), y, mob ? 11 : 13, P.text, 'left', i === cur);
+        });
+    }
+    function ivStackBody(n, mob, count) {
+        var h = mob ? 14 : 16, gap = mob ? 2 : 4, fs = mob ? 11 : 12;
+        var y0 = n.y + (mob ? 36 : 48);
+        if (count === 0) tx('비어 있음', n.x + (mob ? 8 : 12), y0 + h / 2, fs, P.sub, 'left', false);
+        ['PC=0106', 'FLAGS'].forEach(function (it, i) {
+            if (i >= count) return;
+            var y = y0 + i * (h + gap);
+            rr(n.x + 6, y, n.w - 12, h, 4, P.teal + '33', P.teal + 'aa', 1);
+            tx(it, n.x + (mob ? 12 : 16), y + h / 2, fs, P.text, 'left', false);
+        });
+    }
+    function ivDrawBodies(L, s, st, mob) {
+        ivNote(L.PIC, mob, 'IRQ1: 키보드', s.active.indexOf('PIC') >= 0 ? P.orange : P.sub);
+        ivNote(L.IVT, mob, mob ? 'IRQ1→0x0204' : 'IRQ1 → 0x0204', st.ivt ? P.yellow : P.sub);
+        ivRows(L.CPU, mob, IV_MAIN, IV_MAIN_AD, st.pc.box === 'main' ? st.pc.line : -1, P.purple);
+        ivRows(L.ISR, mob, IV_ISR, IV_ISR_AD, st.pc.box === 'isr' ? st.pc.line : -1, P.green);
+        ivStackBody(L.STACK, mob, st.stack);
+    }
+    function ivDrawPc(st, paths) {
+        var p = null;
+        if (st.pc.box === 'jump') p = ivPolyAt(paths.jump, st.pc.f);
+        if (st.pc.box === 'ret') p = ivPolyAt(paths.back, st.pc.f);
+        if (p) circ(p[0], p[1], 4.5, P.purple + 'ff', null);
+    }
+    function ivChip(x, y, lbl, col) {
+        rr(x - 19, y - 8, 38, 16, 8, col, null);
+        tx(lbl, x, y, 11, '#111111', 'center', true);
+    }
+    function ivDrawChips(L, idx, tt) {
+        (IV_ANIM[idx] || []).forEach(function (m) {
+            if (tt < m[4] || tt >= m[5]) return;
+            var e = ivClip(L[m[0]], L[m[1]], 3);
+            var f = ez(seg(tt, m[4], m[5]));
+            ivChip(e.x1 + (e.x2 - e.x1) * f, e.y1 + (e.y2 - e.y1) * f, m[2], P[m[3]] + 'ff');
+        });
+    }
+    function ivCaption(L, s, x0, w, mob) {
+        var info = IV_PHASE[s.phase];
+        if (!info) return;
+        var fs = mob ? 11 : 13, lh = fs + 4;
+        lines(info[0], w - 16, fs).forEach(function (txt, i) {
+            tx(txt, x0 + w / 2, L.capY + i * lh + lh / 2, fs, P[info[1]], 'center', true);
         });
     }
 
-    /* ===================== IRQ 레이블 그리기 ===================== */
-    function drawIRQLabel(L) {
-        if (stepIdx < 0) return;
-        const step  = STEPS[stepIdx];
-        const { W, H, mob } = L;
-
-        /* phase 별 상태 텍스트 */
-        const phaseMap = {
-            'normal':  ['IRQ1 감지 (키보드)', P.orange],
-            'save':    ['PC + Registers → Stack', P.teal],
-            'ivt':     ['IRQ1 → ISR 주소: 0x0204', P.yellow],
-            'isr':     ['ISR 실행 중 (키 입력 처리)', P.green],
-            'return':  ['IRET → 원래 작업 복귀', P.purple],
-        };
-        const info = phaseMap[step.phase];
-        if (!info) return;
-
-        const fy = mob ? H - 22 : H - 18;
-        tx(info[0], W / 2, fy, mob ? 13 : 14, info[1], 'center', true);
-    }
-
-    /* ===================== 패킷 애니메이션 ===================== */
-    function drawPacket(L) {
-        if (!pktCurrent) return;
-        const { nodes } = L;
-        const fn = nodes[pktCurrent.from], tn = nodes[pktCurrent.to];
-        if (!fn || !tn) return;
-        const fc = nc(fn), tc = nc(tn);
-        const x = fc.x + (tc.x - fc.x) * pktProg;
-        const y = fc.y + (tc.y - fc.y) * pktProg;
-        ctx.beginPath();
-        ctx.arc(x, y, 10, 0, Math.PI * 2);
-        ctx.fillStyle = pktCurrent.col;
-        ctx.fill();
-        tx(pktCurrent.lbl, x, y, 7, '#0f0f1a', 'center', true);
-    }
-
-    function spawnPkt(from, to, col, lbl) { pktQueue.push({ from: from, to: to, col: col, lbl: lbl }); }
-
-    function pktNext() {
-        if (!pktQueue.length) {
-            pktCurrent = null;
-            draw();
-            if (pktDone) { const cb = pktDone; pktDone = null; cb(); }
-            return;
-        }
-        pktCurrent = pktQueue.shift();
-        pktProg = 0;
-        activeSet.add(pktCurrent.from);
-        activeSet.add(pktCurrent.to);
-        if (rafId) cancelAnimationFrame(rafId);
-        const BASE_SPEED = 1800;
-        const baseStep   = 0.014;
-        const step       = baseStep * (BASE_SPEED / speed);
-        (function tick() {
-            pktProg = Math.min(1, pktProg + step);
-            draw();
-            if (pktProg < 1) rafId = requestAnimationFrame(tick);
-            else pktNext();
-        })();
-    }
-
-    function animPkts(cb) { pktDone = cb || null; pktNext(); }
-
-    /* ===================== 툴팁 ===================== */
-    function drawTooltip(mx, my, key) {
-        const lines = TOOLTIPS[key].split('\n');
-        const title = lines[0], desc = lines[1] || '';
-        const W = GW(), H = GH();
-        const mob = W < 520;
-        const pad = 14;
-        const maxDescW = mob ? Math.min(W - 32, 200) : 280;
-
-        /* desc 줄바꿈 계산 */
-        ctx.font = '400 12px "JetBrains Mono",monospace';
-        const descLines = [];
-        if (desc) {
-            const words = desc.split(' ');
-            let line = '';
-            words.forEach(function (word) {
-                const test = line + (line ? ' ' : '') + word;
-                if (ctx.measureText(test).width > maxDescW - pad * 2 && line) {
-                    descLines.push(line);
-                    line = word;
-                } else {
-                    line = test;
-                }
-            });
-            if (line) descLines.push(line);
-        }
-
-        const lineH  = 18;
-        const titleH = 24;
-        const th = titleH + (descLines.length > 0 ? descLines.length * lineH + 8 : 0);
-
-        ctx.font = '700 13px "JetBrains Mono",monospace';
-        const tw1 = ctx.measureText(title).width;
-        ctx.font = '400 12px "JetBrains Mono",monospace';
-        const tw2 = descLines.reduce(function (mx2, l) { return Math.max(mx2, ctx.measureText(l).width); }, 0);
-        const tw = Math.min(Math.max(tw1, tw2) + pad * 2, maxDescW);
-
-        let tx_ = mx + 14, ty_ = my - th - 8;
-        if (tx_ + tw > W - 8) tx_ = mx - tw - 14;
-        if (tx_ < 8)          tx_ = 8;
-        if (ty_ < 8)          ty_ = my + 14;
-        if (ty_ + th > H - 8) ty_ = H - th - 8;
-
-        rr(tx_, ty_, tw, th, 6, P.surf2, P.purple + 'cc', 2);
-
-        ctx.font = '700 13px "JetBrains Mono",monospace';
-        ctx.fillStyle = P.text; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-        ctx.fillText(title, tx_ + pad, ty_ + titleH / 2);
-
-        if (descLines.length > 0) {
-            ctx.font = '400 12px "JetBrains Mono",monospace';
-            ctx.fillStyle = P.sub;
-            descLines.forEach(function (l, i) {
-                ctx.fillText(l, tx_ + pad, ty_ + titleH + 4 + i * lineH + lineH / 2);
-            });
-        }
+    /* ===================== 메인 장면 ===================== */
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var steps = currentSteps();
+        var s = step || steps[0];
+        var idx = steps.indexOf(s);
+        var tt = prev && step && prev !== step ? t : 1;
+        var L = ivAbs(layout(w, mob), x0, top);
+        var st = ivState(idx, tt);
+        var paths = ivPaths(L);
+        ivBadge(s, x0, top, w, mob);
+        ivDrawEdges(L, s);
+        ivDash(paths.jump, P.purple + '66');
+        ivDash(paths.back, P.purple + '66');
+        ivBox(L.PIC, 'PIC', s, mob);
+        ivBox(L.IVT, 'IVT', s, mob);
+        ivBox(L.CPU, 'CPU', s, mob);
+        ivBox(L.ISR, 'ISR', s, mob);
+        ivBox(L.STACK, 'STACK', s, mob);
+        ivDrawBodies(L, s, st, mob);
+        ivDrawPc(st, paths);
+        ivDrawChips(L, idx, tt);
+        ivCaption(L, s, x0, w, mob);
+        ['CPU', 'PIC', 'IVT', 'STACK', 'ISR'].forEach(function (k) { tipBadge(L[k].x + L[k].w - 11, L[k].y + 11, k); });
     }
 
     /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
     function draw() {
         P = window.CsFlow.getP();
         ctx.clearRect(0, 0, GW(), GH());
-        ctx.fillStyle = P.bg;
-        ctx.fillRect(0, 0, GW(), GH());
-        tooltipHits = [];
-
-        const L = buildLayout();
-        drawEdges(L);
-        drawNodes(L);
-        drawIRQLabel(L);
-        drawPacket(L);
-
-        if (hoveredKey && TOOLTIPS[hoveredKey]) drawTooltip(mousePos.x, mousePos.y, hoveredKey);
+        var W = GW(); var mob = W < 600;
+        var steps = currentSteps();
+        var step = stepIdx >= 0 ? steps[stepIdx] : null;
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        tipHits.length = 0;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
+        if (hoveredKey && typeof TIPS !== 'undefined' && TIPS[hoveredKey]) drawTip(mousePos.x, mousePos.y, TIPS[hoveredKey]);
     }
 
-    /* ===================== 단계 제어 ===================== */
-    function setLog(s)   { logEl.textContent = s; }
-    function setBadge(s) {
-        badge.textContent = s;
-        badge.className = 'intr__step-badge' + (s !== 'IDLE' ? ' intr__step-badge--active' : '');
-    }
-    function setSpeedDis(v) {
-        root.querySelectorAll('.intr__speed-btn').forEach(function (b) { b.disabled = v; });
-    }
-
-    function applyStep(idx, onDone) {
-        stepIdx = idx;
-        const step = STEPS[idx];
-        phase = step.phase;
-        setBadge(step.badge);
-        setLog(step.log);
-        activeSet.clear();
-        pktQueue = [];
-
-        /* 화살표별 패킷 색상 */
-        const colMap = {
-            signal:  P.orange,
-            save:    P.teal,
-            lookup:  P.yellow,
-            jump:    P.green,
-            restore: P.teal,
-            resume:  P.purple,
-        };
-        const lblMap = {
-            signal:  'IRQ',
-            save:    'CTX',
-            lookup:  'VEC',
-            jump:    'JMP',
-            restore: 'RST',
-            resume:  'RET',
-        };
-
-        step.arrow.forEach(function (arr) {
-            spawnPkt(arr[0], arr[1], colMap[arr[2]], lblMap[arr[2]]);
+    /* ===================== resize ===================== */
+    function resize() {
+        var w = canvasWrap.offsetWidth || 320;
+        var mob = w < 600;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
         });
+        canvasWrap.style.height    = 'auto';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
+        var actualH = canvasWrap.offsetHeight || neededH;
+        if (actualH < neededH) actualH = neededH;
+        canvas.width  = w * dpr;
+        canvas.height = actualH * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        draw();
+    }
 
-        animPkts(function () {
+    /* ===================== 애니메이션(스텝 전환) ===================== */
+    function animateStep(onDone) {
+        if (rafId) cancelAnimationFrame(rafId);
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
             draw();
-            if (onDone) setTimeout(onDone, 0);
-        });
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
-    function intrStart() {
+    function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
+
+    function applyStep(idx, onDone) {
+        stepIdx = idx;
+        logEl.textContent = currentSteps()[idx].log;
+        animateStep(function () { if (onDone) setTimeout(onDone, 0); });
+    }
+
+    function vizStart() {
         if (running) return;
-        running = true;
-        btnPlay.disabled = true;
-        btnStep.disabled = true;
-        setSpeedDis(true);
+        running = true; btnPlay.disabled = true; btnStep.disabled = true;
+        setSpeedDisabled(true);
+        var steps = currentSteps();
         function tick() {
-            const next = stepIdx + 1;
-            if (next >= STEPS.length) {
-                running = false;
-                setSpeedDis(false);
-                return;
-            }
+            var next = stepIdx + 1;
+            if (next >= steps.length) { running = false; setSpeedDisabled(false); return; }
             applyStep(next, function () {
-                if (next === STEPS.length - 1) {
-                    running = false;
-                    btnStep.disabled = true;
-                    setSpeedDis(false);
+                if (next === steps.length - 1) {
+                    running = false; btnStep.disabled = true; setSpeedDisabled(false);
                 } else {
-                    timer = setTimeout(tick, speed);
+                    timer = setTimeout(tick, speed * 0.6);
                 }
             });
         }
         tick();
     }
 
-    function intrStep() {
+    function vizStep() {
         if (running) return;
-        const next = stepIdx + 1;
-        if (next >= STEPS.length) return;
+        var steps = currentSteps();
+        var next = stepIdx + 1;
+        if (next >= steps.length) return;
         applyStep(next, null);
-        if (next === STEPS.length - 1) {
-            btnPlay.disabled = true;
-            btnStep.disabled = true;
-        }
+        if (next === steps.length - 1) { btnPlay.disabled = true; btnStep.disabled = true; }
     }
 
-    function intrReset() {
+    function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false;
-        stepIdx = -1;
-        phase   = 'normal';
-        activeSet.clear();
-        pktQueue   = [];
-        pktCurrent = null;
-        pktProg    = 0;
-        pktDone    = null;
-        setLog('▶ PLAY를 눌러 인터럽트 처리 과정을 확인하세요.');
-        setBadge('IDLE');
-        btnPlay.disabled = false;
-        btnStep.disabled = false;
-        setSpeedDis(false);
-        draw();
+        running = false; stepIdx = -1; anim = 1;
+        btnPlay.disabled = false; btnStep.disabled = false;
+        logEl.textContent = defaultLog();
+        setSpeedDisabled(false);
+        resize();
     }
 
     function setSpeed(ms, btn) {
         speed = ms;
-        root.querySelectorAll('.intr__speed-btn').forEach(function (b) {
-            b.classList.remove('intr__speed-btn--active');
-        });
+        speedBtns.forEach(function (b) { b.classList.remove('intr__speed-btn--active'); });
         btn.classList.add('intr__speed-btn--active');
     }
 
+    function switchMode(m) {
+        if (mode === m) return;
+        mode = m;
+        modeDefs.forEach(function (d) { modeBtns[d.key].classList.toggle('intr__mode-btn--active', d.key === m); });
+        vizReset();
+    }
+
+    logEl.textContent = defaultLog();
+
     /* ===================== 라이프사이클 ===================== */
     window.CsFlow.createVizLifecycle({
-        canvas    : canvas,
-        canvasWrap: canvasWrap,
-        resize    : resize,
-        draw      : draw,
-        getState  : function () {
-            return { rafId: rafId, timer: timer, running: running };
-        },
-        setState  : function (s) {
-            rafId   = s.rafId;
-            timer   = s.timer;
-            running = s.running;
-        },
-        onPause    : function () { setSpeedDis(false); },
+        canvas: canvas, canvasWrap: canvasWrap, resize: resize, draw: draw,
+        getState : function () { return { rafId: rafId, timer: timer, running: running }; },
+        setState : function (s) { rafId = s.rafId; timer = s.timer; running = s.running; },
+        onPause  : function () { setSpeedDisabled(false); },
         getMouseCtx: function () {
             return {
-                GW         : GW,
-                GH         : GH,
-                mousePos   : mousePos,
-                tooltipHits: tooltipHits,
-                hoveredKey : function ()  { return hoveredKey; },
+                GW: GW, GH: GH,
+                mousePos: mousePos,
+                tooltipHits: tipHits,
+                hoveredKey: function () { return hoveredKey; },
                 setHoveredKey: function (k) { hoveredKey = k; },
-                draw       : draw,
+                draw: draw
             };
-        },
+        }
     });
 
-    /* ===================== 초기화 ===================== */
     setTimeout(resize, 60);
 })();
