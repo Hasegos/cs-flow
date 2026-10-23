@@ -56,6 +56,7 @@ public class ErrorEntryController {
         model.addAttribute("qQs", queryString("q", condition.query()));
         model.addAttribute("filtered", condition.isFiltered());
         model.addAttribute("noindex", condition.isFiltered());
+        model.addAttribute("currentSection", "errors");
         model.addAttribute("pageTitle", "에러 메시지 사전 | CS Flow");
         model.addAttribute("pageDescription", "에러 메시지 원문으로 찾는 원인과 해결 방법. 발생 환경과 근거 링크를 함께 정리하고, 직접 재현해 검증한 항목만 표시합니다.");
         model.addAttribute("canonicalUrl", entryPage.getNumber() > 0 ? BASE_URL + "?page=" + entryPage.getNumber() : BASE_URL);
@@ -80,6 +81,7 @@ public class ErrorEntryController {
         model.addAttribute("entry", entry);
         model.addAttribute("noindex", !entry.isVerified());
         model.addAttribute("ldJson", errorEntryService.buildLdJson(entry, canonicalUrl));
+        model.addAttribute("currentSection", "errors");
         model.addAttribute("pageTitle", entry.getTitle() + " 원인과 해결 | CS Flow 에러 사전");
         model.addAttribute("pageDescription", errorEntryService.describe(entry));
         model.addAttribute("canonicalUrl", canonicalUrl);
