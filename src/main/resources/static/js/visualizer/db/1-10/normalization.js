@@ -39,7 +39,7 @@
     var speedWrap = el('div', 'normalize-viz__speed');
     speedWrap.appendChild(el('span', 'normalize-viz__speed-label', 'SPEED'));
     var speedBtns = [];
-    [['1x', 1700], ['2x', 850], ['3x', 480]].forEach(function (pair, i) {
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
         var b = el('button', 'normalize-viz__speed-btn' + (i === 0 ? ' normalize-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
@@ -72,11 +72,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = '1nf';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 기준 데이터 (비정규형) ===================== */
     var RAW = {
@@ -184,146 +251,298 @@
     var NF3_STEPS = buildNf3Steps();
 
     /* ===================== 상태 ===================== */
-    var mode    = '1nf';
-    var stepIdx = -1;
-    var running = false;
-    var timer   = null;
-    var rafId   = null;
-    var speed   = 1700;
-
     function currentSteps() {
         if (mode === '2nf') return NF2_STEPS;
         if (mode === '3nf') return NF3_STEPS;
         return NF1_STEPS;
     }
+    function defaultLog() { return currentSteps()[0].log; }
 
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        var rad = Math.min(r, w / 2, h / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + rad, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, rad);
-        ctx.arcTo(x + w, y + h, x,     y + h, rad);
-        ctx.arcTo(x,     y + h, x,     y,     rad);
-        ctx.arcTo(x,     y,     x + w, y,     rad);
-        ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
-    }
-    function tx(str, x, y, sz, color, align, bold) {
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
-    }
-    function seg(x1, y1, x2, y2, col, lw) {
-        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
-        ctx.strokeStyle = col; ctx.lineWidth = lw || 1; ctx.stroke();
-    }
-
-    /* ===================== 컬럼 너비 (컬럼명 기준 공용) ===================== */
+    /* ===================== 표 크기 ===================== */
     var COL_W = {
         d: { order_id: 84, product: 96, user_name: 112, user_grade: 92, products: 210 },
-        m: { order_id: 62, product: 76, user_name: 86, user_grade: 70, products: 156 }
+        m: { order_id: 60, product: 62, user_name: 58, user_grade: 58, products: 80 }
     };
+    var TAGS = { '1nf': '✕ 한 칸에 값이 여러 개', '2nf': '✕ 부분 함수 종속', '3nf': '✕ 이행 종속' };
+    var OKS = { '1nf': '✓ 1NF', '2nf': '✓ 2NF', '3nf': '✓ 3NF' };
 
-    /* ===================== 스키마 테이블 렌더 ===================== */
-    function drawSchemaTable(x0, y0, spec, mob, hiCols) {
-        var colW = mob ? COL_W.m : COL_W.d;
-        var headerH = mob ? 38 : 44;
-        var rowH = mob ? 36 : 42;
-        var colX = {}; var totalW = 0;
-        spec.cols.forEach(function (c) { colX[c] = totalW; totalW += colW[c]; });
-
-        tx(spec.title, x0, y0 - (mob ? 12 : 14), mob ? 12.5 : 14, P.muted + 'aa', 'left', true);
-        rr(x0, y0, totalW, headerH + spec.rows.length * rowH, 6, 'none', P.muted + '55', 1.3);
-
-        spec.cols.forEach(function (c) {
-            var isPk = spec.pk.indexOf(c) !== -1;
-            var isHi = (hiCols || []).indexOf(c) !== -1;
-            var fill = isHi ? P.orange + '22' : (P.muted + '12');
-            rr(x0 + colX[c], y0, colW[c], headerH, 0, fill, 'none');
-            var labelColor = isHi ? P.orange + 'ee' : (P.text + 'cc');
-            var labelY = isPk ? y0 + headerH * 0.38 : y0 + headerH / 2;
-            tx(c, x0 + colX[c] + colW[c] / 2, labelY, mob ? 12 : 13.5, labelColor, 'center', true);
-            if (isPk) tx('PK', x0 + colX[c] + colW[c] / 2, y0 + headerH * 0.76, mob ? 9.5 : 10.5, P.purple + 'cc', 'center', true);
-        });
-        seg(x0, y0 + headerH, x0 + totalW, y0 + headerH, P.muted + '55', 1.3);
-
-        spec.rows.forEach(function (row, ri) {
-            var ry = y0 + headerH + ri * rowH;
-            if (ri > 0) seg(x0, ry, x0 + totalW, ry, P.muted + '2a', 1);
-            spec.cols.forEach(function (c) {
-                var isHi = (hiCols || []).indexOf(c) !== -1;
-                var cx = x0 + colX[c];
-                if (isHi) rr(cx, ry, colW[c], rowH, 0, P.orange + '14', 'none');
-                var color = isHi ? (P.orange + 'ee') : (P.text + 'dd');
-                tx(String(row[c]), cx + colW[c] / 2, ry + rowH / 2, mob ? 12 : 13.5, color, 'center', isHi);
-            });
-        });
-        var vx = x0;
-        spec.cols.forEach(function (c) { if (vx > x0) seg(vx, y0, vx, y0 + headerH + spec.rows.length * rowH, P.muted + '2a', 1); vx += colW[c]; });
-
-        return { width: totalW, height: headerH + spec.rows.length * rowH };
+    var SC = 1;
+    function cwOf(mob) {
+        var src = mob ? COL_W.m : COL_W.d, out = {};
+        for (var c in src) out[c] = src[c] * SC;
+        return out;
     }
-
-    function tableWidth(spec, mob) {
-        var colW = mob ? COL_W.m : COL_W.d;
-        var w = 0; spec.cols.forEach(function (c) { w += colW[c]; });
+    function tblW(spec, mob) {
+        var cw = cwOf(mob);
+        var w = 0;
+        spec.cols.forEach(function (c) { w += cw[c]; });
         return w;
     }
-    function tableHeight(spec, mob) {
-        var headerH = mob ? 38 : 44, rowH = mob ? 36 : 42;
-        return headerH + spec.rows.length * rowH;
-    }
-
-    function isStacked(specs, mob, availW) {
+    function tblH(spec, mob) { return (mob ? 38 : 44) + spec.rows.length * (mob ? 36 : 42); }
+    function stacked(specs, mob, availW) {
         if (specs.length < 2) return false;
-        var total = mob ? 30 * (specs.length - 1) : 48 * (specs.length - 1);
-        specs.forEach(function (s) { total += tableWidth(s, mob); });
+        var total = (mob ? 30 : 48) * (specs.length - 1);
+        specs.forEach(function (s) { total += tblW(s, mob); });
         return total > availW;
     }
 
     /* ===================== 레이아웃 ===================== */
-    function getGeom(mob) {
-        return { padX: mob ? 16 : 26, titleGap: mob ? 18 : 22 };
+    function titleGap(mob) { return mob ? 18 : 22; }
+    function stepH(s, w, mob) {
+        var h = 0;
+        var has = s.after && s.after.length;
+        if (s.before) {
+            h += tblH(s.before, mob);
+            if (has) h += s.showArrow ? (mob ? 58 : 72) : (mob ? 30 : 36);
+        }
+        if (has) {
+            var ah = 0;
+            if (stacked(s.after, mob, w)) s.after.forEach(function (sp, si) { ah += tblH(sp, mob) + (si ? 36 : 0); });
+            else s.after.forEach(function (sp) { ah = Math.max(ah, tblH(sp, mob)); });
+            h += ah;
+        }
+        return h;
+    }
+    function layout(w, mob) {
+        var maxH = 0, maxW = 0, raw = mob ? COL_W.m : COL_W.d;
+        currentSteps().forEach(function (s) {
+            (s.before ? [s.before] : []).concat(s.after || []).forEach(function (sp) {
+                var tw = 0;
+                sp.cols.forEach(function (c) { tw += raw[c]; });
+                maxW = Math.max(maxW, tw);
+            });
+        });
+        SC = maxW > w - 4 ? (w - 4) / maxW : 1;
+        currentSteps().forEach(function (s) { maxH = Math.max(maxH, stepH(s, w, mob)); });
+        return { fs: mob ? 12 : 13.5, total: titleGap(mob) + maxH + 12 };
+    }
+    function sceneH(w, mob) { return layout(w, mob).total; }
+
+    function place(s, w, mob) {
+        var out = { before: null, afters: [], arrowY: 0 };
+        var y = 0;
+        var has = s.after && s.after.length;
+        if (s.before) {
+            var bw = tblW(s.before, mob);
+            out.before = { x: Math.max(0, (w - bw) / 2), y: 0, spec: s.before };
+            y += tblH(s.before, mob);
+            out.arrowY = y;
+            if (has) y += s.showArrow ? (mob ? 58 : 72) : (mob ? 30 : 36);
+        }
+        if (!has) return out;
+        if (s.after.length === 1) {
+            out.afters.push({ x: Math.max(0, (w - tblW(s.after[0], mob)) / 2), y: y, spec: s.after[0] });
+        } else if (stacked(s.after, mob, w)) {
+            var sy = y;
+            s.after.forEach(function (sp) {
+                out.afters.push({ x: Math.max(0, (w - tblW(sp, mob)) / 2), y: sy, spec: sp });
+                sy += tblH(sp, mob) + 36;
+            });
+        } else {
+            var gap = mob ? 30 : 48;
+            var tot = gap * (s.after.length - 1);
+            s.after.forEach(function (sp) { tot += tblW(sp, mob); });
+            var cx = Math.max(0, (w - tot) / 2);
+            s.after.forEach(function (sp) {
+                out.afters.push({ x: cx, y: y, spec: sp });
+                cx += tblW(sp, mob) + gap;
+            });
+        }
+        return out;
     }
 
-    function calcH(w) {
-        var mob = w < 600;
-        var G = getGeom(mob);
-        var top = mob ? 16 : 20, bottom = mob ? 18 : 22;
-        var steps = currentSteps();
-        var maxH = 0;
-        steps.forEach(function (s) {
-            var h = 0;
-            var hasAfter = s.after && s.after.length;
-            if (s.before) {
-                h += tableHeight(s.before, mob);
-                if (hasAfter) h += s.showArrow ? (mob ? 58 : 72) : (mob ? 30 : 36);
+    /* ===================== 셀 위치와 출처 ===================== */
+    function cellCenter(pl, col, ri, mob) {
+        var cw = cwOf(mob);
+        var x = pl.x;
+        for (var i = 0; i < pl.spec.cols.length; i++) {
+            if (pl.spec.cols[i] === col) break;
+            x += cw[pl.spec.cols[i]];
+        }
+        return { x: x + cw[col] / 2, y: pl.y + (mob ? 38 : 44) + ri * (mob ? 36 : 42) + (mob ? 18 : 21) };
+    }
+    function sourceRow(before, row) {
+        for (var ri = 0; ri < before.rows.length; ri++) {
+            var br = before.rows[ri];
+            var ok = true;
+            for (var c in row) {
+                if (before.cols.indexOf(c) >= 0) { if (br[c] !== row[c]) { ok = false; break; } }
+                else if (c === 'product' && before.cols.indexOf('products') >= 0) { if (String(br.products).indexOf(row.product) < 0) { ok = false; break; } }
             }
-            if (hasAfter) {
-                var afterH = 0;
-                if (isStacked(s.after, mob, w - G.padX * 2)) {
-                    s.after.forEach(function (spec, si) { afterH += tableHeight(spec, mob) + (si ? 36 : 0); });
-                } else {
-                    s.after.forEach(function (spec) { afterH = Math.max(afterH, tableHeight(spec, mob)); });
-                }
-                h += afterH;
-            }
-            if (h > maxH) maxH = h;
+            if (ok) return ri;
+        }
+        return 0;
+    }
+
+    /* ===================== 표 그리기 ===================== */
+    function wrapTxt(text, size, bold, room) {
+        ctx.font = (bold ? '700 ' : '500 ') + size + 'px "JetBrains Mono",monospace';
+        if (ctx.measureText(text).width <= room) return [text];
+        var parts = text.split(', ');
+        if (parts.length > 1) return parts.map(function (pt, i) { return i < parts.length - 1 ? pt + ',' : pt; });
+        var u = text.indexOf('_');
+        return u > 0 ? [text.slice(0, u + 1), text.slice(u + 1)] : [text];
+    }
+    function txLines(arr, x, y, size, color, bold) {
+        arr.forEach(function (l, i) { tx(l, x, y + (i - (arr.length - 1) / 2) * 14, size, color, 'center', bold); });
+    }
+    function drawTable(pl, mob, hiCols, o) {
+        var spec = pl.spec;
+        var cw = cwOf(mob);
+        var headerH = mob ? 38 : 44, rowH = mob ? 36 : 42;
+        var fs = mob ? 12 : 13.5;
+        var x0 = pl.x, y0 = pl.y;
+        var totalW = tblW(spec, mob);
+        var colX = {};
+        var acc = 0;
+        spec.cols.forEach(function (c) { colX[c] = acc; acc += cw[c]; });
+        var pulse = o.pulse || 1;
+        ctx.globalAlpha = o.frame;
+        tx(spec.title, x0, y0 - (mob ? 12 : 14), fs, P.sub + 'ff', 'left', true);
+        rr(x0, y0, totalW, headerH + spec.rows.length * rowH, 6, 'none', (o.frameCol || P.sub) + '88', o.frameCol ? 2 : 1.3);
+        spec.cols.forEach(function (c) {
+            var isPk = spec.pk.indexOf(c) !== -1;
+            var isHi = (hiCols || []).indexOf(c) !== -1;
+            rr(x0 + colX[c], y0, cw[c], headerH, 0, isHi ? P.orange + (pulse > 1.2 ? '44' : '22') : P.sub + '14', 'none');
+            txLines(isPk ? [c] : wrapTxt(c, fs - 1, true, cw[c] - 6), x0 + colX[c] + cw[c] / 2, isPk ? y0 + headerH * 0.38 : y0 + headerH / 2, fs - 1, isHi ? P.orange + 'ff' : P.text + 'ee', true);
+            if (isPk) tx('PK', x0 + colX[c] + cw[c] / 2, y0 + headerH * 0.76, fs - 2, P.purple + 'ff', 'center', true);
         });
-        return top + G.titleGap + maxH + bottom;
+        ln(x0, y0 + headerH, x0 + totalW, y0 + headerH, P.sub + '88', 1.3);
+        spec.rows.forEach(function (row, ri) {
+            var ry = y0 + headerH + ri * rowH;
+            if (ri > 0) ln(x0, ry, x0 + totalW, ry, P.sub + '44', 1);
+            spec.cols.forEach(function (c) {
+                var isHi = (hiCols || []).indexOf(c) !== -1;
+                var dup = o.dup && o.dup(c, ri, row);
+                var cx = x0 + colX[c];
+                var a = o.cellA ? o.cellA(c, ri) : 1;
+                ctx.globalAlpha = o.frame * a;
+                if (isHi) rr(cx, ry, cw[c], rowH, 0, P.orange + (pulse > 1.2 ? '30' : '14'), 'none');
+                if (dup) rr(cx + 2, ry + 2, cw[c] - 4, rowH - 4, 4, P.orange + (pulse > 1.2 ? '44' : '22'), P.orange + 'ff', 1.6);
+                txLines(wrapTxt(String(row[c]), fs, isHi || dup, cw[c] - 8), cx + cw[c] / 2, ry + rowH / 2, fs, (isHi || dup) ? P.orange + 'ff' : P.text + 'ee', isHi || dup);
+            });
+        });
+        ctx.globalAlpha = o.frame;
+        var vx = x0;
+        spec.cols.forEach(function (c) { if (vx > x0) ln(vx, y0, vx, y0 + headerH + spec.rows.length * rowH, P.sub + '44', 1); vx += cw[c]; });
+        ctx.globalAlpha = 1;
+    }
+
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var L = layout(w, mob);
+        var e = clamp01(t);
+        var s = step || currentSteps()[0];
+        var fs = L.fs;
+        var oy = top + titleGap(mob);
+        var pl = place(s, w, mob);
+        function off(p0) { return { x: x0 + p0.x, y: oy + p0.y, spec: p0.spec }; }
+        var tr = s.kind === 'transform';
+        var pulseE = (s.kind === 'violate' || tr) && e < 1 ? 1 + 0.6 * Math.sin(e * 16) : 1;
+        var bp = pl.before ? off(pl.before) : null;
+        var ap = pl.afters.map(off);
+        var k;
+
+        if (bp) {
+            drawTable(bp, mob, s.hiCols, { frame: 1, pulse: pulseE });
+            if (s.kind === 'violate') {
+                ctx.globalAlpha = clamp01(e * 2.5);
+                tx(TAGS[mode], bp.x + tblW(bp.spec, mob), bp.y - (mob ? 12 : 14), fs - 1, P.red + 'ff', 'right', true);
+                ctx.globalAlpha = 1;
+            }
+        }
+        if (bp && s.showArrow && ap.length) {
+            var midX = x0 + w / 2;
+            var a1 = oy + pl.before.y + tblH(pl.before.spec, mob) + (mob ? 12 : 15);
+            var a2 = a1 + (mob ? 20 : 25);
+            ctx.globalAlpha = tr ? clamp01(e * 3) : 1;
+            ln(midX, a1, midX, a2, P.teal + 'ff', 2.6);
+            ctx.beginPath();
+            ctx.moveTo(midX, a2 + 10);
+            ctx.lineTo(midX - 8, a2);
+            ctx.lineTo(midX + 8, a2);
+            ctx.closePath();
+            ctx.fillStyle = P.teal + 'ff';
+            ctx.fill();
+            tx('분리', midX + (mob ? 20 : 24), (a1 + a2) / 2 + 5, fs, P.teal + 'ff', 'left', true);
+            ctx.globalAlpha = 1;
+        }
+
+        var idx = 0, cells = ap.reduce(function (n, p) { return n + p.spec.rows.length * p.spec.cols.length; }, 0);
+        var flights = [];
+        ap.forEach(function (pl2, ai) {
+            var done = s.kind === 'done';
+            var dupFn = null;
+            if (done && mode === '1nf') dupFn = function (c, ri, row) { return (c === 'user_name' || c === 'user_grade') && pl2.spec.rows.filter(function (r) { return r.order_id === row.order_id; }).length > 1; };
+            if (done && mode === '2nf' && ai === 0) dupFn = function (c) { return c === 'user_grade'; };
+            var pulse2 = done && dupFn && e < 1 ? 1 + 0.6 * Math.sin(e * 16) : 1;
+            var cellA = null;
+            if (tr && bp) {
+                var starts = {};
+                pl2.spec.rows.forEach(function (row, ri) {
+                    pl2.spec.cols.forEach(function (c) {
+                        var st = 0.04 + idx * 0.45 / Math.max(1, cells - 1);
+                        starts[c + ':' + ri] = st;
+                        idx++;
+                        var sr = sourceRow(bp.spec, row);
+                        var sc = c === 'product' && bp.spec.cols.indexOf('product') < 0 ? 'products' : c;
+                        var from = cellCenter(bp, sc, sr, mob);
+                        var to = cellCenter(pl2, c, ri, mob);
+                        flights.push({ st: st, from: from, to: to, text: String(row[c]) });
+                    });
+                });
+                cellA = function (c, ri) { return e >= starts[c + ':' + ri] + 0.5 ? 1 : 0; };
+            }
+            drawTable(pl2, mob, [], { frame: tr ? clamp01(e * 3) : 1, cellA: cellA, dup: dupFn, pulse: pulse2, frameCol: done && mode === '3nf' && e < 1 ? P.teal : null });
+            if (s.kind === 'result' && ai === 0) {
+                var q = clamp01(e * 2);
+                ctx.globalAlpha = q;
+                tx(OKS[mode], pl2.x + tblW(pl2.spec, mob), pl2.y - (mob ? 12 : 14), fs, P.green + 'ff', 'right', true);
+                ctx.globalAlpha = 1;
+                if (e < 1) circ(pl2.x + tblW(pl2.spec, mob) - 16, pl2.y - (mob ? 12 : 14), 6 + e * 26, 'none', P.green + 'ff', 2);
+            }
+        });
+        for (k = 0; k < flights.length; k++) {
+            var f = flights[k];
+            var q2 = clamp01((e - f.st) / 0.5);
+            if (q2 <= 0 || q2 >= 1) continue;
+            var ez = q2 * q2 * (3 - 2 * q2);
+            var fx = lerp(f.from.x, f.to.x, ez);
+            var fy = lerp(f.from.y, f.to.y, ez) - Math.sin(ez * Math.PI) * 10;
+            tx(f.text, fx, fy, fs, P.yellow + 'ff', 'center', true);
+        }
+        if (tr && bp && e < 1) {
+            for (k = 0; k < flights.length; k++) {
+                var f2 = flights[k];
+                if (e >= f2.st && e < f2.st + 0.25) circ(f2.from.x, f2.from.y, 4 + (e - f2.st) * 40, 'none', P.yellow + 'ff', 1.4);
+            }
+        }
+    }
+
+    /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
+    function draw() {
+        P = window.CsFlow.getP();
+        ctx.clearRect(0, 0, GW(), GH());
+        var W = GW(); var mob = W < 600;
+        var steps = currentSteps();
+        var step = stepIdx >= 0 ? steps[stepIdx] : null;
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
-        var neededH = calcH(w);
+        var mob = w < 600;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
         canvasWrap.style.height    = 'auto';
-        canvasWrap.style.minHeight = neededH + 'px';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
         var actualH = canvasWrap.offsetHeight || neededH;
         if (actualH < neededH) actualH = neededH;
         canvas.width  = w * dpr;
@@ -332,80 +551,25 @@
         draw();
     }
 
-    /* ===================== 메인 드로우 ===================== */
-    function draw() {
-        P = window.CsFlow.getP();
-        ctx.clearRect(0, 0, GW(), GH());
-        var W = GW(); var mob = W < 600;
-        var G = getGeom(mob);
-        var neededH = calcH(W);
-        var extra = Math.max(0, GH() - neededH);
-        var top = (mob ? 16 : 20) + extra / 2;
-        var x0 = G.padX;
-
-        var steps = currentSteps();
-        var step = stepIdx >= 0 ? steps[stepIdx] : steps[0];
-        var y = top + G.titleGap;
-
-        if (step.before) {
-            var bw = tableWidth(step.before, mob);
-            var bx = x0 + Math.max(0, (GW() - G.padX * 2 - bw) / 2);
-            var bRes = drawSchemaTable(bx, y, step.before, mob, step.hiCols);
-            y += bRes.height;
-
-            if (step.showArrow) {
-                var midX = x0 + (GW() - G.padX * 2) / 2;
-                var arrowY1 = y + (mob ? 12 : 15), arrowY2 = y + (mob ? 32 : 40);
-                seg(midX, arrowY1, midX, arrowY2, P.teal + 'cc', 2.6);
-                ctx.beginPath();
-                ctx.moveTo(midX, arrowY2 + 10);
-                ctx.lineTo(midX - 8, arrowY2);
-                ctx.lineTo(midX + 8, arrowY2);
-                ctx.closePath();
-                ctx.fillStyle = P.teal + 'cc';
-                ctx.fill();
-                tx('분리', midX + (mob ? 20 : 24), (arrowY1 + arrowY2) / 2 + 5, mob ? 12 : 13.5, P.teal + 'cc', 'left', true);
-            }
-        }
-
-        if (step.after && step.after.length) {
-            var afterY = step.before ? (y + (step.showArrow ? (mob ? 58 : 72) : (mob ? 30 : 36))) : y;
-            if (step.after.length === 1) {
-                var spec = step.after[0];
-                var aw = tableWidth(spec, mob);
-                var ax = x0 + Math.max(0, (GW() - G.padX * 2 - aw) / 2);
-                drawSchemaTable(ax, afterY, spec, mob, []);
-            } else if (isStacked(step.after, mob, GW() - G.padX * 2)) {
-                var sy = afterY;
-                step.after.forEach(function (s) {
-                    var sw = tableWidth(s, mob);
-                    drawSchemaTable(x0 + Math.max(0, (GW() - G.padX * 2 - sw) / 2), sy, s, mob, []);
-                    sy += tableHeight(s, mob) + 36;
-                });
-            } else {
-                var totalW = 0; var gap = mob ? 30 : 48;
-                step.after.forEach(function (s) { totalW += tableWidth(s, mob); });
-                totalW += gap * (step.after.length - 1);
-                var startX = x0 + Math.max(0, (GW() - G.padX * 2 - totalW) / 2);
-                var cx = startX;
-                step.after.forEach(function (s) {
-                    drawSchemaTable(cx, afterY, s, mob, []);
-                    cx += tableWidth(s, mob) + gap;
-                });
-            }
-        }
-    }
-
     /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        draw();
-        rafId = requestAnimationFrame(function () { rafId = null; if (onDone) onDone(); });
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
     function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
-    function defaultLog() { return currentSteps()[0].log; }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -444,7 +608,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);

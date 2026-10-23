@@ -1,5 +1,5 @@
 /**
- * 엔디언(빅/리틀) 시각화
+ * 엔디언(빅/리틀) 시각화 시각화
  */
 (function () {
     'use strict';
@@ -39,7 +39,7 @@
     var speedWrap = el('div', 'end-viz__speed');
     speedWrap.appendChild(el('span', 'end-viz__speed-label', 'SPEED'));
     var speedBtns = [];
-    [['1x', 1700], ['2x', 850], ['3x', 480]].forEach(function (pair, i) {
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
         var b = el('button', 'end-viz__speed-btn' + (i === 0 ? ' end-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
@@ -72,11 +72,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'store';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 데이터: 공통 ===================== */
     var BYTES = [0x12, 0x34, 0x56, 0x78];
@@ -131,193 +198,297 @@
     ];
 
     /* ===================== 상태 ===================== */
-    var mode    = 'store';
-    var stepIdx = -1;
-    var running = false;
-    var timer   = null;
-    var rafId   = null;
-    var speed   = 1700;
-
     function currentSteps() {
         if (mode === 'net') return NET_STEPS;
         if (mode === 'read') return READ_STEPS;
         return STORE_STEPS;
     }
-
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        var rad = Math.min(r, w / 2, h / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + rad, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, rad);
-        ctx.arcTo(x + w, y + h, x,     y + h, rad);
-        ctx.arcTo(x,     y + h, x,     y,     rad);
-        ctx.arcTo(x,     y,     x + w, y,     rad);
-        ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
-    }
-    function tx(str, x, y, sz, color, align, bold) {
-        if (sz < 9.5) sz = 9.5;
-        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
+    function defaultLog() {
+        if (mode === 'net') return '리틀 엔디언 호스트가 빅 엔디언 네트워크 바이트 순서로 값을 보낼 때 일어나는 변환을 봅니다.';
+        if (mode === 'read') return '메모리의 같은 바이트를 엔디언이 다른 CPU가 정수로 읽으면 어떤 값이 되는지 봅니다.';
+        return '32비트 값을 메모리에 놓는 순서가 빅 엔디언과 리틀 엔디언에서 어떻게 다른지 봅니다.';
     }
 
-    /* ===================== 공통: 바이트 칸 ===================== */
-    function byteCol(i) { return [P.orange, P.purple, P.teal, P.green][i]; }
+    /* ===================== 레이아웃 ===================== */
+    function endStoreLay(w, mob) {
+        var lw = mob ? 78 : 110;
+        var ch = mob ? 34 : 40;
+        var cw = Math.min(mob ? 52 : 72, (w - lw) / 4);
+        var yV = 42;
+        var yB = yV + ch + 40;
+        var yL = yB + ch + 44;
+        return { lw: lw, ch: ch, cw: cw, yV: yV, yB: yB, yL: yL, total: yL + ch + 40 };
+    }
+    function endNetLay(w, mob) {
+        var ch = mob ? 34 : 40;
+        var z = mob ? 64 : 50;
+        var yA = 22;
+        var yB = yA + ch + z;
+        var yC = yB + ch + z;
+        return { ch: ch, z: z, cw: mob ? 52 : 72, yA: yA, yB: yB, yC: yC, total: yC + ch + 8 };
+    }
+    function endReadLay(w, mob) {
+        var lw = mob ? 58 : 84;
+        var ch = mob ? 34 : 40;
+        var cw = Math.min(72, (w - lw) / 4);
+        var yM = 18;
+        var r0 = yM + ch + 64;
+        var r1 = r0 + ch + 30;
+        return { lw: lw, ch: ch, cw: cw, yM: yM, r0: r0, r1: r1, total: r1 + ch + 10 };
+    }
+    function layout(w, mob) {
+        if (mode === 'net') return endNetLay(w, mob);
+        if (mode === 'read') return endReadLay(w, mob);
+        return endStoreLay(w, mob);
+    }
+    function sceneH(w, mob) { return layout(w, mob).total; }
 
-    function byteCells(x, y, cw, ch, vals, colOf, fs, hlFirst, mob) {
-        vals.forEach(function (b, i) {
-            var col = colOf(b, i);
-            var hl = hlFirst && i === 0;
-            rr(x + i * cw + 1, y, cw - 2, ch, 5, col + (hl ? '40' : '26'), col + (hl ? 'ff' : 'cc'), hl ? 2.4 : 1.5);
-            tx(hx(b, 2), x + i * cw + cw / 2, y + ch / 2, fs + 1, col + 'ee', 'center', true);
-        });
+    /* ===================== 그리기 헬퍼 ===================== */
+    function ez(q) { var v = clamp01(q); return v * v * (3 - 2 * v); }
+    function endCol(i) { return [P.orange, P.purple, P.teal, P.green][i]; }
+    function endNetCol(v) { return v === HI ? P.orange : P.purple; }
+    function endReadVal(n, little) { return n * 8 + '비트로 읽은 값  0x' + hx(valOf(BYTES, n, little), n * 2); }
+    function endCell(x, y, cw, ch, val, col, fillA, edgeA, fs) {
+        rr(x + 1, y, cw - 2, ch, 5, col + fillA, col + edgeA, 1.6);
+        tx(hx(val, 2), x + cw / 2, y + ch / 2, fs + 1, col + 'ee', 'center', true);
+    }
+    function endEmpty(x, y, cw, ch) { rr(x + 1, y, cw - 2, ch, 5, 'none', P.muted + '33', 1.2); }
+    function endText(str, x, y0, maxW, fs, col) {
+        lines(str, maxW, fs).forEach(function (row, li) { tx(row, x, y0 + li * (fs + 3), fs, col, 'left', true); });
     }
 
     /* ===================== 모드: 바이트 저장 순서 ===================== */
-    function drawStore(x0, top, w, mob, step) {
-        var fs = mob ? 10.5 : 12;
-        var big = step ? step.big : false;
-        var little = step ? step.little : false;
-        var lw = mob ? 92 : 118;
-        var cw = Math.min(72, (w - lw) / 4);
-        var ch = mob ? 34 : 40;
-        var bx = x0 + lw;
-        var yV = top + 14;
-        var yB = yV + ch + 54;
-        var yL = yB + ch + 54;
-        var byIdx = function (b) { return byteCol(BYTES.indexOf(b)); };
+    function endStoreDraw(x0, top, w, mob, s, p, fresh, q) {
+        var L = endStoreLay(w, mob);
+        var f = mob ? 11 : 12;
+        var cw = L.cw, ch = L.ch;
+        var bx = x0 + L.lw;
+        var yV = top + L.yV, yB = top + L.yB, yL = top + L.yL;
+        var both = fresh && !!s.big && !!s.little && !!p.big && !!p.little;
+        var k, sw;
 
-        tx('값 0x' + hx(VAL, 8), x0, yV + ch / 2, fs, P.text + 'ee', 'left', true);
-        byteCells(bx, yV, cw, ch, BYTES, byIdx, fs, false, mob);
-        tx('MSB', bx + cw / 2, yV - 8, fs - 2, P.muted + 'dd', 'center', false);
-        tx('LSB', bx + cw * 3.5, yV - 8, fs - 2, P.muted + 'dd', 'center', false);
-
-        [[big, yB, '빅 엔디언', memBig()], [little, yL, '리틀 엔디언', memLittle()]].forEach(function (row) {
-            var on = row[0];
-            var y = row[1];
-            tx(row[2], x0, y + ch / 2, fs, on ? P.text + 'ee' : P.muted + '77', 'left', true);
-            if (on) {
-                byteCells(bx, y, cw, ch, row[3], byIdx, fs, true, mob);
-                for (var i = 0; i < 4; i++) tx(mob ? '+' + i : '0x' + hx(BASE + i, 4), bx + i * cw + cw / 2, y + ch + 12, fs - 2, P.muted + 'dd', 'center', false);
-            } else {
-                for (var j = 0; j < 4; j++) rr(bx + j * cw + 1, y, cw - 2, ch, 5, 'none', P.muted + '33', 1);
+        function endRow(y, order, label, on, isNew) {
+            var a, idx, cx, qa, mx, my;
+            tx(label, x0, y + ch / 2, f, on ? P.text + 'ee' : P.muted + '77', 'left', true);
+            for (a = 0; a < 4; a++) {
+                idx = order[a];
+                cx = bx + a * cw;
+                qa = !on ? 0 : (isNew ? ez(seg(q, idx * 0.12, idx * 0.12 + 0.64)) : 1);
+                if (qa >= 1) {
+                    endCell(cx, y, cw, ch, BYTES[idx], endCol(idx), '26', 'cc', f);
+                } else {
+                    endEmpty(cx, y, cw, ch);
+                    if (qa > 0) {
+                        mx = lerp(bx + idx * cw, cx, qa);
+                        my = lerp(yV, y, qa);
+                        endCell(mx, my, cw, ch, BYTES[idx], endCol(idx), '50', 'ff', f);
+                    }
+                }
+                tx(mob ? '+' + a : '0x' + hx(BASE + a, 4), cx + cw / 2, y + ch + 11, f, P.muted + 'dd', 'center', false);
             }
-        });
-        tx('낮은 주소', bx, yL + ch + 32, fs - 1.5, P.muted + 'dd', 'left', false);
-        tx('높은 주소', bx + 4 * cw, yL + ch + 32, fs - 1.5, P.muted + 'dd', 'right', false);
+        }
+
+        tx('32비트 값 0x' + hx(VAL, 8), x0, top + 10, f + 1, P.text + 'ee', 'left', true);
+        tx('MSB', bx + cw / 2, yV - 11, f, P.sub + 'ff', 'center', false);
+        tx('LSB', bx + cw * 3.5, yV - 11, f, P.sub + 'ff', 'center', false);
+        for (k = 0; k < 4; k++) endCell(bx + k * cw, yV, cw, ch, BYTES[k], endCol(k), '26', 'cc', f);
+        endRow(yB, [0, 1, 2, 3], '빅 엔디언', !!s.big, fresh && !!s.big && !p.big);
+        endRow(yL, [3, 2, 1, 0], '리틀 엔디언', !!s.little, fresh && !!s.little && !p.little);
+        if (both && q < 1) {
+            sw = Math.min(3, Math.floor(q * 4));
+            rr(bx + sw * cw, yV, cw, ch, 5, 'none', P.yellow + 'ff', 2.4);
+            rr(bx + sw * cw, yB, cw, ch, 5, 'none', P.yellow + 'ff', 2.4);
+            rr(bx + (3 - sw) * cw, yL, cw, ch, 5, 'none', P.yellow + 'ff', 2.4);
+        }
+        tx('낮은 주소', bx, yL + ch + 27, f, P.muted + 'dd', 'left', false);
+        tx('높은 주소', bx + 4 * cw, yL + ch + 27, f, P.muted + 'dd', 'right', false);
     }
 
     /* ===================== 모드: 네트워크 바이트 순서 ===================== */
-    function drawNet(x0, top, w, mob, step) {
-        var fs = mob ? 10.5 : 12;
-        var s = step ? step.s : null;
-        var wv = step ? step.w : null;
-        var r = step ? step.r : null;
-        var bad = step ? !!step.bad : false;
-        var c1 = step ? !!step.c1 : false;
-        var c2 = step ? !!step.c2 : false;
-        var cw = mob ? 52 : 64;
-        var ch = mob ? 32 : 38;
-        var rowGap = mob ? 92 : 98;
-        var colOf = function (b) { return b === HI ? P.orange : P.purple; };
-        var rows = [
-            [top + 10, mob ? '송신 호스트(리틀) 메모리' : '송신 호스트(리틀 엔디언) 메모리', s],
-            [top + 10 + rowGap, '네트워크로 나가는 순서', wv]
-        ];
-        rows.forEach(function (row) {
-            tx(row[1], x0, row[0], fs, row[2] ? P.text + 'ee' : P.muted + '88', 'left', true);
-            if (row[2]) byteCells(x0, row[0] + 14, cw, ch, row[2], colOf, fs, false, mob);
-            else for (var i = 0; i < 2; i++) rr(x0 + i * cw + 1, row[0] + 14, cw - 2, ch, 5, 'none', P.muted + '33', 1);
-        });
-        if (c1) tx('htons — 호스트 순서를 빅 엔디언으로 변환', x0 + 2 * cw + 14, top + 10 + 14 + ch + 22, fs - 0.5, P.yellow + 'ee', 'left', true);
-        var y3 = top + 10 + 2 * rowGap;
-        tx(mob ? '빅 엔디언 수신자가 읽은 값' : '빅 엔디언 수신 호스트가 읽은 값', x0, y3, fs, r !== null ? P.text + 'ee' : P.muted + '88', 'left', true);
-        var vcol = bad ? P.red : P.green;
-        if (r !== null) {
-            rr(x0, y3 + 14, Math.min(w, 2 * cw + 150), ch, 5, vcol + '26', vcol + 'cc', 1.6);
-            tx('0x' + hx(r, 4) + ' (' + r + ')' + (bad ? '  값이 달라짐' : ''), x0 + 12, y3 + 14 + ch / 2, fs + 0.5, vcol + 'ee', 'left', true);
-        } else {
-            rr(x0, y3 + 14, Math.min(w, 2 * cw + 150), ch, 5, 'none', P.muted + '33', 1);
+    function endNetDraw(x0, top, w, mob, s, p, fresh, q) {
+        var L = endNetLay(w, mob);
+        var f = mob ? 11 : 12;
+        var cw = L.cw, ch = L.ch;
+        var yA = top + L.yA, yB = top + L.yB, yC = top + L.yC;
+        var z1 = yA + ch, z2 = yB + ch;
+        var wChanged = !!s.w && s.w !== p.w;
+        var rNew = s.r !== null && s.r !== p.r;
+        var dotA = wChanged ? 0.5 : 0;
+        var dotEnd = dotA + 0.4;
+        var wireE = wChanged && rNew ? seg(q, 0, 0.5) : q;
+        var vcol = s.bad ? P.red : P.green;
+        var i, j, cx, qa, qj, si, dq, dy, boxQ;
+
+        tx(mob ? '송신 호스트(리틀) 메모리' : '송신 호스트(리틀 엔디언) 메모리', x0, top + 8, f, s.s ? P.text + 'ee' : P.muted + '88', 'left', true);
+        for (i = 0; i < 2; i++) {
+            cx = x0 + i * cw;
+            if (!s.s) {
+                endEmpty(cx, yA, cw, ch);
+                continue;
+            }
+            qa = fresh && !p.s ? ez(seg(q, i * 0.3, i * 0.3 + 0.5)) : 1;
+            if (qa < 1) endEmpty(cx, yA, cw, ch);
+            if (qa > 0) {
+                ctx.globalAlpha = qa;
+                endCell(cx, yA - 10 * (1 - qa), cw, ch, HOST_MEM[i], endNetCol(HOST_MEM[i]), '26', 'cc', f);
+                ctx.globalAlpha = 1;
+            }
         }
-        if (c2) tx('ntohs — 네트워크 순서를 호스트 순서로 변환', x0 + 2 * cw + 14, top + 10 + rowGap + 14 + ch + 22, fs - 0.5, P.yellow + 'ee', 'left', true);
+
+        tx('네트워크로 나가는 순서', x0, yB - 12, f, s.w ? P.text + 'ee' : P.muted + '88', 'left', true);
+        for (j = 0; j < 2; j++) {
+            cx = x0 + j * cw;
+            if (!wChanged) {
+                if (s.w) endCell(cx, yB, cw, ch, s.w[j], endNetCol(s.w[j]), '26', 'cc', f);
+                else endEmpty(cx, yB, cw, ch);
+                continue;
+            }
+            qj = ez(seg(wireE, j * 0.2, j * 0.2 + 0.6));
+            if (qj >= 1) {
+                endCell(cx, yB, cw, ch, s.w[j], endNetCol(s.w[j]), '26', 'cc', f);
+                continue;
+            }
+            endEmpty(cx, yB, cw, ch);
+            if (qj > 0) {
+                si = p.w ? p.w.indexOf(s.w[j]) : (s.s || HOST_MEM).indexOf(s.w[j]);
+                endCell(lerp(x0 + si * cw, cx, qj), lerp(p.w ? yB : yA, yB, qj), cw, ch, s.w[j], endNetCol(s.w[j]), '50', 'ff', f);
+            }
+        }
+
+        if (s.c1) {
+            ctx.globalAlpha = fresh && !p.c1 ? seg(q, 0.3, 0.8) : 1;
+            endText('htons — 호스트 순서를 빅 엔디언으로 변환', x0 + 2 * cw + 12, z1 + 7, w - 2 * cw - 12, f, P.yellow + 'ee');
+            ctx.globalAlpha = 1;
+        }
+        if (s.c2) {
+            ctx.globalAlpha = fresh && !p.c2 ? seg(q, 0.3, 0.8) : 1;
+            endText('ntohs — 네트워크 순서를 호스트 순서로 변환', x0 + 2 * cw + 12, z2 + 7, w - 2 * cw - 12, f, P.yellow + 'ee');
+            ctx.globalAlpha = 1;
+        }
+
+        if (rNew) {
+            dq = seg(q, dotA, dotEnd);
+            if (dq > 0 && dq < 1) {
+                dy = lerp(yB + ch, yC, dq);
+                circ(x0 + cw / 2, dy, 9, vcol + '44', 'none');
+                circ(x0 + cw / 2, dy, 5, vcol + 'ff', 'none');
+            }
+        }
+        boxQ = rNew ? seg(q, dotEnd, Math.min(1, dotEnd + 0.1)) : 1;
+        tx(mob ? '빅 엔디언 수신자가 읽은 값' : '빅 엔디언 수신 호스트가 읽은 값', x0, yC - 12, f, s.r !== null ? P.text + 'ee' : P.muted + '88', 'left', true);
+        if (s.r === null || boxQ < 1) rr(x0, yC, w, ch, 5, 'none', P.muted + '33', 1.2);
+        if (s.r !== null && boxQ > 0) {
+            ctx.globalAlpha = boxQ;
+            rr(x0, yC, w, ch, 5, vcol + '26', vcol + 'cc', 1.6);
+            tx('0x' + hx(s.r, 4) + ' (' + s.r + ')' + (s.bad ? '  값이 달라짐' : ''), x0 + 12, yC + ch / 2, f + 1, vcol + 'ee', 'left', true);
+            ctx.globalAlpha = 1;
+        }
     }
 
     /* ===================== 모드: 같은 바이트 다른 값 ===================== */
-    function drawRead(x0, top, w, mob, step) {
-        var fs = mob ? 10.5 : 12;
-        var n = step ? step.n : 0;
-        var lw = mob ? 58 : 84;
-        var cw = Math.min(72, (w - lw) / 4);
-        var ch = mob ? 34 : 40;
-        var bx = x0 + lw;
-        var yM = top + 18;
-        tx('메모리', x0, yM + ch / 2, fs, P.text + 'ee', 'left', true);
-        BYTES.forEach(function (b, i) {
-            var col = byteCol(i);
-            var on = i < n;
-            rr(bx + i * cw + 1, yM, cw - 2, ch, 5, col + (on ? '40' : '22'), col + (on ? 'ff' : 'aa'), on ? 2.4 : 1.4);
-            tx(hx(b, 2), bx + i * cw + cw / 2, yM + ch / 2, fs + 1, col + 'ee', 'center', true);
-            tx(mob ? '+' + i : '0x' + hx(BASE + i, 4), bx + i * cw + cw / 2, yM + ch + 12, fs - 2, P.muted + 'dd', 'center', false);
-        });
-        var results = [['빅 엔디언 CPU', false, P.teal], ['리틀 엔디언 CPU', true, P.orange]];
-        results.forEach(function (res, ri) {
-            var y = yM + ch + 44 + ri * (ch + 22);
-            tx(res[0], x0, y - 10, fs - 0.5, n ? res[2] + 'ee' : P.muted + '88', 'left', true);
-            rr(x0, y, w, ch, 5, n ? res[2] + '26' : 'none', n ? res[2] + 'cc' : P.muted + '33', 1.5);
-            if (n) tx(n * 8 + '비트로 읽은 값  0x' + hx(valOf(BYTES, n, res[1]), n * 2), x0 + 12, y + ch / 2, fs + 0.5, res[2] + 'ee', 'left', true);
-        });
-        if (n === 1) tx('두 CPU의 값이 같음', x0 + w, yM + ch + 34, fs - 0.5, P.green + 'ee', 'right', true);
+    function endReadDraw(x0, top, w, mob, s, p, fresh, q) {
+        var L = endReadLay(w, mob);
+        var f = mob ? 11 : 12;
+        var cw = L.cw, ch = L.ch;
+        var bx = x0 + L.lw;
+        var yM = top + L.yM;
+        var nowN = lerp(p.n, s.n, ez(q));
+        var res = [[L.r0, '빅 엔디언 CPU', P.teal, false], [L.r1, '리틀 엔디언 CPU', P.orange, true]];
+        var i, cx, col, la, yb, bl, br, y, col2, ri, va;
+
+        tx('메모리', x0, yM + ch / 2, f, P.text + 'ee', 'left', true);
+        for (i = 0; i < 4; i++) {
+            col = endCol(i);
+            cx = bx + i * cw;
+            rr(cx + 1, yM, cw - 2, ch, 5, col + '22', col + 'aa', 1.4);
+            la = 0;
+            if (s.n > i) la = fresh && i >= p.n ? ez(seg(q, (i - p.n) * 0.15, (i - p.n) * 0.15 + 0.5)) : 1;
+            if (la > 0) {
+                ctx.globalAlpha = la;
+                rr(cx + 1, yM, cw - 2, ch, 5, col + '40', col + 'ff', 2.4);
+                ctx.globalAlpha = 1;
+            }
+            tx(hx(BYTES[i], 2), cx + cw / 2, yM + ch / 2, f + 1, la > 0 ? col + 'ee' : col + '88', 'center', true);
+            tx(mob ? '+' + i : '0x' + hx(BASE + i, 4), cx + cw / 2, yM + ch + 11, f, P.muted + 'dd', 'center', false);
+        }
+
+        if (nowN > 0.05) {
+            yb = yM + ch + 25;
+            bl = bx + 1;
+            br = bx + nowN * cw - 1;
+            ln(bl, yb, br, yb, P.yellow + 'ff', 2);
+            ln(bl, yb - 5, bl, yb, P.yellow + 'ff', 2);
+            ln(br, yb - 5, br, yb, P.yellow + 'ff', 2);
+            tx(Math.max(1, Math.round(nowN)) * 8 + '비트 읽기', (bl + br) / 2, yb + 12, f, P.yellow + 'ee', 'center', true);
+        }
+
+        for (ri = 0; ri < 2; ri++) {
+            y = top + res[ri][0];
+            col2 = res[ri][2];
+            tx(res[ri][1], x0, y - 10, f, s.n ? col2 + 'ee' : P.muted + '88', 'left', true);
+            rr(x0, y, w, ch, 5, s.n ? col2 + '26' : 'none', s.n ? col2 + 'cc' : P.muted + '33', 1.5);
+            if (s.n) {
+                va = fresh && p.n && p.n !== s.n;
+                if (!va) {
+                    tx(endReadVal(s.n, res[ri][3]), x0 + 12, y + ch / 2, f + 1, col2 + 'ee', 'left', true);
+                } else {
+                    if (q < 0.4) {
+                        ctx.globalAlpha = 1 - seg(q, 0, 0.4);
+                        tx(endReadVal(p.n, res[ri][3]), x0 + 12, y + ch / 2, f + 1, col2 + 'ee', 'left', true);
+                    }
+                    if (q >= 0.5) {
+                        ctx.globalAlpha = seg(q, 0.5, 1);
+                        tx(endReadVal(s.n, res[ri][3]), x0 + 12, y + ch / 2, f + 1, col2 + 'ee', 'left', true);
+                    }
+                }
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        if (s.n) {
+            ctx.globalAlpha = fresh && p.n !== s.n ? seg(q, 0.6, 1) : 1;
+            tx((mob ? '' : '두 CPU의 ') + (s.n === 1 ? '값이 같음' : '값이 다름'), x0 + w, top + L.r0 - 10, f, s.n === 1 ? P.green + 'ee' : P.yellow + 'ee', 'right', true);
+            ctx.globalAlpha = 1;
+        }
+    }
+
+    /* ===================== 메인 장면 ===================== */
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var steps = currentSteps();
+        var s = step || steps[0];
+        var p = prev || s;
+        var fresh = s !== p;
+        var q = fresh ? clamp01(t) : 1;
+        if (mode === 'net') endNetDraw(x0, top, w, mob, s, p, fresh, q);
+        else if (mode === 'read') endReadDraw(x0, top, w, mob, s, p, fresh, q);
+        else endStoreDraw(x0, top, w, mob, s, p, fresh, q);
     }
 
     /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
     function draw() {
         P = window.CsFlow.getP();
         ctx.clearRect(0, 0, GW(), GH());
         var W = GW(); var mob = W < 600;
-        var padX = mob ? 16 : 26;
-        var fullW = W - padX * 2;
-        var top = mob ? 18 : 26;
-
         var steps = currentSteps();
         var step = stepIdx >= 0 ? steps[stepIdx] : null;
-
-        if (mode === 'net') drawNet(padX, top, fullW, mob, step);
-        else if (mode === 'read') drawRead(padX, top, fullW, mob, step);
-        else drawStore(padX, top, fullW, mob, step);
-
-        if (!step) {
-            var hint = '아래 STEP으로 두 방식의 차이를 확인하세요.';
-            ctx.font = '500 ' + (mob ? 11 : 12.5) + 'px "JetBrains Mono",monospace';
-            var hs = mob ? 11 : 12.5;
-            var hl = [hint];
-            if (ctx.measureText(hint).width > W - 16) {
-                var cut = hint.indexOf(' ', Math.floor(hint.length / 2));
-                if (cut < 0) cut = hint.lastIndexOf(' ');
-                hl = [hint.slice(0, cut), hint.slice(cut + 1)];
-            }
-            hl.forEach(function (line, li) {
-                tx(line, W / 2, GH() - (mob ? 12 : 14) - (hl.length - 1 - li) * (hs + 4), hs, P.muted + 'aa', 'center', false);
-            });
-        }
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
         var mob = w < 600;
-        var neededH;
-        if (mode === 'net') neededH = mob ? 330 : 340;
-        else if (mode === 'read') neededH = mob ? 270 : 280;
-        else neededH = mob ? 322 : 332;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
         canvasWrap.style.height    = 'auto';
-        canvasWrap.style.minHeight = neededH + 'px';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
         var actualH = canvasWrap.offsetHeight || neededH;
         if (actualH < neededH) actualH = neededH;
         canvas.width  = w * dpr;
@@ -329,17 +500,22 @@
     /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        draw();
-        rafId = requestAnimationFrame(function () { rafId = null; if (onDone) onDone(); });
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
     function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
-    function defaultLog() {
-        if (mode === 'net') return '리틀 엔디언 호스트가 빅 엔디언 네트워크 바이트 순서로 값을 보낼 때 일어나는 변환을 봅니다.';
-        if (mode === 'read') return '메모리의 같은 바이트를 엔디언이 다른 CPU가 정수로 읽으면 어떤 값이 되는지 봅니다.';
-        return '32비트 값을 메모리에 놓는 순서가 빅 엔디언과 리틀 엔디언에서 어떻게 다른지 봅니다.';
-    }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -378,7 +554,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);

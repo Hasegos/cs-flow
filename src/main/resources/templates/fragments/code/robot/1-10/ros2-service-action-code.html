@@ -1,0 +1,122 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python (rclpy) — 서비스 서버</p>
+            <div class="code-block">
+<pre><span class="kw">import</span> rclpy
+<span class="kw">from</span> rclpy.node <span class="kw">import</span> Node
+<span class="kw">from</span> example_interfaces.srv <span class="kw">import</span> AddTwoInts   <span class="cm"># 요청(a, b) --- 응답(sum)</span>
+
+<span class="kw">class</span> <span class="fn">AddServer</span>(Node):
+    <span class="kw">def</span> <span class="fn">__init__</span>(self):
+        <span class="fn">super</span>().<span class="fn">__init__</span>(<span class="st">'add_server'</span>)
+        self.srv = self.<span class="fn">create_service</span>(AddTwoInts, <span class="st">'add_two_ints'</span>, self.on_request)
+
+    <span class="kw">def</span> <span class="fn">on_request</span>(self, request, response):
+        response.sum = request.a + request.b       <span class="cm"># 처리하고 응답 채우기</span>
+        <span class="kw">return</span> response                          <span class="cm"># 반드시 응답을 돌려준다</span></pre>
+            </div>
+            <p class="code-desc">
+                create_service에 서비스 타입, 서비스 이름, 요청이 올 때 실행할 콜백을 주면 서비스 서버가 만들어집니다. 콜백은 요청과 비어 있는 응답 객체를 받아 응답의 필드를 채워 돌려줍니다. AddTwoInts의 요청에는 정수 a, b가, 응답에는 합 sum이 있습니다.
+                서비스 이름 하나에는 서버를 하나만 두어야 합니다. ROS 2 문서도 서비스 서버는 하나만 있어야 한다고 안내하므로 서비스 이름은 한 노드가 맡게 설계합니다. 반면 클라이언트는 여러 개가 같은 서비스를 호출할 수 있습니다.
+                기본 설정(단일 스레드 실행기)에서는 콜백 안에서 오래 걸리는 계산을 하면 그동안 이 노드가 다른 요청을 처리하지 못하고 클라이언트도 기다립니다. 그런 작업은 서비스가 아니라 액션으로 만드는 것이 맞습니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python (rclpy) — 서비스 클라이언트</p>
+            <div class="code-block">
+<pre><span class="kw">import</span> rclpy
+<span class="kw">from</span> rclpy.node <span class="kw">import</span> Node
+<span class="kw">from</span> example_interfaces.srv <span class="kw">import</span> AddTwoInts
+
+<span class="kw">def</span> <span class="fn">main</span>():
+    rclpy.<span class="fn">init</span>()
+    node = rclpy.create_node(<span class="st">'add_client'</span>)
+    client = node.<span class="fn">create_client</span>(AddTwoInts, <span class="st">'add_two_ints'</span>)
+
+    <span class="kw">if not</span> client.<span class="fn">wait_for_service</span>(timeout_sec=<span class="num">3.0</span>):   <span class="cm"># 서버가 있는지 먼저 확인</span>
+        node.<span class="fn">get_logger</span>().<span class="fn">error</span>(<span class="st">'서비스 서버가 없습니다'</span>)
+        <span class="kw">return</span>
+
+    req = AddTwoInts.<span class="fn">Request</span>()
+    req.a, req.b = <span class="num">2</span>, <span class="num">3</span>
+    future = client.<span class="fn">call_async</span>(req)               <span class="cm"># 요청만 보내고 바로 돌아온다</span>
+    rclpy.<span class="fn">spin_until_future_complete</span>(node, future)  <span class="cm"># 응답이 올 때까지 처리</span>
+    node.<span class="fn">get_logger</span>().<span class="fn">info</span>(<span class="st">f'sum = {future.result().sum}'</span>)</pre>
+            </div>
+            <p class="code-desc">
+                클라이언트는 같은 타입과 이름으로 create_client를 만든 뒤, wait_for_service로 서버가 나타났는지 시간 제한을 두고 확인합니다. 공식 튜토리얼도 요청을 보내기 전에 wait_for_service로 서버가 준비되길 기다립니다. 시각화의 서버가 없는 경우가 이 분기입니다.
+                call_async는 요청을 보내고 바로 돌아오며, 응답이 오면 완료되는 future를 돌려줍니다. spin_until_future_complete는 그 future가 완료될 때까지 노드의 이벤트를 처리하는 도우미입니다. 완료된 뒤 future.result()로 응답을 꺼냅니다.
+                위 코드는 흐름을 보이려는 최소 예시이며, 실제로는 응답이 오지 않는 경우에 대비한 시간 제한과 오류 처리를 더 넣습니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python (rclpy) — 액션 서버 (피드백과 취소)</p>
+            <div class="code-block">
+<pre><span class="kw">import</span> time
+<span class="kw">import</span> rclpy
+<span class="kw">from</span> rclpy.node <span class="kw">import</span> Node
+<span class="kw">from</span> rclpy.callback_groups <span class="kw">import</span> ReentrantCallbackGroup
+<span class="kw">from</span> rclpy.executors <span class="kw">import</span> MultiThreadedExecutor
+<span class="kw">from</span> rclpy.action <span class="kw">import</span> ActionServer, CancelResponse
+<span class="kw">from</span> action_tutorials_interfaces.action <span class="kw">import</span> Fibonacci
+
+<span class="kw">class</span> <span class="fn">FibServer</span>(Node):
+    <span class="kw">def</span> <span class="fn">__init__</span>(self):
+        <span class="fn">super</span>().<span class="fn">__init__</span>(<span class="st">'fib_server'</span>)
+        self._server = <span class="fn">ActionServer</span>(
+            self, Fibonacci, <span class="st">'fibonacci'</span>,
+            execute_callback=self.execute,
+            cancel_callback=<span class="kw">lambda</span> req: CancelResponse.ACCEPT,   <span class="cm"># 취소 요청을 수락</span>
+            callback_group=<span class="fn">ReentrantCallbackGroup</span>())    <span class="cm"># 실행 중에도 취소 요청을 받기 위해</span>
+
+    <span class="kw">def</span> <span class="fn">execute</span>(self, goal_handle):
+        feedback = Fibonacci.<span class="fn">Feedback</span>()
+        feedback.partial_sequence = [<span class="num">0</span>, <span class="num">1</span>]
+        <span class="kw">for</span> i <span class="kw">in</span> <span class="fn">range</span>(<span class="num">1</span>, goal_handle.request.order):
+            <span class="kw">if</span> goal_handle.is_cancel_requested:            <span class="cm"># 취소 요청 확인</span>
+                goal_handle.<span class="fn">canceled</span>()
+                <span class="kw">return</span> Fibonacci.<span class="fn">Result</span>()
+            feedback.partial_sequence.<span class="fn">append</span>(
+                feedback.partial_sequence[i] + feedback.partial_sequence[i - <span class="num">1</span>])
+            goal_handle.<span class="fn">publish_feedback</span>(feedback)          <span class="cm"># 진행 상황 알림</span>
+            time.<span class="fn">sleep</span>(<span class="num">1</span>)
+        goal_handle.<span class="fn">succeed</span>()
+        result = Fibonacci.<span class="fn">Result</span>()
+        result.sequence = feedback.partial_sequence
+        <span class="kw">return</span> result
+
+rclpy.<span class="fn">init</span>()
+rclpy.<span class="fn">spin</span>(<span class="fn">FibServer</span>(), executor=<span class="fn">MultiThreadedExecutor</span>())   <span class="cm"># 여러 콜백을 동시에 처리</span></pre>
+            </div>
+            <p class="code-desc">
+                ActionServer는 액션 타입, 액션 이름, 목표가 수락됐을 때 실행할 execute_callback을 받습니다. 콜백 안에서 publish_feedback으로 진행 상황을 여러 번 보내고, 일이 끝나면 succeed로 성공을 표시한 뒤 결과를 돌려줍니다. ros2/demos의 action_tutorials_interfaces와 ros2/examples의 Fibonacci 서버를 줄인 코드이며 order가 5이면 결과 수열이 [0, 1, 1, 2, 3, 5]가 됩니다.
+                취소는 서버가 직접 지원해야 합니다. 위 코드는 cancel_callback에서 ACCEPT를 반환해 취소 요청을 수락하고, 작업 반복문 안에서 is_cancel_requested를 확인해 canceled로 마치는 흐름입니다. cancel_callback을 지정하지 않으면 rclpy의 기본 동작은 취소 요청을 거절하므로, 시각화의 취소 모드처럼 동작시키려면 이 부분이 필요합니다.
+                기본 단일 스레드 실행기에서는 execute가 time.sleep으로 막혀 있는 동안 취소 요청이 처리되지 않을 수 있어서, 공식 예제는 ReentrantCallbackGroup과 MultiThreadedExecutor를 함께 씁니다. 실제 서버는 목표를 수락할지 정하는 goal_callback도 둘 수 있으며, 위에서는 생략했습니다. 반복문의 time.sleep은 오래 걸리는 일을 흉내 낸 것입니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Shell (ros2 CLI) — 서비스 호출과 액션 목표 보내기</p>
+            <div class="code-block">
+<pre><span class="cm"># 서비스</span>
+ros2 service list -t                                   <span class="cm"># 서비스 목록과 타입</span>
+ros2 service call /add_two_ints example_interfaces/srv/AddTwoInts <span class="st">"{a: 2, b: 3}"</span>
+
+<span class="cm"># 액션</span>
+ros2 action list -t                                    <span class="cm"># 액션 목록과 타입</span>
+ros2 action info /fibonacci                            <span class="cm"># 액션 서버와 클라이언트 보기</span>
+ros2 action send_goal /fibonacci action_tutorials_interfaces/action/Fibonacci <span class="st">"{order: 5}"</span> --feedback</pre>
+            </div>
+            <p class="code-desc">
+                ros2 service call은 코드를 쓰지 않고 서비스를 한 번 호출해 응답을 출력합니다. 서비스 이름, 타입, YAML 형식의 요청 값을 차례로 적습니다. 서비스 서버가 있는지, 요청이 어떻게 처리되는지 빠르게 시험할 때 유용합니다.
+                ros2 action send_goal은 액션 서버에 목표를 보냅니다. --feedback을 붙이면 작업하는 동안 오는 피드백도 출력합니다. 결과와 최종 상태는 항상 출력됩니다. ros2 action info로 이 액션에 서버와 클라이언트가 몇 개 붙어 있는지 확인할 수 있습니다.
+                타입 이름과 값은 예시이며 실제 목록은 실행 중인 노드에 따라 다릅니다. 명령을 쓰기 전에 ROS 2 환경 설정 파일을 불러오고, 서비스 서버나 액션 서버를 먼저 실행해야 합니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>

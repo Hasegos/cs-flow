@@ -1,5 +1,5 @@
 /**
- * 그래프 시각화
+ * 그래프 시각화 시각화
  */
 (function () {
     'use strict';
@@ -23,10 +23,10 @@
     var modeWrap = el('div', 'graph-viz__mode');
     var modeDefs = [
         { key: 'structure', label: '구조' },
-        { key: 'matrix',    label: '인접 행렬' },
-        { key: 'list',      label: '인접 리스트' },
-        { key: 'bfs',       label: 'BFS' },
-        { key: 'dfs',       label: 'DFS' },
+        { key: 'matrix', label: '인접 행렬' },
+        { key: 'list', label: '인접 리스트' },
+        { key: 'bfs', label: 'BFS' },
+        { key: 'dfs', label: 'DFS' }
     ];
     var modeBtns = {};
     modeDefs.forEach(function (m, i) {
@@ -41,7 +41,7 @@
     var speedWrap = el('div', 'graph-viz__speed');
     speedWrap.appendChild(el('span', 'graph-viz__speed-label', 'SPEED'));
     var speedBtns = [];
-    [['1x', 1800], ['2x', 900], ['3x', 600]].forEach(function (pair, i) {
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
         var b = el('button', 'graph-viz__speed-btn' + (i === 0 ? ' graph-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
@@ -56,7 +56,7 @@
     canvasWrap.appendChild(canvas);
     root.appendChild(canvasWrap);
 
-    var logEl = el('div', 'graph-viz__log', '▶ PLAY를 눌러 그래프 구조를 확인하세요.');
+    var logEl = el('div', 'graph-viz__log', '');
     root.appendChild(logEl);
 
     var controls = el('div', 'graph-viz__controls');
@@ -74,11 +74,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'structure';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 그래프 정의 ===================== */
     var NODE_ORDER = ['A', 'B', 'C', 'D', 'E', 'F'];
@@ -278,370 +345,519 @@
         return stack;
     }
 
-    /* ===================== 상태 변수 ===================== */
-    var mode     = 'structure';
-    var stepIdx  = -1;
-    var running  = false;
-    var timer    = null;
-    var rafId    = null;
-    var speed    = 1800;
-    var animProg = 1;
-
+    /* ===================== 상태 ===================== */
     function currentSteps() {
-        if (mode === 'structure') return STRUCTURE_STEPS;
-        if (mode === 'matrix')    return MATRIX_STEPS;
-        if (mode === 'list')      return LIST_STEPS;
-        if (mode === 'bfs')       return BFS_STEPS;
-        return DFS_STEPS;
+        if (mode === 'matrix') return MATRIX_STEPS;
+        if (mode === 'list') return LIST_STEPS;
+        if (mode === 'bfs') return BFS_STEPS;
+        if (mode === 'dfs') return DFS_STEPS;
+        return STRUCTURE_STEPS;
+    }
+    function defaultLog() {
+        if (mode === 'matrix') return '▶ PLAY를 눌러 인접 행렬이 채워지는 과정을 확인하세요.';
+        if (mode === 'list') return '▶ PLAY를 눌러 인접 리스트가 채워지는 과정을 확인하세요.';
+        if (mode === 'bfs') return '▶ PLAY를 눌러 BFS 탐색 과정을 확인하세요.';
+        if (mode === 'dfs') return '▶ PLAY를 눌러 DFS 탐색 과정을 확인하세요.';
+        return '▶ PLAY를 눌러 그래프 구조를 확인하세요.';
     }
 
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        ctx.beginPath();
-        ctx.moveTo(x + r, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, r);
-        ctx.arcTo(x + w, y + h, x,     y + h, r);
-        ctx.arcTo(x,     y + h, x,     y,     r);
-        ctx.arcTo(x,     y,     x + w, y,     r);
-        ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.5; ctx.stroke(); }
+    /* ===================== 레이아웃 ===================== */
+    function layout(w, mob) {
+        var L = {
+            mob: mob,
+            side: !mob,
+            r: mob ? 18 : 24,
+            gh: mob ? 168 : 220,
+            fs: mob ? 11 : 12,
+            cell: mob ? 24 : 30,
+            rowH: mob ? 18 : 22,
+            bw: mob ? 30 : 40,
+            bh: mob ? 26 : 32,
+            gap: mob ? 5 : 8,
+        };
+        L.y0 = L.gh + 14;
+        var mH = 16 + L.cell * 7;
+        var lH = 16 + L.rowH * 6;
+        L.lX = L.cell * 8 + 44;
+        L.lY = L.side ? L.y0 : L.y0 + mH + 14;
+        L.matrixTotal = L.side ? L.y0 + Math.max(mH, lH) + 6 : L.lY + lH + 6;
+        L.listTotal = L.y0 + lH + 6;
+        L.panelTotal = L.y0 + 16 + L.bh + 40;
+        L.structTotal = L.gh + 8;
+        return L;
+    }
+    function sceneH(w, mob) {
+        var L = layout(w, mob);
+        if (mode === 'structure') return L.structTotal;
+        if (mode === 'matrix') return L.matrixTotal;
+        if (mode === 'list') return L.listTotal;
+        return L.panelTotal;
     }
 
-    function tx(str, x, y, sz, color, align, bold) {
+    /* ===================== 공통 헬퍼 ===================== */
+    function ez(q) { q = clamp01(q); return q * q * (3 - 2 * q); }
+    function dgW(str, sz, bold) {
         ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
+        return ctx.measureText(str).width;
     }
-
-    function circle(cx, cy, r, fill, stroke, lw) {
-        ctx.beginPath();
-        ctx.arc(cx, cy, r, 0, Math.PI * 2);
-        if (fill)   { ctx.fillStyle = fill; ctx.fill(); }
-        if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.5; ctx.stroke(); }
-    }
-
-    function line(x1, y1, x2, y2, col, lw, dash) {
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
-        ctx.strokeStyle = col; ctx.lineWidth = lw || 1.5;
-        ctx.setLineDash(dash || []); ctx.stroke(); ctx.setLineDash([]);
-    }
-
-    /* ===================== 노드 좌표 계산 ===================== */
-    function nodePos(id, W, top, h, mob) {
-        var n = NODES[id];
-        var marginX = mob ? 28 : 46;
-        var x = marginX + n.x * (W - 2 * marginX);
-        var y = top + n.y * h;
-        return { x: x, y: y };
-    }
-
-    /* ===================== 상태 색상 ===================== */
-    function nodeColor(id, step) {
-        if (mode === 'structure') {
-            var hi = step.highlight;
-            if (hi && hi.nodes.indexOf(id) >= 0) {
-                if (step.label === 'adjacent') return P.teal;
-                if (step.label === 'degree')   return P.orange;
-                if (step.label === 'cycle')    return P.purple;
-                return P.purple;
-            }
-            return P.muted;
-        }
-        if (mode === 'matrix') {
-            if (step.type === 'fill' && (id === step.edge[0] || id === step.edge[1])) return P.orange;
-            return P.muted;
-        }
-        if (mode === 'list') {
-            var idx = NODE_ORDER.indexOf(id);
-            if (step.type === 'fill' && step.nodeIdx === idx) return P.orange;
-            if (step.type === 'complete') return P.teal;
-            if (step.type === 'fill' && idx < step.nodeIdx) return P.teal;
-            return P.muted;
-        }
-        if (mode === 'bfs') {
-            if (step.node === id) return step.type === 'dequeue' ? P.green : P.orange;
-            if (step.order && step.order.indexOf(id) >= 0) return P.teal;
-            if (step.queue && step.queue.indexOf(id) >= 0) return P.orange;
-            return P.muted;
-        }
-        if (step.node === id) {
-            if (step.type === 'visit')  return P.green;
-            if (step.type === 'enter')  return P.orange;
-            if (step.type === 'return') return P.teal;
-        }
-        if (step.order && step.order.indexOf(id) >= 0) return P.teal;
-        return P.muted;
-    }
-
-    /* ===================== 그래프 다이어그램 드로우 ===================== */
-    function drawGraph(W, top, h, mob, step) {
-        var r    = mob ? 20 : 26;
-        var fVal = mob ? 13 : 15;
-        var fLbl = mob ? 9  : 11;
-
-        var hiEdges = (mode === 'structure') ? (step.highlight ? step.highlight.edges : []) : null;
-
-        EDGES.forEach(function (e) {
-            var p1 = nodePos(e[0], W, top, h, mob);
-            var p2 = nodePos(e[1], W, top, h, mob);
-            var col = P.muted + '33';
-            var lw  = 1.5;
-
-            if (mode === 'structure') {
-                var isHi = edgeInList(e, hiEdges);
-                col = isHi ? P.purple + 'aa' : P.muted + '33';
-                lw  = isHi ? 2.2 : 1.5;
-            } else if (mode === 'matrix' && step.type === 'fill' && sameEdge(e, step.edge)) {
-                col = P.orange + 'cc'; lw = 2.2;
-            } else if (mode === 'matrix' && step.type !== 'intro') {
-                var idx2 = EDGES.indexOf(e);
-                var filledUpTo = step.type === 'fill' ? step.edgeIdx : EDGES.length - 1;
-                if (idx2 <= filledUpTo) { col = P.teal + '77'; lw = 1.8; }
-            } else if (mode === 'list' && step.type === 'fill' && (e[0] === step.node || e[1] === step.node)) {
-                col = P.orange + 'cc'; lw = 2.2;
-            } else if (mode === 'list' && step.type === 'complete') {
-                col = P.teal + '55'; lw = 1.8;
-            } else if ((mode === 'bfs' || mode === 'dfs') && step.node) {
-                if (e[0] === step.node || e[1] === step.node) { col = nodeColor(step.node, step) + '99'; lw = 2; }
-            }
-            line(p1.x, p1.y, p2.x, p2.y, col, lw);
-        });
-
+    function dgPos(x0, top, w, L) {
+        var mx = L.mob ? 22 : 44;
+        var out = {};
         NODE_ORDER.forEach(function (id) {
-            var pos = nodePos(id, W, top, h, mob);
-            var col = nodeColor(id, step);
-            var isEmph = col !== P.muted;
-            circle(pos.x, pos.y, r, col + (isEmph ? '22' : '12'), col + (isEmph ? 'ee' : '55'), isEmph ? 2.4 : 1.5);
-            tx(id, pos.x, pos.y, fVal, isEmph ? col : P.text + 'cc', 'center', isEmph);
-
-            if (mode === 'structure' && step.label === 'degree' && id === 'B') {
-                tx('deg = ' + ADJ['B'].length, pos.x, pos.y - r - (mob ? 12 : 16), fLbl, P.orange, 'center', true);
+            var n = NODES[id];
+            out[id] = { x: x0 + mx + n.x * (w - 2 * mx), y: top + L.r + n.y * (L.gh - 2 * L.r) };
+        });
+        return out;
+    }
+    function dgEdge(pos, ed, col, lw, f) {
+        var a = pos[ed[0]], b = pos[ed[1]];
+        var k = f === undefined ? 1 : f;
+        ln(a.x, a.y, a.x + (b.x - a.x) * k, a.y + (b.y - a.y) * k, col, lw);
+    }
+    function dgEdgeIdx(a, b) {
+        for (var i = 0; i < EDGES.length; i++) {
+            if (sameEdge(EDGES[i], [a, b])) return i;
+        }
+        return -1;
+    }
+    function dgStructCol(s) {
+        if (!s) return P.purple;
+        if (s.label === 'adjacent') return P.teal;
+        if (s.label === 'degree') return P.orange;
+        return P.purple;
+    }
+    function dgNode(q, id, r, col, a, solid) {
+        if (a <= 0) return;
+        ctx.globalAlpha = a;
+        circ(q.x, q.y, r, solid ? col + 'ff' : col + '26', col + 'ff', 2);
+        tx(id, q.x, q.y, r < 20 ? 13 : 15, solid ? '#111111' : P.text + 'ff', 'center', true);
+        ctx.globalAlpha = 1;
+    }
+    function dgRing(q, rad, col, a) {
+        if (a <= 0) return;
+        ctx.globalAlpha = a;
+        circ(q.x, q.y, rad, 'none', col, 2.4);
+        ctx.globalAlpha = 1;
+    }
+    function dgDot(x, y, rad, col) { circ(x, y, rad, col, 'none'); }
+    function dgBox(x, y, bw, bh, id, col, fs) {
+        rr(x, y, bw, bh, 5, col + '18', col + 'cc', 1.6);
+        tx(id, x + bw / 2, y + bh / 2, fs, col + 'ff', 'center', true);
+    }
+    function dgRow(id, items, alphas, base, x, y, sz, col, bold) {
+        ctx.globalAlpha = base;
+        if (!items.length) {
+            tx(id + '  →  [ ]', x, y, sz, col, 'left', bold);
+            ctx.globalAlpha = 1;
+            return;
+        }
+        var acc = id + '  →  [ ';
+        tx(acc, x, y, sz, col, 'left', bold);
+        items.forEach(function (nb, j) {
+            var piece = (j > 0 ? ', ' : '') + nb;
+            ctx.globalAlpha = alphas[j] * base;
+            tx(piece, x + dgW(acc, sz, bold), y, sz, col, 'left', bold);
+            acc += piece;
+        });
+        ctx.globalAlpha = base;
+        tx(' ]', x + dgW(acc, sz, bold), y, sz, col, 'left', bold);
+        ctx.globalAlpha = 1;
+    }
+    function dgBfsTree(steps, si) {
+        var out = [];
+        for (var i = 0; i <= si; i++) {
+            var q = steps[i];
+            if (q.type === 'enqueue' && q.order.length) out.push([q.order[q.order.length - 1], q.node]);
+        }
+        return out;
+    }
+    function dgDfsInfo(steps, si) {
+        var st = [], tree = [];
+        for (var i = 0; i <= si; i++) {
+            var q = steps[i];
+            if (q.type === 'enter') {
+                if (st.length) tree.push([st[st.length - 1], q.node]);
+                st.push(q.node);
+            } else if (q.type === 'return') {
+                st.pop();
             }
-        });
+        }
+        return { stack: st, tree: tree };
+    }
+    function dgFilled(st) {
+        if (st.type === 'intro') return 0;
+        if (st.type === 'complete') return EDGES.length;
+        return st.edgeIdx + 1;
     }
 
-    /* ===================== 인접 행렬 패널 ===================== */
-    function drawMatrixPanel(W, top, mob, step) {
-        var n = NODE_ORDER.length;
-        var cell = mob ? 25 : 32;
-        var gridW = cell * (n + 1);
-        var startX = Math.max(mob ? 10 : 20, (W - gridW) / 2);
-        var startY = top + (mob ? 18 : 22);
-        var fLbl = mob ? 9 : 11;
-        var fVal = mob ? 11 : 13;
+    /* ===================== 구조 장면 ===================== */
+    function dgStructure(x0, top, w, L, s, p, e) {
+        var pos = dgPos(x0, top, w, L);
+        var r = L.r;
+        var hi = s.highlight;
+        var ph = p ? p.highlight : null;
+        var col = dgStructCol(s);
+        var pcol = dgStructCol(p);
 
-        tx('ADJACENCY MATRIX', startX, top, fLbl, P.muted + 'aa', 'left', true);
-
-        var filledUpTo = step.type === 'intro' ? -1 : (step.type === 'fill' ? step.edgeIdx : EDGES.length - 1);
-        var filledEdges = EDGES.slice(0, filledUpTo + 1);
-
-        NODE_ORDER.forEach(function (colId, j) {
-            var cx = startX + cell * (j + 1) + cell / 2;
-            tx(colId, cx, startY + cell / 2, fLbl, P.muted + 'cc', 'center', true);
+        EDGES.forEach(function (ed) {
+            var inC = edgeInList(ed, hi.edges);
+            var inP = ph ? edgeInList(ed, ph.edges) : false;
+            if (inC && inP) dgEdge(pos, ed, col + 'aa', 2.2, 1);
+            else if (inC) dgEdge(pos, ed, col + 'aa', 2.2, ez(e));
+            else if (inP) {
+                ctx.globalAlpha = 1 - ez(e);
+                dgEdge(pos, ed, pcol + 'aa', 2.2, 1);
+                ctx.globalAlpha = 1;
+            } else dgEdge(pos, ed, P.muted + '33', 1.5, 1);
         });
 
-        NODE_ORDER.forEach(function (rowId, i) {
-            var ry = startY + cell * (i + 1);
-            tx(rowId, startX + cell / 2, ry + cell / 2, fLbl, P.muted + 'cc', 'center', true);
-
-            NODE_ORDER.forEach(function (colId, j) {
-                var cx = startX + cell * (j + 1);
-                var isDiag = rowId === colId;
-                var hasEdge = !isDiag && filledEdges.some(function (e) { return sameEdge(e, [rowId, colId]); });
-                var isCurrent = !isDiag && step.type === 'fill' && sameEdge(step.edge, [rowId, colId]);
-
-                var fill = isDiag ? P.muted + '10' : (isCurrent ? P.orange + '2a' : (hasEdge ? P.teal + '1c' : 'transparent'));
-                var stroke = isDiag ? P.muted + '33' : (isCurrent ? P.orange + 'ee' : (hasEdge ? P.teal + 'aa' : P.muted + '33'));
-                rr(cx, ry, cell, cell, 3, fill, stroke, isCurrent ? 2.2 : 1);
-
-                var val = isDiag ? '—' : (hasEdge ? '1' : '0');
-                var valCol = isDiag ? P.muted + '66' : (isCurrent ? P.orange : (hasEdge ? P.teal : P.muted + '88'));
-                tx(val, cx + cell / 2, ry + cell / 2, fVal, valCol, 'center', hasEdge || isCurrent);
+        if (s.label === 'adjacent' && e < 1 && (!p || p.label !== 'adjacent')) {
+            ADJ.B.forEach(function (nb, j) {
+                var k = clamp01((e - j * 0.15) / 0.7);
+                if (k <= 0 || k >= 1) return;
+                var a = pos.B, b = pos[nb];
+                dgDot(a.x + (b.x - a.x) * k, a.y + (b.y - a.y) * k, 4.5, P.teal + 'ff');
             });
-        });
-    }
-
-    /* ===================== 인접 리스트 패널 ===================== */
-    function drawListPanel(W, top, mob, step) {
-        var rowH = mob ? 24 : 28;
-        var fLbl = mob ? 9  : 11;
-        var fVal = mob ? 12 : 13;
-        var x0 = mob ? 16 : 28;
-
-        tx('ADJACENCY LIST', x0, top, fLbl, P.muted + 'aa', 'left', true);
-
-        var filledUpTo = step.type === 'intro' ? -1 : (step.type === 'fill' ? step.nodeIdx : NODE_ORDER.length - 1);
+        }
 
         NODE_ORDER.forEach(function (id, i) {
-            var y = top + (mob ? 18 : 22) + i * rowH;
-            var isCurrent = step.type === 'fill' && step.nodeIdx === i;
-            var isFilled  = i <= filledUpTo;
-            var col = isCurrent ? P.orange : (isFilled ? P.teal : P.muted + '77');
-            var text = id + '  →  [ ' + (isFilled ? ADJ[id].join(', ') : '…') + ' ]';
-            tx(text, x0, y, fVal, col, 'left', isCurrent);
+            var inC = hi.nodes.indexOf(id) >= 0;
+            var inP = ph ? ph.nodes.indexOf(id) >= 0 : false;
+            var oa = 0, oc = col;
+            if (inC && inP) oa = 1;
+            else if (inC) oa = ez(seg(e, i * 0.06, 0.6 + i * 0.06));
+            else if (inP) { oa = 1 - ez(e); oc = pcol; }
+            if (oa < 1) dgNode(pos[id], id, r, P.muted, 1 - oa, false);
+            if (oa > 0) dgNode(pos[id], id, r, oc, oa, false);
         });
-    }
 
-    /* ===================== BFS 큐 패널 ===================== */
-    function drawQueuePanel(W, top, mob, step) {
-        var fLbl = mob ? 9 : 11;
-        var boxW = mob ? 34 : 42;
-        var boxH = mob ? 28 : 34;
-        var gap  = mob ? 6  : 8;
-        var x0   = mob ? 16 : 28;
-
-        tx('QUEUE (FRONT → BACK)', x0, top, fLbl, P.muted + 'aa', 'left', true);
-        var by = top + (mob ? 16 : 20);
-        var q = step.queue || [];
-        if (!q.length) {
-            tx('(empty)', x0, by + boxH / 2, mob ? 10 : 12, P.muted + '77', 'left', false);
-        } else {
-            q.forEach(function (id, i) {
-                var bx = x0 + i * (boxW + gap);
-                var isFront = i === 0;
-                var col = isFront ? P.orange : P.muted;
-                rr(bx, by, boxW, boxH, 5, col + '18', col + 'cc', isFront ? 2 : 1.5);
-                tx(id, bx + boxW / 2, by + boxH / 2, mob ? 12 : 14, col, 'center', true);
-            });
+        if (s.label === 'degree') {
+            var nDeg = ADJ.B.length;
+            var fresh = !p || p.label !== 'degree';
+            var cnt = fresh ? Math.min(nDeg, Math.floor(e * (nDeg + 1))) : nDeg;
+            tx('deg = ' + cnt, pos.B.x, pos.B.y - r - 12, L.fs, P.orange + 'ff', 'center', true);
         }
 
-        var resY = by + boxH + (mob ? 22 : 28);
-        tx('VISITED ORDER', x0, resY, fLbl, P.muted + 'aa', 'left', true);
-        tx((step.order && step.order.length) ? step.order.join(', ') : '(empty)', x0, resY + (mob ? 16 : 20), mob ? 12 : 13, P.green, 'left', false);
+        if (s.label === 'cycle') {
+            var cyc = ['A', 'B', 'E', 'F', 'C', 'A'];
+            var u = e * (cyc.length - 1);
+            var k2 = Math.min(cyc.length - 2, Math.floor(u));
+            var fr = u - k2;
+            var pa = pos[cyc[k2]], pb = pos[cyc[k2 + 1]];
+            if (e < 1 && (!p || p.label !== 'cycle')) dgDot(pa.x + (pb.x - pa.x) * fr, pa.y + (pb.y - pa.y) * fr, 5, P.purple + 'ff');
+            for (var c = 0; c < 5; c++) {
+                if (u >= c - 0.01) tx(String(c + 1), pos[cyc[c]].x, pos[cyc[c]].y - r - 9, L.fs, P.purple + 'ff', 'center', true);
+            }
+        }
     }
 
-    /* ===================== DFS 콜스택 패널 ===================== */
-    function drawStackPanel(W, top, mob, steps, step, idx) {
-        var fLbl = mob ? 9 : 11;
-        var boxW = mob ? 34 : 42;
-        var boxH = mob ? 28 : 34;
-        var gap  = mob ? 6  : 8;
-        var x0   = mob ? 16 : 28;
+    /* ===================== 인접 행렬 장면 ===================== */
+    function dgMatrix(x0, top, w, L, s, p, e) {
+        var pos = dgPos(x0, top, w, L);
+        var ga = p ? 1 : ez(e);
+        var n = dgFilled(s);
+        var ni = (s.type === 'fill' && (!p || p.edgeIdx !== s.edgeIdx)) ? s.edgeIdx : -1;
+        var ne = ni >= 0 ? EDGES[ni] : null;
+        var grow = ni >= 0 ? ez(seg(e, 0, 0.5)) : 1;
+        var ov = ni >= 0 ? ez(seg(e, 0.5, 0.9)) : 0;
+        var touched = {};
+        EDGES.forEach(function (ed, i) {
+            if (i < n) { touched[ed[0]] = true; touched[ed[1]] = true; }
+        });
 
-        tx('CALL STACK', x0, top, fLbl, P.muted + 'aa', 'left', true);
-        var by = top + (mob ? 16 : 20);
-        var stack = computeDFSStack(steps, idx);
-        if (!stack.length) {
-            tx('(empty)', x0, by + boxH / 2, mob ? 10 : 12, P.muted + '77', 'left', false);
-        } else {
-            stack.forEach(function (id, i) {
-                var bx = x0 + i * (boxW + gap);
-                var isTop = i === stack.length - 1;
-                var col = isTop ? P.orange : P.muted;
-                rr(bx, by, boxW, boxH, 5, col + '18', col + 'cc', isTop ? 2 : 1.5);
-                tx(id, bx + boxW / 2, by + boxH / 2, mob ? 12 : 14, col, 'center', true);
+        ctx.globalAlpha = ga;
+        EDGES.forEach(function (ed, i) {
+            if (i >= n) dgEdge(pos, ed, P.muted + '33', 1.4, 1);
+            else if (i === ni) dgEdge(pos, ed, P.orange + 'cc', 2.4, grow);
+            else dgEdge(pos, ed, P.teal + 'aa', 1.8, 1);
+        });
+        if (ne && e < 0.5) {
+            var qa = pos[ne[0]], qb = pos[ne[1]];
+            dgDot(qa.x + (qb.x - qa.x) * grow, qa.y + (qb.y - qa.y) * grow, 4, P.orange + 'ff');
+        }
+        NODE_ORDER.forEach(function (id) {
+            var isE = ne && (ne[0] === id || ne[1] === id);
+            dgNode(pos[id], id, L.r, isE ? P.orange : (touched[id] ? P.teal : P.muted), ga, !!isE);
+        });
+
+        var mY = top + L.y0;
+        var gridTop = mY + 16;
+        var cell = L.cell, fsL = L.fs, fsV = L.mob ? 11 : 13;
+        var x = x0;
+        ctx.globalAlpha = ga;
+        tx('ADJACENCY MATRIX', x, mY + 7, fsL, P.muted + 'ff', 'left', true);
+        NODE_ORDER.forEach(function (id, j) {
+            tx(id, x + cell * (j + 1) + cell / 2, gridTop + cell / 2, fsL, P.muted + 'ff', 'center', true);
+        });
+        NODE_ORDER.forEach(function (rowId, i) {
+            var ry = gridTop + cell * (i + 1);
+            tx(rowId, x + cell / 2, ry + cell / 2, fsL, P.muted + 'ff', 'center', true);
+            NODE_ORDER.forEach(function (colId, j) {
+                var cx = x + cell * (j + 1);
+                if (i === j) {
+                    rr(cx + 1, ry + 1, cell - 2, cell - 2, 3, P.muted + '10', P.muted + '33', 1);
+                    tx('—', cx + cell / 2, ry + cell / 2, fsV, P.muted + 'ff', 'center', false);
+                    return;
+                }
+                var ei = dgEdgeIdx(rowId, colId);
+                if (ei >= 0 && ei === ni) {
+                    rr(cx + 1, ry + 1, cell - 2, cell - 2, 3, 'none', P.muted + '33', 1);
+                    ctx.globalAlpha = ga * ov;
+                    rr(cx + 1, ry + 1, cell - 2, cell - 2, 3, P.orange + '2a', P.orange + 'ee', 2);
+                    ctx.globalAlpha = ga;
+                    tx(ov > 0.5 ? '1' : '0', cx + cell / 2, ry + cell / 2, fsV, ov > 0.5 ? P.orange + 'ff' : P.muted + 'ff', 'center', ov > 0.5);
+                    return;
+                }
+                var on = ei >= 0 && ei < n;
+                rr(cx + 1, ry + 1, cell - 2, cell - 2, 3, on ? P.teal + '2a' : 'none', on ? P.teal + 'aa' : P.muted + '33', 1);
+                tx(on ? '1' : '0', cx + cell / 2, ry + cell / 2, fsV, on ? P.teal + 'ff' : P.muted + 'ff', 'center', on);
             });
+        });
+        if (s.type === 'complete' && e < 1) {
+            var sy = gridTop + cell * (1 + 6 * e);
+            ln(x + cell, sy, x + cell * 8, sy, P.orange + 'aa', 2);
         }
 
-        var resY = by + boxH + (mob ? 22 : 28);
-        tx('VISITED ORDER', x0, resY, fLbl, P.muted + 'aa', 'left', true);
-        tx((step.order && step.order.length) ? step.order.join(', ') : '(empty)', x0, resY + (mob ? 16 : 20), mob ? 12 : 13, P.green, 'left', false);
+        var lx = x0 + (L.side ? L.lX : 0);
+        var lt = top + L.lY;
+        ctx.globalAlpha = ga;
+        tx('ADJACENCY LIST', lx, lt + 7, fsL, P.muted + 'ff', 'left', true);
+        NODE_ORDER.forEach(function (id, i) {
+            var yc = lt + 16 + i * L.rowH + L.rowH / 2;
+            var items = ADJ[id].filter(function (nb) {
+                var k = dgEdgeIdx(id, nb);
+                return k >= 0 && k < n;
+            });
+            var isE = ne && (ne[0] === id || ne[1] === id);
+            var other = isE ? (ne[0] === id ? ne[1] : ne[0]) : null;
+            var alphas = items.map(function (nb) { return nb === other ? ov : 1; });
+            var col = isE ? P.orange + 'ff' : (items.length ? P.teal + 'ff' : P.muted + 'ff');
+            dgRow(id, items, alphas, ga, lx, yc, fsL, col, !!isE);
+        });
+        ctx.globalAlpha = 1;
     }
 
-    /* ===================== 레이아웃 상수 (calcH / draw 공용) ===================== */
-    function getLayout(mob) {
-        return {
-            top:       mob ? 24  : 32,
-            r:         mob ? 20  : 26,
-            ghFull:    mob ? 190 : 230,
-            ghPanel:   mob ? 130 : 160,
-            panelGap:  mob ? 46  : 56,
+    /* ===================== 인접 리스트 장면 ===================== */
+    function dgList(x0, top, w, L, s, p, e) {
+        var pos = dgPos(x0, top, w, L);
+        var ga = p ? 1 : ez(e);
+        var cur = s.type === 'fill' ? s.nodeIdx : -1;
+        var curId = cur >= 0 ? NODE_ORDER[cur] : null;
+        var fresh = cur >= 0 && (!p || p.nodeIdx !== cur);
+        var done = function (id) {
+            return s.type === 'complete' || (cur >= 0 && NODE_ORDER.indexOf(id) < cur);
         };
+
+        ctx.globalAlpha = ga;
+        EDGES.forEach(function (ed) {
+            if (curId && (ed[0] === curId || ed[1] === curId)) {
+                var other = ed[0] === curId ? ed[1] : ed[0];
+                var j = ADJ[curId].indexOf(other);
+                dgEdge(pos, ed, P.orange + 'cc', 2.4, fresh ? ez(seg(e, j * 0.3, j * 0.3 + 0.4)) : 1);
+            } else if (done(ed[0]) || done(ed[1])) {
+                dgEdge(pos, ed, P.teal + 'aa', 1.8, 1);
+            } else {
+                dgEdge(pos, ed, P.muted + '33', 1.4, 1);
+            }
+        });
+        NODE_ORDER.forEach(function (id) {
+            var isC = id === curId;
+            dgNode(pos[id], id, L.r, isC ? P.orange : (done(id) ? P.teal : P.muted), ga, isC);
+        });
+
+        var lt = top + L.y0;
+        tx('ADJACENCY LIST', x0, lt + 7, L.fs, P.muted + 'ff', 'left', true);
+        NODE_ORDER.forEach(function (id, i) {
+            var yc = lt + 16 + i * L.rowH + L.rowH / 2;
+            if (!done(id) && id !== curId) {
+                ctx.globalAlpha = ga;
+                tx(id + '  →  [ … ]', x0, yc, L.fs, P.sub + 'ff', 'left', false);
+                return;
+            }
+            var items = ADJ[id];
+            var alphas = items.map(function (nb, j) {
+                return (id === curId && fresh) ? ez(seg(e, j * 0.3, j * 0.3 + 0.4)) : 1;
+            });
+            dgRow(id, items, alphas, ga, x0, yc, L.fs, id === curId ? P.orange + 'ff' : P.teal + 'ff', id === curId);
+        });
+        ctx.globalAlpha = 1;
+    }
+
+    /* ===================== BFS 큐 장면 ===================== */
+    function dgQueue(x0, top, w, L, s, p, e, steps, si) {
+        var pos = dgPos(x0, top, w, L);
+        var ga = p ? 1 : ez(e);
+        var tN = dgBfsTree(steps, si);
+        var tP = si > 0 ? dgBfsTree(steps, si - 1) : [];
+        var fe = s.type === 'enqueue' && tN.length > tP.length ? tN[tN.length - 1] : null;
+        var q = s.queue || [];
+        var pq = p ? (p.queue || []) : [];
+        var ord = s.order || [];
+
+        ctx.globalAlpha = ga;
+        EDGES.forEach(function (ed) { dgEdge(pos, ed, P.muted + '33', 1.4, 1); });
+        tN.forEach(function (ed) { if (ed !== fe) dgEdge(pos, ed, P.teal + 'cc', 2.2, 1); });
+        if (fe) dgEdge(pos, fe, P.orange + 'ee', 2.6, ez(e));
+        NODE_ORDER.forEach(function (id) {
+            var isC = s.node === id;
+            var col = P.muted, solid = false, a = ga;
+            if (isC && s.type === 'dequeue') { col = P.green; solid = true; }
+            else if (isC) { col = P.orange; solid = true; a = ga * ez(e); }
+            else if (ord.indexOf(id) >= 0) col = P.teal;
+            else if (q.indexOf(id) >= 0) col = P.orange;
+            dgNode(pos[id], id, L.r, col, a, solid);
+            if (isC && s.type === 'dequeue') dgRing(pos[id], L.r + 60 * ez(e), P.green + 'ff', 0.8 * (1 - e));
+        });
+
+        ctx.globalAlpha = 1;
+        var lt = top + L.y0;
+        var by = lt + 16, bw = L.bw, bh = L.bh, stp = L.bw + L.gap, fsB = L.mob ? 12 : 14;
+        tx('QUEUE (FRONT → BACK)', x0, lt + 7, L.fs, P.muted + 'ff', 'left', true);
+        pq.forEach(function (id, k) {
+            if (q.indexOf(id) >= 0) return;
+            ctx.globalAlpha = 1 - ez(e);
+            dgBox(x0 + k * stp, by, bw, bh, id, P.green, fsB);
+        });
+        q.forEach(function (id, i) {
+            var from = pq.indexOf(id);
+            if (from < 0) return;
+            ctx.globalAlpha = ga;
+            dgBox(x0 + lerp(from, i, ez(e)) * stp, by, bw, bh, id, i === 0 ? P.orange : P.muted, fsB);
+        });
+        if (s.type === 'enqueue') {
+            var ni = q.indexOf(s.node);
+            var sx = x0 + ni * stp + bw / 2, sy = by + bh / 2;
+            var fp = fe ? pos[fe[0]] : null;
+            var fx = fp ? lerp(fp.x, sx, ez(e)) : sx;
+            var fy = fp ? lerp(fp.y, sy, ez(e)) : sy;
+            ctx.globalAlpha = fp ? seg(e, 0, 0.2) : ez(e);
+            dgBox(fx - bw / 2, fy - bh / 2, bw, bh, s.node, P.orange, fsB);
+        }
+        ctx.globalAlpha = 1;
+        if (!q.length && e >= 1) tx('(empty)', x0, by + bh / 2, L.fs, P.sub + 'ff', 'left', false);
+
+        var oy = by + bh + 12;
+        tx('VISITED ORDER', x0, oy, L.fs, P.muted + 'ff', 'left', true);
+        tx(ord.length ? ord.join(', ') : '(empty)', x0, oy + 18, L.mob ? 12 : 13, P.green + 'ff', 'left', false);
+    }
+
+    /* ===================== DFS 스택 장면 ===================== */
+    function dgStack(x0, top, w, L, s, p, e, steps, si) {
+        var pos = dgPos(x0, top, w, L);
+        var ga = p ? 1 : ez(e);
+        var iN = dgDfsInfo(steps, si);
+        var iP = si > 0 ? dgDfsInfo(steps, si - 1) : { stack: [], tree: [] };
+        var fe = s.type === 'enter' && iN.tree.length > iP.tree.length ? iN.tree[iN.tree.length - 1] : null;
+        var st = iN.stack, pst = iP.stack, ord = s.order || [];
+
+        ctx.globalAlpha = ga;
+        EDGES.forEach(function (ed) { dgEdge(pos, ed, P.muted + '33', 1.4, 1); });
+        iN.tree.forEach(function (ed) { if (ed !== fe) dgEdge(pos, ed, P.teal + 'cc', 2.2, 1); });
+        if (fe) dgEdge(pos, fe, P.orange + 'ee', 2.6, ez(e));
+        NODE_ORDER.forEach(function (id) {
+            var isC = s.node === id;
+            var col = P.muted, solid = false, a = ga;
+            if (isC && s.type === 'visit') { col = P.green; solid = true; }
+            else if (isC && s.type === 'enter') { col = P.orange; solid = true; a = ga * ez(e); }
+            else if (isC) { col = P.teal; solid = true; }
+            else if (ord.indexOf(id) >= 0) col = P.teal;
+            else if (st.indexOf(id) >= 0) col = P.orange;
+            dgNode(pos[id], id, L.r, col, a, solid);
+            if (isC && s.type === 'visit') dgRing(pos[id], L.r + 60 * ez(e), P.green + 'ff', 0.8 * (1 - e));
+        });
+
+        ctx.globalAlpha = 1;
+        var lt = top + L.y0;
+        var by = lt + 16, bw = L.bw, bh = L.bh, stp = L.bw + L.gap, fsB = L.mob ? 12 : 14;
+        tx('CALL STACK (LIFO)', x0, lt + 7, L.fs, P.muted + 'ff', 'left', true);
+        var n = Math.max(st.length, pst.length);
+        for (var i = 0; i < n; i++) {
+            var inNow = i < st.length;
+            var id = inNow ? st[i] : pst[i];
+            var isNew = inNow && i >= pst.length;
+            var isTop = inNow && i === st.length - 1;
+            var dy = 0;
+            if (isNew) { ctx.globalAlpha = ez(e); dy = -14 * (1 - ez(e)); }
+            else if (!inNow) { ctx.globalAlpha = 1 - ez(e); dy = -12 * ez(e); }
+            else ctx.globalAlpha = ga;
+            dgBox(x0 + i * stp, by + dy, bw, bh, id, isTop ? P.orange : P.muted, fsB);
+        }
+        ctx.globalAlpha = 1;
+        if (!n && e >= 1) tx('(empty)', x0, by + bh / 2, L.fs, P.sub + 'ff', 'left', false);
+
+        var oy = by + bh + 12;
+        tx('VISITED ORDER', x0, oy, L.fs, P.muted + 'ff', 'left', true);
+        tx(ord.length ? ord.join(', ') : '(empty)', x0, oy + 18, L.mob ? 12 : 13, P.green + 'ff', 'left', false);
+    }
+
+    /* ===================== 메인 드로우 ===================== */
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var L = layout(w, mob);
+        var steps = currentSteps();
+        var s = step || steps[0];
+        var si = Math.max(0, steps.indexOf(s));
+        var p = prev || null;
+        var e = clamp01(t);
+        if (mode === 'structure') dgStructure(x0, top, w, L, s, p, e);
+        else if (mode === 'matrix') dgMatrix(x0, top, w, L, s, p, e);
+        else if (mode === 'list') dgList(x0, top, w, L, s, p, e);
+        else if (mode === 'bfs') dgQueue(x0, top, w, L, s, p, e, steps, si);
+        else dgStack(x0, top, w, L, s, p, e, steps, si);
+        ctx.globalAlpha = 1;
+    }
+
+    /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
+    function draw() {
+        P = window.CsFlow.getP();
+        ctx.clearRect(0, 0, GW(), GH());
+        var W = GW(); var mob = W < 600;
+        var steps = currentSteps();
+        var step = stepIdx >= 0 ? steps[stepIdx] : null;
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
-    function calcH(W) {
-        var mob = W < 600;
-        var L = getLayout(mob);
-
-        if (mode === 'structure') {
-            return L.top + L.ghFull + L.r + (mob ? 30 : 40);
-        }
-        if (mode === 'matrix') {
-            var cell = mob ? 25 : 32;
-            var matrixH = (mob ? 18 : 22) + cell * 7 + (mob ? 20 : 26);
-            return L.top + L.ghPanel + L.panelGap + matrixH;
-        }
-        if (mode === 'list') {
-            var rowH = mob ? 24 : 28;
-            var listH = (mob ? 18 : 22) + rowH * 6 + (mob ? 16 : 20);
-            return L.top + L.ghPanel + L.panelGap + listH;
-        }
-        var panelH = (mob ? 16 : 20) + (mob ? 28 : 34) + (mob ? 22 : 28) + (mob ? 16 : 20) + (mob ? 20 : 24);
-        return L.top + L.ghPanel + L.panelGap + panelH;
-    }
-
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
-        var h = calcH(w);
-        canvasWrap.style.height    = h + 'px';
-        canvasWrap.style.minHeight = h + 'px';
+        var mob = w < 600;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
+        canvasWrap.style.height    = 'auto';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
+        var actualH = canvasWrap.offsetHeight || neededH;
+        if (actualH < neededH) actualH = neededH;
         canvas.width  = w * dpr;
-        canvas.height = h * dpr;
+        canvas.height = actualH * dpr;
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         draw();
     }
 
-    /* ===================== 메인 드로우 ===================== */
-    function draw() {
-        P = window.CsFlow.getP();
-        ctx.clearRect(0, 0, GW(), GH());
-        var W   = GW();
-        var mob = W < 600;
-        var L   = getLayout(mob);
-
-        var steps = currentSteps();
-        var step  = stepIdx >= 0 ? steps[stepIdx] : steps[0];
-
-        if (mode === 'structure') {
-            drawGraph(W, L.top, L.ghFull, mob, step);
-            return;
-        }
-
-        drawGraph(W, L.top, L.ghPanel, mob, step);
-        var panelTop = L.top + L.ghPanel + L.panelGap;
-
-        if (mode === 'matrix') drawMatrixPanel(W, panelTop, mob, step);
-        else if (mode === 'list') drawListPanel(W, panelTop, mob, step);
-        else if (mode === 'bfs') drawQueuePanel(W, panelTop, mob, step);
-        else drawStackPanel(W, panelTop, mob, steps, step, stepIdx >= 0 ? stepIdx : 0);
-    }
-
-    /* ===================== 애니메이션 ===================== */
+    /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
-        animProg = 0;
         if (rafId) cancelAnimationFrame(rafId);
-        var s = 0.007 * (1800 / speed);
-        (function tick() {
-            animProg = Math.min(1, animProg + s);
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
             draw();
-            if (animProg < 1) {
-                rafId = requestAnimationFrame(tick);
-            } else {
-                draw();
-                if (onDone) onDone();
-            }
-        })();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
-    function setSpeedDisabled(v) {
-        speedBtns.forEach(function (b) { b.disabled = v; });
-    }
-
-    function defaultLog() {
-        if (mode === 'structure') return '▶ PLAY를 눌러 그래프 구조를 확인하세요.';
-        if (mode === 'matrix')    return '▶ PLAY를 눌러 인접 행렬이 채워지는 과정을 확인하세요.';
-        if (mode === 'list')      return '▶ PLAY를 눌러 인접 리스트가 채워지는 과정을 확인하세요.';
-        if (mode === 'bfs')       return '▶ PLAY를 눌러 BFS 탐색 과정을 확인하세요.';
-        return '▶ PLAY를 눌러 DFS 탐색 과정을 확인하세요.';
-    }
+    function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -661,7 +877,7 @@
                 if (next === steps.length - 1) {
                     running = false; btnStep.disabled = true; setSpeedDisabled(false);
                 } else {
-                    timer = setTimeout(tick, speed * 0.55);
+                    timer = setTimeout(tick, speed * 0.6);
                 }
             });
         }
@@ -669,9 +885,9 @@
     }
 
     function vizStep() {
-        if (running || animProg < 1) return;
+        if (running) return;
         var steps = currentSteps();
-        var next  = stepIdx + 1;
+        var next = stepIdx + 1;
         if (next >= steps.length) return;
         applyStep(next, null);
         if (next === steps.length - 1) { btnPlay.disabled = true; btnStep.disabled = true; }
@@ -680,7 +896,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1; animProg = 1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);
@@ -696,11 +912,11 @@
     function switchMode(m) {
         if (mode === m) return;
         mode = m;
-        modeDefs.forEach(function (d) {
-            modeBtns[d.key].classList.toggle('graph-viz__mode-btn--active', d.key === m);
-        });
+        modeDefs.forEach(function (d) { modeBtns[d.key].classList.toggle('graph-viz__mode-btn--active', d.key === m); });
         vizReset();
     }
+
+    logEl.textContent = defaultLog();
 
     /* ===================== 라이프사이클 ===================== */
     window.CsFlow.createVizLifecycle({
@@ -715,9 +931,9 @@
                 tooltipHits: [],
                 hoveredKey: function () { return null; },
                 setHoveredKey: function () {},
-                draw: draw,
+                draw: draw
             };
-        },
+        }
     });
 
     setTimeout(resize, 60);

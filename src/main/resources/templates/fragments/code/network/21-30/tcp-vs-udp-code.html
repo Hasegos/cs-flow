@@ -1,0 +1,97 @@
+<th:block th:fragment="code">
+    <div class="code-section">
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — TCP 서버와 클라이언트 (Socket)</p>
+            <div class="code-block">
+<pre><span class="cm">// 서버: 포트 9000에서 접속을 기다린다</span>
+<span class="kw">try</span> (ServerSocket server = <span class="kw">new</span> <span class="fn">ServerSocket</span>(<span class="num">9000</span>)) {
+    Socket conn = server.<span class="fn">accept</span>();          <span class="cm">// 3-way handshake가 끝난 연결을 돌려준다</span>
+    InputStream in = conn.<span class="fn">getInputStream</span>();
+    <span class="kw">byte</span>[] buf = <span class="kw">new</span> <span class="kw">byte</span>[<span class="num">1024</span>];
+    <span class="kw">int</span> n = in.<span class="fn">read</span>(buf);                       <span class="cm">// 읽힌 바이트 수는 보낸 write 단위와 무관하다</span>
+}
+
+<span class="cm">// 클라이언트: 연결을 맺고 두 번 write 한다</span>
+<span class="kw">try</span> (Socket s = <span class="kw">new</span> <span class="fn">Socket</span>(<span class="st">"127.0.0.1"</span>, <span class="num">9000</span>)) {   <span class="cm">// 생성자에서 연결(SYN → SYN-ACK → ACK)</span>
+    OutputStream out = s.<span class="fn">getOutputStream</span>();
+    out.<span class="fn">write</span>(<span class="st">"hello"</span>.<span class="fn">getBytes</span>());
+    out.<span class="fn">write</span>(<span class="st">"world"</span>.<span class="fn">getBytes</span>());
+}                                                      <span class="cm">// close() 하면 FIN이 나간다</span></pre>
+            </div>
+            <p class="code-desc">
+                ServerSocket의 accept는 운영체제가 3-way handshake를 끝낸 연결을 하나 꺼내 Socket으로 돌려줍니다. 클라이언트의 Socket 생성자는 서버로 SYN을 보내고 연결이 수립될 때까지 기다립니다. 그래서 TCP는 데이터를 보내기 전에 연결이라는 상태가 먼저 존재합니다.
+                클라이언트가 write를 두 번 했더라도 서버의 read 한 번이 "helloworld" 전체를 돌려줄 수도, "hello"만 돌려줄 수도 있습니다. TCP는 바이트 스트림이어서 write와 read의 단위가 대응하지 않기 때문입니다. 그래서 실제 프로토콜은 메시지 앞에 길이를 붙이거나 줄바꿈 같은 구분자를 써서 한 메시지의 끝을 정합니다.
+                try-with-resources가 끝나며 close가 호출되면 운영체제가 보통 FIN을 보내 연결 종료 절차를 시작합니다(읽지 않은 수신 데이터가 남아 있으면 RST로 끊길 수 있습니다). 예시는 흐름을 보여 주려고 오류 처리와 반복 읽기를 생략했습니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Java — UDP 송신과 수신 (DatagramSocket)</p>
+            <div class="code-block">
+<pre><span class="cm">// 수신: 포트 9000에서 데이터그램을 기다린다</span>
+<span class="kw">try</span> (DatagramSocket sock = <span class="kw">new</span> <span class="fn">DatagramSocket</span>(<span class="num">9000</span>)) {
+    <span class="kw">byte</span>[] buf = <span class="kw">new</span> <span class="kw">byte</span>[<span class="num">1024</span>];
+    DatagramPacket p = <span class="kw">new</span> <span class="fn">DatagramPacket</span>(buf, buf.length);
+    sock.<span class="fn">receive</span>(p);                          <span class="cm">// 데이터그램 하나가 한 덩어리로 들어온다</span>
+    String msg = <span class="kw">new</span> <span class="fn">String</span>(p.<span class="fn">getData</span>(), <span class="num">0</span>, p.<span class="fn">getLength</span>());
+}
+
+<span class="cm">// 송신: 연결 없이 바로 보낸다</span>
+<span class="kw">try</span> (DatagramSocket sock = <span class="kw">new</span> <span class="fn">DatagramSocket</span>()) {
+    <span class="kw">byte</span>[] data = <span class="st">"hello"</span>.<span class="fn">getBytes</span>();
+    sock.<span class="fn">send</span>(<span class="kw">new</span> <span class="fn">DatagramPacket</span>(data, data.length,
+            InetAddress.<span class="fn">getByName</span>(<span class="st">"127.0.0.1"</span>), <span class="num">9000</span>));
+}</pre>
+            </div>
+            <p class="code-desc">
+                UDP에는 accept도 연결 수립도 없습니다. 송신 측은 목적지 주소와 포트를 담은 DatagramPacket을 send로 보내면 끝이고, 상대가 받았는지는 알려 주지 않습니다. 수신 측은 receive를 호출해 데이터그램을 하나씩 받습니다.
+                send 한 번이 데이터그램 한 개이고 receive 한 번이 데이터그램 한 개를 받으므로, TCP와 달리 메시지 경계가 그대로 유지됩니다. 다만 받는 쪽 버퍼가 데이터그램보다 작으면 남는 부분은 잘려 버립니다.
+                데이터그램이 유실되거나 순서가 바뀌어도 receive는 아무 오류도 내지 않습니다. 신뢰성이 필요하면 애플리케이션이 순서 번호를 넣고, 응답이 없으면 다시 보내는 로직을 직접 만들어야 합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Shell — TCP 상태와 패킷 직접 확인하기</p>
+            <div class="code-block">
+<pre><span class="cm"># 현재 TCP 연결의 상태 보기 (ESTAB, TIME-WAIT 등)</span>
+ss -tan
+
+<span class="cm"># 9000번 포트의 TCP 패킷 캡처 (SYN, ACK, FIN 확인)</span>
+sudo tcpdump -i any -n <span class="st">'tcp port 9000'</span>
+
+<span class="cm"># 같은 포트의 UDP 패킷만 캡처</span>
+sudo tcpdump -i any -n <span class="st">'udp port 9000'</span></pre>
+            </div>
+            <p class="code-desc">
+                ss -tan은 지금 열려 있는 TCP 연결과 그 상태를 보여 줍니다. 앞서 본 ESTABLISHED(출력에서는 ESTAB), TIME-WAIT 같은 상태가 실제로 목록에 나타나며, 연결을 자주 맺고 끊는 서버에서는 TIME-WAIT 줄이 많이 쌓이기도 합니다.
+                tcpdump로 TCP 포트를 캡처하면 연결을 맺을 때 [S], [S.], [.] 표시로 SYN, SYN-ACK, ACK가 이어지는 것을 볼 수 있고, seq와 ack 번호와 win 값도 출력됩니다. 기본은 첫 패킷 기준의 상대 번호이고 실제 순서 번호는 -S 옵션으로 봅니다. 시각화에서 본 번호 흐름을 실제 패킷으로 대조해 볼 수 있습니다.
+                UDP 캡처에서는 이런 연결 설정 패킷이 없고 데이터그램이 바로 나타납니다. 캡처에는 관리자 권한이 필요하고, 인터페이스와 포트는 환경에 맞게 바꿔야 합니다.
+            </p>
+        </div>
+
+        <div class="code-block-wrap">
+            <p class="code-block-label">Python — 같은 메시지를 TCP와 UDP로 보내기</p>
+            <div class="code-block">
+<pre><span class="kw">import</span> socket
+
+<span class="cm"># TCP: SOCK_STREAM. connect()에서 handshake가 일어난다</span>
+t = socket.<span class="fn">socket</span>(socket.AF_INET, socket.SOCK_STREAM)
+t.<span class="fn">connect</span>((<span class="st">'127.0.0.1'</span>, <span class="num">9000</span>))
+t.<span class="fn">sendall</span>(<span class="st">b'hello'</span>)
+t.<span class="fn">close</span>()
+
+<span class="cm"># UDP: SOCK_DGRAM. connect 없이 sendto로 바로 보낸다</span>
+u = socket.<span class="fn">socket</span>(socket.AF_INET, socket.SOCK_DGRAM)
+u.<span class="fn">sendto</span>(<span class="st">b'hello'</span>, (<span class="st">'127.0.0.1'</span>, <span class="num">9000</span>))
+u.<span class="fn">close</span>()</pre>
+            </div>
+            <p class="code-desc">
+                소켓을 만들 때 종류만 SOCK_STREAM과 SOCK_DGRAM으로 바꾸면 TCP와 UDP가 갈립니다. SOCK_STREAM은 바이트 스트림 소켓이라 connect로 연결을 맺고 sendall로 보내며, SOCK_DGRAM은 데이터그램 소켓이라 sendto에 목적지를 매번 적어 보냅니다.
+                수신 측이 없을 때 두 방식의 차이가 드러납니다. TCP의 connect는 상대가 응답하지 않으면 연결 거부나 시간 초과 오류를 내지만, UDP의 sendto는 아무도 받지 않아도 대개 성공으로 끝납니다. 보낸 쪽이 결과를 알 방법이 없기 때문입니다(connect로 연결한 UDP 소켓은 ICMP 포트 도달 불가 응답 때문에 이후 호출이 거부 오류로 실패할 수 있습니다).
+                sendall은 보낼 바이트를 모두 보낼 때까지 반복하는 편의 메서드입니다. TCP의 send는 일부만 보낼 수도 있어서, 직접 쓸 때는 보낸 바이트 수를 확인해야 합니다.
+            </p>
+        </div>
+
+    </div>
+</th:block>

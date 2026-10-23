@@ -1,5 +1,5 @@
 /**
- * 투 포인터 / 슬라이딩 윈도우 시각화
+ * 투 포인터 / 슬라이딩 윈도우 시각화 시각화
  */
 (function () {
     'use strict';
@@ -22,9 +22,9 @@
 
     var modeWrap = el('div', 'two-pointer-viz__mode');
     var modeDefs = [
-        { key: 'twoptr',   label: '투 포인터' },
-        { key: 'window',   label: '슬라이딩 윈도우' },
-        { key: 'unsorted', label: '정렬이 필요한 이유' },
+        { key: 'twoptr', label: '투 포인터' },
+        { key: 'window', label: '슬라이딩 윈도우' },
+        { key: 'unsorted', label: '정렬이 필요한 이유' }
     ];
     var modeBtns = {};
     modeDefs.forEach(function (m, i) {
@@ -39,7 +39,7 @@
     var speedWrap = el('div', 'two-pointer-viz__speed');
     speedWrap.appendChild(el('span', 'two-pointer-viz__speed-label', 'SPEED'));
     var speedBtns = [];
-    [['1x', 1400], ['2x', 700], ['3x', 350]].forEach(function (pair, i) {
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
         var b = el('button', 'two-pointer-viz__speed-btn' + (i === 0 ? ' two-pointer-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
@@ -72,11 +72,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'twoptr';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 투 포인터 데이터 & 스텝 (정렬 배열에서 합이 target인 두 수 찾기) ===================== */
     var TP_ARR = [1, 2, 3, 5, 7, 9, 11, 13, 15];
@@ -167,232 +234,313 @@
 
     var WINDOW_STEPS = buildWindowSteps();
 
-    /* ===================== 상태 변수 ===================== */
-    var mode    = 'twoptr';
-    var stepIdx = -1;
-    var running = false;
-    var timer   = null;
-    var rafId   = null;
-    var speed   = 1400;
-
+    /* ===================== 상태 ===================== */
     function currentSteps() {
-        if (mode === 'twoptr') return TWOPTR_STEPS;
         if (mode === 'window') return WINDOW_STEPS;
-        return UNSORTED_STEPS;
+        if (mode === 'unsorted') return UNSORTED_STEPS;
+        return TWOPTR_STEPS;
     }
-
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        var rad = Math.min(r, w / 2, h / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + rad, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, rad);
-        ctx.arcTo(x + w, y + h, x,     y + h, rad);
-        ctx.arcTo(x,     y + h, x,     y,     rad);
-        ctx.arcTo(x,     y,     x + w, y,     rad);
-        ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.5; ctx.stroke(); }
-    }
-
-    function tx(str, x, y, sz, color, align, bold) {
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
-    }
-
-    function line(x1, y1, x2, y2, col, lw) {
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
-        ctx.strokeStyle = col; ctx.lineWidth = lw || 1.5;
-        ctx.stroke();
-    }
-
-    /* ===================== 배열 박스 좌표 계산 (항상 한 줄에 들어오도록 동적 크기) ===================== */
-    function boxLayout(n, W, mob) {
-        var padX = mob ? 14 : 28;
-        var gap  = mob ? 5 : 8;
-        var plotW = W - 2 * padX;
-        var boxW = Math.floor((plotW - (n - 1) * gap) / n);
-        boxW = Math.max(mob ? 28 : 40, Math.min(mob ? 48 : 66, boxW));
-        var totalW = n * boxW + (n - 1) * gap;
-        var x0 = padX + Math.max(0, (plotW - totalW) / 2);
-        return { n: n, boxW: boxW, gap: gap, x0: x0, totalW: totalW };
-    }
-
-    function idxX(BL, i) { return BL.x0 + i * (BL.boxW + BL.gap); }
-    function idxCenterX(BL, i) { return idxX(BL, i) + BL.boxW / 2; }
-
-    /* ===================== 투 포인터 렌더 ===================== */
-    function drawTwoPointer(top, mob, W, step, arr, target) {
-        var BL = boxLayout(arr.length, W, mob);
-        var boxH = mob ? 40 : 50;
-        var laneH = mob ? 22 : 26;
-        var pointerTop = top;
-        var boxTop = pointerTop + laneH + (mob ? 8 : 10);
-
-        var lanes = [];
-        if (step.left != null) lanes.push({ idx: step.left, label: 'left', col: P.teal });
-        if (step.right != null) lanes.push({ idx: step.right, label: 'right', col: P.purple });
-        var sameIdx = lanes.length === 2 && lanes[0].idx === lanes[1].idx;
-        lanes.forEach(function (ln, li) {
-            var cx = idxCenterX(BL, ln.idx);
-            if (sameIdx) tx(ln.label, cx + (li === 0 ? -2 : 2), pointerTop + laneH / 2, mob ? 11 : 12.5, ln.col + 'ee', li === 0 ? 'right' : 'left', true);
-            else tx(ln.label, cx, pointerTop + laneH / 2, mob ? 11 : 12.5, ln.col + 'ee', 'center', true);
-            line(cx, pointerTop + laneH - (mob ? 2 : 3), cx, boxTop - 2, ln.col + '88', 1.4);
-        });
-
-        var revealPair = step.actualPair || null;
-
-        for (var i = 0; i < arr.length; i++) {
-            var bx = idxX(BL, i);
-            var isLeft = step.left === i, isRight = step.right === i;
-            var col = P.muted, fillA = '10', strokeA = '40', lw = 1.2, emph = false;
-            if (step.type === 'found' && (isLeft || isRight)) { col = P.green; fillA = '28'; strokeA = 'ee'; lw = 2.4; emph = true; }
-            else if (isLeft) { col = P.teal; fillA = '22'; strokeA = 'ee'; lw = 2; emph = true; }
-            else if (isRight) { col = P.purple; fillA = '22'; strokeA = 'ee'; lw = 2; emph = true; }
-            else if (step.left != null && step.right != null && i > step.left && i < step.right) { col = P.text; fillA = '08'; strokeA = '30'; }
-
-            rr(bx, boxTop, BL.boxW, boxH, 4, col + fillA, col + strokeA, lw);
-            tx(String(arr[i]), bx + BL.boxW / 2, boxTop + boxH / 2, mob ? 13 : 15, P.text + (emph ? 'ff' : 'aa'), 'center', emph);
-            tx(String(i), bx + BL.boxW / 2, boxTop + boxH + (mob ? 12 : 14), mob ? 8 : 9, P.text + '66', 'center', false);
-
-            if (revealPair && (i === revealPair[0] || i === revealPair[1])) {
-                ctx.save();
-                ctx.setLineDash([4, 3]);
-                rr(bx - 3, boxTop - 3, BL.boxW + 6, boxH + 6, 6, 'none', P.orange + 'dd', 2);
-                ctx.restore();
-            }
-        }
-
-        var revealExtra = revealPair ? (mob ? 26 : 28) : 0;
-        if (revealPair) {
-            var midX = (idxCenterX(BL, revealPair[0]) + idxCenterX(BL, revealPair[1])) / 2;
-            tx('놓친 정답이 여기 있었어요!', midX, boxTop + boxH + (mob ? 30 : 34), mob ? 11 : 11.5, P.orange + 'ee', 'center', true);
-        }
-
-        var statusTop = boxTop + boxH + (mob ? 26 : 30) + revealExtra;
-        var fStat = mob ? 11 : 12.5;
-        if (step.sum != null) {
-            var sumCol = step.type === 'found' ? P.green : P.orange;
-            tx('현재 합: ' + step.sum + '   목표: ' + target, BL.x0, statusTop, fStat, sumCol + 'ee', 'left', true);
-        } else {
-            tx('목표: ' + target, BL.x0, statusTop, fStat, P.text + 'aa', 'left', true);
-        }
-        var moveTxt = '왼쪽 이동 ' + (step.leftMoves || 0) + '번   오른쪽 이동 ' + (step.rightMoves || 0) + '번';
-        tx(moveTxt, BL.x0, statusTop + (mob ? 20 : 24), fStat, P.teal + 'ee', 'left', true);
-    }
-
-    /* ===================== 슬라이딩 윈도우 렌더 ===================== */
-    function drawWindow(top, mob, W, step) {
-        var BL = boxLayout(SW_ARR.length, W, mob);
-        var boxH = mob ? 44 : 56;
-        var bandH = mob ? 18 : 22;
-        var bandTop = top;
-        var boxTop = bandTop + bandH + (mob ? 10 : 12);
-
-        if (step.right >= step.left && step.right >= 0) {
-            var bx0 = idxX(BL, step.left) - BL.gap / 2;
-            var bx1 = idxX(BL, step.right) + BL.boxW + BL.gap / 2;
-            rr(bx0, bandTop, bx1 - bx0, bandH, 4, P.orange + '20', P.orange + 'aa', 1.4);
-            tx('창(윈도우)', (bx0 + bx1) / 2, bandTop + bandH / 2, mob ? 9 : 10, P.orange + 'ee', 'center', true);
-        }
-
-        for (var i = 0; i < SW_ARR.length; i++) {
-            var bx = idxX(BL, i);
-            var inWindow = i >= step.left && i <= step.right;
-            var col = inWindow ? P.orange : P.muted;
-            var fillA = inWindow ? '20' : '0a', strokeA = inWindow ? 'ee' : '30', lw = inWindow ? 2 : 1.2;
-            if (step.type === 'done' && i >= 0) {
-            }
-            rr(bx, boxTop, BL.boxW, boxH, 4, col + fillA, col + strokeA, lw);
-            tx(String(SW_ARR[i]), bx + BL.boxW / 2, boxTop + boxH / 2, mob ? 14 : 16, P.text + (inWindow ? 'ff' : '99'), 'center', inWindow);
-            tx(String(i), bx + BL.boxW / 2, boxTop + boxH + (mob ? 12 : 14), mob ? 8 : 9, P.text + '66', 'center', false);
-        }
-
-        var statusTop = boxTop + boxH + (mob ? 26 : 30);
-        var fStat = mob ? 11 : 12.5;
-        var sumCol = step.sum >= SW_TARGET ? P.green : P.orange;
-        tx('창의 합: ' + step.sum + '   목표: ' + SW_TARGET + ' 이상', BL.x0, statusTop, fStat, sumCol + 'ee', 'left', true);
-        var recordTxt = step.minLen != null ? ('최소 길이 기록: ' + step.minLen) : '최소 길이 기록: 아직 없음';
-        tx(recordTxt, BL.x0, statusTop + (mob ? 20 : 24), fStat, P.teal + 'ee', 'left', true);
+    function defaultLog() {
+        return currentSteps()[0].log;
     }
 
     /* ===================== 레이아웃 ===================== */
-    function getLayout(mob) {
+    function ez(q) { q = clamp01(q); return q * q * (3 - 2 * q); }
+
+    function tpArr() {
+        if (mode === 'window') return SW_ARR;
+        if (mode === 'unsorted') return UNSORTED_ARR;
+        return TP_ARR;
+    }
+
+    function tpTarget() {
+        if (mode === 'window') return SW_TARGET;
+        if (mode === 'unsorted') return UNSORTED_TARGET;
+        return TP_TARGET;
+    }
+
+    function tpLayout(w, mob) {
+        var n = tpArr().length;
+        var fs = mob ? 11 : 12.5;
+        var lineH = fs + 5;
+        var gap = mob ? 4 : 8;
+        var bw = Math.min(mob ? 34 : 52, Math.floor((w - (n - 1) * gap) / n));
+        var gridW = n * bw + (n - 1) * gap;
+        var topH = mob ? 24 : 28;
+        var boxTop = topH + 4;
+        var boxH = mob ? 36 : 44;
+        var eqTop = boxTop + boxH + 20;
+        var eqH = mob ? 22 : 24;
+        var stripTop = eqTop + eqH + 4;
+        var worst = mode === 'window'
+            ? ['창의 합: 999   목표: 99 이상', '최소 길이 기록: 아직 없음']
+            : ['현재 합: 999   목표: 99', 'L 왼쪽 이동 99번   R 오른쪽 이동 99번'];
+        var stripH = 0;
+        worst.forEach(function (str) { stripH += lines(str, w, fs).length * lineH + 4; });
+        var revealH = mode === 'unsorted' ? lineH + 4 : 0;
         return {
-            top:  mob ? 18 : 24,
-            bodyH: mob ? 190 : 230,
+            bw: bw, gap: gap, gridX: Math.max(0, (w - gridW) / 2), boxH: boxH,
+            boxTop: boxTop, topH: topH, eqTop: eqTop, eqH: eqH,
+            stripTop: stripTop, revealTop: stripTop + stripH,
+            fs: fs, vfs: mob ? 13 : 15, lineH: lineH,
+            markR: mob ? 8 : 9.5, markOff: mob ? 9 : 11,
+            total: stripTop + stripH + revealH + 8
         };
+    }
+    function sceneH(w, mob) { return tpLayout(w, mob).total; }
+
+    /* ===================== 장면 그리기 헬퍼 ===================== */
+    function tpBoxX(L, x0, i) { return x0 + L.gridX + i * (L.bw + L.gap); }
+    function tpCx(L, x0, i) { return tpBoxX(L, x0, i) + L.bw / 2; }
+
+    function tpClampX(x, str, fs, minX, maxX) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        var hw = ctx.measureText(str).width / 2;
+        return Math.max(minX + hw, Math.min(maxX - hw, x));
+    }
+
+    function tpRow(x0, y, w, L, str, col) {
+        var rows = lines(str, w, L.fs);
+        rows.forEach(function (row, li) {
+            tx(row, x0, y + li * L.lineH + L.lineH / 2, L.fs, col, 'left', true);
+        });
+        return y + rows.length * L.lineH + 4;
+    }
+
+    function tpStyle(st) {
+        if (st === 'found') return { c: P.green, fa: '2a', sa: 'ee', lw: 2.4, tc: P.text + 'ff', bold: true };
+        if (st === 'left') return { c: P.teal, fa: '22', sa: 'ee', lw: 2, tc: P.text + 'ff', bold: true };
+        if (st === 'right') return { c: P.purple, fa: '22', sa: 'ee', lw: 2, tc: P.text + 'ff', bold: true };
+        if (st === 'both' || st === 'in') return { c: P.orange, fa: '22', sa: 'ee', lw: 2, tc: P.text + 'ff', bold: true };
+        if (st === 'inner') return { c: P.text, fa: '0c', sa: '40', lw: 1.2, tc: P.text + 'cc', bold: false };
+        return { c: P.muted, fa: '06', sa: '22', lw: 1.2, tc: P.sub + '88', bold: false };
+    }
+
+    function tpBoxDraw(L, bx, boxTop, val, st, a) {
+        if (a <= 0) return;
+        var S = tpStyle(st);
+        ctx.globalAlpha = a;
+        rr(bx, boxTop, L.bw, L.boxH, 4, S.c + S.fa, S.c + S.sa, S.lw);
+        tx(String(val), bx + L.bw / 2, boxTop + L.boxH / 2, L.vfs, S.tc, 'center', S.bold);
+        ctx.globalAlpha = 1;
+    }
+
+    function tpDrawBoxes(L, x0, boxTop, arr, s, p, fresh, e, stateOf) {
+        var i;
+        for (i = 0; i < arr.length; i++) {
+            var bx = tpBoxX(L, x0, i);
+            var cst = stateOf(s, i), pst = stateOf(p, i);
+            if (cst === pst || !fresh) {
+                tpBoxDraw(L, bx, boxTop, arr[i], cst, 1);
+            } else {
+                var g = ez(seg(e, 0.15, 0.85));
+                tpBoxDraw(L, bx, boxTop, arr[i], pst, 1 - g);
+                tpBoxDraw(L, bx, boxTop, arr[i], cst, g);
+            }
+            tx(String(i), bx + L.bw / 2, boxTop + L.boxH + 10, L.fs, P.sub + 'ff', 'center', false);
+        }
+    }
+
+    function tpBoxState(s, i) {
+        if (s.type === 'found' && (i === s.left || i === s.right)) return 'found';
+        if (i === s.left && i === s.right) return 'both';
+        if (i === s.left) return 'left';
+        if (i === s.right) return 'right';
+        if (i < s.left || i > s.right) return 'out';
+        return 'inner';
+    }
+
+    function tpMarkX(L, x0, w, st, isLeft) {
+        var idx = isLeft ? st.left : st.right;
+        var cx = tpCx(L, x0, idx);
+        if (st.left === st.right) cx += isLeft ? -L.markOff : L.markOff;
+        return Math.max(x0 + L.markR, Math.min(x0 + w - L.markR, cx));
+    }
+
+    function tpMarker(L, x, my, boxTop, col, letter) {
+        ln(x, my + L.markR, x, boxTop - 2, col + '88', 1.4);
+        circ(x, my, L.markR, col + '28', col + 'ee', 1.6);
+        tx(letter, x, my, L.fs, col + 'ff', 'center', true);
+    }
+
+    function tpWinState(s, i) { return i >= s.left && i <= s.right ? 'in' : 'out'; }
+
+    function tpWinEdges(L, x0, s) {
+        var n = SW_ARR.length;
+        var l = Math.max(0, Math.min(n - 1, s.left));
+        var x = tpBoxX(L, x0, l) - L.gap / 2;
+        if (s.right < s.left) return { x0: x, x1: x, empty: true };
+        var r = Math.min(n - 1, s.right);
+        return { x0: x, x1: tpBoxX(L, x0, r) + L.bw + L.gap / 2, empty: false };
+    }
+
+    function tpWinRecord(steps, upto) {
+        var rec = null;
+        for (var k = 0; k <= upto && k < steps.length; k++) {
+            var st = steps[k];
+            if (st.type !== 'check') continue;
+            var len = st.right - st.left + 1;
+            if (rec === null || len < rec.len) rec = { l: st.left, r: st.right, len: len };
+        }
+        return rec;
+    }
+
+    /* ===================== 투 포인터 장면 ===================== */
+    function tpDrawPair(x0, top, w, L, s, p, fresh, e) {
+        var arr = tpArr();
+        var target = tpTarget();
+        var pr = function (a, b) { return fresh ? seg(e, a, b) : 1; };
+        var boxTop = top + L.boxTop;
+        var my = top + L.topH / 2;
+
+        tpDrawBoxes(L, x0, boxTop, arr, s, p, fresh, e, tpBoxState);
+
+        if (fresh && s.sum != null) {
+            var found = s.type === 'found';
+            var ba = pr(0, 0.2) * (found ? 1 : 1 - pr(0.7, 0.95));
+            if (ba > 0) {
+                var col = found ? P.green : P.orange;
+                var xa = tpCx(L, x0, p.left), xb = tpCx(L, x0, p.right);
+                var yb = top + L.eqTop + 3;
+                var eqStr = arr[p.left] + ' + ' + arr[p.right] + ' = ' + s.sum;
+                ctx.globalAlpha = ba;
+                ln(xa, yb, xb, yb, col + 'cc', 1.6);
+                ln(xa, yb - 4, xa, yb, col + 'cc', 1.6);
+                ln(xb, yb - 4, xb, yb, col + 'cc', 1.6);
+                tx(eqStr, tpClampX((xa + xb) / 2, eqStr, L.fs, x0, x0 + w), yb + 4 + L.lineH / 2, L.fs, col + 'ff', 'center', true);
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        var k = ez(pr(0.3, 0.8));
+        var lx = lerp(tpMarkX(L, x0, w, p, true), tpMarkX(L, x0, w, s, true), k);
+        var rx = lerp(tpMarkX(L, x0, w, p, false), tpMarkX(L, x0, w, s, false), k);
+        tpMarker(L, lx, my, boxTop, P.teal, 'L');
+        tpMarker(L, rx, my, boxTop, P.purple, 'R');
+
+        var rv = s.actualPair ? pr(0.5, 1) : 0;
+        if (rv > 0) {
+            ctx.globalAlpha = rv;
+            ctx.setLineDash([4, 3]);
+            s.actualPair.forEach(function (idx) {
+                rr(tpBoxX(L, x0, idx) - 3, boxTop - 3, L.bw + 6, L.boxH + 6, 6, 'none', P.orange + 'dd', 2);
+            });
+            ctx.setLineDash([]);
+            tx('놓친 정답이 여기 있었어요!', x0 + w / 2, top + L.revealTop + L.lineH / 2, L.fs, P.orange + 'ee', 'center', true);
+            ctx.globalAlpha = 1;
+        }
+
+        var y = top + L.stripTop;
+        var sumStr = s.sum != null ? '현재 합: ' + s.sum + '   목표: ' + target : '목표: ' + target;
+        var sumCol = s.sum != null ? (s.type === 'found' ? P.green : P.orange) : P.text;
+        y = tpRow(x0, y, w, L, sumStr, sumCol + 'ff');
+        tpRow(x0, y, w, L, 'L 왼쪽 이동 ' + (s.leftMoves || 0) + '번   R 오른쪽 이동 ' + (s.rightMoves || 0) + '번', P.teal + 'ee');
+    }
+
+    /* ===================== 슬라이딩 윈도우 장면 ===================== */
+    function tpDrawWindow(x0, top, w, L, steps, s, p, fresh, e) {
+        var pr = function (a, b) { return fresh ? seg(e, a, b) : 1; };
+        var boxTop = top + L.boxTop;
+        var cur = tpWinEdges(L, x0, s), pv = tpWinEdges(L, x0, p);
+        var f = ez(pr(0, 0.7));
+        var bx0 = lerp(pv.x0, cur.x0, f), bx1 = lerp(pv.x1, cur.x1, f);
+        if (bx1 - bx0 > 0.5) {
+            rr(bx0, boxTop - 4, bx1 - bx0, L.boxH + 6, 6, P.orange + '20', P.orange + 'aa', 1.4);
+            var la = cur.empty ? 0 : (pv.empty ? f : 1);
+            if (la > 0) {
+                ctx.globalAlpha = la;
+                tx('창(윈도우)', tpClampX((bx0 + bx1) / 2, '창(윈도우)', L.fs, x0, x0 + w), top + L.topH / 2, L.fs, P.orange + 'ee', 'center', true);
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        tpDrawBoxes(L, x0, boxTop, SW_ARR, s, p, fresh, e, tpWinState);
+
+        var idxS = steps.indexOf(s);
+        var rec = tpWinRecord(steps, idxS);
+        if (rec) {
+            var prevRec = tpWinRecord(steps, idxS - 1);
+            var changed = !prevRec || prevRec.l !== rec.l || prevRec.r !== rec.r;
+            var grow = fresh && changed ? ez(seg(e, 0, 0.8)) : 1;
+            var xa = tpBoxX(L, x0, rec.l), xb = tpBoxX(L, x0, rec.r) + L.bw;
+            var mid = (xa + xb) / 2;
+            var ry = top + L.eqTop + 4;
+            ln(lerp(mid, xa, grow), ry, lerp(mid, xb, grow), ry, P.green + 'ee', 3);
+        }
+
+        var y = top + L.stripTop;
+        var sumCol = s.sum >= SW_TARGET ? P.green : P.orange;
+        y = tpRow(x0, y, w, L, '창의 합: ' + s.sum + '   목표: ' + SW_TARGET + ' 이상', sumCol + 'ff');
+        tpRow(x0, y, w, L, s.minLen != null ? '최소 길이 기록: ' + s.minLen : '최소 길이 기록: 아직 없음', P.teal + 'ee');
+    }
+
+    /* ===================== 장면 ===================== */
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var steps = currentSteps();
+        var s = step || steps[0];
+        var p = prev || s;
+        var fresh = s !== p;
+        var e = clamp01(t);
+        var L = tpLayout(w, mob);
+        if (mode === 'window') {
+            tpDrawWindow(x0, top, w, L, steps, s, p, fresh, e);
+        } else {
+            tpDrawPair(x0, top, w, L, s, p, fresh, e);
+        }
+    }
+
+    /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
+    function draw() {
+        P = window.CsFlow.getP();
+        ctx.clearRect(0, 0, GW(), GH());
+        var W = GW(); var mob = W < 600;
+        var steps = currentSteps();
+        var step = stepIdx >= 0 ? steps[stepIdx] : null;
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
-    function calcH(W) {
-        var mob = W < 600;
-        var L = getLayout(mob);
-        return L.top + L.bodyH + L.top;
-    }
-
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
-        var neededH = calcH(w);
+        var mob = w < 600;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
         canvasWrap.style.height    = 'auto';
-        canvasWrap.style.minHeight = neededH + 'px';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
         var actualH = canvasWrap.offsetHeight || neededH;
         if (actualH < neededH) actualH = neededH;
-
         canvas.width  = w * dpr;
         canvas.height = actualH * dpr;
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         draw();
     }
 
-    /* ===================== 메인 드로우 ===================== */
-    function draw() {
-        P = window.CsFlow.getP();
-        ctx.clearRect(0, 0, GW(), GH());
-        var W   = GW();
-        var mob = W < 600;
-        var L   = getLayout(mob);
-
-        var neededH = calcH(W);
-        var extra = Math.max(0, GH() - neededH);
-        L.top = L.top + extra / 2;
-
-        var steps = currentSteps();
-        var step  = stepIdx >= 0 ? steps[stepIdx] : steps[0];
-
-        if (mode === 'twoptr') {
-            drawTwoPointer(L.top, mob, W, step, TP_ARR, TP_TARGET);
-        } else if (mode === 'window') {
-            drawWindow(L.top, mob, W, step);
-        } else {
-            drawTwoPointer(L.top, mob, W, step, UNSORTED_ARR, UNSORTED_TARGET);
-        }
-    }
-
-    /* ===================== 애니메이션(스텝 전환 타이밍) ===================== */
+    /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        draw();
-        rafId = requestAnimationFrame(function () {
-            rafId = null;
-            if (onDone) onDone();
-        });
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
-    function setSpeedDisabled(v) {
-        speedBtns.forEach(function (b) { b.disabled = v; });
-    }
-
-    function defaultLog() {
-        return currentSteps()[0].log;
-    }
+    function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -412,7 +560,7 @@
                 if (next === steps.length - 1) {
                     running = false; btnStep.disabled = true; setSpeedDisabled(false);
                 } else {
-                    timer = setTimeout(tick, speed * 0.4);
+                    timer = setTimeout(tick, speed * 0.6);
                 }
             });
         }
@@ -422,7 +570,7 @@
     function vizStep() {
         if (running) return;
         var steps = currentSteps();
-        var next  = stepIdx + 1;
+        var next = stepIdx + 1;
         if (next >= steps.length) return;
         applyStep(next, null);
         if (next === steps.length - 1) { btnPlay.disabled = true; btnStep.disabled = true; }
@@ -431,7 +579,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);
@@ -447,9 +595,7 @@
     function switchMode(m) {
         if (mode === m) return;
         mode = m;
-        modeDefs.forEach(function (d) {
-            modeBtns[d.key].classList.toggle('two-pointer-viz__mode-btn--active', d.key === m);
-        });
+        modeDefs.forEach(function (d) { modeBtns[d.key].classList.toggle('two-pointer-viz__mode-btn--active', d.key === m); });
         vizReset();
     }
 
@@ -468,9 +614,9 @@
                 tooltipHits: [],
                 hoveredKey: function () { return null; },
                 setHoveredKey: function () {},
-                draw: draw,
+                draw: draw
             };
-        },
+        }
     });
 
     setTimeout(resize, 60);

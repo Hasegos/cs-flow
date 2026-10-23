@@ -1,80 +1,183 @@
 /**
- * 라우팅 시각화 — RIP (홉 수) vs OSPF (링크 비용)
+ * 라우팅 — RIP (홉 수) vs OSPF (링크 비용) 시각화
  */
 (function () {
     'use strict';
 
-    const container = document.getElementById('visualizer-container');
+    var container = document.getElementById('visualizer-container');
     if (!container) return;
 
     function el(tag, cls, txt) {
-        const e = document.createElement(tag);
+        var e = document.createElement(tag);
         if (cls) e.className = cls;
-        if (txt) e.textContent = txt;
+        if (txt !== undefined && txt !== null) e.textContent = txt;
         return e;
     }
 
-    /* ===================== DOM 구성 ===================== */
-    const root    = el('div', 'rt-viz');
-    const toolbar = el('div', 'rt-viz__toolbar');
-    const tbLeft  = el('div', 'rt-viz__toolbar-left');
-    tbLeft.appendChild(el('span', 'rt-viz__title', 'Routing Protocol'));
+    /* ===================== DOM ===================== */
+    var root    = el('div', 'routing-viz');
+    var toolbar = el('div', 'routing-viz__toolbar');
+    var tbLeft  = el('div', 'routing-viz__toolbar-left');
+    tbLeft.appendChild(el('span', 'routing-viz__title', 'Routing Protocol'));
 
-    const btnRip  = el('button', 'rt-viz__mode-btn rt-viz__mode-btn--active', 'RIP (홉 수)');
-    const btnOspf = el('button', 'rt-viz__mode-btn', 'OSPF (링크 비용)');
-    btnRip.addEventListener('click',  function () { if (!running) switchMode('rip');  });
-    btnOspf.addEventListener('click', function () { if (!running) switchMode('ospf'); });
-    tbLeft.appendChild(btnRip);
-    tbLeft.appendChild(btnOspf);
+    var modeWrap = el('div', 'routing-viz__mode');
+    var modeDefs = [
+        { key: 'rip', label: 'RIP (홉 수)' },
+        { key: 'ospf', label: 'OSPF (링크 비용)' }
+    ];
+    var modeBtns = {};
+    modeDefs.forEach(function (m, i) {
+        var b = el('button', 'routing-viz__mode-btn' + (i === 0 ? ' routing-viz__mode-btn--active' : ''), m.label);
+        b.addEventListener('click', function () { if (!running) switchMode(m.key); });
+        modeWrap.appendChild(b);
+        modeBtns[m.key] = b;
+    });
+    if (modeDefs.length) tbLeft.appendChild(modeWrap);
     toolbar.appendChild(tbLeft);
 
-    const speedWrap = el('div', 'rt-viz__speed');
-    speedWrap.appendChild(el('span', 'rt-viz__speed-label', 'SPEED'));
-    [['1x', 1800], ['2x', 900], ['3x', 600]].forEach(function (pair, i) {
-        const b = el('button', 'rt-viz__speed-btn' + (i === 0 ? ' rt-viz__speed-btn--active' : ''), pair[0]);
+    var speedWrap = el('div', 'routing-viz__speed');
+    speedWrap.appendChild(el('span', 'routing-viz__speed-label', 'SPEED'));
+    var speedBtns = [];
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
+        var b = el('button', 'routing-viz__speed-btn' + (i === 0 ? ' routing-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
+        speedBtns.push(b);
     });
     toolbar.appendChild(speedWrap);
     root.appendChild(toolbar);
 
-    const canvasWrap = el('div', 'rt-viz__canvas-wrap');
-    const canvas     = document.createElement('canvas');
-    canvas.className = 'rt-viz__canvas';
+    var canvasWrap = el('div', 'routing-viz__canvas-wrap');
+    var canvas     = document.createElement('canvas');
+    canvas.className = 'routing-viz__canvas';
     canvasWrap.appendChild(canvas);
     root.appendChild(canvasWrap);
 
-    const logEl = el('div', 'rt-viz__log', '▶ PLAY를 눌러 라우팅 경로 선택 과정을 확인하세요.');
+    var logEl = el('div', 'routing-viz__log', '');
     root.appendChild(logEl);
 
-    const controls = el('div', 'rt-viz__controls');
-    const btnPlay  = el('button', 'rt-viz__btn rt-viz__btn--primary', '▶ PLAY');
-    const btnStep  = el('button', 'rt-viz__btn', '▶| STEP');
-    const btnReset = el('button', 'rt-viz__btn', '↺ RESET');
-    btnPlay.addEventListener('click',  rtStart);
-    btnStep.addEventListener('click',  rtStep);
-    btnReset.addEventListener('click', rtReset);
+    var controls = el('div', 'routing-viz__controls');
+    var btnPlay  = el('button', 'routing-viz__btn routing-viz__btn--primary', '▶ PLAY');
+    var btnStep  = el('button', 'routing-viz__btn', '▶| STEP');
+    var btnReset = el('button', 'routing-viz__btn', '↺ RESET');
+    btnPlay.addEventListener('click',  vizStart);
+    btnStep.addEventListener('click',  vizStep);
+    btnReset.addEventListener('click', vizReset);
     controls.appendChild(btnPlay);
     controls.appendChild(btnStep);
     controls.appendChild(btnReset);
     root.appendChild(controls);
     container.appendChild(root);
 
-    const ctx = canvas.getContext('2d');
-    const dpr = window.devicePixelRatio || 1;
-    const GW  = function () { return canvas.width  / dpr; };
-    const GH  = function () { return canvas.height / dpr; };
+    var ctx = canvas.getContext('2d');
+    var dpr = window.devicePixelRatio || 1;
+    function GW() { return canvas.width / dpr; }
+    function GH() { return canvas.height / dpr; }
 
-    function resize() {
-        const w = canvasWrap.offsetWidth;
-        const h = Math.max(canvasWrap.offsetHeight, 420);
-        canvas.width  = w * dpr;
-        canvas.height = h * dpr;
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        draw();
+    var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'rip';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
     }
-
-    let P = window.CsFlow.getP();
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    var tipHits = [];
+    var mousePos = { x: -1, y: -1 };
+    var hoveredKey = null;
+    function tipHit(x, y, w, h, key) { tipHits.push({ x: x, y: y, w: w, h: h, key: key }); }
+    function tipBadge(cx, cy, key) {
+        var on = hoveredKey === key;
+        circ(cx, cy, 7, on ? P.purple + '44' : 'none', P.purple + (on ? 'ff' : '99'), 1.2);
+        tx('?', cx, cy, 9.5, on ? P.text + 'ff' : P.sub + 'ff', 'center', true);
+        tipHit(cx - 10, cy - 10, 20, 20, key);
+    }
+    function drawTip(mx, my, text) {
+        var parts = text.split(String.fromCharCode(10));
+        var title = parts[0], desc = parts[1] || '';
+        var W = GW(), H = GH();
+        var pad = 14;
+        var maxIn = W - 16 - pad * 2;
+        ctx.font = '700 14px "JetBrains Mono",monospace';
+        var tl = window.CsFlow.wrapText(ctx, title, maxIn);
+        var titleW = 0;
+        tl.forEach(function (l) { titleW = Math.max(titleW, ctx.measureText(l).width); });
+        ctx.font = '400 13px "JetBrains Mono",monospace';
+        var dl = desc ? window.CsFlow.wrapText(ctx, desc, maxIn) : [];
+        var descW = 0;
+        dl.forEach(function (l) { descW = Math.max(descW, ctx.measureText(l).width); });
+        var tw = Math.min(W - 16, Math.max(titleW, descW) + pad * 2);
+        var th = desc ? 24 + tl.length * 18 + dl.length * 18 : 18 + tl.length * 18;
+        var bx = mx + 14, by = my - th - 8;
+        if (bx + tw > W - 8) bx = mx - tw - 14;
+        if (bx < 8) bx = 8;
+        if (by < 8) by = my + 14;
+        if (by + th > H - 8) by = H - th - 8;
+        rr(bx, by, tw, th, 6, P.surf2, P.purple + 'cc', 2);
+        tl.forEach(function (l, i) { tx(l, bx + pad, by + 18 + i * 18, 14, P.text + 'ff', 'left', true); });
+        dl.forEach(function (l, i) { tx(l, bx + pad, by + 24 + tl.length * 18 + i * 18, 13, P.sub + 'ff', 'left', false); });
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 그래프 정의 ===================== */
     var EDGES = [
@@ -181,336 +284,385 @@
         ],
     };
 
-    let mode      = 'rip';
-    let stepIdx   = -1;
-    let running   = false;
-    let timer     = null;
-    let rafId     = null;
-    let speed     = 1800;
-    let pktMoving = false;
-    let pktProg   = 1;
-
-    /* ===================== 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        ctx.beginPath();
-        ctx.moveTo(x + r, y);
-        ctx.arcTo(x+w, y, x+w, y+h, r);
-        ctx.arcTo(x+w, y+h, x, y+h, r);
-        ctx.arcTo(x, y+h, x, y, r);
-        ctx.arcTo(x, y, x+w, y, r);
-        ctx.closePath();
-        if (fill)   { ctx.fillStyle = fill;                        ctx.fill(); }
-        if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.5; ctx.stroke(); }
+    /* ===================== 상태 ===================== */
+    function currentSteps() {
+        return SCENARIOS[mode] || SCENARIOS.rip;
     }
-
-    function tx(str, x, y, sz, color, align, bold) {
-        ctx.font = (bold ? '700' : '400') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle    = color;
-        ctx.textAlign    = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
+    function defaultLog() {
+        return '▶ PLAY를 눌러 라우팅 경로 선택 과정을 확인하세요.';
+    }
+    function ez(q) {
+        q = clamp01(q);
+        return q * q * (3 - 2 * q);
     }
 
     /* ===================== 레이아웃 ===================== */
-    function buildLayout() {
-        const W   = GW(), H = GH();
-        const mob = W < 520;
+    function layout(w, mob) {
+        var nHH = mob ? 16 : 22;
+        var badgeH = mob ? 20 : 22;
+        var padX = mob ? 26 : 64;
+        var rowGap = mob ? 96 : 130;
+        var y0 = badgeH + nHH + 12;
+        var y1 = y0 + rowGap;
+        var stripY = y1 + nHH + badgeH + 17;
+        var stripH = mob ? 26 : 30;
+        return {
+            mob: mob, nHW: mob ? 20 : 30, nHH: nHH, badgeH: badgeH,
+            padX: padX, colStep: (w - padX * 2) / 2, rowGap: rowGap,
+            y0: y0, y1: y1, stripY: stripY, stripH: stripH,
+            fsN: mob ? 13 : 15, fsE: mob ? 11 : 12, fsB: 11, fsS: 11,
+            total: stripY + stripH + 8
+        };
+    }
+    function sceneH(w, mob) {
+        return layout(w, mob).total;
+    }
+    function rtPos(L, x0, top, i) {
+        return { x: x0 + L.padX + (i % 3) * L.colStep, y: top + (i < 3 ? L.y0 : L.y1) };
+    }
 
-        const F_NODE  = mob ? 13 : 15;
-        const F_EDGE  = mob ? 12 : 13;
-        const F_BADGE = mob ? 11 : 11;
-        const F_SUB   = mob ?  9 : 10;
+    /* ===================== 단계 해석 ===================== */
+    function rtKind(st, i) {
+        if (st.path.indexOf(i) !== -1) return 'path';
+        if (st.considering.indexOf(i) !== -1) return 'cons';
+        if (st.rejected.indexOf(i) !== -1) return 'rej';
+        return 'idle';
+    }
+    function rtStyle(kind, i) {
+        if (kind === 'path') return { line: P.green + 'ff', lw: 3, dash: [], txt: P.green + 'ff', pill: P.green + 'cc' };
+        if (kind === 'cons') return { line: P.yellow + 'ff', lw: 2.5, dash: [], txt: P.yellow + 'ff', pill: P.yellow + 'cc' };
+        if (kind === 'rej') return { line: P.muted + '77', lw: 1.2, dash: [4, 4], txt: P.sub + 'ff', pill: P.border + '66' };
+        if (mode === 'ospf' && EDGES[i].ospf >= 3) return { line: P.orange + 'aa', lw: 2, dash: [], txt: P.orange + 'ff', pill: P.orange + 'cc' };
+        return { line: P.border + 'cc', lw: 1.5, dash: [], txt: P.text + 'bb', pill: P.border + 'aa' };
+    }
+    function rtLabel(i) {
+        return mode === 'rip' ? '홉 1' : '비용 ' + EDGES[i].ospf;
+    }
+    function rtChain(list) {
+        var seq = [0];
+        var used = [];
+        var cur = 0;
+        var moved = true;
+        while (moved) {
+            moved = false;
+            for (var q = 0; q < list.length; q++) {
+                var ed = EDGES[list[q]];
+                if (used.indexOf(list[q]) !== -1) continue;
+                if (ed.a !== cur && ed.b !== cur) continue;
+                cur = ed.a === cur ? ed.b : ed.a;
+                seq.push(cur);
+                used.push(list[q]);
+                moved = true;
+                break;
+            }
+        }
+        return seq;
+    }
+    function rtNodes(list) {
+        var out = [];
+        list.forEach(function (ei) {
+            if (out.indexOf(EDGES[ei].a) === -1) out.push(EDGES[ei].a);
+            if (out.indexOf(EDGES[ei].b) === -1) out.push(EDGES[ei].b);
+        });
+        return out;
+    }
+    function rtSum(list) {
+        var sum = 0;
+        list.forEach(function (ei) { sum += EDGES[ei].ospf; });
+        return sum;
+    }
 
-        const nodeHW = mob ? 24 : 32;
-        const nodeHH = mob ? 18 : 24;
+    /* ===================== 그리기 ===================== */
+    function rtGrow(L, x0, top, s, ed) {
+        var fromN = ed.b === s.activeNode ? ed.b : ed.a;
+        var toN = fromN === ed.a ? ed.b : ed.a;
+        return [rtPos(L, x0, top, fromN), rtPos(L, x0, top, toN)];
+    }
+    function rtDrawEdge(L, x0, top, s, i, kind, g, alpha) {
+        var pts = rtGrow(L, x0, top, s, EDGES[i]);
+        var st = rtStyle(kind, i);
+        ctx.globalAlpha = alpha;
+        ln(pts[0].x, pts[0].y,
+           pts[0].x + (pts[1].x - pts[0].x) * g, pts[0].y + (pts[1].y - pts[0].y) * g,
+           st.line, st.lw, st.dash);
+        ctx.globalAlpha = 1;
+    }
+    function rtPill(L, cx, cy, label, st, alpha) {
+        if (alpha <= 0) return;
+        ctx.font = '700 ' + L.fsE + 'px "JetBrains Mono",monospace';
+        var pw = ctx.measureText(label).width + (L.mob ? 10 : 16);
+        var ph = L.fsE + (L.mob ? 8 : 10);
+        ctx.globalAlpha = alpha;
+        rr(cx - pw / 2, cy - ph / 2, pw, ph, 4, P.bg, st.pill, 1.5);
+        tx(label, cx, cy, L.fsE, st.txt, 'center', true);
+        ctx.globalAlpha = 1;
+    }
+    function rtBadge(L, pt, ni, txt, a, rise, x0, w) {
+        if (a <= 0) return;
+        var col = txt.indexOf('탈락') !== -1 ? P.orange : P.yellow;
+        ctx.font = '700 ' + L.fsB + 'px "JetBrains Mono",monospace';
+        var bw = ctx.measureText(txt).width + (L.mob ? 12 : 16);
+        var bh = L.badgeH;
+        var by = ni < 3 ? pt.y - L.nHH - 5 - bh + rise : pt.y + L.nHH + 5 - rise;
+        var bx = Math.min(x0 + w - 4 - bw, Math.max(x0 + 4, pt.x - bw / 2));
+        ctx.globalAlpha = a;
+        rr(bx, by, bw, bh, 4, P.bg, col + 'cc', 1.5);
+        tx(txt, bx + bw / 2, by + bh / 2, L.fsB, col + 'ff', 'center', true);
+        ctx.globalAlpha = 1;
+    }
 
-        const badgeH = F_BADGE + 10;
-        const topPad = nodeHH + badgeH + 10;
-        const botPad = nodeHH + (mob ? 20 : 24);
-        const sidePad = nodeHW + (mob ? 48 : 56);
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var L = layout(w, mob);
+        var steps = currentSteps();
+        var s = step || steps[0];
+        var p = prev || s;
+        var fresh = p !== s;
+        var e = fresh ? clamp01(t) : 1;
 
-        const gW      = W - sidePad * 2;
-        const gH      = H - topPad - botPad;
-        const colStep = gW / 2;
-        const rowStep = gH;
+        EDGES.forEach(function (ed, i) {
+            var kb = rtKind(s, i);
+            var ka = rtKind(p, i);
+            if (!fresh || ka === kb) {
+                rtDrawEdge(L, x0, top, s, i, kb, 1, 1);
+            } else {
+                rtDrawEdge(L, x0, top, s, i, ka, 1, 1 - ez(seg(e, 0.2, 0.8)));
+                rtDrawEdge(L, x0, top, s, i, kb, kb === 'rej' ? 1 : ez(seg(e, 0, 0.6)), kb === 'rej' ? ez(seg(e, 0.3, 0.9)) : 1);
+            }
+        });
 
-        var nodePos = [
-            { x: sidePad,             y: topPad           },
-            { x: sidePad + colStep,   y: topPad           },
-            { x: sidePad + colStep*2, y: topPad           },
-            { x: sidePad,             y: topPad + rowStep },
-            { x: sidePad + colStep,   y: topPad + rowStep },
-            { x: sidePad + colStep*2, y: topPad + rowStep },
-        ];
+        var pk = s.pktPath || [];
+        var k = s.pktEdgeIdx, pkt = null;
+        if (k >= 0 && k < pk.length) {
+            var seq = rtChain(pk);
+            var moving = fresh && p.pktEdgeIdx !== k;
+            var pr = moving ? ez(e) : 1;
+            var a0 = rtPos(L, x0, top, seq[k]);
+            var a1 = rtPos(L, x0, top, seq[k + 1]);
+            var rad = L.mob ? 13 : 16;
+            var off = (a0.y === a1.y ? L.nHW : L.nHH) + rad;
+            var dx = a1.x > a0.x ? 1 : (a1.x < a0.x ? -1 : 0);
+            var dy = a1.y > a0.y ? 1 : (a1.y < a0.y ? -1 : 0);
+            var px = lerp(a0.x + dx * off, a1.x - dx * off, pr);
+            var py = lerp(a0.y + dy * off, a1.y - dy * off, pr);
+            pkt = { x: px, y: py, r: rad };
+        }
 
-        return { W, H, mob,
-                 F_NODE, F_EDGE, F_BADGE, F_SUB,
-                 nodeHW, nodeHH, badgeH, nodePos };
+        EDGES.forEach(function (ed, i) {
+            var kb = rtKind(s, i);
+            var ka = rtKind(p, i);
+            var A = rtPos(L, x0, top, ed.a);
+            var B = rtPos(L, x0, top, ed.b);
+            var mx = (A.x + B.x) / 2;
+            var my = (A.y + B.y) / 2;
+            var label = rtLabel(i);
+            var pa0 = pkt && Math.hypot(mx - pkt.x, my - pkt.y) < pkt.r + 24 ? 0.2 : 1;
+            if (!fresh || ka === kb) {
+                rtPill(L, mx, my, label, rtStyle(kb, i), pa0);
+            } else {
+                var pa = ez(seg(e, 0.4, 0.9));
+                rtPill(L, mx, my, label, rtStyle(ka, i), (1 - pa) * pa0);
+                rtPill(L, mx, my, label, rtStyle(kb, i), pa * pa0);
+            }
+            if (mode === 'rip' && ed.ospf > 1) {
+                tx('실제 비용 ' + ed.ospf, mx, my + (L.mob ? 18 : 20), L.fsS, P.sub + 'ff', 'center', false);
+            }
+        });
+
+        if (pkt) {
+            circ(pkt.x, pkt.y, pkt.r, P.green + 'ff', P.green + 'ff', 2.5);
+            tx('PKT', pkt.x, pkt.y, L.fsE, '#111111', 'center', true);
+        }
+
+        var pathNow = rtNodes(s.path);
+        var pathPrev = rtNodes(p.path);
+        NODE_LABELS.forEach(function (name, i) {
+            var pt = rtPos(L, x0, top, i);
+            var isSrc = i === 0;
+            var isDst = i === NODE_LABELS.length - 1;
+            var base = isSrc ? P.purple : (isDst ? P.teal : P.sub);
+            var onNow = pathNow.indexOf(i) !== -1;
+            var onPrev = pathPrev.indexOf(i) !== -1;
+            var pa = onNow ? (fresh && !onPrev ? ez(seg(e, 0.2, 0.9)) : 1) : 0;
+            var hw = L.nHW;
+            var hh = L.nHH;
+            rr(pt.x - hw, pt.y - hh, hw * 2, hh * 2, 6, base + '22', base + 'cc', 1.8);
+            if (pa > 0) {
+                ctx.globalAlpha = pa;
+                rr(pt.x - hw, pt.y - hh, hw * 2, hh * 2, 6, P.green + '33', P.green + 'ff', 2.5);
+                ctx.globalAlpha = 1;
+            }
+            if (isSrc || isDst) {
+                tx(name, pt.x, pt.y - 4, L.fsN, P.text + 'ff', 'center', true);
+                tx(isSrc ? 'SRC' : 'DST', pt.x, pt.y + (L.mob ? 8 : 9), L.fsS, P.sub + 'ff', 'center', false);
+            } else {
+                tx(name, pt.x, pt.y, L.fsN, P.text + 'ff', 'center', true);
+            }
+        });
+
+        var curPt = rtPos(L, x0, top, s.activeNode);
+        var ring = curPt;
+        if (fresh && p.activeNode !== s.activeNode) {
+            var fromPt = rtPos(L, x0, top, p.activeNode);
+            var rk = ez(e);
+            ring = { x: lerp(fromPt.x, curPt.x, rk), y: lerp(fromPt.y, curPt.y, rk) };
+        }
+        rr(ring.x - L.nHW - 6, ring.y - L.nHH - 6, (L.nHW + 6) * 2, (L.nHH + 6) * 2, 9, null, P.purple + 'cc', 2.2);
+
+        Object.keys(s.badge).forEach(function (key) {
+            var ni = parseInt(key, 10);
+            var changed = fresh && p.badge[key] !== s.badge[key];
+            var a = changed ? ez(seg(e, 0.45, 0.95)) : 1;
+            rtBadge(L, rtPos(L, x0, top, ni), ni, s.badge[key], a, changed ? (1 - a) * 5 : 0, x0, w);
+        });
+        if (fresh) {
+            Object.keys(p.badge).forEach(function (key) {
+                if (s.badge[key] !== undefined) return;
+                var ni = parseInt(key, 10);
+                rtBadge(L, rtPos(L, x0, top, ni), ni, p.badge[key], 1 - ez(seg(e, 0, 0.35)), 0, x0, w);
+            });
+        }
+
+        var chain = rtChain(s.path);
+        var names = chain.map(function (n) { return NODE_LABELS[n]; }).join(' → ');
+        var cost = s.path.length ? (mode === 'rip' ? s.path.length + '홉' : '비용 ' + rtSum(s.path)) : '';
+        var stY = top + L.stripY;
+        var stC = stY + L.stripH / 2;
+        rr(x0, stY, w, L.stripH, 6, 'none', P.sub + '66', 1.2);
+        tx('경로', x0 + 10, stC, L.fsE, P.sub + 'ff', 'left', true);
+        tx(names, x0 + (L.mob ? 40 : 52), stC, L.fsE + 1, s.done ? P.green + 'ff' : P.text + 'ff', 'left', true);
+        if (cost) tx(cost, x0 + w - 10, stC, L.fsE, (s.done ? P.green : P.yellow) + 'ff', 'right', true);
     }
 
     /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
     function draw() {
         P = window.CsFlow.getP();
         ctx.clearRect(0, 0, GW(), GH());
-        const L    = buildLayout();
-        const step = stepIdx >= 0 ? SCENARIOS[mode][stepIdx] : SCENARIOS[mode][0];
-        drawEdges(L, step);
-        drawNodes(L, step);
-        drawBadges(L, step);
-        if (step.pktPath && step.pktEdgeIdx >= 0) drawPacket(L, step);
+        var W = GW(); var mob = W < 600;
+        var steps = currentSteps();
+        var step = stepIdx >= 0 ? steps[stepIdx] : null;
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        tipHits.length = 0;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
+        if (hoveredKey && typeof TIPS !== 'undefined' && TIPS[hoveredKey]) drawTip(mousePos.x, mousePos.y, TIPS[hoveredKey]);
     }
 
-    /* ===================== 엣지 ===================== */
-    function drawEdges(L, step) {
-        const { nodePos, F_EDGE, mob } = L;
-        var path       = step.path        || [];
-        var rejected   = step.rejected    || [];
-        var considering= step.considering || [];
-
-        EDGES.forEach(function (edge, i) {
-            var ax = nodePos[edge.a].x, ay = nodePos[edge.a].y;
-            var bx = nodePos[edge.b].x, by = nodePos[edge.b].y;
-
-            var isPath  = path.indexOf(i)        !== -1;
-            var isRej   = rejected.indexOf(i)    !== -1;
-            var isCons  = considering.indexOf(i) !== -1;
-
-            var col, lw;
-            if (isPath)  { col = P.green;           lw = 3;   }
-            else if (isCons) { col = P.yellow;       lw = 2.5; }
-            else if (isRej)  { col = P.muted + '44'; lw = 1;   }
-            else             { col = P.border + 'cc'; lw = 1.5; }
-
-            ctx.beginPath();
-            ctx.moveTo(ax, ay);
-            ctx.lineTo(bx, by);
-            ctx.strokeStyle = col;
-            ctx.lineWidth   = lw;
-            if (isRej) ctx.setLineDash([4, 4]);
-            ctx.stroke();
-            ctx.setLineDash([]);
-
-            var mx   = (ax + bx) / 2;
-            var my   = (ay + by) / 2;
-            var cost = mode === 'rip' ? edge.rip : edge.ospf;
-            var costStr = mode === 'rip'
-                ? (edge.ospf > 1 ? '홉1\n(실제비용' + edge.ospf + ')' : '홉 1')
-                : '비용 ' + edge.ospf;
-
-            var isExpensive = mode === 'ospf' && edge.ospf >= 3;
-            var badgeCol    = isPath ? P.green
-                            : isCons ? P.yellow
-                            : isRej  ? P.muted + '66'
-                            : isExpensive ? P.orange
-                            : P.text + 'bb';
-
-            var label = mode === 'rip' ? '홉 1' : '비용 ' + edge.ospf;
-            if (mode === 'ospf' && edge.ospf >= 3) label = '비용' + edge.ospf + ' ⚡';
-            ctx.font = '700 ' + F_EDGE + 'px "JetBrains Mono",monospace';
-            var tw   = ctx.measureText(label).width + (mob ? 14 : 18);
-            var bh2  = F_EDGE + (mob ? 8 : 10);
-            var pillX = Math.max(tw/2 + 2, Math.min(L.W - tw/2 - 2, mx));
-            rr(pillX - tw/2, my - bh2/2, tw, bh2, 4, P.bg,
-               isPath ? P.green + 'cc' : (isCons ? P.yellow + 'cc' : P.border + 'aa'), 1.5);
-            tx(label, pillX, my, F_EDGE, badgeCol, 'center', true);
+    /* ===================== resize ===================== */
+    function resize() {
+        var w = canvasWrap.offsetWidth || 320;
+        var mob = w < 600;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
         });
+        canvasWrap.style.height    = 'auto';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
+        var actualH = canvasWrap.offsetHeight || neededH;
+        if (actualH < neededH) actualH = neededH;
+        canvas.width  = w * dpr;
+        canvas.height = actualH * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        draw();
     }
 
-    /* ===================== 노드 ===================== */
-    function drawNodes(L, step) {
-        const { nodePos, nodeHW, nodeHH, F_NODE, F_SUB } = L;
-        var activeNode = step.activeNode;
-        var pathNodes  = new Set();
-        (step.path || []).forEach(function (ei) {
-            pathNodes.add(EDGES[ei].a);
-            pathNodes.add(EDGES[ei].b);
-        });
-
-        NODE_LABELS.forEach(function (label, i) {
-            var nx = nodePos[i].x, ny = nodePos[i].y;
-            var isSrc    = i === 0;
-            var isDst    = i === 5;
-            var isActive = i === activeNode;
-            var isOnPath = pathNodes.has(i);
-            var isRej    = !isOnPath && (step.rejected || []).some(function (ei) {
-                return EDGES[ei].a === i || EDGES[ei].b === i;
-            });
-
-            var col = isDst && isOnPath ? P.green
-                    : isSrc             ? P.purple
-                    : isDst             ? P.teal
-                    : isOnPath          ? P.green
-                    : isActive          ? P.purple
-                    : isRej             ? P.muted + '55'
-                    : P.muted           + '88';
-
-            var fillAlpha = (isActive || isOnPath) ? '28' : '10';
-
-            var hw = L.nodeHW, hh = L.nodeHH;
-            rr(nx - hw, ny - hh, hw*2, hh*2, 6,
-               col + fillAlpha, col,
-               isActive ? 3 : (isOnPath ? 2.5 : 1.5));
-
-            ctx.save();
-            ctx.beginPath();
-            ctx.rect(nx - hw + 2, ny - hh + 1, hw*2 - 4, hh*2 - 2);
-            ctx.clip();
-            var labelY = (isSrc || isDst) ? ny - 3 : ny;
-            tx(label, nx, labelY, F_NODE, col, 'center', true);
-            if (isSrc || isDst) {
-                tx(isSrc ? 'SRC' : 'DST', nx, ny + F_NODE * 0.6,
-                   F_SUB, col + 'cc', 'center', false);
-            }
-            ctx.restore();
-
-            if (isActive) {
-                ctx.beginPath();
-                ctx.arc(nx, ny, hw + 6, 0, Math.PI * 2);
-                ctx.strokeStyle = col + '44';
-                ctx.lineWidth   = 2;
-                ctx.stroke();
-            }
-        });
-    }
-
-    /* ===================== 비용 배지 ===================== */
-    function drawBadges(L, step) {
-        const { nodePos, nodeHH, badgeH, F_BADGE, mob } = L;
-        var badge = step.badge || {};
-        Object.keys(badge).forEach(function (ni) {
-            var nx  = nodePos[parseInt(ni)].x;
-            var ny  = nodePos[parseInt(ni)].y;
-            var txt = badge[ni];
-            var isRej = txt.indexOf('탈락') !== -1;
-            var col   = isRej ? P.orange : P.yellow;
-            ctx.font = '700 ' + F_BADGE + 'px "JetBrains Mono",monospace';
-            var bw  = ctx.measureText(txt).width + (mob ? 12 : 16);
-            var bh  = badgeH;
-            var bby = ny - nodeHH - 4 - bh;
-            rr(nx - bw/2, bby, bw, bh, 4, P.bg, col + 'cc', 1.5);
-            tx(txt, nx, bby + bh/2, F_BADGE, col, 'center', true);
-        });
-    }
-
-    /* ===================== 패킷 이동 ===================== */
-    function drawPacket(L, step) {
-        var pktPath   = step.pktPath   || [];
-        var edgeIdx   = step.pktEdgeIdx;
-        if (edgeIdx < 0 || edgeIdx >= pktPath.length) return;
-
-        var eIdx = pktPath[edgeIdx];
-        var edge = EDGES[eIdx];
-        var ax   = L.nodePos[edge.a].x, ay = L.nodePos[edge.a].y;
-        var bx   = L.nodePos[edge.b].x, by = L.nodePos[edge.b].y;
-        var prog = pktMoving ? pktProg : 1;
-        var cx   = ax + (bx - ax) * prog;
-        var cy   = ay + (by - ay) * prog;
-
-        var r = L.mob ? 14 : 17;
-        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
-        ctx.fillStyle   = P.green + '33'; ctx.fill();
-        ctx.strokeStyle = P.green; ctx.lineWidth = 2.5; ctx.stroke();
-
-        tx('PKT', cx, cy, L.F_EDGE - 1, P.green, 'center', true);
-    }
-
-    /* ===================== 애니메이션 ===================== */
-    function animateStep(step, cb) {
-        var pktPath = step.pktPath || [];
-        var needsAnim = pktPath.length > 0 && step.pktEdgeIdx >= 0;
-        pktProg = needsAnim ? 0 : 1;
-        pktMoving = needsAnim;
-        if (!needsAnim) { draw(); if (cb) cb(); return; }
+    /* ===================== 애니메이션(스텝 전환) ===================== */
+    function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        var s = 0.007 * (1800 / speed);
-        (function tick() {
-            pktProg = Math.min(1, pktProg + s);
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
             draw();
-            if (pktProg < 1) { rafId = requestAnimationFrame(tick); }
-            else { pktMoving = false; draw(); if (cb) cb(); }
-        })();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
-    function setSpeedDisabled(v) {
-        root.querySelectorAll('.rt-viz__speed-btn').forEach(function (b) { b.disabled = v; });
-    }
-    function setModeBtnsDisabled(v) {
-        btnRip.disabled  = v;
-        btnOspf.disabled = v;
-    }
+    function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
-        logEl.textContent = SCENARIOS[mode][idx].log;
-        animateStep(SCENARIOS[mode][idx], function () {
-            if (onDone) setTimeout(onDone, 0);
-        });
+        logEl.textContent = currentSteps()[idx].log;
+        animateStep(function () { if (onDone) setTimeout(onDone, 0); });
     }
 
-    function rtStart() {
+    function vizStart() {
         if (running) return;
         running = true; btnPlay.disabled = true; btnStep.disabled = true;
-        setSpeedDisabled(true); setModeBtnsDisabled(true);
+        setSpeedDisabled(true);
+        var steps = currentSteps();
         function tick() {
             var next = stepIdx + 1;
-            var sc   = SCENARIOS[mode];
-            if (next >= sc.length) { running = false; setSpeedDisabled(false); setModeBtnsDisabled(false); return; }
+            if (next >= steps.length) { running = false; setSpeedDisabled(false); return; }
             applyStep(next, function () {
-                if (next === sc.length - 1) {
-                    running = false; btnStep.disabled = true;
-                    setSpeedDisabled(false); setModeBtnsDisabled(false);
+                if (next === steps.length - 1) {
+                    running = false; btnStep.disabled = true; setSpeedDisabled(false);
                 } else {
-                    timer = setTimeout(tick, speed);
+                    timer = setTimeout(tick, speed * 0.6);
                 }
             });
         }
         tick();
     }
 
-    function rtStep() {
-        if (running || pktMoving) return;
+    function vizStep() {
+        if (running) return;
+        var steps = currentSteps();
         var next = stepIdx + 1;
-        if (next >= SCENARIOS[mode].length) return;
+        if (next >= steps.length) return;
         applyStep(next, null);
-        if (next === SCENARIOS[mode].length - 1) { btnPlay.disabled = true; btnStep.disabled = true; }
+        if (next === steps.length - 1) { btnPlay.disabled = true; btnStep.disabled = true; }
     }
 
-    function rtReset() {
+    function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1; pktProg = 1; pktMoving = false;
-        logEl.textContent = '▶ PLAY를 눌러 라우팅 경로 선택 과정을 확인하세요.';
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
-        setSpeedDisabled(false); setModeBtnsDisabled(false);
-        draw();
-    }
-
-    function switchMode(m) {
-        mode = m;
-        btnRip.classList.toggle('rt-viz__mode-btn--active',  m === 'rip');
-        btnOspf.classList.toggle('rt-viz__mode-btn--active', m === 'ospf');
-        rtReset();
+        logEl.textContent = defaultLog();
+        setSpeedDisabled(false);
+        resize();
     }
 
     function setSpeed(ms, btn) {
         speed = ms;
-        root.querySelectorAll('.rt-viz__speed-btn').forEach(function (b) {
-            b.classList.remove('rt-viz__speed-btn--active');
-        });
-        btn.classList.add('rt-viz__speed-btn--active');
+        speedBtns.forEach(function (b) { b.classList.remove('routing-viz__speed-btn--active'); });
+        btn.classList.add('routing-viz__speed-btn--active');
     }
 
+    function switchMode(m) {
+        if (mode === m) return;
+        mode = m;
+        modeDefs.forEach(function (d) { modeBtns[d.key].classList.toggle('routing-viz__mode-btn--active', d.key === m); });
+        vizReset();
+    }
+
+    logEl.textContent = defaultLog();
+
+    /* ===================== 라이프사이클 ===================== */
     window.CsFlow.createVizLifecycle({
-        canvas, canvasWrap, resize, draw,
+        canvas: canvas, canvasWrap: canvasWrap, resize: resize, draw: draw,
         getState : function () { return { rafId: rafId, timer: timer, running: running }; },
         setState : function (s) { rafId = s.rafId; timer = s.timer; running = s.running; },
         onPause  : function () { setSpeedDisabled(false); },
         getMouseCtx: function () {
-            return { GW, GH, mousePos:{x:-1,y:-1}, tooltipHits:[],
-                     hoveredKey:function(){return null;}, setHoveredKey:function(){}, draw };
-        },
+            return {
+                GW: GW, GH: GH,
+                mousePos: mousePos,
+                tooltipHits: tipHits,
+                hoveredKey: function () { return hoveredKey; },
+                setHoveredKey: function (k) { hoveredKey = k; },
+                draw: draw
+            };
+        }
     });
 
     setTimeout(resize, 60);

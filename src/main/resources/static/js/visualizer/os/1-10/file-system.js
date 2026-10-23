@@ -1,89 +1,148 @@
 /**
  * 파일 시스템 시각화
- * 모드 0: inode — /home/user/hello.txt 경로 탐색
- * 모드 1: FAT   — 클러스터 체인 3→7→12→EOF
  */
 (function () {
     'use strict';
 
-    const container = document.getElementById('visualizer-container');
+    var container = document.getElementById('visualizer-container');
     if (!container) return;
 
-    /* ===================== UI 구성 ===================== */
     function el(tag, cls, txt) {
-        const e = document.createElement(tag);
+        var e = document.createElement(tag);
         if (cls) e.className = cls;
-        if (txt) e.textContent = txt;
+        if (txt !== undefined && txt !== null) e.textContent = txt;
         return e;
     }
 
-    const root    = el('div', 'fs-viz');
-    const toolbar = el('div', 'fs-viz__toolbar');
-    const tbLeft  = el('div', 'fs-viz__toolbar-left');
+    /* ===================== DOM ===================== */
+    var root    = el('div', 'fs-viz');
+    var toolbar = el('div', 'fs-viz__toolbar');
+    var tbLeft  = el('div', 'fs-viz__toolbar-left');
     tbLeft.appendChild(el('span', 'fs-viz__title', 'File System'));
 
-    const modeHint = el('span', 'fs-viz__mode-hint', '모드 →');
-    const modeTabs = el('div', 'fs-viz__mode-tabs');
-    ['inode', 'FAT'].forEach(function (lbl, i) {
-        const b = el('button', 'fs-viz__mode-btn' + (i === 0 ? ' fs-viz__mode-btn--active' : ''), lbl);
-        b.addEventListener('click', function () { if (!running) setMode(i, b); });
-        modeTabs.appendChild(b);
+    var modeWrap = el('div', 'fs-viz__mode');
+    var modeDefs = [
+        { key: 'inode', label: 'inode' },
+        { key: 'fat', label: 'FAT' }
+    ];
+    var modeBtns = {};
+    modeDefs.forEach(function (m, i) {
+        var b = el('button', 'fs-viz__mode-btn' + (i === 0 ? ' fs-viz__mode-btn--active' : ''), m.label);
+        b.addEventListener('click', function () { if (!running) switchMode(m.key); });
+        modeWrap.appendChild(b);
+        modeBtns[m.key] = b;
     });
-    tbLeft.appendChild(modeHint);
-    tbLeft.appendChild(modeTabs);
+    tbLeft.appendChild(modeWrap);
     toolbar.appendChild(tbLeft);
 
-    const speedWrap = el('div', 'fs-viz__speed');
+    var speedWrap = el('div', 'fs-viz__speed');
     speedWrap.appendChild(el('span', 'fs-viz__speed-label', 'SPEED'));
-    [['1x', 1800], ['2x', 900], ['3x', 600]].forEach(function (pair, i) {
-        const b = el('button', 'fs-viz__speed-btn' + (i === 0 ? ' fs-viz__speed-btn--active' : ''), pair[0]);
+    var speedBtns = [];
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
+        var b = el('button', 'fs-viz__speed-btn' + (i === 0 ? ' fs-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
+        speedBtns.push(b);
     });
     toolbar.appendChild(speedWrap);
     root.appendChild(toolbar);
 
-    const canvasWrap = el('div', 'fs-viz__canvas-wrap');
-    const canvas     = document.createElement('canvas');
+    var canvasWrap = el('div', 'fs-viz__canvas-wrap');
+    var canvas     = document.createElement('canvas');
     canvas.className = 'fs-viz__canvas';
     canvasWrap.appendChild(canvas);
     root.appendChild(canvasWrap);
 
-    const logEl = el('div', 'fs-viz__log', '▶ PLAY를 눌러 파일 시스템 동작을 확인하세요.');
+    var logEl = el('div', 'fs-viz__log', '');
     root.appendChild(logEl);
 
-    const controls = el('div', 'fs-viz__controls');
-    const btnPlay  = el('button', 'fs-viz__btn fs-viz__btn--primary', '▶ PLAY');
-    const btnStep  = el('button', 'fs-viz__btn', '▶| STEP');
-    const btnReset = el('button', 'fs-viz__btn', '↺ RESET');
-    btnPlay.addEventListener('click',  fsStart);
-    btnStep.addEventListener('click',  fsStep);
-    btnReset.addEventListener('click', fsReset);
+    var controls = el('div', 'fs-viz__controls');
+    var btnPlay  = el('button', 'fs-viz__btn fs-viz__btn--primary', '▶ PLAY');
+    var btnStep  = el('button', 'fs-viz__btn', '▶| STEP');
+    var btnReset = el('button', 'fs-viz__btn', '↺ RESET');
+    btnPlay.addEventListener('click',  vizStart);
+    btnStep.addEventListener('click',  vizStep);
+    btnReset.addEventListener('click', vizReset);
     controls.appendChild(btnPlay);
     controls.appendChild(btnStep);
     controls.appendChild(btnReset);
     root.appendChild(controls);
     container.appendChild(root);
 
-    /* ===================== 캔버스 ===================== */
-    const ctx = canvas.getContext('2d');
-    const dpr = window.devicePixelRatio || 1;
-    const GW  = function () { return canvas.width  / dpr; };
-    const GH  = function () { return canvas.height / dpr; };
+    var ctx = canvas.getContext('2d');
+    var dpr = window.devicePixelRatio || 1;
+    function GW() { return canvas.width / dpr; }
+    function GH() { return canvas.height / dpr; }
 
-    function resize() {
-        const w   = canvasWrap.offsetWidth;
-        const mob = w < 520;
-        const minH = mob ? 520 : 480;
-        canvasWrap.style.minHeight = minH + 'px';
-        const h   = Math.max(canvasWrap.offsetHeight, minH);
-        canvas.width  = w * dpr;
-        canvas.height = h * dpr;
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        draw();
+    var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'inode';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
     }
-
-    let P = window.CsFlow.getP();
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 시나리오 ===================== */
     const INODE_STEPS = [
@@ -144,504 +203,465 @@
         },
     ];
 
-    /* ===================== 상태 변수 ===================== */
-    let modeIdx  = 0;
-    let stepIdx  = -1;
-    let running  = false;
-    let timer    = null;
-    let rafId    = null;
-    let speed    = 1800;
+    /* ===================== 상태 ===================== */
+    function currentSteps() {
+        return mode === 'inode' ? INODE_STEPS : FAT_STEPS;
+    }
+    function defaultLog() {
+        return '▶ PLAY를 눌러 파일 시스템 동작을 확인하세요.';
+    }
+    function ez(q) {
+        var v = clamp01(q);
+        return v * v * (3 - 2 * v);
+    }
+    function fsxW(str, fs) {
+        var n = 0;
+        var i;
+        for (i = 0; i < str.length; i++) n += str.charCodeAt(i) < 128 ? fs * 0.62 : fs;
+        return n;
+    }
 
-    let tooltipHits = [];
-    let mousePos    = { x: -1, y: -1 };
-    let hoveredKey  = null;
+    /* ===================== 장면 상수 ===================== */
+    var FSX_KEYS = ['root', 'home', 'user', 'inode', 'data'];
+    var FSX_CARDS = [
+        { col: 'teal',   title: '/ (root)',    id: 'inode 2',  ent: 'home/',     to: 'inode 7' },
+        { col: 'purple', title: 'home/',       id: 'inode 7',  ent: 'user/',     to: 'inode 23' },
+        { col: 'orange', title: 'user/',       id: 'inode 23', ent: 'hello.txt', to: 'inode 91' },
+        { col: 'purple', title: 'inode #91',   id: '',         ent: '',          to: '' },
+        { col: 'green',  title: 'Data Blocks', id: '',         ent: '',          to: '' }
+    ];
+    var FSX_FIELDS = [['링크 수', '1'], ['크기', '2.3 KB'], ['권한', 'rw-r--r--'], ['블록 →', '#142, #143']];
+    var FSX_BLOCKS = ['#142', '#143'];
+    var FSX_PATH = [
+        { lbl: '/',         key: 'root' },
+        { lbl: 'home',      key: 'home' },
+        { lbl: 'user',      key: 'user' },
+        { lbl: 'hello.txt', key: 'inode' }
+    ];
 
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
+    /* ===================== 레이아웃 ===================== */
+    function fsxMetrics(mob) {
+        var fs = mob ? 11.5 : 13;
+        return {
+            fs: fs,
+            fsS: mob ? 11 : 11.5,
+            hr: fs + 10,
+            er: fs + 10,
+            ind: mob ? 12 : 30,
+            pathH: mob ? 30 : 34,
+            gap: 16
+        };
+    }
+    function layout(w, mob) {
+        var M = fsxMetrics(mob);
+        var cellH;
+        var gridTop;
+        var capTop;
+        var legTop;
+        var dirH;
+        var inodeH;
+        var blocksH;
+        var dataH;
+        var hs;
+        var tops = [];
+        var y;
+        if (mode !== 'inode') {
+            cellH = mob ? 34 : 40;
+            gridTop = M.hr + 6;
+            capTop = gridTop + 4 * cellH + 12;
+            legTop = capTop + M.fs + 14;
+            return { M: M, cellH: cellH, gridTop: gridTop, capTop: capTop, legTop: legTop, total: legTop + M.fsS + 8 };
+        }
+        dirH = M.hr + M.er + 12;
+        inodeH = M.hr + 4 * (M.fsS + 8) + 10;
+        blocksH = mob ? 44 : 50;
+        dataH = M.hr + blocksH + M.fsS + 14;
+        hs = [dirH, dirH, dirH, inodeH, dataH];
+        y = M.pathH + 14;
+        hs.forEach(function (h) {
+            tops.push(y);
+            y += h + M.gap;
+        });
+        return { M: M, blocksH: blocksH, tops: tops, hs: hs, total: y - M.gap + 8 };
+    }
+    function sceneH(w, mob) {
+        return layout(w, mob).total;
+    }
+
+    /* ===================== 경로 바 ===================== */
+    function fsxPath(x0, top, M, s, pv, fresh, t) {
+        var x = x0;
+        FSX_PATH.forEach(function (p) {
+            var wd = fsxW(p.lbl, M.fsS) + 16;
+            var on = s.hl.indexOf(p.key) >= 0;
+            var was = pv.hl.indexOf(p.key) >= 0;
+            var lit = fresh && on && !was ? ez(seg(t, 0.3, 0.6)) : (on ? 1 : 0);
+            rr(x, top, wd, M.pathH, 5, P.surf2, P.border, 1.2);
+            if (lit > 0) {
+                ctx.globalAlpha = lit;
+                rr(x, top, wd, M.pathH, 5, P.teal + '33', P.teal + 'ff', 1.8);
+                ctx.globalAlpha = 1;
+            }
+            tx(p.lbl, x + wd / 2, top + M.pathH / 2, M.fsS, (on ? P.text : P.sub) + 'ff', 'center', on);
+            x += wd + 8;
+        });
+    }
+
+    /* ===================== 카드와 연결선 ===================== */
+    function fsxBox(x, y, w, h, M, card, a) {
+        var c = P[card.col];
+        ctx.globalAlpha = a;
+        rr(x, y, w, h, 8, c + '18', c + 'ff', 1.6);
+        ln(x + 8, y + M.hr, x + w - 8, y + M.hr, c + '55', 1);
+        tx(card.title, x + 10, y + M.hr / 2, M.fs, c + 'ff', 'left', true);
+        if (card.id) tx(card.id, x + w - 10, y + M.hr / 2, M.fsS, c + 'ff', 'right', false);
+        ctx.globalAlpha = 1;
+    }
+    function fsxDirBody(x, y, w, M, card, a, hiA, scanY, scanA) {
+        var c = P[card.col];
+        var ye = y + M.hr + 6;
+        if (hiA > 0) {
+            ctx.globalAlpha = a * hiA;
+            rr(x + 8, ye, w - 16, M.er, 5, c + '33', c + 'ff', 1.4);
+        }
+        ctx.globalAlpha = a;
+        tx(card.ent, x + 18, ye + M.er / 2, M.fs, (hiA > 0.5 ? P.text : P.sub) + 'ff', 'left', hiA > 0.5);
+        tx('→ ' + card.to, x + w - 18, ye + M.er / 2, M.fsS, c + 'ff', 'right', false);
+        if (scanA > 0) {
+            ctx.globalAlpha = scanA;
+            ln(x + 8, scanY, x + w - 8, scanY, P.yellow + 'ff', 2);
+        }
+        ctx.globalAlpha = 1;
+    }
+    function fsxHead(x, y, dx, dy, col) {
+        var d = Math.sqrt(dx * dx + dy * dy) || 1;
+        var ux = dx / d;
+        var uy = dy / d;
+        var bx = x - ux * 9;
+        var by = y - uy * 9;
         ctx.beginPath();
-        ctx.moveTo(x + r, y);
-        ctx.arcTo(x + w, y, x + w, y + h, r);
-        ctx.arcTo(x + w, y + h, x, y + h, r);
-        ctx.arcTo(x, y + h, x, y, r);
-        ctx.arcTo(x, y, x + w, y, r);
+        ctx.moveTo(x, y);
+        ctx.lineTo(bx - uy * 4.5, by + ux * 4.5);
+        ctx.lineTo(bx + uy * 4.5, by - ux * 4.5);
         ctx.closePath();
-        if (fill)   { ctx.fillStyle = fill;   ctx.fill(); }
-        if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.5; ctx.stroke(); }
+        ctx.fillStyle = col;
+        ctx.fill();
+    }
+    function fsxLink(x0, top, L, i, f) {
+        var M = L.M;
+        var ax = x0 + i * M.ind + 18;
+        var ay = top + L.tops[i] + L.hs[i];
+        var bx = x0 + (i + 1) * M.ind + 18;
+        var by = top + L.tops[i + 1];
+        var col = i === 3 ? P.purple : P.teal;
+        ln(ax, ay, lerp(ax, bx, f), lerp(ay, by, f), col + 'ff', 2.2);
+        if (f >= 0.999) fsxHead(bx, by, bx - ax, by - ay, col + 'ff');
     }
 
-    function tx(str, x, y, sz, color, align, bold) {
-        ctx.font = (bold ? '700' : '400') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
+    /* ===================== inode 장면 ===================== */
+    function fsxDrawInode(x0, top, w, L, s, pv, fresh, t) {
+        var M = L.M;
+        var cur = s.hl[s.hl.length - 1];
+        var ci = FSX_KEYS.indexOf(cur);
+        var i;
+        var j;
+        fsxPath(x0, top, M, s, pv, fresh, t);
+        for (i = 0; i < 4; i++) {
+            var f = fresh && i === ci - 1 ? ez(seg(t, 0, 0.4)) : (i < ci ? 1 : 0);
+            if (f > 0) fsxLink(x0, top, L, i, f);
+        }
+        for (i = 0; i < 5; i++) {
+            var card = FSX_CARDS[i];
+            var cx = x0 + i * M.ind;
+            var cw = w - i * M.ind;
+            var cy = top + L.tops[i];
+            var ch = L.hs[i];
+            var enter = fresh && i === ci;
+            var a = i > ci ? 0.35 : (enter ? lerp(0.35, 1, ez(seg(t, 0.3, 0.6))) : 1);
+            if (i < 3) {
+                var sc = fresh && i === ci;
+                var sp = sc ? seg(t, 0.45, 0.85) : 0;
+                var hiA = i < ci ? (fresh && i === ci - 1 ? ez(seg(t, 0, 0.3)) : 1) : 0;
+                fsxBox(cx, cy, cw, ch, M, card, a);
+                fsxDirBody(cx, cy, cw, M, card, a, hiA, cy + M.hr + 2 + sp * (ch - M.hr - 5), sc ? Math.sin(Math.PI * sp) * a : 0);
+            } else if (i === 3) {
+                fsxBox(cx, cy, cw, ch, M, card, a);
+                if (ci >= 3) {
+                    var rh = M.fsS + 8;
+                    var blkA = ci >= 4 ? (fresh && ci === 4 ? ez(seg(t, 0.4, 0.9)) : 1) : 0;
+                    for (j = 0; j < 4; j++) {
+                        var fa = enter ? ez(seg(t, 0.5 + 0.1 * j, 0.7 + 0.1 * j)) : 1;
+                        var ry = cy + M.hr + 2 + j * rh;
+                        var blk = j === 3;
+                        var hot = blk && blkA > 0.5;
+                        if (blk && blkA > 0) {
+                            ctx.globalAlpha = fa * blkA;
+                            rr(cx + 8, ry, cw - 16, rh - 2, 4, P.green + '22', P.green + 'ff', 1.2);
+                        }
+                        ctx.globalAlpha = fa;
+                        tx(FSX_FIELDS[j][0], cx + 14, ry + rh / 2, M.fsS, P.sub + 'ff', 'left', false);
+                        tx(FSX_FIELDS[j][1], cx + cw - 14, ry + rh / 2, M.fsS, (hot ? P.green : P.text) + 'ff', 'right', hot);
+                        ctx.globalAlpha = 1;
+                    }
+                }
+            } else {
+                fsxBox(cx, cy, cw, ch, M, card, a);
+                if (ci >= 4) {
+                    var bW = Math.floor((cw - 34) / 2);
+                    var bH = L.blocksH - 4;
+                    for (j = 0; j < 2; j++) {
+                        var ba = fresh && ci === 4 ? ez(seg(t, 0.5 + 0.15 * j, 0.85 + 0.15 * j)) : 1;
+                        var bx = cx + 12 + j * (bW + 10);
+                        var by = cy + M.hr + 4;
+                        ctx.globalAlpha = ba;
+                        rr(bx, by, bW, bH, 4, P.green + '25', P.green + 'ff', 1.4);
+                        tx(FSX_BLOCKS[j], bx + bW / 2, by + bH * 0.36, M.fsS, P.green + 'ff', 'center', true);
+                        tx('data...', bx + bW / 2, by + bH * 0.74, M.fsS - 1, P.sub + 'ff', 'center', false);
+                    }
+                    ctx.globalAlpha = fresh && ci === 4 ? ez(seg(t, 0.8, 1)) : 1;
+                    tx('✓ 파일 읽기 완료', cx + cw / 2, cy + M.hr + L.blocksH + (M.fsS + 14) / 2, M.fsS, P.green + 'ff', 'center', true);
+                    ctx.globalAlpha = 1;
+                }
+            }
+        }
     }
 
-    function arrowH(x2, y2, ux, uy, col, sz) {
-        const p = sz || 7;
+    /* ===================== FAT 장면 ===================== */
+    function fsxCX(gx, cw, n) {
+        return gx + (n % 4) * cw + cw / 2;
+    }
+    function fsxCY(gy, ch, n) {
+        return gy + Math.floor(n / 4) * ch + ch / 2;
+    }
+    function fsxArc(ax, ay, bx, by, f, col) {
+        var dx = bx - ax;
+        var dy = by - ay;
+        var d = Math.sqrt(dx * dx + dy * dy) || 1;
+        var nx = -dy / d;
+        var ny = dx / d;
+        if (nx < 0) {
+            nx = -nx;
+            ny = -ny;
+        }
+        var bu = Math.min(24, d * 0.35);
+        var qx = (ax + bx) / 2 + nx * bu;
+        var qy = (ay + by) / 2 + ny * bu;
+        var q;
+        function pxAt(u) { return (1 - u) * (1 - u) * ax + 2 * (1 - u) * u * qx + u * u * bx; }
+        function pyAt(u) { return (1 - u) * (1 - u) * ay + 2 * (1 - u) * u * qy + u * u * by; }
         ctx.beginPath();
-        ctx.moveTo(x2, y2);
-        ctx.lineTo(x2 - ux*p*2 - uy*p, y2 - uy*p*2 + ux*p);
-        ctx.lineTo(x2 - ux*p*2 + uy*p, y2 - uy*p*2 - ux*p);
-        ctx.closePath();
-        ctx.fillStyle = col; ctx.fill();
+        ctx.moveTo(ax, ay);
+        for (q = 1; q <= 16; q++) ctx.lineTo(pxAt(f * q / 16), pyAt(f * q / 16));
+        ctx.strokeStyle = col;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        if (f >= 0.999) fsxHead(bx, by, bx - pxAt(0.9), by - pyAt(0.9), col);
+    }
+    function fsxDrawFat(x0, top, w, L, s, pv, fresh, t) {
+        var M = L.M;
+        var cw = Math.floor(w / 4);
+        var ch = L.cellH;
+        var gx = x0 + (w - cw * 4) / 2;
+        var gy = top + L.gridTop;
+        var act = s.active || [];
+        var pAct = pv.active || [];
+        var done = !!s.done;
+        var g = done ? (fresh && !pv.done ? ez(seg(t, 0.2, 0.7)) : 1) : 0;
+        var n;
+        var k;
+        tx('FAT · hello.txt 탐색', x0 + w / 2, top + M.hr / 2, M.fsS, P.sub + 'ff', 'center', true);
+        for (n = 0; n < 16; n++) {
+            var e = FAT_TABLE[n];
+            var x = gx + (n % 4) * cw;
+            var y = gy + Math.floor(n / 4) * ch;
+            var isAct = act.indexOf(n) >= 0;
+            var a = isAct ? (fresh && pAct.indexOf(n) < 0 ? ez(seg(t, 0.5, 0.9)) : 1) : 0;
+            var isH = e.file === 'hello';
+            var isW = e.file === 'world';
+            var fillC = isH ? P.teal + '10' : (isW ? P.purple + '10' : P.surf);
+            var strokeC = isH ? P.teal + '55' : (isW ? P.purple + '55' : P.border);
+            var valCol = isAct ? (done ? P.green : P.teal) : (e.val === 'EOF' ? P.green : (e.val === 'FREE' || e.val === 'Reserved' ? P.muted : P.text));
+            rr(x + 3, y + 3, cw - 6, ch - 6, 5, fillC, strokeC, 1);
+            if (a * (1 - g) > 0) {
+                ctx.globalAlpha = a * (1 - g);
+                rr(x + 3, y + 3, cw - 6, ch - 6, 5, P.teal + '33', P.teal + 'ff', 2);
+            }
+            if (a * g > 0) {
+                ctx.globalAlpha = a * g;
+                rr(x + 3, y + 3, cw - 6, ch - 6, 5, P.green + '33', P.green + 'ff', 2);
+            }
+            ctx.globalAlpha = 1;
+            if (isH || isW) circ(x + cw - 10, y + 10, 3.5, (isH ? P.teal : P.purple) + 'aa', 'none');
+            tx(String(n), x + cw / 2, y + ch * 0.3, M.fsS - 1, (isAct ? P.text : P.sub) + 'ff', 'center', false);
+            tx(e.val === 'Reserved' ? 'Rsv' : e.val, x + cw / 2, y + ch * 0.68, isAct ? M.fs : M.fsS, valCol + 'ff', 'center', isAct);
+        }
+        var lc = done ? P.green : P.teal;
+        for (k = 0; k + 1 < act.length; k++) {
+            var newLink = fresh && k === act.length - 2 && act.length > pAct.length && pAct.length >= 1;
+            fsxArc(fsxCX(gx, cw, act[k]), fsxCY(gy, ch, act[k]), fsxCX(gx, cw, act[k + 1]), fsxCY(gy, ch, act[k + 1]), newLink ? ez(seg(t, 0.1, 0.75)) : 1, lc + 'ff');
+        }
+        if (act.length) {
+            var last = act[act.length - 1];
+            var prevLast = pAct.length ? pAct[pAct.length - 1] : last;
+            var mv = fresh && prevLast !== last ? ez(seg(t, 0.15, 0.8)) : 1;
+            var px = lerp(fsxCX(gx, cw, prevLast), fsxCX(gx, cw, last), mv);
+            var py = lerp(fsxCY(gy, ch, prevLast), fsxCY(gy, ch, last), mv);
+            ctx.globalAlpha = fresh && pAct.length === 0 ? ez(seg(t, 0, 0.3)) : 1;
+            rr(px - cw / 2 + 3, py - ch / 2 + 3, cw - 6, ch - 6, 5, 'none', P.purple + 'ff', 2.4);
+            ctx.globalAlpha = 1;
+        }
+        var capStr = act.length === 0
+            ? '디렉토리 엔트리의 시작 클러스터 ' + FAT_STEPS[1].active[0]
+            : (done ? '✓ 체인 끝: ' : '체인: ') + act.join(' → ') + (done ? ' → EOF' : '');
+        tx(capStr, x0 + w / 2, top + L.capTop + M.fs / 2, M.fs, (done ? P.green : P.sub) + 'ff', 'center', done);
+        var legY = top + L.legTop + M.fsS / 2;
+        var legs = [[P.teal, 'hello.txt'], [P.purple, 'world.txt'], [P.muted, 'FREE/Rsv']];
+        legs.forEach(function (lg, i) {
+            var lx = x0 + i * (w / 3);
+            circ(lx + 5, legY, 4.5, lg[0] + 'ff', 'none');
+            tx(lg[1], lx + 14, legY, M.fsS, P.sub + 'ff', 'left', false);
+        });
     }
 
-    function arrow(x1, y1, x2, y2, col, lw) {
-        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
-        ctx.strokeStyle = col; ctx.lineWidth = lw || 2; ctx.stroke();
-        const dx = x2-x1, dy = y2-y1, len = Math.sqrt(dx*dx+dy*dy);
-        if (len > 4) arrowH(x2, y2, dx/len, dy/len, col);
+    /* ===================== 메인 장면 ===================== */
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var L = layout(w, mob);
+        var s = step || currentSteps()[0];
+        var pv = prev || s;
+        var fresh = s !== pv;
+        var e = fresh ? clamp01(t) : 1;
+        if (mode === 'inode') fsxDrawInode(x0, top, w, L, s, pv, fresh, e);
+        else fsxDrawFat(x0, top, w, L, s, pv, fresh, e);
     }
 
     /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
     function draw() {
         P = window.CsFlow.getP();
         ctx.clearRect(0, 0, GW(), GH());
-        ctx.fillStyle = P.bg;
-        ctx.fillRect(0, 0, GW(), GH());
-        tooltipHits = [];
-
-        if (modeIdx === 0) drawInode();
-        else               drawFAT();
+        var W = GW(); var mob = W < 600;
+        var steps = currentSteps();
+        var step = stepIdx >= 0 ? steps[stepIdx] : null;
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
-    /* ==========================================
-     * inode 모드
-     * ========================================== */
-    function drawInode() {
-        const W = GW(), H = GH();
-        const mob = W < 520;
-        const fMd = mob ? 12 : 14;
-        const fSm = mob ? 10 : 12;
-        const pad = mob ? 10 : 20;
-
-        const step = stepIdx >= 0 ? INODE_STEPS[stepIdx] : INODE_STEPS[0];
-        const hl   = step.hl || [];
-
-        /* ── 경로 바 ── */
-        const pathH   = mob ? 38 : 46;
-        const pathY   = mob ? 16 : 20;
-        const segs    = [
-            { lbl: '/',        key: null   },
-            { lbl: 'home',     key: 'home' },
-            { lbl: '/',        key: null   },
-            { lbl: 'user',     key: 'user' },
-            { lbl: '/',        key: null   },
-            { lbl: 'hello.txt',key: 'inode'},
-        ];
-        const segW  = Math.floor((W - pad*2) / segs.length);
-        const pathX = pad;
-
-        rr(pathX, pathY, W - pad*2, pathH, 6, P.surf, P.border, 1);
-        segs.forEach(function (seg, i) {
-            const sx    = pathX + i * segW;
-            const isHl  = seg.key && hl.indexOf(seg.key) !== -1;
-            const col   = seg.lbl === '/' ? P.muted : (isHl ? P.teal : P.sub);
-            tx(seg.lbl, sx + segW/2, pathY + pathH/2, isHl ? fSm+1 : fSm, col, 'center', isHl);
+    /* ===================== resize ===================== */
+    function resize() {
+        var w = canvasWrap.offsetWidth || 320;
+        var mob = w < 600;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
         });
+        canvasWrap.style.height    = 'auto';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
+        var actualH = canvasWrap.offsetHeight || neededH;
+        if (actualH < neededH) actualH = neededH;
+        canvas.width  = w * dpr;
+        canvas.height = actualH * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        draw();
+    }
 
-        /* ── 노드 배치 계산 ── */
-        const nodeTop = pathY + pathH + (mob ? 18 : 24);
-        const botPad  = mob ? 12 : 16;
-        const nodeH   = Math.floor((H - nodeTop - botPad) / (mob ? 3 : 1));
-        const nodeHadj = mob ? nodeH - 10 : Math.min(nodeH, mob ? 160 : 200);
-
-        if (mob) {
-            /* 모바일: 수직 3단 - 각 박스가 화면 너비 꽉 차게 */
-            const nW  = W - pad*2;
-            const gap = 12;
-            const h1  = Math.round((H - nodeTop - botPad - gap*2) / 3);
-
-            const y1 = nodeTop;
-            const y2 = y1 + h1 + gap;
-            const y3 = y2 + h1 + gap;
-
-            drawDir(pad, y1, nW, h1, hl, fMd, fSm);
-            if (hl.indexOf('inode') !== -1 || hl.indexOf('data') !== -1) {
-                /* 화살표 */
-                arrow(pad + nW/2, y1 + h1, pad + nW/2, y2, P.teal, 2);
-                drawInodePanel(pad, y2, nW, h1, hl, fMd, fSm);
-            }
-            if (hl.indexOf('data') !== -1) {
-                arrow(pad + nW/2, y2 + h1, pad + nW/2, y3, P.purple, 2);
-                drawDataPanel(pad, y3, nW, h1, fMd, fSm);
-            }
-        } else {
-            /* 데스크탑: 수평 3열 — 남은 세로 공간 전부 활용 */
-            const totalH  = H - nodeTop - botPad;
-            const col1W   = Math.round(W * 0.28);
-            const col2W   = Math.round(W * 0.32);
-            const col3W   = W - col1W - col2W - pad*2 - 36;
-            const col1X   = pad;
-            const col2X   = col1X + col1W + 18;
-            const col3X   = col2X + col2W + 18;
-            const boxH    = Math.min(totalH, 280);
-            const boxY    = nodeTop + Math.round((totalH - boxH) / 2);
-
-            drawDir(col1X, boxY, col1W, boxH, hl, fMd, fSm);
-
-            if (hl.indexOf('inode') !== -1 || hl.indexOf('data') !== -1) {
-                arrow(col1X + col1W + 2, boxY + boxH/2, col2X - 2, boxY + boxH/2, P.teal, 2.5);
-                drawInodePanel(col2X, boxY, col2W, boxH, hl, fMd, fSm);
-            }
-            if (hl.indexOf('data') !== -1) {
-                arrow(col2X + col2W + 2, boxY + boxH/2, col3X - 2, boxY + boxH/2, P.purple, 2.5);
-                drawDataPanel(col3X, boxY, col3W, boxH, fMd, fSm);
-            }
+    /* ===================== 애니메이션(스텝 전환) ===================== */
+    function animateStep(onDone) {
+        if (rafId) cancelAnimationFrame(rafId);
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
         }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
-    /* 디렉토리 트리 박스 */
-    function drawDir(x, y, w, h, hl, fMd, fSm) {
-        rr(x, y, w, h, 8, P.surf, P.border, 1.5);
-
-        /* 타이틀 */
-        const titleH = Math.round(h * 0.14);
-        tx('Directory', x + w/2, y + titleH/2, fSm, P.muted, 'center', true);
-        ctx.beginPath(); ctx.moveTo(x+10, y+titleH); ctx.lineTo(x+w-10, y+titleH);
-        ctx.strokeStyle = P.border; ctx.lineWidth = 1; ctx.stroke();
-
-        const entries = [
-            { key:'root', lbl:'/ (root)', sub:'inode 2',  col: P.teal },
-            { key:'home', lbl:'home/',    sub:'inode 7',  col: P.purple },
-            { key:'user', lbl:'user/',    sub:'inode 23', col: P.orange },
-        ];
-        const rowH = Math.floor((h - titleH - 8) / entries.length);
-
-        entries.forEach(function (e, i) {
-            const ry    = y + titleH + 4 + i * rowH;
-            const isHl  = hl.indexOf(e.key) !== -1;
-
-            if (isHl) {
-                rr(x + 6, ry + 2, w - 12, rowH - 4, 4,
-                   e.col + '22', e.col, 1.5);
-            }
-
-            const indent = i * 12;
-            tx(e.lbl, x + 14 + indent, ry + rowH/2, fSm, isHl ? e.col : P.sub, 'left', isHl);
-            tx(e.sub, x + w - 10, ry + rowH/2, fSm - 1, isHl ? e.col + 'cc' : P.muted, 'right', false);
-        });
-    }
-
-    /* inode 상세 박스 */
-    function drawInodePanel(x, y, w, h, hl, fMd, fSm) {
-        const isData = hl.indexOf('data') !== -1;
-        const col    = P.purple;
-
-        rr(x, y, w, h, 8, col + '18', col, 2);
-
-        const titleH = Math.round(h * 0.14);
-        tx('inode  #91', x + w/2, y + titleH/2, fMd, col, 'center', true);
-        ctx.beginPath(); ctx.moveTo(x+10, y+titleH); ctx.lineTo(x+w-10, y+titleH);
-        ctx.strokeStyle = col + '44'; ctx.lineWidth = 1; ctx.stroke();
-
-        const fields = [
-            { label: '링크 수', value: '1'         },
-            { label: '크기',   value: '2.3 KB'    },
-            { label: '권한',   value: 'rw-r--r--' },
-            { label: '블록 →', value: '#142, #143' },
-        ];
-        const rowH = Math.floor((h - titleH - 8) / fields.length);
-
-        fields.forEach(function (f, i) {
-            const fy  = y + titleH + 4 + i * rowH;
-            const isBlk = i === 3;
-            const vc  = isBlk && isData ? P.green : P.text;
-
-            /* 블록 행 강조 */
-            if (isBlk && isData) {
-                rr(x + 6, fy + 2, w - 12, rowH - 4, 3, P.green + '18', P.green, 1);
-            }
-
-            tx(f.label, x + 14,     fy + rowH/2, fSm - 1, P.muted, 'left',  false);
-            tx(f.value, x + w - 10, fy + rowH/2, fSm,     vc,      'right', isBlk && isData);
-        });
-    }
-
-    /* 데이터 블록 박스 */
-    function drawDataPanel(x, y, w, h, fMd, fSm) {
-        rr(x, y, w, h, 8, P.green + '18', P.green, 2.5);
-
-        const titleH = Math.round(h * 0.14);
-        tx('Data Blocks', x + w/2, y + titleH/2, fMd, P.green, 'center', true);
-        ctx.beginPath(); ctx.moveTo(x+10, y+titleH); ctx.lineTo(x+w-10, y+titleH);
-        ctx.strokeStyle = P.green + '44'; ctx.lineWidth = 1; ctx.stroke();
-
-        /* 블록 2개 나란히 */
-        const blkPad  = 10;
-        const blkGap  = 8;
-        const blkW    = Math.floor((w - blkPad*2 - blkGap) / 2);
-        const blkH    = Math.round((h - titleH - blkPad*2 - 30) * 0.85);
-        const blkY    = y + titleH + blkPad;
-
-        ['#142', '#143'].forEach(function (lbl, i) {
-            const bx = x + blkPad + i * (blkW + blkGap);
-            rr(bx, blkY, blkW, blkH, 4, P.green + '25', P.green, 1.5);
-            tx(lbl,       bx + blkW/2, blkY + blkH * 0.38, fSm,   P.green, 'center', true);
-            tx('data...', bx + blkW/2, blkY + blkH * 0.68, fSm-2, P.muted, 'center', false);
-        });
-
-        /* 완료 텍스트 — 블록 아래 충분한 공간 */
-        const doneY = blkY + blkH + Math.round((h - titleH - blkPad - blkH - blkY + y) / 2) + 8;
-        tx('✓ 파일 읽기 완료', x + w/2, doneY, fSm, P.green, 'center', true);
-    }
-
-    /* ==========================================
-     * FAT 모드
-     * ========================================== */
-    function drawFAT() {
-        const W = GW(), H = GH();
-        const mob = W < 520;
-        const fMd = mob ? 12 : 14;
-        const fSm = mob ? 10 : 11;
-        const pad = mob ? 8  : 20;
-
-        const step   = stepIdx >= 0 ? FAT_STEPS[stepIdx] : FAT_STEPS[0];
-        const active = step.active || [];
-
-        /* 타이틀 */
-        tx('FAT (File Allocation Table)  —  hello.txt 탐색',
-           W/2, mob ? 14 : 18, fSm, P.muted, 'center', false);
-
-        /* 그리드 4×4 */
-        const cols    = 4;
-        const rows    = 4;
-        const legH    = 28;
-        const doneH   = mob ? 32 : 38;  /* 완료 배너 높이 */
-        const botGap  = mob ? 8  : 10;  /* 요소 간 여백 */
-        const titleY  = mob ? 26 : 32;
-        /* 그리드가 끝난 뒤: doneH + botGap + legH + botGap */
-        const botReserve = doneH + legH + botGap * 4;
-        const gridH   = H - titleY - botReserve;
-        const cellW   = Math.floor((W - pad*2) / cols);
-        const cellH   = Math.floor(gridH / rows);
-        const gridX   = pad;
-        const gridY   = titleY;
-
-        FAT_TABLE.forEach(function (entry, i) {
-            const col  = i % cols;
-            const row  = Math.floor(i / cols);
-            const cx   = gridX + col * cellW;
-            const cy   = gridY + row * cellH;
-
-            const isActive   = active.indexOf(entry.n) !== -1;
-            const isHello    = entry.file === 'hello';
-            const isWorld    = entry.file === 'world';
-            const isFree     = entry.val === 'FREE';
-            const isReserved = entry.val === 'Reserved';
-            const isDone     = step.done && isActive;
-
-            const borderCol = isDone    ? P.green
-                            : isActive  ? P.teal
-                            : isHello   ? P.teal + '55'
-                            : isWorld   ? P.purple + '55'
-                            : P.border;
-            const fillCol   = isDone    ? P.green + '28'
-                            : isActive  ? P.teal  + '28'
-                            : isHello   ? P.teal  + '10'
-                            : isWorld   ? P.purple+ '10'
-                            : P.surf;
-            const bW = isDone || isActive ? 2.5 : 1;
-
-            rr(cx + 3, cy + 3, cellW - 6, cellH - 6, 5, fillCol, borderCol, bW);
-
-            /* 클러스터 번호 */
-            tx(String(entry.n),
-               cx + cellW/2, cy + cellH * 0.30,
-               fSm - 1, isActive || isDone ? P.text : P.muted, 'center', false);
-
-            /* 값 */
-            const valCol = isDone    ? P.green
-                         : isActive  ? P.teal
-                         : isFree    ? P.muted
-                         : isReserved? P.muted
-                         : entry.val === 'EOF' ? P.green
-                         : P.text;
-
-            const dispVal = isReserved ? 'Rsv' : entry.val;
-            tx(dispVal,
-               cx + cellW/2, cy + cellH * 0.65,
-               isActive || isDone ? fSm + 1 : fSm, valCol, 'center', isActive || isDone);
-
-            /* 파일 소유 표시 (우상단 작은 배지) */
-            if (isHello && !isActive) {
-                ctx.beginPath(); ctx.arc(cx + cellW - 10, cy + 10, 4, 0, Math.PI*2);
-                ctx.fillStyle = P.teal + '88'; ctx.fill();
-            }
-            if (isWorld) {
-                ctx.beginPath(); ctx.arc(cx + cellW - 10, cy + 10, 4, 0, Math.PI*2);
-                ctx.fillStyle = P.purple + '88'; ctx.fill();
-            }
-        });
-
-        /* 체인 화살표 */
-        for (let i = 0; i < active.length - 1; i++) {
-            drawChainArrow(active[i], active[i+1], cols, gridX, gridY, cellW, cellH);
-        }
-
-        /* 완료 배너 */
-        /* 완료 배너 — 그리드 바로 아래 */
-        const afterGridY = gridY + rows * cellH + botGap;
-        if (step.done) {
-            const bW = mob ? W - 28 : Math.min(W - 80, 440);
-            const bX = Math.round((W - bW) / 2);
-            rr(bX, afterGridY, bW, doneH, 6, P.green + '18', P.green, 2);
-            tx('✓  hello.txt  체인:  클러스터 3 → 7 → 12 → EOF',
-               bX + bW/2, afterGridY + doneH/2, fSm, P.green, 'center', true);
-        }
-
-        /* 범례 — 완료 배너 아래 */
-        const legY  = afterGridY + doneH + botGap * 2;
-        const items = [
-            { col: P.teal,   lbl: 'hello.txt' },
-            { col: P.purple, lbl: 'world.txt'  },
-            { col: P.muted,  lbl: 'FREE / Rsv' },
-        ];
-        const step2 = Math.round((W - 20) / items.length);
-        items.forEach(function (it, i) {
-            const lx = 20 + i * step2;
-            ctx.beginPath(); ctx.arc(lx + 6, legY, 5, 0, Math.PI*2);
-            ctx.fillStyle = it.col; ctx.fill();
-            tx(it.lbl, lx + 16, legY, fSm - 1, it.col + 'cc', 'left', false);
-        });
-    }
-
-    /* FAT 체인 화살표 — 직선 수평/수직 */
-    function drawChainArrow(from, to, cols, gridX, gridY, cellW, cellH) {
-        const rows = 4;
-        const fi = FAT_TABLE.findIndex(function (e) { return e.n === from; });
-        const ti = FAT_TABLE.findIndex(function (e) { return e.n === to;   });
-        if (fi < 0 || ti < 0) return;
-
-        const fc = fi % cols, fr = Math.floor(fi / cols);
-        const tc = ti % cols, tr = Math.floor(ti / cols);
-
-        const fx = gridX + fc * cellW + cellW/2;
-        const fy = gridY + fr * cellH + cellH/2;
-        const tx_ = gridX + tc * cellW + cellW/2;
-        const ty_ = gridY + tr * cellH + cellH/2;
-
-        /* 같은 행: 수평 */
-        if (fr === tr) {
-            const dir = tc > fc ? 1 : -1;
-            const x1  = gridX + fc * cellW + (dir > 0 ? cellW - 4 : 4);
-            const x2  = gridX + tc * cellW + (dir > 0 ? 4 : cellW - 4);
-            arrow(x1, fy, x2, ty_, P.teal, 2);
-            return;
-        }
-
-        /* 다른 행: L자형 꺾인 화살표 */
-        const x1 = gridX + fc * cellW + cellW/2;
-        const y1 = gridY + fr * cellH + cellH - 4;
-        const x2 = gridX + tc * cellW + cellW/2;
-        const y2 = gridY + tr * cellH + 4;
-
-        /* 중간 꺾임점: 오른쪽 끝으로 돌아서 다음 행으로 */
-        const midX = Math.max(x1, x2) + 20;
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x1, fy + cellH/2 + 10);
-        ctx.lineTo(x2, fy + cellH/2 + 10);
-        ctx.lineTo(x2, y2);
-        ctx.strokeStyle = P.teal;
-        ctx.lineWidth   = 2;
-        ctx.setLineDash([]);
-        ctx.stroke();
-        arrowH(x2, y2, 0, -1, P.teal, 6);
-    }
-
-    /* ===================== 단계 적용 ===================== */
-    function currentSteps() {
-        return modeIdx === 0 ? INODE_STEPS : FAT_STEPS;
-    }
-
-    function setModeBtnsDisabled(v) {
-        root.querySelectorAll('.fs-viz__mode-btn').forEach(function (b) { b.disabled = v; });
-    }
-    function setSpeedDisabled(v) {
-        root.querySelectorAll('.fs-viz__speed-btn').forEach(function (b) { b.disabled = v; });
-    }
+    /* ===================== 컨트롤 ===================== */
+    function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
         logEl.textContent = currentSteps()[idx].log;
-        draw();
-        if (onDone) setTimeout(onDone, 0);
+        animateStep(function () { if (onDone) setTimeout(onDone, 0); });
     }
 
-    /* ===================== 컨트롤 ===================== */
-    function fsStart() {
+    function vizStart() {
         if (running) return;
         running = true; btnPlay.disabled = true; btnStep.disabled = true;
-        setModeBtnsDisabled(true); setSpeedDisabled(true);
-
+        setSpeedDisabled(true);
+        var steps = currentSteps();
         function tick() {
-            const steps = currentSteps();
-            const next  = stepIdx + 1;
+            var next = stepIdx + 1;
             if (next >= steps.length) { running = false; setSpeedDisabled(false); return; }
             applyStep(next, function () {
                 if (next === steps.length - 1) {
                     running = false; btnStep.disabled = true; setSpeedDisabled(false);
                 } else {
-                    timer = setTimeout(tick, speed);
+                    timer = setTimeout(tick, speed * 0.6);
                 }
             });
         }
         tick();
     }
 
-    function fsStep() {
+    function vizStep() {
         if (running) return;
-        const steps = currentSteps();
-        const next  = stepIdx + 1;
+        var steps = currentSteps();
+        var next = stepIdx + 1;
         if (next >= steps.length) return;
         applyStep(next, null);
         if (next === steps.length - 1) { btnPlay.disabled = true; btnStep.disabled = true; }
     }
 
-    function fsReset() {
+    function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1;
-        logEl.textContent = '▶ PLAY를 눌러 파일 시스템 동작을 확인하세요.';
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
-        setModeBtnsDisabled(false); setSpeedDisabled(false);
-        draw();
-    }
-
-    function setMode(idx, btn) {
-        modeIdx = idx;
-        root.querySelectorAll('.fs-viz__mode-btn').forEach(function (b) {
-            b.classList.remove('fs-viz__mode-btn--active');
-        });
-        btn.classList.add('fs-viz__mode-btn--active');
-        fsReset();
+        logEl.textContent = defaultLog();
+        setSpeedDisabled(false);
+        resize();
     }
 
     function setSpeed(ms, btn) {
         speed = ms;
-        root.querySelectorAll('.fs-viz__speed-btn').forEach(function (b) {
-            b.classList.remove('fs-viz__speed-btn--active');
-        });
+        speedBtns.forEach(function (b) { b.classList.remove('fs-viz__speed-btn--active'); });
         btn.classList.add('fs-viz__speed-btn--active');
     }
 
+    function switchMode(m) {
+        if (mode === m) return;
+        mode = m;
+        modeDefs.forEach(function (d) { modeBtns[d.key].classList.toggle('fs-viz__mode-btn--active', d.key === m); });
+        vizReset();
+    }
+
+    logEl.textContent = defaultLog();
+
     /* ===================== 라이프사이클 ===================== */
     window.CsFlow.createVizLifecycle({
-        canvas, canvasWrap, resize, draw,
-        getState : function () { return { rafId, timer, running }; },
+        canvas: canvas, canvasWrap: canvasWrap, resize: resize, draw: draw,
+        getState : function () { return { rafId: rafId, timer: timer, running: running }; },
         setState : function (s) { rafId = s.rafId; timer = s.timer; running = s.running; },
         onPause  : function () { setSpeedDisabled(false); },
         getMouseCtx: function () {
             return {
-                GW, GH, mousePos, tooltipHits,
-                hoveredKey   : function ()  { return hoveredKey; },
-                setHoveredKey: function (k) { hoveredKey = k; },
-                draw,
+                GW: GW, GH: GH,
+                mousePos: { x: -1, y: -1 },
+                tooltipHits: [],
+                hoveredKey: function () { return null; },
+                setHoveredKey: function () {},
+                draw: draw
             };
-        },
+        }
     });
 
     setTimeout(resize, 60);

@@ -1,5 +1,5 @@
 /**
- * MVCC 시각화
+ * 다중 버전 동시성 제어(MVCC) 시각화
  */
 (function () {
     'use strict';
@@ -39,7 +39,7 @@
     var speedWrap = el('div', 'mv-viz__speed');
     speedWrap.appendChild(el('span', 'mv-viz__speed-label', 'SPEED'));
     var speedBtns = [];
-    [['1x', 1700], ['2x', 850], ['3x', 480]].forEach(function (pair, i) {
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
         var b = el('button', 'mv-viz__speed-btn' + (i === 0 ? ' mv-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
@@ -72,11 +72,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'versions';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 엔진: 다중 버전 동시성 제어 ===================== */
     function bat(n) {
@@ -156,179 +223,165 @@
     })();
 
     /* ===================== 상태 ===================== */
-    var mode    = 'versions';
-    var stepIdx = -1;
-    var running = false;
-    var timer   = null;
-    var rafId   = null;
-    var speed   = 1700;
-
     function currentSteps() {
         if (mode === 'snapshot') return SNAP_STEPS;
         if (mode === 'vacuum') return VAC_STEPS;
         return VER_STEPS;
     }
-
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        var rad = Math.min(r, w / 2, h / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + rad, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, rad);
-        ctx.arcTo(x + w, y + h, x,     y + h, rad);
-        ctx.arcTo(x,     y + h, x,     y,     rad);
-        ctx.arcTo(x,     y,     x + w, y,     rad);
-        ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
-    }
-    function tx(str, x, y, sz, color, align, bold) {
-        if (sz < 11) sz = 11;
-        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
+    function defaultLog() {
+        if (mode === 'snapshot') return '쓰기가 새 버전을 만들어도 읽기가 자기 스냅샷의 버전을 보는 모습을 봅니다.';
+        if (mode === 'vacuum') return '더 이상 필요 없는 이전 버전을 VACUUM이 치우는 조건을 봅니다.';
+        return '행을 수정할 때마다 새 버전이 쌓이는 모습을 봅니다.';
     }
 
-    /* ===================== 공통: 캡션 ===================== */
-    function drawCaps(s, x0, w, y, fs) {
-        if (s.cap) tx(s.cap, x0 + w / 2, y, fs - 0.5, P.yellow + 'ff', 'center', true);
-        if (s.cap2) tx(s.cap2, x0 + w / 2, y + 19, fs - 1, P.text + 'ee', 'center', false);
-        if (s.cap3) tx(s.cap3, x0 + w / 2, y + 38, fs - 1, P.green + 'ee', 'center', true);
+    /* ===================== 레이아웃 ===================== */
+    function layout(w, mob) {
+        return { fs: mob ? 11 : 12, total: mode === 'versions' ? (mob ? 352 : 300) : (mob ? 392 : 338) };
+    }
+    function sceneH(w, mob) { return layout(w, mob).total; }
+
+    function caps(s, cx, w, y, fs) {
+        var yy = y;
+        [[s.cap, P.yellow, true, fs], [s.cap2, P.text, false, fs - 1], [s.cap3, P.green, true, fs - 1]].forEach(function (c) {
+            if (!c[0]) return;
+            var ls = lines(c[0], w - 12, c[3]);
+            ls.forEach(function (l, i) { tx(l, cx, yy + i * (c[3] + 5), c[3], c[1] + 'ee', 'center', c[2]); });
+            yy += ls.length * (c[3] + 5) + 3;
+        });
     }
 
-    /* ===================== 버전 표: xmin과 xmax ===================== */
-    function drawTable(x0, top, w, mob, s) {
-        var fs = mob ? 11.5 : 13;
-        var rh = mob ? 34 : 38;
-        var cols = [0.1, 0.3, 0.5, 0.7];
-        var heads = ['버전', '값', 'xmin', 'xmax'];
-        var k;
-        for (k = 0; k < 4; k++) tx(heads[k], x0 + w * cols[k] + (k === 0 ? 4 : 0), top + 8, fs - 1, P.sub + 'ff', 'left', true);
-        tx('상태', x0 + w * 0.86, top + 8, fs - 1, P.sub + 'ff', 'left', true);
-        for (k = 0; k < 4; k++) {
-            var y = top + 20 + k * rh;
-            rr(x0, y, w, rh - 4, 4, 'none', P.sub + '33', 1);
-        }
+    /* ===================== 버전 표(힙 페이지) ===================== */
+    function drawVersions(x0, top, w, mob, s, prev, e, fs) {
+        var cx = x0 + w / 2;
+        var cols = mob ? [0.1, 0.34, 0.62, 0.86] : [0.1, 0.32, 0.58, 0.82];
+        var hy = top + 12;
+        ['버전', '값', 'xmin(만든 트랜잭션)', 'xmax(지운 트랜잭션)'].forEach(function (h, i) {
+            var lab = mob ? ['버전', '값', 'xmin', 'xmax'][i] : h;
+            tx(lab, x0 + w * cols[i], hy, fs - 1, P.sub + 'ff', 'center', true);
+        });
+        var rh = 38, ty = top + 30;
+        var prevN = prev && prev.rows ? prev.rows.length : 0;
+        rr(x0, ty - 4, w, rh * 4 + 8, 10, P.surf, P.sub + '66', 1.4);
         s.rows.forEach(function (r) {
             var v = VER[r.i];
-            var y = top + 20 + r.i * rh;
-            var col = r.cur ? P.teal : P.sub;
-            rr(x0, y, w, rh - 4, 4, col + (r.cur ? '33' : '11'), col + 'ff', r.cur ? 2 : 1.2);
-            tx(v.name, x0 + w * 0.1 + 4, y + (rh - 4) / 2, fs, P.text + 'ff', 'left', true);
-            tx(String(v.val), x0 + w * 0.3, y + (rh - 4) / 2, fs, P.text + 'ff', 'left', true);
-            tx(String(v.xmin), x0 + w * 0.5, y + (rh - 4) / 2, fs, P.text + 'ff', 'left', false);
-            tx(String(r.xmax), x0 + w * 0.7, y + (rh - 4) / 2, fs, r.xmax ? P.orange + 'ff' : P.sub + 'ff', 'left', r.xmax !== 0);
-            tx(r.cur ? '현재' : '이전', x0 + w * 0.86, y + (rh - 4) / 2, fs - 1, r.cur ? P.green + 'ff' : P.sub + 'ff', 'left', true);
+            var isNew = r.i >= prevN && s.rows.length > prevN;
+            var a = isNew ? clamp01(e * 1.8) : 1;
+            var y = ty + r.i * rh + (isNew ? (1 - a) * 24 : 0);
+            var col = r.cur ? P.green : P.muted;
+            ctx.globalAlpha = a;
+            rr(x0 + 6, y + 3, w - 12, rh - 6, 8, col + (r.cur ? '26' : '12'), col + (r.cur ? 'ff' : 'aa'), r.cur ? 2.2 : 1.3);
+            tx(v.name, x0 + w * cols[0], y + rh / 2, fs, (r.cur ? P.green : P.sub) + 'ff', 'center', true);
+            tx(String(v.val), x0 + w * cols[1], y + rh / 2, fs + 1, (r.cur ? P.text : P.sub) + 'ff', 'center', true);
+            tx(String(v.xmin), x0 + w * cols[2], y + rh / 2, fs, P.teal + 'ff', 'center', true);
+            var stamped = !r.cur && r.xmax && r.i === prevN - 1 && s.rows.length > prevN;
+            var xc = r.cur ? P.sub : (stamped && e < 1 ? P.yellow : P.orange);
+            if (stamped && e < 1) rr(x0 + w * cols[3] - 22, y + 6, 44, rh - 12, 6, P.yellow + '33', P.yellow + 'ff', 2);
+            tx(r.cur ? '0' : String(r.xmax), x0 + w * cols[3], y + rh / 2, fs, xc + 'ff', 'center', true);
+            ctx.globalAlpha = 1;
         });
-        drawCaps(s, x0, w, top + 20 + 4 * rh + 14, fs);
+        for (var i = s.rows.length; i < 4; i++) {
+            var yy = ty + i * rh;
+            rr(x0 + 6, yy + 3, w - 12, rh - 6, 8, 'none', P.muted + '44', 1);
+        }
+        caps(s, cx, w, ty + rh * 4 + 26, fs);
     }
 
-    /* ===================== 시간축: 버전 구간과 스냅샷 ===================== */
-    function drawBars(x0, top, w, mob, s) {
-        var fs = mob ? 11.5 : 13;
-        var lw = mob ? 62 : 84;
-        var cw = (w - lw) / TMAX;
-        var rh = mob ? 30 : 34;
-        var k;
-        var gx = function (t) { return x0 + lw + (t - 0.5) * cw; };
-        for (k = 1; k <= TMAX - 1; k++) tx(String(k), gx(k), top + 8, fs - 1.5, P.sub + 'ff', 'center', false);
-        tx('t', x0 + lw - 10, top + 8, fs - 1.5, P.sub + 'ff', 'right', true);
-        for (k = 0; k < VER.length; k++) {
-            var y = top + 20 + k * rh;
-            var v = VER[k];
+    /* ===================== 시간축(스냅샷과 VACUUM) ===================== */
+    function drawBars(x0, top, w, mob, s, prev, e, fs) {
+        var cx = x0 + w / 2;
+        var labW = 28, ax = x0 + labW + 4, aw = w - labW - 10;
+        var tickW = aw / TMAX;
+        function X(t) { return ax + t * tickW; }
+        var by = top + 52, rh = 32;
+        var pv = prev && prev.kind === 'bars' ? prev : s;
+        /* 눈금 */
+        for (var t = 0; t <= TMAX; t++) {
+            ln(X(t), by - 6, X(t), by + rh * 4 + 2, P.muted + '2a', 1);
+            if (t % 1 === 0) tx(String(t), X(t), by + rh * 4 + 14, fs - 1, P.sub + 'ff', 'center', false);
+        }
+        tx('시간 t', x0 + w, by + rh * 4 + 30, fs - 1, P.sub + 'ff', 'right', false);
+        /* 버전 막대 */
+        VER.forEach(function (v, k) {
             var shown = k < s.vcount;
-            var gone = shown && k < s.removed;
-            tx(v.name + ' ' + v.val, x0 + 2, y + (rh - 6) / 2, fs - 0.5, shown ? (gone ? P.sub + 'ff' : P.text + 'ff') : P.sub + '88', 'left', shown && !gone);
-            rr(x0 + lw, y, w - lw, rh - 6, 3, 'none', P.sub + '22', 1);
-            if (shown) {
-                var xe = v.e === 0 ? x0 + w : gx(v.e) - cw / 2;
-                var xb = gx(v.b) - cw / 2;
-                var col = gone ? P.sub : (v.e === 0 ? P.green : P.teal);
-                rr(xb, y, xe - xb, rh - 6, 3, col + (gone ? '11' : '44'), col + (gone ? '88' : 'ff'), 1.6);
-                if (gone) {
-                    ctx.beginPath();
-                    ctx.moveTo(xb + 4, y + 4);
-                    ctx.lineTo(xe - 4, y + rh - 10);
-                    ctx.strokeStyle = P.red + 'cc';
-                    ctx.lineWidth = 1.6;
-                    ctx.stroke();
-                }
-            }
-        }
-        var bottom = top + 20 + VER.length * rh;
-        for (k = 0; k < s.readers; k++) {
-            var r = RD[k];
-            var x = gx(r.t);
-            var cur = k === s.readers - 1;
-            ctx.beginPath();
-            ctx.moveTo(x, top + 14);
-            ctx.lineTo(x, bottom);
-            ctx.strokeStyle = P.purple + 'ff';
-            ctx.lineWidth = cur ? 2.8 : 1.6;
-            ctx.setLineDash([4, 3]);
-            ctx.stroke();
-            ctx.setLineDash([]);
-            var vi = visibleAt(r.t);
-            tx(r.name, x, bottom + 10, fs - 0.5, P.purple + 'ff', 'center', true);
-            tx(String(VER[vi].val), x, bottom + 24, fs - 1, P.text + 'ff', 'center', true);
-        }
+            var wasShown = k < pv.vcount;
+            var isNew = shown && !wasShown;
+            var removed = k < s.removed;
+            var a = isNew ? clamp01(e * 1.8) : 1;
+            var y = by + k * rh;
+            tx(v.name, x0 + labW / 2, y + rh / 2, fs, (shown ? P.text : P.sub) + 'ff', 'center', true);
+            rr(ax, y + 4, aw, rh - 8, 6, 'none', P.muted + '33', 1);
+            if (!shown) return;
+            var endT = (k < s.vcount - 1) ? v.e : TMAX;
+            var col = removed ? P.red : (k === s.vcount - 1 ? P.green : P.teal);
+            var wasRemoved = k < pv.removed;
+            var grow = isNew ? e : 1;
+            ctx.globalAlpha = removed && !wasRemoved ? 1 - e * 0.7 : (removed ? 0.3 : a);
+            rr(X(v.b), y + 4, Math.max(8, (X(endT) - X(v.b)) * grow), rh - 8, 6, col + '33', col + 'ff', k === s.vcount - 1 ? 2.2 : 1.6);
+            if (X(endT) - X(v.b) > 60) tx(removed ? '회수됨' : String(v.val), (X(v.b) + X(endT)) / 2, y + rh / 2, fs, col + 'ff', 'center', true);
+            ctx.globalAlpha = 1;
+        });
+        /* 읽기 스냅샷 */
+        var rcols = [P.orange, P.purple, P.yellow];
+        RD.slice(0, s.readers).forEach(function (r, i) {
+            var isNew = i >= pv.readers;
+            var dropE = isNew ? clamp01(e * 1.6) : 1;
+            var x = X(r.t);
+            var yTop = top + 22;
+            var yEnd = lerp(yTop, by + rh * 4, dropE);
+            ln(x, yTop, x, yEnd, rcols[i] + 'ff', 2.4);
+            var vk = -1;
+            for (var k = Math.min(s.vcount, VER.length) - 1; k >= 0; k--) if (VER[k].b <= r.t && (k === s.vcount - 1 || r.t < VER[k].e)) { vk = k; break; }
+            var chipTx = r.name + (vk >= 0 && dropE > 0.95 ? ' ' + VER[vk].val : '');
+            ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+            var chw = ctx.measureText(chipTx).width + 14;
+            var chx = Math.max(x0, Math.min(x0 + w - chw, x - chw / 2));
+            rr(chx, yTop - 17, chw, 20, 6, rcols[i] + '33', rcols[i] + 'ff', 1.6);
+            tx(chipTx, chx + chw / 2, yTop - 7, fs, rcols[i] + 'ff', 'center', true);
+            if (vk >= 0 && dropE > 0.95) circ(x, by + vk * rh + rh / 2, 6, rcols[i] + 'ff', 'none');
+        });
+        /* VACUUM 기준선 */
         if (s.hz) {
-            var hx = gx(s.hz);
-            ctx.beginPath();
-            ctx.moveTo(hx, top + 14);
-            ctx.lineTo(hx, bottom);
-            ctx.strokeStyle = P.orange + 'ff';
-            ctx.lineWidth = 2.4;
-            ctx.stroke();
-            tx('기준', hx, bottom + 40, fs - 1, P.orange + 'ff', 'center', true);
+            var hzx = X(s.hz);
+            ln(hzx, by - 8, hzx, by + rh * 4, P.orange + 'ff', 2.4, [6, 4]);
+            tx('기준 t=' + s.hz, hzx, by - 14, fs - 1, P.orange + 'ff', 'center', true);
         }
-        drawCaps(s, x0, w, bottom + (s.hz ? 62 : 44), fs);
+        caps(s, cx, w, by + rh * 4 + 46, fs);
+    }
+
+    /* ===================== 장면 그리기 ===================== */
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var fs = mob ? 11 : 12;
+        var e = clamp01(t);
+        var s = step || (mode === 'versions' ? { kind: 'tbl', rows: [], cap: '', cap2: '', cap3: '' } : { kind: 'bars', vcount: 0, readers: 0, hz: 0, removed: 0, cap: '', cap2: '', cap3: '' });
+        if (mode === 'versions') drawVersions(x0, top, w, mob, s, prev, e, fs);
+        else drawBars(x0, top, w, mob, s, prev, e, fs);
     }
 
     /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
     function draw() {
         P = window.CsFlow.getP();
         ctx.clearRect(0, 0, GW(), GH());
         var W = GW(); var mob = W < 600;
-        var padX = mob ? 16 : 26;
-        var fullW = W - padX * 2;
-        var top = mob ? 18 : 26;
-
         var steps = currentSteps();
         var step = stepIdx >= 0 ? steps[stepIdx] : null;
-
-        var dsStep = step || currentSteps()[0];
-        if (dsStep.kind === 'bars') drawBars(padX, top, fullW, mob, dsStep);
-        else drawTable(padX, top, fullW, mob, dsStep);
-
-        if (!step) {
-            var hint = '아래 STEP으로 MVCC의 동작을 확인하세요.';
-            ctx.font = '500 ' + (mob ? 11 : 12.5) + 'px "JetBrains Mono",monospace';
-            var hs = mob ? 11 : 12.5;
-            var hl = [hint];
-            if (ctx.measureText(hint).width > W - 16) {
-                var cut = hint.indexOf(' ', Math.floor(hint.length / 2));
-                if (cut < 0) cut = hint.lastIndexOf(' ');
-                hl = [hint.slice(0, cut), hint.slice(cut + 1)];
-            }
-            hl.forEach(function (line, li) {
-                tx(line, W / 2, GH() - (mob ? 12 : 14) - (hl.length - 1 - li) * (hs + 4), hs, P.muted + 'aa', 'center', false);
-            });
-        }
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
         var mob = w < 600;
-        var neededH;
-        neededH = mob ? 340 : 370;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
         canvasWrap.style.height    = 'auto';
-        canvasWrap.style.minHeight = neededH + 'px';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
         var actualH = canvasWrap.offsetHeight || neededH;
         if (actualH < neededH) actualH = neededH;
         canvas.width  = w * dpr;
@@ -340,17 +393,22 @@
     /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        draw();
-        rafId = requestAnimationFrame(function () { rafId = null; if (onDone) onDone(); });
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
     function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
-    function defaultLog() {
-        if (mode === 'snapshot') return '읽기 트랜잭션이 자기 스냅샷 시점의 버전을 보는 과정을 봅니다.';
-        if (mode === 'vacuum') return '더 이상 필요 없는 이전 버전을 VACUUM이 치우는 과정을 봅니다.';
-        return '행을 수정할 때 새 버전이 만들어지는 과정을 xmin과 xmax로 봅니다.';
-    }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -389,7 +447,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);

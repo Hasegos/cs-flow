@@ -1,5 +1,5 @@
 /**
- * 벨만-포드 시각화
+ * 벨만-포드 시각화 시각화
  */
 (function () {
     'use strict';
@@ -39,7 +39,7 @@
     var speedWrap = el('div', 'bf-viz__speed');
     speedWrap.appendChild(el('span', 'bf-viz__speed-label', 'SPEED'));
     var speedBtns = [];
-    [['1x', 1700], ['2x', 850], ['3x', 480]].forEach(function (pair, i) {
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
         var b = el('button', 'bf-viz__speed-btn' + (i === 0 ? ' bf-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
@@ -72,11 +72,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'rounds';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 엔진: 벨만-포드 ===================== */
     var N = 5;
@@ -175,148 +242,301 @@
     })();
 
     /* ===================== 상태 ===================== */
-    var mode    = 'rounds';
-    var stepIdx = -1;
-    var running = false;
-    var timer   = null;
-    var rafId   = null;
-    var speed   = 1700;
-
     function currentSteps() {
         if (mode === 'edge') return EDGE_STEPS;
         if (mode === 'neg') return NEG_STEPS;
         return ROUND_STEPS;
     }
-
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        var rad = Math.min(r, w / 2, h / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + rad, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, rad);
-        ctx.arcTo(x + w, y + h, x,     y + h, rad);
-        ctx.arcTo(x,     y + h, x,     y,     rad);
-        ctx.arcTo(x,     y,     x + w, y,     rad);
-        ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
-    }
-    function tx(str, x, y, sz, color, align, bold) {
-        if (sz < 11) sz = 11;
-        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
+    function defaultLog() {
+        if (mode === 'edge') return '간선 하나를 완화할 때 거리를 비교하고 갱신하는 과정을 봅니다.';
+        if (mode === 'neg') return '음수 사이클이 있을 때 V-1번 뒤에도 거리가 줄어드는 모습을 봅니다.';
+        return '모든 간선을 한 번씩 완화하는 라운드를 V-1번 반복하는 과정을 봅니다.';
     }
 
-    /* ===================== 공통: 가중치 방향 그래프 그리기 ===================== */
-    function drawBF(x0, top, w, mob, step) {
-        var edges = step ? step.edges : (mode === 'neg' ? NEG_EDGES : EDGES);
-        var d = step ? step.d : initD();
-        var prev = step ? step.prev : d;
-        var hot = step ? step.hot : [];
-        var upd = step ? step.upd : [];
-        var fs = mob ? 11.5 : 13;
-        var r = mob ? 20 : 23;
-        var gh = mob ? 230 : 262;
-        var gx = x0 + r + 6;
-        var gw = w - 2 * (r + 6);
-        var gy0 = top + r + 6;
-        var gih = gh - 2 * r - 12;
-        function px(v) { return gx + POS[v][0] * gw; }
-        function py(v) { return gy0 + POS[v][1] * gih; }
-        var i;
-        edges.forEach(function (e, k) {
-            var ax = px(e[0]);
-            var ay = py(e[0]);
-            var bx = px(e[1]);
-            var by = py(e[1]);
-            var ang = Math.atan2(by - ay, bx - ax);
-            var sx = ax + Math.cos(ang) * r;
-            var sy = ay + Math.sin(ang) * r;
-            var ex = bx - Math.cos(ang) * (r + 3);
-            var ey = by - Math.sin(ang) * (r + 3);
-            var isHot = hot.indexOf(k) >= 0;
-            var isUpd = upd.indexOf(k) >= 0;
-            var color = isHot ? P.yellow + 'ff' : isUpd ? P.green + 'ff' : P.sub + 'aa';
-            ctx.beginPath();
-            ctx.moveTo(sx, sy);
-            ctx.lineTo(ex, ey);
-            ctx.strokeStyle = color;
-            ctx.lineWidth = isHot || isUpd ? 3 : 1.6;
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(ex, ey);
-            ctx.lineTo(ex - 9 * Math.cos(ang - 0.4), ey - 9 * Math.sin(ang - 0.4));
-            ctx.lineTo(ex - 9 * Math.cos(ang + 0.4), ey - 9 * Math.sin(ang + 0.4));
-            ctx.closePath();
-            ctx.fillStyle = color;
-            ctx.fill();
-            var mx = (sx + ex) / 2 - Math.sin(ang) * 11;
-            var my = (sy + ey) / 2 + Math.cos(ang) * 11;
-            tx(String(e[2]), mx, my, fs, e[2] < 0 ? P.red + 'ff' : P.text + 'ff', 'center', true);
-        });
-        for (i = 0; i < N; i++) {
-            var reached = d[i] < INF;
-            var changed = d[i] !== prev[i];
-            var base = changed ? P.yellow : reached ? P.teal : P.sub;
-            ctx.beginPath();
-            ctx.arc(px(i), py(i), r, 0, Math.PI * 2);
-            ctx.fillStyle = reached ? base + '44' : P.surf2;
-            ctx.fill();
-            ctx.strokeStyle = base + 'ff';
-            ctx.lineWidth = changed ? 3.2 : 2;
-            ctx.stroke();
-            tx(NAMES[i], px(i), py(i) - 6, fs + 1, P.text + 'ff', 'center', true);
-            tx(fmt(d[i]), px(i), py(i) + 9, fs, changed ? P.yellow + 'ff' : P.green + 'ff', 'center', true);
+    /* ===================== 레이아웃 ===================== */
+    var bfCapMemo = {};
+    function ez(q) { var v = clamp01(q); return v * v * (3 - 2 * v); }
+    function bfFs(mob) { return mob ? 11.5 : 13; }
+    function bfSub(mob) { return mob ? 11 : 12; }
+    function bfR(mob) { return mob ? 20 : 23; }
+    function bfCapH(s, w, mob) {
+        var fs = bfFs(mob);
+        var fsub = bfSub(mob);
+        var h = 0;
+        if (s.cap) h += lines(s.cap, w - 8, fs).length * (fs + 5);
+        if (s.cap2) h += lines(s.cap2, w - 8, fsub).length * (fsub + 4);
+        if (s.cap3) h += lines(s.cap3, w - 8, fsub).length * (fsub + 4);
+        return h;
+    }
+    function bfCapMax(w, mob) {
+        var key = Math.round(w) + (mob ? 'm' : 'd');
+        if (bfCapMemo[key] === undefined) {
+            var best = 0;
+            [ROUND_STEPS, EDGE_STEPS, NEG_STEPS].forEach(function (arr) {
+                arr.forEach(function (s) {
+                    var h = bfCapH(s, w, mob);
+                    if (h > best) best = h;
+                });
+            });
+            bfCapMemo[key] = best;
         }
-        var at = top + gh + 16;
-        if (step && step.cap) tx(step.cap, x0 + w / 2, at, fs - 0.5, P.yellow + 'ff', 'center', true);
-        if (step && step.cap2) tx(step.cap2, x0 + w / 2, at + 19, fs - 1, P.text + 'ee', 'center', false);
-        if (step && step.cap3) tx(step.cap3, x0 + w / 2, at + 38, fs - 1, P.green + 'ee', 'center', true);
+        return bfCapMemo[key];
+    }
+    function layout(w, mob) {
+        var trackH = mob ? 18 : 22;
+        var gh = mob ? 190 : 240;
+        var fsub = bfSub(mob);
+        var capTop = trackH + 8 + gh + 6;
+        return {
+            fs: bfFs(mob), fsub: fsub, r: bfR(mob), trackH: trackH,
+            graphTop: trackH + 8, gh: gh, eqH: fsub + 8, capTop: capTop,
+            total: capTop + fsub + 8 + bfCapMax(w, mob) + 6
+        };
+    }
+    function sceneH(w, mob) { return layout(w, mob).total; }
+
+    /* ===================== 기하 ===================== */
+    function bfGeom(x0, top, w, mob) {
+        var L = layout(w, mob);
+        var r = L.r;
+        return {
+            L: L, x0: x0, w: w, top: top, r: r, fs: L.fs, fsub: L.fsub,
+            gx: x0 + r + 6, gw: w - 2 * (r + 6),
+            gy0: top + L.graphTop + r + 6, gih: L.gh - 2 * r - 12,
+            capY: top + L.capTop
+        };
+    }
+    function bfPX(g, v) { return g.gx + POS[v][0] * g.gw; }
+    function bfPY(g, v) { return g.gy0 + POS[v][1] * g.gih; }
+    function bfFind(list, u, v) {
+        var i;
+        for (i = 0; i < list.length; i++) {
+            if (list[i][0] === u && list[i][1] === v) return i;
+        }
+        return -1;
+    }
+    function bfEnds(g, edges, k) {
+        var e0 = edges[k];
+        var rev = bfFind(edges, e0[1], e0[0]) >= 0;
+        var off = rev ? (e0[0] < e0[1] ? 5 : -5) : 0;
+        var ax = bfPX(g, e0[0]);
+        var ay = bfPY(g, e0[0]);
+        var bx = bfPX(g, e0[1]);
+        var by = bfPY(g, e0[1]);
+        var a0 = Math.atan2(by - ay, bx - ax);
+        var nx = -Math.sin(a0) * off;
+        var ny = Math.cos(a0) * off;
+        ax += nx; ay += ny; bx += nx; by += ny;
+        var ang = Math.atan2(by - ay, bx - ax);
+        var sx = ax + Math.cos(ang) * g.r;
+        var sy = ay + Math.sin(ang) * g.r;
+        var ex = bx - Math.cos(ang) * (g.r + 3);
+        var ey = by - Math.sin(ang) * (g.r + 3);
+        return {
+            sx: sx, sy: sy, ex: ex, ey: ey,
+            mx: (sx + ex) / 2 - Math.sin(ang) * 11,
+            my: (sy + ey) / 2 + Math.cos(ang) * 11
+        };
+    }
+
+    /* ===================== 추적 행 ===================== */
+    function bfTrack(g, idx, fresh, e) {
+        var edgeMode = mode === 'edge';
+        var n = edgeMode ? EDGES.length : N;
+        var cur = (idx >= 1 && idx <= n) ? idx - 1 : -1;
+        var allDone = idx > n;
+        var gap = 4;
+        var cw = Math.min(56, (g.w - gap * (n - 1)) / n);
+        var total = cw * n + gap * (n - 1);
+        var x = g.x0 + (g.w - total) / 2;
+        var h = g.L.trackH;
+        var j;
+        for (j = 0; j < n; j++) {
+            var cx = x + j * (cw + gap);
+            var label = edgeMode ? NAMES[EDGES[j][0]] + '→' + NAMES[EDGES[j][1]] : String(j + 1);
+            var done = allDone || j < cur;
+            if (j === cur) {
+                ctx.globalAlpha = fresh ? ez(seg(e, 0, 0.5)) : 1;
+                rr(cx, g.top, cw, h, 4, P.yellow + '55', P.yellow + 'ff', 2);
+                ctx.globalAlpha = 1;
+            } else if (done) {
+                rr(cx, g.top, cw, h, 4, P.green + '33', P.green + 'aa', 1.2);
+            } else {
+                rr(cx, g.top, cw, h, 4, 'none', P.sub + '55', 1.2);
+            }
+            tx(label, cx + cw / 2, g.top + h / 2, g.fsub, (j === cur || done ? P.text : P.sub) + 'ff', 'center', j === cur);
+        }
+    }
+
+    /* ===================== 간선과 이동 점 ===================== */
+    function bfEdges(g, s, cyc) {
+        var k;
+        for (k = 0; k < s.edges.length; k++) {
+            var en = bfEnds(g, s.edges, k);
+            var w = s.edges[k][2];
+            var isHot = s.hot.indexOf(k) >= 0;
+            var isUpd = s.upd.indexOf(k) >= 0;
+            var isCyc = cyc.indexOf(k) >= 0;
+            var col = isCyc ? P.red + 'ff' : isHot ? P.yellow + 'ff' : isUpd ? P.green + 'ff' : P.sub + 'aa';
+            arrow(en.sx, en.sy, en.ex, en.ey, col, (isHot || isUpd || isCyc) ? 3 : 1.6);
+            tx(String(w), en.mx, en.my, g.fs, (w < 0 ? P.red : P.text) + 'ff', 'center', true);
+        }
+    }
+    function bfDot(x, y, col) {
+        circ(x, y, 9, col + '44', 'none');
+        circ(x, y, 5, col + 'ff', 'none');
+    }
+    function bfPackets(g, s, fresh, e, cycle, ab, ba) {
+        if (!fresh) return;
+        if (cycle) {
+            if (e >= 1) return;
+            var lg = e < 0.5 ? ab : ba;
+            var lq = (e * 2) % 1;
+            var ce = bfEnds(g, s.edges, lg);
+            bfDot(lerp(ce.sx, ce.ex, lq), lerp(ce.sy, ce.ey, lq), P.red);
+            return;
+        }
+        if (s.hot.length) {
+            var h = s.hot[0];
+            var en = bfEnds(g, s.edges, h);
+            var src = s.edges[h][0];
+            var q;
+            if (s.upd.indexOf(h) >= 0) {
+                if (e < 0.6) {
+                    q = ez(seg(e, 0, 0.6));
+                    bfDot(lerp(en.sx, en.ex, q), lerp(en.sy, en.ey, q), P.green);
+                }
+            } else if (s.prev[src] < INF) {
+                q = 0.6 * Math.sin(Math.PI * seg(e, 0, 0.7));
+                if (q > 0.01) bfDot(lerp(en.sx, en.ex, q), lerp(en.sy, en.ey, q), P.yellow);
+            } else {
+                ctx.globalAlpha = 1 - seg(e, 0.3, 1);
+                circ(bfPX(g, src), bfPY(g, src), g.r + 6 * ez(e), 'none', P.sub + 'ff', 1.6);
+                ctx.globalAlpha = 1;
+            }
+            return;
+        }
+        s.upd.forEach(function (j) {
+            if (e >= 0.6) return;
+            var en2 = bfEnds(g, s.edges, j);
+            var q2 = ez(seg(e, 0, 0.6));
+            bfDot(lerp(en2.sx, en2.ex, q2), lerp(en2.sy, en2.ey, q2), P.green);
+        });
+    }
+
+    /* ===================== 정점 ===================== */
+    function bfNodes(g, s, before, fresh, e, sweep) {
+        var k = fresh ? ez(seg(e, 0.6, 1)) : 1;
+        var i;
+        for (i = 0; i < N; i++) {
+            var px = bfPX(g, i);
+            var py = bfPY(g, i);
+            var after = s.d[i];
+            var old = before[i];
+            var changed = after !== s.prev[i];
+            var reached = (fresh && k < 0.5) ? old < INF : after < INF;
+            circ(px, py, g.r, reached ? P.teal + '44' : P.surf2, reached ? P.teal + 'ff' : P.sub + 'ff', 2);
+            if (changed) {
+                ctx.globalAlpha = k;
+                circ(px, py, g.r + (fresh ? 3 * Math.sin(Math.PI * k) : 0), P.yellow + '55', P.yellow + 'ff', 3.2);
+                ctx.globalAlpha = 1;
+            }
+            if (sweep && fresh) {
+                ctx.globalAlpha = Math.sin(Math.PI * seg(e, i * 0.12, i * 0.12 + 0.5));
+                circ(px, py, g.r + 4, 'none', P.green + 'ff', 2.4);
+                ctx.globalAlpha = 1;
+            }
+            tx(NAMES[i], px, py - 8, g.fs + 1, P.text + 'ff', 'center', true);
+            if (changed && fresh && old !== after) {
+                ctx.globalAlpha = 1 - k;
+                tx(fmt(old), px, py + 10 - 8 * k, g.fs, P.green + 'ff', 'center', true);
+                ctx.globalAlpha = k;
+                tx(fmt(after), px, py + 10 + 8 * (1 - k), g.fs, P.yellow + 'ff', 'center', true);
+                ctx.globalAlpha = 1;
+            } else {
+                tx(fmt(after), px, py + 10, g.fs, (changed ? P.yellow : reached ? P.green : P.sub) + 'ff', 'center', true);
+            }
+        }
+    }
+
+    /* ===================== 설명 ===================== */
+    function bfEqText(s, cycle, ab, ba) {
+        if (cycle) {
+            return '한 바퀴 합: ' + NEG_EDGES[ab][2] + ' + ' + NEG_EDGES[ba][2] + ' = ' + (NEG_EDGES[ab][2] + NEG_EDGES[ba][2]);
+        }
+        if (!s.hot.length) return '';
+        var h = s.hot[0];
+        var u = s.edges[h][0];
+        var v = s.edges[h][1];
+        var w = s.edges[h][2];
+        if (s.prev[u] >= INF) return NAMES[u] + ' 거리가 ∞라 건너뜀';
+        return NAMES[u] + ' ' + fmt(s.prev[u]) + ' + ' + (w < 0 ? '(' + w + ')' : String(w)) + ' = ' + (s.prev[u] + w) +
+            ' vs ' + NAMES[v] + ' ' + fmt(s.prev[v]) + (s.upd.indexOf(h) >= 0 ? ' → 갱신' : ' → 유지');
+    }
+    function bfBlock(str, cx, y, w, fs, lh, col, bold) {
+        if (!str) return y;
+        var rows = lines(str, w - 8, fs);
+        rows.forEach(function (row, li) {
+            tx(row, cx, y + li * lh + lh / 2, fs, col, 'center', bold);
+        });
+        return y + rows.length * lh;
+    }
+    function bfCaps(g, s, eq, fresh, e) {
+        var cx = g.x0 + g.w / 2;
+        var y;
+        ctx.globalAlpha = fresh ? 0.35 + 0.65 * ez(e) : 1;
+        if (eq) tx(eq, cx, g.capY + g.L.eqH / 2, g.fsub, P.teal + 'ff', 'center', true);
+        y = bfBlock(s.cap, cx, g.capY + g.L.eqH, g.w, g.fs, g.fs + 5, P.yellow + 'ff', true);
+        y = bfBlock(s.cap2, cx, y, g.w, g.fsub, g.fsub + 4, P.text + 'ee', false);
+        bfBlock(s.cap3, cx, y, g.w, g.fsub, g.fsub + 4, P.green + 'ff', true);
+        ctx.globalAlpha = 1;
+    }
+
+    /* ===================== 메인 장면 ===================== */
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var steps = currentSteps();
+        var s = step || steps[0];
+        var p = prev || s;
+        var fresh = s !== p;
+        var e = fresh ? clamp01(t) : 1;
+        var idx = steps.indexOf(s);
+        var isLast = idx === steps.length - 1;
+        var ab = bfFind(NEG_EDGES, 1, 2);
+        var ba = bfFind(NEG_EDGES, 2, 1);
+        var cycle = isLast && mode === 'neg';
+        var g = bfGeom(x0, top, w, mob);
+        bfTrack(g, idx, fresh, e);
+        bfEdges(g, s, cycle ? [ab, ba] : []);
+        bfPackets(g, s, fresh, e, cycle, ab, ba);
+        bfNodes(g, s, fresh ? p.d : s.d, fresh, e, isLast && mode === 'rounds');
+        bfCaps(g, s, bfEqText(s, cycle, ab, ba), fresh, e);
     }
 
     /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
     function draw() {
         P = window.CsFlow.getP();
         ctx.clearRect(0, 0, GW(), GH());
         var W = GW(); var mob = W < 600;
-        var padX = mob ? 16 : 26;
-        var fullW = W - padX * 2;
-        var top = mob ? 18 : 26;
-
         var steps = currentSteps();
         var step = stepIdx >= 0 ? steps[stepIdx] : null;
-
-        drawBF(padX, top, fullW, mob, step);
-
-        if (!step) {
-            var hint = '아래 STEP으로 벨만-포드의 동작을 확인하세요.';
-            ctx.font = '500 ' + (mob ? 11 : 12.5) + 'px "JetBrains Mono",monospace';
-            var hs = mob ? 11 : 12.5;
-            var hl = [hint];
-            if (ctx.measureText(hint).width > W - 16) {
-                var cut = hint.indexOf(' ', Math.floor(hint.length / 2));
-                if (cut < 0) cut = hint.lastIndexOf(' ');
-                hl = [hint.slice(0, cut), hint.slice(cut + 1)];
-            }
-            hl.forEach(function (line, li) {
-                tx(line, W / 2, GH() - (mob ? 12 : 14) - (hl.length - 1 - li) * (hs + 4), hs, P.muted + 'aa', 'center', false);
-            });
-        }
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
         var mob = w < 600;
-        var neededH;
-        neededH = mob ? 340 : 372;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
         canvasWrap.style.height    = 'auto';
-        canvasWrap.style.minHeight = neededH + 'px';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
         var actualH = canvasWrap.offsetHeight || neededH;
         if (actualH < neededH) actualH = neededH;
         canvas.width  = w * dpr;
@@ -328,17 +548,22 @@
     /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        draw();
-        rafId = requestAnimationFrame(function () { rafId = null; if (onDone) onDone(); });
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
     function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
-    function defaultLog() {
-        if (mode === 'edge') return '간선 하나를 완화할 때 거리를 비교하고 갱신하는 과정을 봅니다.';
-        if (mode === 'neg') return '음수 사이클이 있을 때 V-1번 뒤에도 거리가 줄어드는 모습을 봅니다.';
-        return '모든 간선을 한 번씩 완화하는 라운드를 V-1번 반복하는 과정을 봅니다.';
-    }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -377,7 +602,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);

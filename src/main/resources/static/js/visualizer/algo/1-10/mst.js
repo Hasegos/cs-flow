@@ -1,5 +1,5 @@
 /**
- * 최소 신장 트리(MST) 시각화
+ * 최소 신장 트리(MST) 시각화 시각화
  */
 (function () {
     'use strict';
@@ -23,7 +23,7 @@
     var modeWrap = el('div', 'mst-viz__mode');
     var modeDefs = [
         { key: 'kruskal', label: '크루스칼' },
-        { key: 'prim',    label: '프림' },
+        { key: 'prim', label: '프림' }
     ];
     var modeBtns = {};
     modeDefs.forEach(function (m, i) {
@@ -38,7 +38,7 @@
     var speedWrap = el('div', 'mst-viz__speed');
     speedWrap.appendChild(el('span', 'mst-viz__speed-label', 'SPEED'));
     var speedBtns = [];
-    [['1x', 1600], ['2x', 800], ['3x', 500]].forEach(function (pair, i) {
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
         var b = el('button', 'mst-viz__speed-btn' + (i === 0 ? ' mst-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
@@ -71,11 +71,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'kruskal';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 그래프 데이터 (algo-05 다익스트라와 동일한 그래프 재사용) ===================== */
     var NODES = [
@@ -207,282 +274,409 @@
 
     var PRIM_STEPS = buildPrimSteps();
 
-    /* ===================== 상태 변수 ===================== */
-    var mode    = 'kruskal';
-    var stepIdx = -1;
-    var running = false;
-    var timer   = null;
-    var rafId   = null;
-    var speed   = 1600;
-
+    /* ===================== 상태 ===================== */
     function currentSteps() {
         return mode === 'kruskal' ? KRUSKAL_STEPS : PRIM_STEPS;
     }
-
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        var rad = Math.min(r, w / 2, h / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + rad, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, rad);
-        ctx.arcTo(x + w, y + h, x,     y + h, rad);
-        ctx.arcTo(x,     y + h, x,     y,     rad);
-        ctx.arcTo(x,     y,     x + w, y,     rad);
-        ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.5; ctx.stroke(); }
+    function defaultLog() {
+        return currentSteps()[0].log;
     }
+    function ez(q) { var v = clamp01(q); return v * v * (3 - 2 * v); }
+    var msLayCache = null;
 
-    function tx(str, x, y, sz, color, align, bold) {
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
+    /* ===================== 공통 계산 ===================== */
+    function msMetrics(mob) {
+        return {
+            fs: mob ? 11 : 12.5,
+            fsB: mob ? 12 : 14,
+            R: mob ? 13 : 17,
+            gh: mob ? 140 : 190,
+            padX: mob ? 22 : 30,
+            padY: mob ? 22 : 27,
+            gapB: mob ? 10 : 14,
+            titleGap: mob ? 16 : 20,
+            chipH: mob ? 24 : 27,
+            chipGap: mob ? 6 : 8,
+            chipRowGap: mob ? 8 : 9,
+            chipPad: mob ? 8 : 10,
+            rowH: mob ? 21 : 25,
+            barH: mob ? 10 : 12,
+            labW: mob ? 50 : 64,
+            valW: mob ? 34 : 44,
+            lineH: mob ? 14 : 17
+        };
     }
-
-    function line(x1, y1, x2, y2, col, lw) {
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
-        ctx.strokeStyle = col; ctx.lineWidth = lw || 1.5;
-        ctx.stroke();
+    function msTextW(str, fs) {
+        var w = 0;
+        for (var i = 0; i < str.length; i++) w += str.charCodeAt(i) < 128 ? 0.6 * fs : fs;
+        return w;
     }
-
-    /* ===================== 스텝 → 렌더 스펙 ===================== */
-    function computeSpec(step) {
-        var spec = { nodeStatus: {}, dist: {}, mstEdgeKeys: {}, curEdgeKey: null, curEdgeState: null, allGreen: step.type === 'done' };
-
-        (step.mstEdges || []).forEach(function (e) { spec.mstEdgeKeys[edgeKey(e[0], e[1])] = true; });
-
-        if (mode === 'kruskal') {
-            var touched = step.touched || {};
-            for (var i = 0; i < N; i++) spec.nodeStatus[i] = touched[i] ? 'visited' : 'unvisited';
-            if (step.edge) {
-                spec.curEdgeKey = edgeKey(step.edge[0], step.edge[1]);
-                spec.curEdgeState = step.type === 'skip' ? 'skip' : 'add';
-                spec.nodeStatus[step.edge[0]] = 'current';
-                spec.nodeStatus[step.edge[1]] = 'current';
-            }
-        } else {
-            for (var i2 = 0; i2 < N; i2++) {
-                spec.nodeStatus[i2] = step.inTree[i2] ? 'visited' : 'unvisited';
-                spec.dist[i2] = step.dist[i2];
-            }
-            if (step.addNode != null) spec.nodeStatus[step.addNode] = 'current';
+    function msSorted() {
+        return EDGES.slice().sort(function (a, b) { return a[2] - b[2]; });
+    }
+    function msSameEdge(a, b) {
+        return (a[0] === b[0] && a[1] === b[1]) || (a[0] === b[1] && a[1] === b[0]);
+    }
+    function msHasPair(list, a, b) {
+        return (list || []).some(function (pr) { return msSameEdge(pr, [a, b]); });
+    }
+    function msIdxOf(list, ed) {
+        for (var k = 0; k < list.length; k++) if (msSameEdge(list[k], ed)) return k;
+        return -1;
+    }
+    function msComp(list) {
+        var par = [];
+        for (var i = 0; i < N; i++) par.push(i);
+        function msRootOf(x) { while (par[x] !== x) x = par[x]; return x; }
+        (list || []).forEach(function (pr) {
+            var ra = msRootOf(pr[0]), rb = msRootOf(pr[1]);
+            if (ra !== rb) par[Math.max(ra, rb)] = Math.min(ra, rb);
+        });
+        var out = [];
+        for (var k = 0; k < N; k++) out.push(msRootOf(k));
+        return out;
+    }
+    function msMaxW() {
+        return EDGES.reduce(function (mx, ed) { return ed[2] > mx ? ed[2] : mx; }, 0);
+    }
+    function msFrontier(st) {
+        var out = [], seen = {};
+        EDGES.forEach(function (ed) {
+            [[ed[0], ed[1]], [ed[1], ed[0]]].forEach(function (pr) {
+                var from = pr[0], to = pr[1];
+                if (st.inTree[from] && !st.inTree[to] && st.dist[to] === ed[2] && !seen[to]) {
+                    seen[to] = true;
+                    out.push({ ed: ed, to: to });
+                }
+            });
+        });
+        return out;
+    }
+    function msNextOf(st) {
+        var best = -1;
+        for (var i = 0; i < N; i++) {
+            if (!st.inTree[i] && st.dist[i] !== Infinity && (best < 0 || st.dist[i] < st.dist[best])) best = i;
         }
-        return spec;
+        return best;
     }
-
-    /* ===================== 그래프 다이어그램 렌더 ===================== */
-    function drawGraphDiagram(top, h, mob, W, spec) {
-        var padX = mob ? 28 : 46;
-        var padTop = top + (mob ? 12 : 16);
-        var usableH = h - (mob ? 24 : 32);
-        var R = mob ? 16 : 20;
-
-        function px(node) { return { x: padX + node.x * (W - 2 * padX), y: padTop + node.y * usableH }; }
-
-        EDGES.forEach(function (e) {
-            var p1 = px(NODES[e[0]]), p2 = px(NODES[e[1]]);
-            var key = edgeKey(e[0], e[1]);
-            var isCur = spec.curEdgeKey === key;
-            var onMst = spec.mstEdgeKeys[key];
-            var col = P.muted, alphaLine = '4a', lw = 1.4;
-            if (onMst) { col = P.green; alphaLine = 'ee'; lw = 3; }
-            if (isCur && spec.curEdgeState === 'add') { col = P.orange; alphaLine = 'ee'; lw = 3; }
-            if (isCur && spec.curEdgeState === 'skip') { col = P.orange; alphaLine = 'aa'; lw = 2; }
-            if (spec.allGreen) { col = P.green; alphaLine = 'ee'; lw = 3; }
-            line(p1.x, p1.y, p2.x, p2.y, col + alphaLine, lw);
-
-            if (isCur && spec.curEdgeState === 'skip') {
-                var mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
-                ctx.save();
-                ctx.setLineDash([3, 3]);
-                line(p1.x, p1.y, p2.x, p2.y, P.muted + 'cc', 2);
-                ctx.restore();
-                tx('✕', mx, my - (mob ? 24 : 28), mob ? 12 : 14, P.orange + 'ee', 'center', true);
-            }
-
-            var mx2 = (p1.x + p2.x) / 2, my2 = (p1.y + p2.y) / 2;
-            var wLbl = String(e[2]);
-            var wSz = mob ? 9 : 10;
-            var edx = p2.x - p1.x, edy = p2.y - p1.y;
-            var elen = Math.sqrt(edx * edx + edy * edy) || 1;
-            var nx = -edy / elen, ny = edx / elen;
-            if (ny > 0) { nx = -nx; ny = -ny; }
-            var labelOffset = mob ? 10 : 12;
-            var lx = mx2 + nx * labelOffset, ly = my2 + ny * labelOffset;
-            tx(wLbl, lx, ly, wSz, (onMst || isCur ? col : P.text) + (onMst || isCur ? 'ee' : 'cc'), 'center', true);
+    function msChipRows(x0, W, mob) {
+        var m = msMetrics(mob), items = [], x = x0, row = 0;
+        msSorted().forEach(function (ed) {
+            var lbl = ed[0] + '-' + ed[1] + '(' + ed[2] + ')';
+            var cw = msTextW(lbl, m.fs) + m.chipPad * 2;
+            if (x + cw > x0 + W && x > x0) { x = x0; row++; }
+            items.push({ ed: ed, lbl: lbl, x: x, w: cw, row: row });
+            x += cw + m.chipGap;
         });
-
-        NODES.forEach(function (node) {
-            var p = px(node);
-            var status = spec.nodeStatus[node.id] || 'unvisited';
-            var col = P.muted;
-            if (status === 'current') col = P.orange;
-            else if (status === 'visited') col = P.teal;
-            if (spec.allGreen) col = P.green;
-
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, R, 0, Math.PI * 2);
-            ctx.fillStyle = col + '22';
-            ctx.fill();
-            ctx.strokeStyle = col + 'ee';
-            ctx.lineWidth = status === 'current' ? 2.8 : 1.7;
-            ctx.stroke();
-
-            tx(String(node.id), p.x, p.y, mob ? 11 : 13, P.text + 'ee', 'center', true);
-
-            if (mode === 'prim' && spec.dist[node.id] != null) {
-                var dVal = spec.dist[node.id];
-                var dLbl = dVal === Infinity ? '∞' : String(dVal);
-                var bR = mob ? 10 : 12;
-                var bx = p.x + R * 0.95, by = p.y - R * 0.95;
-                var badgeCol = status === 'unvisited' ? P.muted : (status === 'current' ? P.orange : P.green);
-                ctx.beginPath(); ctx.arc(bx, by, bR, 0, Math.PI * 2);
-                ctx.fillStyle = badgeCol + 'ee'; ctx.fill();
-                tx(dLbl, bx, by, mob ? 9 : 10.5, '#0f0f1a', 'center', true);
-            }
-        });
+        return { items: items, rows: row + 1 };
     }
-
-    /* ===================== 하단 패널: 크루스칼(정렬된 간선 목록) / 프림(미확정 노드 후보) ===================== */
-    function drawKruskalEdgeList(x0, top, mob, W, step) {
-        var sorted = EDGES.slice().sort(function (a, b) { return a[2] - b[2]; });
-        var fLbl = mob ? 10 : 11;
-        tx(mob ? '간선 (가중치 오름차순, 왼쪽부터)' : '간선 (가중치 오름차순 — 왼쪽부터 확인)', x0, top, fLbl, P.muted + 'aa', 'left', true);
-        var chipY = top + (mob ? 16 : 18);
-        var chipH = mob ? 24 : 28, gap = mob ? 6 : 8;
-        var x = x0, rowGap = chipH + (mob ? 8 : 10);
-        var maxW = W - x0;
-        sorted.forEach(function (e) {
-            var key = edgeKey(e[0], e[1]);
-            var lbl = e[0] + '-' + e[1] + '(' + e[2] + ')';
-            ctx.font = '700 ' + fLbl + 'px "JetBrains Mono",monospace';
-            var w = ctx.measureText(lbl).width + (mob ? 16 : 20);
-            if (x + w > x0 + maxW && x > x0) { x = x0; chipY += rowGap; }
-
-            var isCur = step.edge && edgeKey(step.edge[0], step.edge[1]) === key;
-            var inMst = (step.mstEdges || []).some(function (m) { return edgeKey(m[0], m[1]) === key; });
-            var col = P.muted, fillA = '10', strokeA = '55', lw = 1;
-            if (inMst) { col = P.green; fillA = '22'; strokeA = 'ee'; lw = 1.6; }
-            if (isCur) { col = P.orange; fillA = '28'; strokeA = 'ee'; lw = 2; }
-
-            rr(x, chipY, w, chipH, 4, col + fillA, col + strokeA, lw);
-            tx(lbl, x + w / 2, chipY + chipH / 2, fLbl, col === P.muted ? P.text + '99' : col + 'ee', 'center', inMst || isCur);
-            x += w + gap;
-        });
+    function msStepsOf(md) {
+        return md === 'kruskal' ? KRUSKAL_STEPS : PRIM_STEPS;
     }
-
-    function drawPrimCandidateList(x0, top, mob, step) {
-        var fLbl = mob ? 10 : 11;
-        tx(mob ? '트리 밖 노드 (맨 왼쪽이 다음 후보)' : '트리 밖 노드 (연결 비용 오름차순 — 맨 왼쪽이 다음 후보)', x0, top, fLbl, P.muted + 'aa', 'left', true);
-        var chipY = top + (mob ? 24 : 27);
-        var chipH = mob ? 24 : 28, gap = mob ? 6 : 8;
-        var list = step.unvisitedList || [];
-        if (list.length === 0) {
-            tx('(모두 연결됨)', x0, chipY + chipH / 2, fLbl, P.text + '77', 'left', false);
-            return;
+    function msLegendOf(md) {
+        return md === 'kruskal'
+            ? '초록 = 채택 · 빨간 ✕ = 사이클이라 기각 · 주황 = 현재'
+            : '초록 = 트리 간선 · 주황 = 다음 후보';
+    }
+    function msCapOf(md, st) {
+        if (md === 'kruskal') {
+            if (st.type === 'intro') return '처음엔 노드마다 따로 한 그룹이다';
+            if (st.type === 'skip') return '같은 그룹이면 연결 시 사이클 → 건너뜀';
+            if (st.type === 'done') return '노드 ' + N + '개가 한 그룹이 되었다 = 트리 완성';
+            return '다른 그룹끼리라 합친다 (union)';
         }
-        var x = x0;
-        var maxX = GW() - x0;
-        var rowGap = chipH + (mob ? 8 : 10);
-        list.forEach(function (item, idx) {
-            var isNext = idx === 0;
-            var lbl = '노드' + item.node + ' · ' + (item.dist === Infinity ? '∞' : item.dist);
-            ctx.font = '700 ' + fLbl + 'px "JetBrains Mono",monospace';
-            var w = ctx.measureText(lbl).width + (mob ? 18 : 22);
-            if (x + w > maxX && x > x0) { x = x0; chipY += rowGap; }
-            if (isNext) {
-                tx('다음 연결 ↓', x + w / 2, chipY - (mob ? 10 : 11), mob ? 8 : 9, P.orange + 'ee', 'center', true);
-                rr(x, chipY, w, chipH, 4, P.orange + '30', P.orange + 'ee', 2);
-                tx(lbl, x + w / 2, chipY + chipH / 2, fLbl, P.text + 'ff', 'center', true);
-            } else {
-                rr(x, chipY, w, chipH, 4, P.muted + '10', P.muted + '55', 1);
-                tx(lbl, x + w / 2, chipY + chipH / 2, fLbl, P.text + '99', 'center', false);
-            }
-            x += w + gap;
-        });
+        if (st.type === 'intro') return '시작 노드 ' + SRC + '의 키는 0, 나머지는 ∞';
+        if (st.type === 'done') return '모든 노드가 트리에 붙었다 = MST 완성';
+        return '키가 가장 작은 노드를 트리에 붙이고 이웃 키를 갱신';
     }
 
     /* ===================== 레이아웃 ===================== */
-    function getLayout(mob) {
-        return {
-            top:      mob ? 16 : 22,
-            graphH:   mob ? 220 : 270,
-            gapMid:   mob ? 12 : 16,
-            panelH:   mob ? 112 : 80,
-        };
+    function layout(w, mob) {
+        var key = w + '|' + (mob ? 1 : 0);
+        if (msLayCache && msLayCache.key === key) return msLayCache.val;
+        var m = msMetrics(mob), legL = 1, capL = 1;
+        ['kruskal', 'prim'].forEach(function (md) {
+            legL = Math.max(legL, lines(msLegendOf(md), w, m.fs).length);
+            msStepsOf(md).forEach(function (st) {
+                capL = Math.max(capL, lines(msCapOf(md, st), w, m.fs).length);
+            });
+        });
+        var rows = msChipRows(0, w, mob).rows;
+        var listH = Math.max(rows * m.chipH + (rows - 1) * m.chipRowGap, N * m.rowH);
+        var total = m.gh + m.gapB + m.titleGap + listH + 8 + legL * m.lineH + 4 + capL * m.lineH + 4;
+        var val = { m: m, listH: listH, legL: legL, capL: capL, total: total };
+        msLayCache = { key: key, val: val };
+        return val;
+    }
+    function sceneH(w, mob) { return layout(w, mob).total; }
+    function msGeom(x0, top, w, mob) {
+        var L = layout(w, mob), m = L.m;
+        var pts = NODES.map(function (nd) {
+            return { x: x0 + m.padX + nd.x * (w - 2 * m.padX), y: top + m.padY + nd.y * (m.gh - 2 * m.padY) };
+        });
+        var bTop = top + m.gh + m.gapB;
+        return { x0: x0, w: w, mob: mob, m: m, L: L, pts: pts, bTop: bTop, listTop: bTop + m.titleGap };
+    }
+
+    /* ===================== 그리기 헬퍼 ===================== */
+    function msChipBox(x, y, w, h, lbl, col, fsz, alpha, txtCol) {
+        ctx.globalAlpha = alpha;
+        rr(x, y, w, h, 5, col + '26', col + 'aa', 1.3);
+        tx(lbl, x + w / 2, y + h / 2, fsz, (txtCol || P.text) + 'ff', 'center', true);
+        ctx.globalAlpha = 1;
+    }
+    function msPill(x, y, lbl, col, fsz) {
+        var bw = msTextW(lbl, fsz) + 8, bh = fsz + 6;
+        rr(x - bw / 2, y - bh / 2, bw, bh, 4, P.surf2 + 'ee', 'none');
+        tx(lbl, x, y, fsz, col, 'center', true);
+    }
+    function msKNodeCol(st, id) {
+        if (st.type === 'done') return P.green;
+        if (st.edge && (st.edge[0] === id || st.edge[1] === id)) return P.orange;
+        var comp = msComp(st.mstEdges), cnt = 0;
+        for (var k = 0; k < N; k++) if (comp[k] === comp[id]) cnt++;
+        return cnt > 1 ? P.teal : P.muted;
+    }
+    function msPNodeCol(st, id) {
+        if (st.type === 'done') return P.green;
+        if (st.addNode === id) return P.orange;
+        return st.inTree[id] ? P.teal : P.muted;
+    }
+    function msDrawNotes(g, md, st) {
+        var m = g.m, cx = g.x0 + g.w / 2, y0 = g.listTop + g.L.listH + 8;
+        lines(msLegendOf(md), g.w, m.fs).forEach(function (t, j) {
+            tx(t, cx, y0 + j * m.lineH + m.lineH / 2, m.fs, P.sub + 'ff', 'center', false);
+        });
+        var y1 = y0 + g.L.legL * m.lineH + 4;
+        lines(msCapOf(md, st), g.w, m.fs).forEach(function (t, j) {
+            tx(t, cx, y1 + j * m.lineH + m.lineH / 2, m.fs, P.text + 'dd', 'center', false);
+        });
+    }
+
+    /* ===================== 크루스칼 장면 (간선 채택·기각, 유니온-파인드 그룹) ===================== */
+    function msDrawKruskal(g, s, pv, fresh, e) {
+        var m = g.m, sorted = msSorted();
+        var curIdx = s.edge ? msIdxOf(sorted, s.edge) : -1;
+        var q = ez(seg(e, 0.4, 0.8));
+        var chips = msChipRows(g.x0, g.w, g.mob);
+
+        EDGES.forEach(function (ed) {
+            var A = g.pts[ed[0]], B = g.pts[ed[1]];
+            var mx = (A.x + B.x) / 2, my = (A.y + B.y) / 2;
+            var isCur = !!s.edge && msSameEdge(s.edge, ed);
+            var adopted = msHasPair(s.mstEdges, ed[0], ed[1]);
+            var lw = 1.4, col = P.sub + '44';
+            if (adopted) {
+                lw = isCur && fresh ? lerp(1.4, 3.6, q) : 3;
+                col = P.green + 'ee';
+            }
+            ln(A.x, A.y, B.x, B.y, col, lw);
+            if (isCur && s.type === 'skip') {
+                var ka = fresh ? q : 1;
+                var kk = (g.mob ? 4.5 : 5.5) * ka;
+                var cy = my - (m.fs + 9);
+                ctx.globalAlpha = ka;
+                ln(A.x, A.y, B.x, B.y, P.red + 'cc', 2, [4, 3]);
+                ln(mx - kk, cy - kk, mx + kk, cy + kk, P.red + 'ff', 2.2);
+                ln(mx + kk, cy - kk, mx - kk, cy + kk, P.red + 'ff', 2.2);
+                ctx.globalAlpha = 1;
+            }
+        });
+        EDGES.forEach(function (ed) {
+            var A = g.pts[ed[0]], B = g.pts[ed[1]];
+            var mx = (A.x + B.x) / 2, my = (A.y + B.y) / 2;
+            var isCur = !!s.edge && msSameEdge(s.edge, ed);
+            var lcol = msHasPair(s.mstEdges, ed[0], ed[1]) ? P.green + 'ff' : P.text + 'bb';
+            if (isCur && s.type === 'skip') lcol = P.red + 'ff';
+            msPill(mx, my, String(ed[2]), lcol, m.fs);
+        });
+
+        if (fresh && curIdx >= 0) {
+            var it = chips.items[curIdx];
+            var sx = it.x + it.w / 2, sy = g.listTop + it.row * (m.chipH + m.chipRowGap) + m.chipH / 2;
+            var se = s.edge, SA = g.pts[se[0]], SB = g.pts[se[1]];
+            var tq = ez(seg(e, 0, 0.4));
+            ctx.globalAlpha = ez(seg(e, 0, 0.08)) * (1 - ez(seg(e, 0.34, 0.44)));
+            circ(lerp(sx, (SA.x + SB.x) / 2, tq), lerp(sy, (SA.y + SB.y) / 2, tq), 4.5, P.orange + 'ff', 'none');
+            ctx.globalAlpha = 1;
+        }
+
+        NODES.forEach(function (nd) {
+            var id = nd.id, p = g.pts[id];
+            var cNew = msKNodeCol(s, id), cOld = fresh ? msKNodeCol(pv, id) : cNew;
+            circ(p.x, p.y, m.R, cOld + '22', cOld + 'ee', 1.7);
+            if (cNew !== cOld) {
+                ctx.globalAlpha = ez(seg(e, 0, 0.4));
+                circ(p.x, p.y, m.R, cNew + '33', cNew + 'ff', 2.4);
+                ctx.globalAlpha = 1;
+            }
+            if (fresh && s.edge && (s.edge[0] === id || s.edge[1] === id)) {
+                var rq = seg(e, 0, 0.7);
+                ctx.globalAlpha = 1 - rq;
+                circ(p.x, p.y, m.R + 12 * ez(rq), 'none', P.orange + 'ff', 2.2);
+                ctx.globalAlpha = 1;
+            }
+            tx(String(id), p.x, p.y, m.fsB, P.text + 'ff', 'center', true);
+        });
+
+        chips.items.forEach(function (c, i) {
+            var y = g.listTop + c.row * (m.chipH + m.chipRowGap);
+            var inM = msHasPair(s.mstEdges, c.ed[0], c.ed[1]);
+            var decided = curIdx >= 0 && i <= curIdx;
+            var col = inM ? P.green : (decided ? P.red : P.muted);
+            var txc = decided ? P.text : P.sub;
+            if (i === curIdx && fresh) {
+                msChipBox(c.x, y, c.w, m.chipH, c.lbl, P.muted, m.fs, 1, P.sub);
+                msChipBox(c.x, y, c.w, m.chipH, c.lbl, col, m.fs, q, txc);
+            } else {
+                msChipBox(c.x, y, c.w, m.chipH, c.lbl, decided ? col : P.muted, m.fs, 1, txc);
+            }
+            if (i === curIdx) rr(c.x - 2, y - 2, c.w + 4, m.chipH + 4, 6, 'none', P.orange + 'ff', 2);
+        });
+
+        tx('간선 (가중치 오름차순)', g.x0, g.bTop + m.lineH / 2, m.fs, P.sub + 'ff', 'left', true);
+        msDrawNotes(g, 'kruskal', s);
+    }
+
+    /* ===================== 프림 장면 (트리가 번져 나가며 키 막대가 갱신) ===================== */
+    function msDrawPrim(g, s, pv, fresh, e) {
+        var m = g.m, front = msFrontier(s), nxt = msNextOf(s);
+        var qAdd = ez(seg(e, 0.15, 0.7)), qKey = ez(seg(e, 0.25, 0.85));
+        var maxW = msMaxW(), nxtEdge = null;
+        front.forEach(function (f) {
+            var A = g.pts[f.ed[0]], B = g.pts[f.ed[1]], isNx = f.to === nxt;
+            if (isNx) nxtEdge = f.ed;
+            ln(A.x, A.y, B.x, B.y, isNx ? P.orange + 'cc' : P.yellow + '77', isNx ? 2.2 : 1.3, [4, 3]);
+        });
+
+        EDGES.forEach(function (ed) {
+            var A = g.pts[ed[0]], B = g.pts[ed[1]];
+            var isNew = fresh && !!s.addedEdge && msSameEdge(s.addedEdge, ed);
+            var isTree = msHasPair(s.mstEdges, ed[0], ed[1]) && !isNew;
+            var onFront = front.some(function (f) { return msSameEdge(f.ed, ed); });
+            if (isTree) ln(A.x, A.y, B.x, B.y, P.green + 'ee', 3);
+            else if (!onFront) ln(A.x, A.y, B.x, B.y, P.sub + '44', 1.4);
+        });
+        if (fresh && s.addedEdge) {
+            var Va = g.pts[s.addedEdge[0]], Vb = g.pts[s.addedEdge[1]];
+            ln(Va.x, Va.y, lerp(Va.x, Vb.x, qAdd), lerp(Va.y, Vb.y, qAdd), P.green + 'ff', 3.2);
+        }
+
+        EDGES.forEach(function (ed) {
+            var A = g.pts[ed[0]], B = g.pts[ed[1]];
+            var mx = (A.x + B.x) / 2, my = (A.y + B.y) / 2;
+            var lcol = msHasPair(s.mstEdges, ed[0], ed[1]) ? P.green + 'ff' : P.text + 'bb';
+            if (nxtEdge && msSameEdge(nxtEdge, ed)) lcol = P.orange + 'ff';
+            msPill(mx, my, String(ed[2]), lcol, m.fs);
+        });
+
+        NODES.forEach(function (nd) {
+            var id = nd.id, p = g.pts[id];
+            var cNew = msPNodeCol(s, id), cOld = fresh ? msPNodeCol(pv, id) : cNew;
+            circ(p.x, p.y, m.R, cOld + '22', cOld + 'ee', 1.7);
+            if (cNew !== cOld) {
+                ctx.globalAlpha = ez(seg(e, 0, 0.4));
+                circ(p.x, p.y, m.R, cNew + '33', cNew + 'ff', 2.4);
+                ctx.globalAlpha = 1;
+            }
+            if (fresh && s.addNode === id) {
+                var rq = seg(e, 0, 0.8);
+                ctx.globalAlpha = 1 - rq;
+                circ(p.x, p.y, m.R + 14 * ez(rq), 'none', P.teal + 'ff', 2.4);
+                ctx.globalAlpha = 1;
+            }
+            tx(String(id), p.x, p.y, m.fsB, P.text + 'ff', 'center', true);
+        });
+
+        var bx = g.x0 + m.labW, bw = g.w - m.labW - m.valW - 6;
+        for (var i = 0; i < N; i++) {
+            var rowY = g.listTop + i * m.rowH, my2 = rowY + m.rowH / 2;
+            var vN = s.dist[i], vO = fresh ? pv.dist[i] : vN;
+            var q = fresh ? qKey : 1;
+            var isNx2 = i === nxt, inT = s.inTree[i];
+            var base = inT ? P.teal : (isNx2 ? P.orange : (vN === Infinity ? P.muted : P.yellow));
+            var lenN = vN === Infinity ? 0 : vN / maxW * bw;
+            var lenO = vO === Infinity ? 0 : vO / maxW * bw;
+            var by = my2 - m.barH / 2;
+            rr(bx, by, bw, m.barH, 3, P.surf2 + 'ee', P.muted + '55', 1);
+            var len = lerp(lenO, lenN, q);
+            if (len > 0) rr(bx, by, len, m.barH, 3, base + 'cc', 'none');
+            var txtV;
+            if (vN === Infinity) txtV = '∞';
+            else if (vO === Infinity) txtV = q < 0.5 ? '∞' : String(vN);
+            else txtV = String(Math.round(lerp(vO, vN, q)));
+            tx(txtV, g.x0 + g.w, my2, m.fs, (isNx2 ? P.orange : P.text) + 'ff', 'right', true);
+            tx('노드 ' + i, g.x0, my2, m.fs, (inT ? P.teal : (isNx2 ? P.orange : P.sub)) + 'ff', 'left', isNx2 || inT);
+        }
+
+        tx('키 값 = 붙이는 최소 비용', g.x0, g.bTop + m.lineH / 2, m.fs, P.sub + 'ff', 'left', true);
+        msDrawNotes(g, 'prim', s);
+    }
+
+    /* ===================== 메인 장면 ===================== */
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var steps = currentSteps();
+        var s = step || steps[0];
+        var pv = prev || s;
+        var fresh = s !== pv;
+        var e = fresh ? clamp01(t) : 1;
+        var g = msGeom(x0, top, w, mob);
+        if (mode === 'kruskal') msDrawKruskal(g, s, pv, fresh, e);
+        else msDrawPrim(g, s, pv, fresh, e);
+    }
+
+    /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
+    function draw() {
+        P = window.CsFlow.getP();
+        ctx.clearRect(0, 0, GW(), GH());
+        var W = GW(); var mob = W < 600;
+        var steps = currentSteps();
+        var step = stepIdx >= 0 ? steps[stepIdx] : null;
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
-    function calcH(W) {
-        var mob = W < 600;
-        var L = getLayout(mob);
-        return L.top + L.graphH + L.gapMid + L.panelH + L.top;
-    }
-
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
-        var neededH = calcH(w);
+        var mob = w < 600;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
         canvasWrap.style.height    = 'auto';
-        canvasWrap.style.minHeight = neededH + 'px';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
         var actualH = canvasWrap.offsetHeight || neededH;
         if (actualH < neededH) actualH = neededH;
-
         canvas.width  = w * dpr;
         canvas.height = actualH * dpr;
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         draw();
     }
 
-    /* ===================== 메인 드로우 ===================== */
-    function draw() {
-        P = window.CsFlow.getP();
-        ctx.clearRect(0, 0, GW(), GH());
-        var W   = GW();
-        var mob = W < 600;
-        var L   = getLayout(mob);
-
-        var neededH = calcH(W);
-        var extra = Math.max(0, GH() - neededH);
-        L.top = L.top + extra / 2;
-
-        var steps = currentSteps();
-        var step  = stepIdx >= 0 ? steps[stepIdx] : steps[0];
-        var spec  = computeSpec(step);
-
-        drawGraphDiagram(L.top, L.graphH, mob, W, spec);
-
-        var padX = mob ? 12 : 24;
-        var bottomTop = L.top + L.graphH + L.gapMid;
-        if (mode === 'kruskal') {
-            drawKruskalEdgeList(padX, bottomTop, mob, W - padX, step);
-        } else {
-            drawPrimCandidateList(padX, bottomTop, mob, step);
-        }
-    }
-
-    /* ===================== 애니메이션(스텝 전환 타이밍) ===================== */
+    /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        draw();
-        rafId = requestAnimationFrame(function () {
-            rafId = null;
-            if (onDone) onDone();
-        });
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
-    function setSpeedDisabled(v) {
-        speedBtns.forEach(function (b) { b.disabled = v; });
-    }
-
-    function defaultLog() {
-        return currentSteps()[0].log;
-    }
+    function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -502,7 +696,7 @@
                 if (next === steps.length - 1) {
                     running = false; btnStep.disabled = true; setSpeedDisabled(false);
                 } else {
-                    timer = setTimeout(tick, speed * 0.4);
+                    timer = setTimeout(tick, speed * 0.6);
                 }
             });
         }
@@ -512,7 +706,7 @@
     function vizStep() {
         if (running) return;
         var steps = currentSteps();
-        var next  = stepIdx + 1;
+        var next = stepIdx + 1;
         if (next >= steps.length) return;
         applyStep(next, null);
         if (next === steps.length - 1) { btnPlay.disabled = true; btnStep.disabled = true; }
@@ -521,7 +715,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);
@@ -537,9 +731,7 @@
     function switchMode(m) {
         if (mode === m) return;
         mode = m;
-        modeDefs.forEach(function (d) {
-            modeBtns[d.key].classList.toggle('mst-viz__mode-btn--active', d.key === m);
-        });
+        modeDefs.forEach(function (d) { modeBtns[d.key].classList.toggle('mst-viz__mode-btn--active', d.key === m); });
         vizReset();
     }
 
@@ -558,9 +750,9 @@
                 tooltipHits: [],
                 hoveredKey: function () { return null; },
                 setHoveredKey: function () {},
-                draw: draw,
+                draw: draw
             };
-        },
+        }
     });
 
     setTimeout(resize, 60);

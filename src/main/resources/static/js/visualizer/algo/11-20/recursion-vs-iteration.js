@@ -1,5 +1,5 @@
 /**
- * 재귀 vs 반복 시각화
+ * 재귀 vs 반복 시각화 시각화
  */
 (function () {
     'use strict';
@@ -39,7 +39,7 @@
     var speedWrap = el('div', 'ri-viz__speed');
     speedWrap.appendChild(el('span', 'ri-viz__speed-label', 'SPEED'));
     var speedBtns = [];
-    [['1x', 1700], ['2x', 850], ['3x', 480]].forEach(function (pair, i) {
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
         var b = el('button', 'ri-viz__speed-btn' + (i === 0 ? ' ri-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
@@ -72,11 +72,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'stack';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 엔진: 재귀와 반복 ===================== */
     function bat(n) {
@@ -177,191 +244,240 @@
     })();
 
     /* ===================== 상태 ===================== */
-    var mode    = 'stack';
-    var stepIdx = -1;
-    var running = false;
-    var timer   = null;
-    var rafId   = null;
-    var speed   = 1700;
-
     function currentSteps() {
         if (mode === 'fib') return FIB_STEPS;
         if (mode === 'tail') return TAIL_STEPS;
         return STACK_STEPS;
     }
-
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        var rad = Math.min(r, w / 2, h / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + rad, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, rad);
-        ctx.arcTo(x + w, y + h, x,     y + h, rad);
-        ctx.arcTo(x,     y + h, x,     y,     rad);
-        ctx.arcTo(x,     y,     x + w, y,     rad);
-        ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    function defaultLog() {
+        if (mode === 'fib') return '메모이제이션 없는 재귀 피보나치의 호출 트리와 중복 계산을 봅니다.';
+        if (mode === 'tail') return '꼬리 재귀가 최적화 지원 여부에 따라 스택을 어떻게 쓰는지 비교합니다.';
+        return '재귀의 호출 스택과 반복문의 변수를 같은 계산으로 비교합니다.';
     }
-    function tx(str, x, y, sz, color, align, bold) {
-        if (sz < 11) sz = 11;
-        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
-    }
+    function ez(q) { q = clamp01(q); return q * q * (3 - 2 * q); }
 
-    /* ===================== 공통: 캡션과 프레임 ===================== */
+    /* ===================== 레이아웃 ===================== */
+    function fibR(w) { return Math.min(15, w / FIB_LEAVES / 2 - 2); }
+    function capRows(s, w, fs) {
+        var rows = [];
+        [[s.cap, fs + 0.5, P.yellow, true], [s.cap2, fs - 0.5, P.text, false], [s.cap3, fs - 0.5, P.green, true]].forEach(function (it) {
+            if (!it[0]) return;
+            lines(it[0], w, it[1]).forEach(function (str) { rows.push({ str: str, sz: it[1], col: it[2], bold: it[3] }); });
+        });
+        return rows;
+    }
+    function capH(s, w, fs) {
+        return capRows(s, w, fs).reduce(function (a, r) { return a + r.sz + 5; }, 0);
+    }
+    function layout(w, mob) {
+        var fs = mob ? 10.5 : 12;
+        var capY;
+        if (mode === 'fib') capY = 22 + 4 * (mob ? 42 : 50) + fibR(w) + 24;
+        else if (mode === 'tail') capY = mob ? 58 + 14 + TAIL_CALLS.length * 26 + 16 : 26 + TAIL_CALLS.length * 32 + 22;
+        else capY = mob ? 20 + FACT_N * 26 + 58 : 26 + FACT_N * 32 + 22;
+        var cap = 0;
+        currentSteps().forEach(function (st) { cap = Math.max(cap, capH(st, w, fs)); });
+        return { fs: fs, capY: capY, total: capY + cap + 6 };
+    }
+    function sceneH(w, mob) { return layout(w, mob).total; }
+
+    /* ===================== 프레임과 변수 ===================== */
     function drawCaps(s, x0, w, y, fs) {
-        if (s.cap) tx(s.cap, x0 + w / 2, y, fs - 0.5, P.yellow + 'ff', 'center', true);
-        if (s.cap2) tx(s.cap2, x0 + w / 2, y + 19, fs - 1, P.text + 'ee', 'center', false);
-        if (s.cap3) tx(s.cap3, x0 + w / 2, y + 38, fs - 1, P.green + 'ee', 'center', true);
-    }
-    function drawFrames(frames, x, baseY, half, fh, fs, slots) {
-        var k;
-        for (k = 0; k < slots; k++) rr(x, baseY - (k + 1) * fh + 2, half, fh - 4, 4, 'none', P.sub + '33', 1);
-        frames.forEach(function (f, i) {
-            var y = baseY - (i + 1) * fh + 2;
-            var col = f.ret ? P.green : f.hot ? P.purple : P.teal;
-            rr(x, y, half, fh - 4, 4, col + (f.hot ? '44' : '22'), col + 'ff', f.hot ? 2.4 : 1.4);
-            tx(f.t, x + 8, y + (fh - 4) / 2, fs, P.text + 'ff', 'left', true);
-            tx(f.note, x + half - 8, y + (fh - 4) / 2, fs - 1, f.ret ? P.green + 'ff' : P.sub + 'ff', 'right', false);
+        capRows(s, w, fs).forEach(function (r) {
+            tx(r.str, x0 + w / 2, y, r.sz, r.col + 'ff', 'center', r.bold);
+            y += r.sz + 5;
         });
     }
-
-    /* ===================== 호출 스택과 반복 변수 ===================== */
-    function drawStack(x0, top, w, mob, s) {
-        var fs = mob ? 11.5 : 13;
-        var half = w / 2 - 8;
-        var fh = mob ? 28 : 32;
-        var baseY = top + 26 + FACT_N * fh;
-        tx('재귀: 호출 스택', x0, top + 8, fs, P.sub + 'ff', 'left', true);
-        tx('반복: 변수', x0 + w / 2 + 8, top + 8, fs, P.sub + 'ff', 'left', true);
-        drawFrames(s.frames, x0, baseY, half, fh, fs, FACT_N);
-        var rx = x0 + w / 2 + 8;
-        rr(rx, baseY - 2 * fh + 2, half, 2 * fh - 4, 4, P.teal + '22', P.teal + 'ff', 1.4);
-        tx('i = ' + s.iter.i, rx + 8, baseY - 2 * fh + 2 + fh / 2 - 2, fs, P.text + 'ff', 'left', true);
-        tx('result = ' + s.iter.result, rx + 8, baseY - fh + fh / 2, fs, s.iter.pre ? P.sub + 'ff' : P.green + 'ff', 'left', true);
-        drawCaps(s, x0, w, baseY + 22, fs);
+    function frameBox(x, y, bw, bh, f, fs, a) {
+        var col = f.ret ? P.green : (f.hot ? P.purple : P.teal);
+        ctx.globalAlpha = a;
+        rr(x, y, bw, bh, 4, col + (f.hot ? '44' : '22'), col + 'ff', f.hot ? 2.4 : 1.4);
+        tx(f.t, x + 8, y + bh / 2, fs, P.text + 'ff', 'left', true);
+        tx(f.note, x + bw - 8, y + bh / 2, fs - 1, (f.ret ? P.green : P.sub) + 'ff', 'right', false);
+        ctx.globalAlpha = 1;
+    }
+    function drawPane(x, baseY, bw, fh, slots, frames, pframes, e, fs) {
+        var k;
+        for (k = 0; k < slots; k++) rr(x, baseY - (k + 1) * fh + 2, bw, fh - 4, 4, 'none', P.sub + '33', 1);
+        frames.forEach(function (f, i) {
+            var pf = pframes[i];
+            var y = baseY - (i + 1) * fh + 2;
+            var q;
+            if (!pf) {
+                frameBox(x, y - (1 - ez(seg(e, 0, 0.6))) * fh * 0.8, bw, fh - 4, f, fs, ez(seg(e, 0, 0.4)));
+            } else if (pf.note === f.note) {
+                frameBox(x, y, bw, fh - 4, f, fs, 1);
+            } else {
+                q = ez(seg(e, 0, 0.5));
+                if (q < 1) frameBox(x, y, bw, fh - 4, pf, fs, 1 - q);
+                frameBox(x, y, bw, fh - 4, f, fs, q);
+            }
+        });
+        pframes.forEach(function (pf, i) {
+            if (frames[i]) return;
+            frameBox(x, baseY - (i + 1) * fh + 2 - ez(e) * fh * 0.8, bw, fh - 4, pf, fs, 1 - ez(seg(e, 0.2, 1)));
+        });
+    }
+    function varBox(x, y, bw, bh, label, val, pval, e, fs, col) {
+        var changed = val !== pval;
+        var q = changed ? ez(seg(e, 0, 0.6)) : 1;
+        var flash = changed ? 1 - ez(seg(e, 0.4, 1)) : 0;
+        var cy = y + bh / 2;
+        rr(x, y, bw, bh, 4, col + '22', col + 'ff', 1.4);
+        if (flash > 0) {
+            ctx.globalAlpha = flash;
+            rr(x - 3, y - 3, bw + 6, bh + 6, 6, 'none', col + 'ff', 2);
+            ctx.globalAlpha = 1;
+        }
+        if (changed && q < 1) {
+            ctx.globalAlpha = 1 - q;
+            tx(label + ' = ' + pval, x + 8, cy, fs, col + 'ff', 'left', true);
+        }
+        ctx.globalAlpha = q;
+        tx(label + ' = ' + val, x + 8, cy, fs, col + 'ff', 'left', true);
+        ctx.globalAlpha = 1;
     }
 
-    /* ===================== 피보나치 호출 트리 ===================== */
-    function drawFib(x0, top, w, mob, s) {
-        var fs = mob ? 11.5 : 13;
-        var lh = mob ? 42 : 50;
-        var r = Math.min(15, w / FIB_LEAVES / 2 - 2);
+    /* ===================== 호출 스택 장면 ===================== */
+    function drawStackScene(x0, top, w, mob, s, p, e, L) {
+        var fs = L.fs;
+        var fh = mob ? 26 : 32;
+        var half = mob ? w : w / 2 - 8;
+        var rx = x0 + w / 2 + 8;
+        var baseY = top + (mob ? 20 : 26) + FACT_N * fh;
+        var rCol = s.iter.pre ? P.sub : P.green;
+        tx('재귀: 호출 스택', x0, top + (mob ? 6 : 8), fs, P.sub + 'ff', 'left', true);
+        drawPane(x0, baseY, half, fh, FACT_N, s.frames, p.frames, e, fs);
+        if (mob) {
+            tx('반복: 변수', x0, baseY + 8, fs, P.sub + 'ff', 'left', true);
+            varBox(x0, baseY + 20, w / 2 - 3, 26, 'i', s.iter.i, p.iter.i, e, fs, P.teal);
+            varBox(x0 + w / 2 + 3, baseY + 20, w / 2 - 3, 26, 'result', s.iter.result, p.iter.result, e, fs, rCol);
+        } else {
+            tx('반복: 변수', rx, top + 8, fs, P.sub + 'ff', 'left', true);
+            varBox(rx, baseY - 2 * fh + 2, half, fh - 4, 'i', s.iter.i, p.iter.i, e, fs, P.teal);
+            varBox(rx, baseY - fh + 2, half, fh - 4, 'result', s.iter.result, p.iter.result, e, fs, rCol);
+        }
+        drawCaps(s, x0, w, top + L.capY, fs);
+    }
+
+    /* ===================== 꼬리 호출 장면 ===================== */
+    function tailLeftOf(st) {
+        if (st.k <= 0) return [];
+        var c = TAIL_CALLS[st.k - 1];
+        return [{ t: 'fact_tail', note: st.done ? 'return 120' : 'n=' + c[0] + ' acc=' + c[1], hot: true, ret: st.done }];
+    }
+    function tailRightOf(st) {
+        var out = [];
         var k;
+        for (k = 0; k < st.k; k++) out.push({ t: 'f(' + TAIL_CALLS[k][0] + ', ' + TAIL_CALLS[k][1] + ')', note: st.done ? 'return 120' : '', hot: !st.done && k === st.k - 1, ret: st.done });
+        return out;
+    }
+    function drawTailScene(x0, top, w, mob, s, p, e, L) {
+        var fs = L.fs;
+        var fh = mob ? 26 : 32;
+        var n = TAIL_CALLS.length;
+        var half = mob ? w : w / 2 - 8;
+        var rx = x0 + w / 2 + 8;
+        var leftBase = top + (mob ? 46 : 26 + n * fh);
+        var rightBase = top + (mob ? 202 : 26 + n * fh);
+        if (mob) {
+            tx('최적화 지원: 프레임 재사용', x0, top + 6, fs - 1, P.sub + 'ff', 'left', true);
+            tx('미지원: 프레임 누적', x0, top + 58, fs - 1, P.sub + 'ff', 'left', true);
+        } else {
+            tx('최적화 지원: 프레임 재사용', x0, top + 8, fs - 1, P.sub + 'ff', 'left', true);
+            tx('미지원: 프레임 누적', rx, top + 8, fs - 1, P.sub + 'ff', 'left', true);
+        }
+        drawPane(x0, leftBase, half, fh, 1, tailLeftOf(s), tailLeftOf(p), e, fs);
+        drawPane(mob ? x0 : rx, rightBase, half, fh, n, tailRightOf(s), tailRightOf(p), e, fs);
+        drawCaps(s, x0, w, top + L.capY, fs);
+    }
+
+    /* ===================== 피보나치 장면 ===================== */
+    function drawFibScene(x0, top, w, mob, s, p, e, L) {
+        var fs = L.fs;
+        var lh = mob ? 42 : 50;
+        var r = fibR(w);
         var px = function (nd) { return x0 + (nd.x + 0.5) / FIB_LEAVES * w; };
         var py = function (nd) { return top + 22 + nd.depth * lh; };
+        var fresh = s.cur >= 0 && s.cur >= p.upto;
+        var summary = s.cur < 0 && s.upto > 0 && p.cur >= 0;
+        var g = fresh ? ez(seg(e, 0, 0.6)) : 1;
+        var k;
         for (k = 0; k < FIB_NODES.length; k++) {
             var nd = FIB_NODES[k];
-            if (nd.parent && k < s.upto) {
-                ctx.beginPath();
-                ctx.moveTo(px(nd.parent), py(nd.parent) + r);
-                ctx.lineTo(px(nd), py(nd) - r);
-                ctx.strokeStyle = P.sub + '88';
-                ctx.lineWidth = 1.2;
-                ctx.stroke();
+            if (!nd.parent || k >= s.upto) continue;
+            var x1 = px(nd.parent), y1 = py(nd.parent) + r;
+            var x2 = px(nd), y2 = py(nd) - r;
+            if (fresh && k === s.cur && g < 1) {
+                ln(x1, y1, lerp(x1, x2, g), lerp(y1, y2, g), P.purple + 'ff', 2);
+                circ(lerp(x1, x2, g), lerp(y1, y2, g), 4, P.purple + 'ff', 'none', 1);
+            } else {
+                ln(x1, y1, x2, y2, P.sub + '88', 1.2);
             }
         }
         for (k = 0; k < FIB_NODES.length; k++) {
             var n2 = FIB_NODES[k];
             var called = k < s.upto;
             var dup = called && s.occ[k] > 1;
-            var fill = 'none';
-            var stroke = P.sub + '33';
-            var lw = 1;
-            var tc = P.sub + 'aa';
+            var isNew = fresh && k === s.cur;
+            var nx = px(n2), ny = py(n2);
+            var fill = 'none', stroke = P.sub + '33', lw = 1, tc = P.sub + 'aa';
             if (called) {
                 fill = (dup ? P.orange : P.teal) + '44';
                 stroke = (dup ? P.orange : P.teal) + 'ff';
                 lw = 1.6;
                 tc = P.text + 'ff';
             }
-            if (k === s.cur) {
-                stroke = P.purple + 'ff';
-                lw = 3;
+            if (k === s.cur) { stroke = P.purple + 'ff'; lw = 3; }
+            ctx.globalAlpha = isNew ? ez(seg(e, 0.6, 1)) : 1;
+            circ(nx, ny, r, fill, stroke, lw);
+            tx(String(n2.n), nx, ny, fs, tc, 'center', called);
+            ctx.globalAlpha = 1;
+            if (summary && dup) {
+                ctx.globalAlpha = 1 - ez(e);
+                circ(nx, ny, r + 3 + 6 * ez(e), 'none', P.orange + 'ff', 2);
+                ctx.globalAlpha = 1;
             }
-            ctx.beginPath();
-            ctx.arc(px(n2), py(n2), r, 0, Math.PI * 2);
-            if (fill !== 'none') {
-                ctx.fillStyle = fill;
-                ctx.fill();
-            }
-            ctx.strokeStyle = stroke;
-            ctx.lineWidth = lw;
-            ctx.stroke();
-            tx(String(n2.n), px(n2), py(n2), fs, tc, 'center', called);
         }
-        drawCaps(s, x0, w, top + 22 + 4 * lh + r + 24, fs);
+        drawCaps(s, x0, w, top + L.capY, fs);
     }
 
-    /* ===================== 꼬리 호출: 프레임 재사용 대 누적 ===================== */
-    function drawTail(x0, top, w, mob, s) {
-        var fs = mob ? 11.5 : 13;
-        var half = w / 2 - 8;
-        var fh = mob ? 28 : 32;
-        var baseY = top + 26 + TAIL_CALLS.length * fh;
-        var rx = x0 + w / 2 + 8;
-        var left = [];
-        var right = [];
-        var k;
-        tx('최적화 지원: 프레임 재사용', x0, top + 8, fs - 1, P.sub + 'ff', 'left', true);
-        tx('미지원: 프레임 누적', rx, top + 8, fs - 1, P.sub + 'ff', 'left', true);
-        if (s.k > 0) {
-            var c = TAIL_CALLS[s.k - 1];
-            left.push({ t: 'fact_tail', note: s.done ? 'return 120' : 'n=' + c[0] + ' acc=' + c[1], hot: true, ret: s.done });
-            for (k = 0; k < s.k; k++) right.push({ t: 'f(' + TAIL_CALLS[k][0] + ', ' + TAIL_CALLS[k][1] + ')', note: s.done ? 'return 120' : '', hot: !s.done && k === s.k - 1, ret: s.done });
-        }
-        drawFrames(left, x0, baseY, half, fh, fs, TAIL_CALLS.length);
-        drawFrames(right, rx, baseY, half, fh, fs, TAIL_CALLS.length);
-        drawCaps(s, x0, w, baseY + 22, fs);
+    /* ===================== 진입 ===================== */
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var L = layout(w, mob);
+        var e = clamp01(t);
+        var s = step || currentSteps()[0];
+        var p = prev || s;
+        if (mode === 'fib') drawFibScene(x0, top, w, mob, s, p, e, L);
+        else if (mode === 'tail') drawTailScene(x0, top, w, mob, s, p, e, L);
+        else drawStackScene(x0, top, w, mob, s, p, e, L);
     }
 
     /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
     function draw() {
         P = window.CsFlow.getP();
         ctx.clearRect(0, 0, GW(), GH());
         var W = GW(); var mob = W < 600;
-        var padX = mob ? 16 : 26;
-        var fullW = W - padX * 2;
-        var top = mob ? 18 : 26;
-
         var steps = currentSteps();
         var step = stepIdx >= 0 ? steps[stepIdx] : null;
-
-        var dsStep = step || currentSteps()[0];
-        if (dsStep.kind === 'fib') drawFib(padX, top, fullW, mob, dsStep);
-        else if (dsStep.kind === 'tail') drawTail(padX, top, fullW, mob, dsStep);
-        else drawStack(padX, top, fullW, mob, dsStep);
-
-        if (!step) {
-            var hint = '아래 STEP으로 재귀와 반복의 동작을 확인하세요.';
-            ctx.font = '500 ' + (mob ? 11 : 12.5) + 'px "JetBrains Mono",monospace';
-            var hs = mob ? 11 : 12.5;
-            var hl = [hint];
-            if (ctx.measureText(hint).width > W - 16) {
-                var cut = hint.indexOf(' ', Math.floor(hint.length / 2));
-                if (cut < 0) cut = hint.lastIndexOf(' ');
-                hl = [hint.slice(0, cut), hint.slice(cut + 1)];
-            }
-            hl.forEach(function (line, li) {
-                tx(line, W / 2, GH() - (mob ? 12 : 14) - (hl.length - 1 - li) * (hs + 4), hs, P.muted + 'aa', 'center', false);
-            });
-        }
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
         var mob = w < 600;
-        var neededH;
-        neededH = mob ? 310 : 340;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
         canvasWrap.style.height    = 'auto';
-        canvasWrap.style.minHeight = neededH + 'px';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
         var actualH = canvasWrap.offsetHeight || neededH;
         if (actualH < neededH) actualH = neededH;
         canvas.width  = w * dpr;
@@ -373,17 +489,22 @@
     /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        draw();
-        rafId = requestAnimationFrame(function () { rafId = null; if (onDone) onDone(); });
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
     function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
-    function defaultLog() {
-        if (mode === 'fib') return '메모이제이션 없는 재귀 피보나치의 호출 트리와 중복 계산을 봅니다.';
-        if (mode === 'tail') return '꼬리 재귀가 최적화 지원 여부에 따라 스택을 어떻게 쓰는지 비교합니다.';
-        return '재귀의 호출 스택과 반복문의 변수를 같은 계산으로 비교합니다.';
-    }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -422,7 +543,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);

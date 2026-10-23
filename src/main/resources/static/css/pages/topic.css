@@ -728,6 +728,17 @@
 }
 
 @media (max-width: 480px) {
+  .topic-tabs__inner {
+    padding: 0 0.5rem;
+  }
+
+  .topic-tabs__btn {
+    flex: 1 1 auto;
+    padding: 0.9rem 0.6rem;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+
   .topic-content  {
     padding: 2rem 1.25rem 4rem;
   }
@@ -735,4 +746,10 @@
   .related-section {
     padding: 2rem 1.25rem 4rem;
   }
+}
+
+/* === .viz-fx-overlay — 시각화 단계 전환 효과(viz-common.js) === */
+.viz-fx-overlay {
+  position: absolute;
+  pointer-events: none;
 }

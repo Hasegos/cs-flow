@@ -39,7 +39,7 @@
     var speedWrap = el('div', 'pi-viz__speed');
     speedWrap.appendChild(el('span', 'pi-viz__speed-label', 'SPEED'));
     var speedBtns = [];
-    [['1x', 1700], ['2x', 850], ['3x', 480]].forEach(function (pair, i) {
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
         var b = el('button', 'pi-viz__speed-btn' + (i === 0 ? ' pi-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
@@ -72,11 +72,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'inv';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 데이터: 작업과 시뮬레이션 ===================== */
     var PRIO = { H: 3, M: 2, L: 1 };
@@ -187,155 +254,161 @@
     ];
 
     /* ===================== 상태 ===================== */
-    var mode    = 'inv';
-    var stepIdx = -1;
-    var running = false;
-    var timer   = null;
-    var rafId   = null;
-    var speed   = 1700;
-
     function currentSteps() {
         if (mode === 'inherit') return INH_STEPS;
         if (mode === 'compare') return COMPARE_STEPS;
         return INV_STEPS;
     }
-
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        var rad = Math.min(r, w / 2, h / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + rad, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, rad);
-        ctx.arcTo(x + w, y + h, x,     y + h, rad);
-        ctx.arcTo(x,     y + h, x,     y,     rad);
-        ctx.arcTo(x,     y,     x + w, y,     rad);
-        ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
-    }
-    function tx(str, x, y, sz, color, align, bold) {
-        if (sz < 9.5) sz = 9.5;
-        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
+    function defaultLog() {
+        if (mode === 'inherit') return '락을 쥔 작업이 기다리는 높은 작업의 우선순위를 물려받는 과정을 봅니다.';
+        if (mode === 'compare') return 'H의 응답 시간을 상속이 없을 때와 있을 때로 비교합니다.';
+        return '낮은 작업이 락을 쥔 채 중간 작업에 밀려 높은 작업이 기다리는 과정을 봅니다.';
     }
 
-    /* ===================== 공통: 간트 차트 ===================== */
-    function drawGantt(x0, top, w, mob, step, inheritMode) {
-        var fs = mob ? 10 : 11.5;
-        var upTo = step ? step.up : -1;
-        var sim = step ? step.sim : (inheritMode ? SIM_INH : SIM_INV);
-        var lw = mob ? 38 : 52;
+    /* ===================== 레이아웃 ===================== */
+    function layout(w, mob) {
+        return { fs: mob ? 10.5 : 12, total: mode === 'compare' ? (mob ? 136 : 146) : (mob ? 306 : 304) };
+    }
+    function sceneH(w, mob) { return layout(w, mob).total; }
+
+    function ez(q) { q = clamp01(q); return q * q * (3 - 2 * q); }
+
+    /* ===================== 간트 차트 ===================== */
+    function drawGantt(x0, top, w, mob, s, p, e, fs) {
+        var sim = s.sim;
+        var upTo = s.up;
+        var pUp = p.sim === sim ? p.up : upTo;
+        var q = ez(e);
+        var revealF = lerp(pUp, upTo, q);
+        var lw = mob ? 50 : 52;
         var cw = (w - lw) / TT;
         var rh = mob ? 30 : 34;
         var gap = 8;
         var colOf = { H: P.orange, M: P.teal, L: P.purple };
+        var baseY = top + 36;
+        var visA = function (t) { return t <= pUp ? 1 : clamp01(revealF - (t - 1)); };
+
+        var curT = Math.max(-1, Math.min(upTo, Math.floor(revealF + 0.0001)));
+        var cur = curT >= 0 ? sim.timeline[curT] : null;
+        tx('CPU', x0, top + 12, fs - 0.5, P.sub + 'ff', 'left', true);
+        var cc = cur && cur.run ? colOf[cur.run] : P.sub;
+        rr(x0 + lw, top + 1, mob ? 110 : 140, 22, 5, cc + '30', cc + 'ff', 1.6);
+        tx(cur && cur.run ? cur.run + ' ' + NAME[cur.run] + ' 실행' : (curT >= 0 ? '쉬는 중' : '대기'), x0 + lw + (mob ? 55 : 70), top + 12, fs - 0.5, cc + 'ff', 'center', true);
+        if (curT >= 0) tx('t=' + curT, x0 + lw + (mob ? 120 : 152), top + 12, fs - 1, P.sub + 'ff', 'left', true);
+
         IDS.forEach(function (id, ri) {
-            var y = top + 8 + ri * (rh + gap);
-            tx(id + ' ' + NAME[id], x0, y + rh / 2, fs - (mob ? 1.5 : 0.5), colOf[id] + 'ee', 'left', true);
+            var y = baseY + ri * (rh + gap);
+            tx(id + ' ' + NAME[id], x0, y + rh / 2, fs - (mob ? 1.5 : 0.5), colOf[id] + 'ff', 'left', true);
             for (var t = 0; t < TT; t++) {
                 var cx = x0 + lw + t * cw;
-                var e = t <= upTo ? sim.timeline[t] : null;
-                var s = e ? e.st[id] : null;
-                var running = e && e.run === id;
+                var a = t <= upTo ? visA(t) : 0;
+                var ev = a > 0 ? sim.timeline[t] : null;
+                var st = ev ? ev.st[id] : null;
+                var running = ev && ev.run === id;
                 var col = colOf[id];
+                rr(cx + 1, y, cw - 2, rh, 3, 'none', P.sub + '33', 1);
+                if (!ev) continue;
+                ctx.globalAlpha = a;
                 if (running) {
-                    rr(cx + 1, y, cw - 2, rh, 3, col + '55', col + 'ff', 1.4);
-                    if (e.owner === id) tx('락', cx + cw / 2, y + rh / 2, fs - 0.5, P.text + 'ff', 'center', true);
-                    if (e.eff[id] > PRIO[id]) tx('▲', cx + cw / 2, y + 7, fs - 2, P.yellow + 'ff', 'center', true);
-                } else if (s === 'blocked') {
-                    rr(cx + 1, y, cw - 2, rh, 3, P.red + '33', P.red + 'cc', 1.2);
-                } else if (s === 'ready') {
-                    rr(cx + 1, y, cw - 2, rh, 3, 'none', P.sub + 'bb', 1.3);
-                } else {
-                    rr(cx + 1, y, cw - 2, rh, 3, 'none', P.muted + '22', 1);
+                    rr(cx + 1, y, cw - 2, rh, 3, col + '66', col + 'ff', 1.6);
+                    if (ev.owner === id) tx('락', cx + cw / 2, y + rh / 2, fs - 0.5, P.text + 'ff', 'center', true);
+                    if (ev.eff[id] > PRIO[id]) tx('▲', cx + cw / 2, y + 7, fs - 2, P.yellow + 'ff', 'center', true);
+                } else if (st === 'blocked') {
+                    var pulse = e < 1 && t > pUp ? 0.5 + 0.5 * Math.sin(e * 18) : 1;
+                    rr(cx + 1, y, cw - 2, rh, 3, P.red + '44', P.red + 'ff', 1.2 + pulse);
+                } else if (st === 'ready') {
+                    rr(cx + 1, y, cw - 2, rh, 3, 'none', P.sub + 'dd', 1.4);
                 }
+                ctx.globalAlpha = 1;
             }
         });
-        var ly = top + 8 + 3 * (rh + gap);
-        tx('락', x0, ly + 9, fs - 0.5, P.muted + 'ee', 'left', true);
+        var ly = baseY + 3 * (rh + gap);
+        tx('락', x0, ly + 9, fs - 0.5, P.sub + 'ff', 'left', true);
         for (var t2 = 0; t2 < TT; t2++) {
-            var ce = t2 <= upTo ? sim.timeline[t2] : null;
+            var a2 = t2 <= upTo ? visA(t2) : 0;
+            var ce = a2 > 0 ? sim.timeline[t2] : null;
             var cxx = x0 + lw + t2 * cw;
+            rr(cxx + 1, ly, cw - 2, 18, 3, 'none', P.sub + '33', 1);
             if (ce && ce.owner) {
-                rr(cxx + 1, ly, cw - 2, 18, 3, colOf[ce.owner] + '40', colOf[ce.owner] + 'cc', 1.2);
-                tx(ce.owner, cxx + cw / 2, ly + 9, fs - 1.5, colOf[ce.owner] + 'ee', 'center', true);
-            } else {
-                rr(cxx + 1, ly, cw - 2, 18, 3, 'none', P.muted + '22', 1);
+                ctx.globalAlpha = a2;
+                rr(cxx + 1, ly, cw - 2, 18, 3, colOf[ce.owner] + '55', colOf[ce.owner] + 'ff', 1.4);
+                tx(ce.owner, cxx + cw / 2, ly + 9, fs - 1.5, colOf[ce.owner] + 'ff', 'center', true);
+                ctx.globalAlpha = 1;
             }
-            tx(String(t2), cxx + cw / 2, ly + 32, fs - 1.5, P.muted + 'cc', 'center', false);
+            tx(String(t2), cxx + cw / 2, ly + 32, fs - 1.5, P.sub + 'ff', 'center', false);
         }
-        var legY = ly + 52;
-        tx('채움 = 실행, 빨강 = 락 대기, 회색 테두리 = CPU 대기', x0, legY, fs - 0.5, P.muted + 'ee', 'left', false);
+        if (e < 1 && upTo > pUp) {
+            var cxr = x0 + lw + (revealF + 1) * cw;
+            ln(cxr, baseY - 6, cxr, ly + 20, P.yellow + 'ff', 2);
+        }
+        lines('채움 = 실행, 빨강 = 락 대기, 회색 테두리 = CPU 대기', w, fs - 0.5).forEach(function (l, li) {
+            tx(l, x0, ly + 52 + li * (fs + 3), fs - 0.5, P.sub + 'ff', 'left', false);
+        });
     }
 
-    /* ===================== 모드: 비교 ===================== */
-    function drawCompare(x0, top, w, mob, step) {
-        var fs = mob ? 10.5 : 12;
-        var k = step ? step.k : 0;
+    /* ===================== 비교 ===================== */
+    function drawCompare(x0, top, w, mob, s, p, e, fs) {
+        var k = s.k, pk = p.k;
         var bh = mob ? 30 : 36;
-        var lw = mob ? 74 : 110;
-        var maxW = w - lw - (mob ? 46 : 60);
+        var lw = mob ? 92 : 110;
+        var maxW = w - lw - (mob ? 40 : 60);
         var vals = [['상속 없음', resp(SIM_INV), P.red, 1], ['우선순위 상속', resp(SIM_INH), P.green, 2]];
         var mx = Math.max(resp(SIM_INV), resp(SIM_INH));
-        tx('H의 응답 시간 (도착 → 완료)', x0, top + 12, fs, P.text + 'ee', 'left', true);
+        tx('H의 응답 시간 (도착 → 완료)', x0, top + 12, fs, P.text + 'ff', 'left', true);
         vals.forEach(function (v, i) {
             var y = top + 30 + i * (bh + 18);
             var on = k >= v[3];
-            tx(v[0], x0, y + bh / 2, fs - 0.5, on ? v[2] + 'ee' : P.muted + '77', 'left', true);
-            rr(x0 + lw, y, maxW, bh, 4, 'none', P.muted + '33', 1);
+            tx(v[0], x0, y + bh / 2, fs - 0.5, on ? v[2] + 'ff' : P.sub + 'ff', 'left', true);
+            rr(x0 + lw, y, maxW, bh, 4, 'none', P.sub + '55', 1);
             if (on) {
-                var bw = maxW * v[1] / mx;
-                rr(x0 + lw, y, bw, bh, 4, v[2] + '30', v[2] + 'cc', 1.5);
-                tx(String(v[1]), x0 + lw + bw + 8, y + bh / 2, fs, v[2] + 'ee', 'left', true);
+                var g = pk >= v[3] ? 1 : ez(e);
+                var bw = maxW * v[1] / mx * g;
+                rr(x0 + lw, y, bw, bh, 4, v[2] + '30', v[2] + 'ff', 1.6);
+                tx(String(Math.round(v[1] * g)), x0 + lw + bw + 8, y + bh / 2, fs, v[2] + 'ff', 'left', true);
             }
         });
+        if (k >= 2) {
+            var dv = resp(SIM_INV) - resp(SIM_INH);
+            ctx.globalAlpha = pk >= 2 ? 1 : clamp01((e - 0.5) / 0.5);
+            tx('−' + dv + ' 단축', x0 + w, top + 12, fs, P.green + 'ff', 'right', true);
+            ctx.globalAlpha = 1;
+        }
+    }
+
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var L = layout(w, mob);
+        var e = clamp01(t);
+        var s = step || currentSteps()[0];
+        var p = prev || s;
+        if (mode === 'compare') drawCompare(x0, top, w, mob, s, p, e, L.fs);
+        else drawGantt(x0, top, w, mob, s, p, e, L.fs);
     }
 
     /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
     function draw() {
         P = window.CsFlow.getP();
         ctx.clearRect(0, 0, GW(), GH());
         var W = GW(); var mob = W < 600;
-        var padX = mob ? 16 : 26;
-        var fullW = W - padX * 2;
-        var top = mob ? 18 : 26;
-
         var steps = currentSteps();
         var step = stepIdx >= 0 ? steps[stepIdx] : null;
-
-        if (mode === 'compare') drawCompare(padX, top, fullW, mob, step);
-        else drawGantt(padX, top, fullW, mob, step, mode === 'inherit');
-
-        if (!step) {
-            var hint = '아래 STEP으로 우선순위 역전과 상속을 확인하세요.';
-            ctx.font = '500 ' + (mob ? 11 : 12.5) + 'px "JetBrains Mono",monospace';
-            var hs = mob ? 11 : 12.5;
-            var hl = [hint];
-            if (ctx.measureText(hint).width > W - 16) {
-                var cut = hint.indexOf(' ', Math.floor(hint.length / 2));
-                if (cut < 0) cut = hint.lastIndexOf(' ');
-                hl = [hint.slice(0, cut), hint.slice(cut + 1)];
-            }
-            hl.forEach(function (line, li) {
-                tx(line, W / 2, GH() - (mob ? 12 : 14) - (hl.length - 1 - li) * (hs + 4), hs, P.muted + 'aa', 'center', false);
-            });
-        }
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
         var mob = w < 600;
-        var neededH;
-        if (mode === 'compare') neededH = mob ? 170 : 180;
-        else neededH = mob ? 250 : 260;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
         canvasWrap.style.height    = 'auto';
-        canvasWrap.style.minHeight = neededH + 'px';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
         var actualH = canvasWrap.offsetHeight || neededH;
         if (actualH < neededH) actualH = neededH;
         canvas.width  = w * dpr;
@@ -347,17 +420,22 @@
     /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        draw();
-        rafId = requestAnimationFrame(function () { rafId = null; if (onDone) onDone(); });
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
     function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
-    function defaultLog() {
-        if (mode === 'inherit') return '락을 쥔 작업이 기다리는 높은 우선순위 작업의 우선순위를 상속하는 과정을 봅니다.';
-        if (mode === 'compare') return '우선순위 상속이 있을 때와 없을 때 높은 우선순위 작업의 응답 시간을 비교합니다.';
-        return '낮은 우선순위 작업이 쥔 락 때문에 높은 우선순위 작업이 중간 작업에게도 밀리는 우선순위 역전을 봅니다.';
-    }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -396,7 +474,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);

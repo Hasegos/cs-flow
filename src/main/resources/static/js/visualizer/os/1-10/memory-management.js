@@ -1,78 +1,182 @@
 /**
- * 메모리 관리 시각화
+ * 메모리 관리 시각화 시각화
  */
 (function () {
     'use strict';
 
-    const container = document.getElementById('visualizer-container');
+    var container = document.getElementById('visualizer-container');
     if (!container) return;
 
-    /* ===================== UI 구성 ===================== */
     function el(tag, cls, txt) {
-        const e = document.createElement(tag);
+        var e = document.createElement(tag);
         if (cls) e.className = cls;
-        if (txt) e.textContent = txt;
+        if (txt !== undefined && txt !== null) e.textContent = txt;
         return e;
     }
 
-    const root    = el('div', 'mem-viz');
-    const toolbar = el('div', 'mem-viz__toolbar');
-    const tbLeft  = el('div', 'mem-viz__toolbar-left');
+    /* ===================== DOM ===================== */
+    var root    = el('div', 'mem-viz');
+    var toolbar = el('div', 'mem-viz__toolbar');
+    var tbLeft  = el('div', 'mem-viz__toolbar-left');
     tbLeft.appendChild(el('span', 'mem-viz__title', 'Memory Management'));
-    const badge = el('span', 'mem-viz__step-badge', 'IDLE');
-    tbLeft.appendChild(badge);
+
+    var modeWrap = el('div', 'mem-viz__mode');
+    var modeDefs = [
+
+    ];
+    var modeBtns = {};
+    modeDefs.forEach(function (m, i) {
+        var b = el('button', 'mem-viz__mode-btn' + (i === 0 ? ' mem-viz__mode-btn--active' : ''), m.label);
+        b.addEventListener('click', function () { if (!running) switchMode(m.key); });
+        modeWrap.appendChild(b);
+        modeBtns[m.key] = b;
+    });
+    if (modeDefs.length) tbLeft.appendChild(modeWrap);
     toolbar.appendChild(tbLeft);
 
-    const speedWrap = el('div', 'mem-viz__speed');
+    var speedWrap = el('div', 'mem-viz__speed');
     speedWrap.appendChild(el('span', 'mem-viz__speed-label', 'SPEED'));
-    [['1x', 1800], ['2x', 900], ['3x', 600]].forEach(function (pair, i) {
-        const b = el('button', 'mem-viz__speed-btn' + (i === 0 ? ' mem-viz__speed-btn--active' : ''), pair[0]);
+    var speedBtns = [];
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
+        var b = el('button', 'mem-viz__speed-btn' + (i === 0 ? ' mem-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
+        speedBtns.push(b);
     });
     toolbar.appendChild(speedWrap);
     root.appendChild(toolbar);
 
-    const canvasWrap = el('div', 'mem-viz__canvas-wrap');
-    const canvas     = document.createElement('canvas');
+    var canvasWrap = el('div', 'mem-viz__canvas-wrap');
+    var canvas     = document.createElement('canvas');
     canvas.className = 'mem-viz__canvas';
     canvasWrap.appendChild(canvas);
     root.appendChild(canvasWrap);
 
-    const logEl = el('div', 'mem-viz__log', '▶ PLAY를 눌러 메모리 할당과 단편화 과정을 확인하세요.');
+    var logEl = el('div', 'mem-viz__log', '');
     root.appendChild(logEl);
 
-    const controls = el('div', 'mem-viz__controls');
-    const btnPlay  = el('button', 'mem-viz__btn mem-viz__btn--primary', '▶ PLAY');
-    const btnStep  = el('button', 'mem-viz__btn', '▶| STEP');
-    const btnReset = el('button', 'mem-viz__btn', '↺ RESET');
-    btnPlay.addEventListener('click',  memStart);
-    btnStep.addEventListener('click',  memStep);
-    btnReset.addEventListener('click', memReset);
+    var controls = el('div', 'mem-viz__controls');
+    var btnPlay  = el('button', 'mem-viz__btn mem-viz__btn--primary', '▶ PLAY');
+    var btnStep  = el('button', 'mem-viz__btn', '▶| STEP');
+    var btnReset = el('button', 'mem-viz__btn', '↺ RESET');
+    btnPlay.addEventListener('click',  vizStart);
+    btnStep.addEventListener('click',  vizStep);
+    btnReset.addEventListener('click', vizReset);
     controls.appendChild(btnPlay);
     controls.appendChild(btnStep);
     controls.appendChild(btnReset);
     root.appendChild(controls);
     container.appendChild(root);
 
-    /* ===================== 캔버스 ===================== */
-    const ctx = canvas.getContext('2d');
-    const dpr = window.devicePixelRatio || 1;
-    const GW  = function () { return canvas.width  / dpr; };
-    const GH  = function () { return canvas.height / dpr; };
+    var ctx = canvas.getContext('2d');
+    var dpr = window.devicePixelRatio || 1;
+    function GW() { return canvas.width / dpr; }
+    function GH() { return canvas.height / dpr; }
 
-    function resize() {
-        const w = canvasWrap.offsetWidth;
-        const minH = w < 520 ? 500 : 460;
-        canvasWrap.style.minHeight = minH + 'px';
-        const h = Math.max(canvasWrap.offsetHeight, minH);
-        canvas.width  = w * dpr;
-        canvas.height = h * dpr;
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        draw();
+    var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = '';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
     }
-
-    let P = window.CsFlow.getP();
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    var tipHits = [];
+    var mousePos = { x: -1, y: -1 };
+    var hoveredKey = null;
+    function tipHit(x, y, w, h, key) { tipHits.push({ x: x, y: y, w: w, h: h, key: key }); }
+    function tipBadge(cx, cy, key) {
+        var on = hoveredKey === key;
+        circ(cx, cy, 7, on ? P.purple + '44' : 'none', P.purple + (on ? 'ff' : '99'), 1.2);
+        tx('?', cx, cy, 9.5, on ? P.text + 'ff' : P.sub + 'ff', 'center', true);
+        tipHit(cx - 10, cy - 10, 20, 20, key);
+    }
+    function drawTip(mx, my, text) {
+        var parts = text.split(String.fromCharCode(10));
+        var title = parts[0], desc = parts[1] || '';
+        var W = GW(), H = GH();
+        var pad = 14;
+        var maxIn = W - 16 - pad * 2;
+        ctx.font = '700 14px "JetBrains Mono",monospace';
+        var tl = window.CsFlow.wrapText(ctx, title, maxIn);
+        var titleW = 0;
+        tl.forEach(function (l) { titleW = Math.max(titleW, ctx.measureText(l).width); });
+        ctx.font = '400 13px "JetBrains Mono",monospace';
+        var dl = desc ? window.CsFlow.wrapText(ctx, desc, maxIn) : [];
+        var descW = 0;
+        dl.forEach(function (l) { descW = Math.max(descW, ctx.measureText(l).width); });
+        var tw = Math.min(W - 16, Math.max(titleW, descW) + pad * 2);
+        var th = desc ? 24 + tl.length * 18 + dl.length * 18 : 18 + tl.length * 18;
+        var bx = mx + 14, by = my - th - 8;
+        if (bx + tw > W - 8) bx = mx - tw - 14;
+        if (bx < 8) bx = 8;
+        if (by < 8) by = my + 14;
+        if (by + th > H - 8) by = H - th - 8;
+        rr(bx, by, tw, th, 6, P.surf2, P.purple + 'cc', 2);
+        tl.forEach(function (l, i) { tx(l, bx + pad, by + 18 + i * 18, 14, P.text + 'ff', 'left', true); });
+        dl.forEach(function (l, i) { tx(l, bx + pad, by + 24 + tl.length * 18 + i * 18, 13, P.sub + 'ff', 'left', false); });
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 상수 ===================== */
     const TOTAL_KB = 512;
@@ -171,467 +275,517 @@
         },
     ];
 
-    /* ===================== 상태 변수 ===================== */
-    let stepIdx  = -1;
-    let running  = false;
-    let timer    = null;
-    let rafId    = null;
-    let speed    = 1800;
-    let animProg = 0;
-    let animCb   = null;
-
-    let tooltipHits = [];
-    let mousePos    = { x: -1, y: -1 };
-    let hoveredKey  = null;
-
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        ctx.beginPath();
-        ctx.moveTo(x + r, y);
-        ctx.arcTo(x + w, y, x + w, y + h, r);
-        ctx.arcTo(x + w, y + h, x, y + h, r);
-        ctx.arcTo(x, y + h, x, y, r);
-        ctx.arcTo(x, y, x + w, y, r);
-        ctx.closePath();
-        if (fill)   { ctx.fillStyle = fill;   ctx.fill(); }
-        if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.5; ctx.stroke(); }
-    }
-
-    function tx(str, x, y, sz, color, align, bold) {
-        ctx.font = (bold ? '700' : '400') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
-    }
-
-    /* ===================== 레이아웃 ===================== */
-    function buildLayout() {
-        const W = GW(), H = GH();
-        const mob = W < 520;
-        const fMd = mob ? 12 : 14;
-        const fSm = mob ? 10 : 12;
-
-        const pad  = mob ? 14 : 28;
-        const barX = pad;
-        const barW = W - pad * 2;
-        const barH = mob ? 64 : 90;
-        const barY = mob ? 32 : Math.round(H * 0.13);
-
-        const scaleH  = mob ? 26 : 30;
-        const statsY  = barY + barH + scaleH + (mob ? 10 : 14);
-        const infoY   = statsY + (mob ? 66 : 76);
-
-        const gridCols = 4, gridRows = 2;
-        const gridPad  = mob ? 6 : 10;
-        const cellW    = mob ? Math.round((W - pad*2 - gridPad*(gridCols+1)) / gridCols)
-                              : Math.round((W * 0.56 - gridPad*(gridCols+1)) / gridCols);
-        const cellH    = mob ? 70 : 84;
-        const gridW    = cellW * gridCols + gridPad * (gridCols + 1);
-        const gridX    = pad;
-        const gridY    = mob ? 32 : Math.round(H * 0.10);
-
-        const tableX = mob ? pad : gridX + gridW + (mob ? 0 : 24);
-        const tableW = mob ? barW : W - tableX - pad;
-        const tableY = mob ? gridY + gridRows*(cellH+gridPad) + gridPad + 20 : gridY;
-
-        return {
-            W, H, mob, fMd, fSm,
-            pad, barX, barW, barH, barY, scaleH, statsY, infoY,
-            gridCols, gridRows, gridPad, cellW, cellH, gridW, gridX, gridY,
-            tableX, tableW, tableY,
-        };
-    }
-
-    /* ===================== 메모리 바 그리기 ===================== */
-    function drawMemBar(L, step) {
-        const { barX, barW, barH, barY, fMd, fSm, mob } = L;
-        const segs = step.segs;
-        const anim = step.anim;
-
-        const widths = segs.map(function (s) {
-            return s.size / TOTAL_KB * barW;
-        });
-
-        if (anim && anim.type === 'alloc' && animProg < 1) {
-            const ni = segs.findIndex(function (s) { return s.id === anim.newId; });
-            const fi = segs.findIndex(function (s) { return s.id === anim.freeId; });
-            if (ni >= 0 && fi >= 0) {
-                const fullW = widths[ni];
-                widths[ni]   = fullW * animProg;
-                widths[fi]  += fullW * (1 - animProg);
-            }
-        }
-
-        let curX = barX;
-        segs.forEach(function (seg, i) {
-            const w = widths[i];
-            if (w < 0.5) { curX += w; return; }
-
-            if (seg.type === 'proc') {
-                const col = procCol(seg.id);
-                rr(curX, barY, w, barH, 4, col + '30', col, 2.5);
-                if (w > (mob ? 28 : 44)) {
-                    tx(seg.id,            curX + w/2, barY + barH*0.36, fMd,     col,       'center', true);
-                    tx(seg.size + 'KB',   curX + w/2, barY + barH*0.65, fSm - 1, col+'cc',  'center', false);
-                }
-            } else if (seg.type === 'hole') {
-                rr(curX, barY, w, barH, 4, P.red + '14', P.red, 2.5);
-                ctx.save();
-                ctx.beginPath();
-                ctx.rect(curX + 1, barY + 1, w - 2, barH - 2);
-                ctx.clip();
-                ctx.strokeStyle = P.red + '28';
-                ctx.lineWidth   = 1.5;
-                for (let sx = curX - barH; sx < curX + w + barH; sx += 14) {
-                    ctx.beginPath();
-                    ctx.moveTo(sx, barY);
-                    ctx.lineTo(sx + barH, barY + barH);
-                    ctx.stroke();
-                }
-                ctx.restore();
-                if (w > (mob ? 36 : 56)) {
-                    tx('HOLE',            curX + w/2, barY + barH*0.36, fMd,     P.red,      'center', true);
-                    tx(seg.size + 'KB',   curX + w/2, barY + barH*0.65, fSm - 1, P.red+'cc', 'center', false);
-                }
-            } else {
-                rr(curX, barY, w, barH, 4, P.surf2, P.border, 1);
-                if (w > (mob ? 24 : 40)) {
-                    tx('FREE',           curX + w/2, barY + barH*0.36, mob ? fSm-1 : fSm, P.muted, 'center', false);
-                    tx(seg.size + 'KB',  curX + w/2, barY + barH*0.65, mob ? fSm-2 : fSm-1, P.muted, 'center', false);
-                }
-            }
-
-            curX += w;
-        });
-
-        drawScale(L);
-    }
-
-    function drawScale(L) {
-        const { barX, barW, barY, barH, fSm, mob } = L;
-        const ry = barY + barH + 6;
-        [0, 128, 256, 384, 512].forEach(function (kb) {
-            const x = barX + kb / TOTAL_KB * barW;
-            ctx.beginPath(); ctx.moveTo(x, ry); ctx.lineTo(x, ry + 4);
-            ctx.strokeStyle = P.border; ctx.lineWidth = 1; ctx.stroke();
-            tx(kb + 'K', x, ry + 11, mob ? 9 : 10, P.muted, 'center', false);
-        });
-    }
-
-    /* ===================== 단편화 통계 패널 ===================== */
-    function drawFragPanel(L, step) {
-        const { W, statsY, mob, fMd, fSm, barW, barX } = L;
-
-        if (!step.showFrag) {
-            const free = step.segs.reduce(function (s, sg) {
-                return sg.type !== 'proc' ? s + sg.size : s;
-            }, 0);
-            tx('여유 공간: ' + free + 'KB', W / 2, statsY + (mob ? 10 : 12), fSm, P.muted, 'center', false);
-            return;
-        }
-
-        const totalFree = step.segs.reduce(function (s, sg) {
-            return sg.type !== 'proc' ? s + sg.size : s;
-        }, 0);
-        const maxContig = step.segs.reduce(function (mx, sg) {
-            return (sg.type === 'hole' || sg.type === 'free') && sg.size > mx ? sg.size : mx;
-        }, 0);
-
-        const bW = mob ? W - 28 : Math.min(barW, 500);
-        const bH = mob ? 58 : 64;
-        const bX = Math.round((W - bW) / 2);
-
-        rr(bX, statsY, bW, bH, 6, P.red + '12', P.red + '88', 1.5);
-        tx('⚠ 외부 단편화', bX + bW/2, statsY + bH*0.28, fSm, P.red, 'center', true);
-
-        const half = bW / 2;
-        tx('총 여유 메모리', bX + half*0.5, statsY + bH*0.62, fSm - 1, P.muted, 'center', false);
-        tx(totalFree + 'KB', bX + half*0.5, statsY + bH*0.82, fSm, P.orange, 'center', true);
-
-        tx('최대 연속 공간', bX + half + half*0.5, statsY + bH*0.62, fSm - 1, P.muted, 'center', false);
-        tx(maxContig + 'KB !!', bX + half + half*0.5, statsY + bH*0.82, fSm, P.red, 'center', true);
-
-        ctx.beginPath();
-        ctx.moveTo(bX + half, statsY + bH * 0.45);
-        ctx.lineTo(bX + half, statsY + bH * 0.95);
-        ctx.strokeStyle = P.red + '44'; ctx.lineWidth = 1; ctx.stroke();
-    }
-
-    /* ===================== P4 실패 비교 패널 ===================== */
-    function drawFailPanel(L, step) {
-        const { W, infoY, mob, fMd, fSm } = L;
-
-        const bW   = mob ? W - 28 : Math.min(500, W - 56);
-        const bH   = mob ? 90 : 100;
-        const bX   = Math.round((W - bW) / 2);
-        const gap  = mob ? 10 : 14;
-        const colW = Math.round((bW - gap * 3) / 2);
-
-        rr(bX, infoY, bW, bH, 8, P.surf, P.border, 1);
-
-        rr(bX + gap, infoY + gap, colW, bH - gap*2, 6, P.green + '20', P.green, 2);
-        tx('P4 필요',        bX + gap + colW/2, infoY + gap + (bH-gap*2)*0.26, fSm,     P.green, 'center', true);
-        tx('320KB',          bX + gap + colW/2, infoY + gap + (bH-gap*2)*0.53, fMd + 2, P.green, 'center', true);
-        tx('5 프레임',       bX + gap + colW/2, infoY + gap + (bH-gap*2)*0.78, fSm - 1, P.green + 'cc', 'center', false);
-
-        rr(bX + gap*2 + colW, infoY + gap, colW, bH - gap*2, 6, P.red + '20', P.red, 2);
-        tx('최대 연속 공간', bX + gap*2 + colW + colW/2, infoY + gap + (bH-gap*2)*0.26, fSm,     P.red, 'center', true);
-        tx('256KB',          bX + gap*2 + colW + colW/2, infoY + gap + (bH-gap*2)*0.53, fMd + 2, P.red, 'center', true);
-        tx('4 프레임만',     bX + gap*2 + colW + colW/2, infoY + gap + (bH-gap*2)*0.78, fSm - 1, P.red + 'cc', 'center', false);
-
-        tx('>', bX + bW/2, infoY + bH/2, mob ? 22 : 28, P.red, 'center', true);
-
-        tx('320KB > 256KB → 할당 불가!',
-           W/2, infoY + bH + (mob ? 14 : 18), fSm, P.red, 'center', true);
-    }
-
-    /* ===================== 페이징 그리드 ===================== */
-    function drawPagingGrid(L, step) {
-        const { W, H, mob, fMd, fSm,
-                gridCols, gridRows, gridPad, cellW, cellH,
-                gridX, gridY, gridW,
-                tableX, tableW, tableY } = L;
-
-        const frames = step.frames;
-
-        tx('물리 메모리  (8 × 64KB 프레임)',
-           gridX + gridW/2, gridY - (mob ? 14 : 18),
-           fSm, P.sub, 'center', false);
-
-        frames.forEach(function (fr, i) {
-            const row = Math.floor(i / gridCols);
-            const col = i % gridCols;
-            const cx  = gridX + gridPad + col * (cellW + gridPad);
-            const cy  = gridY + gridPad + row * (cellH + gridPad);
-            const col_ = procCol(fr.owner);
-            const isP4 = fr.owner === 'P4';
-
-            rr(cx, cy, cellW, cellH, 6,
-               col_ + (isP4 ? '2a' : '1a'),
-               col_, isP4 ? 2.5 : 2);
-
-            tx('F' + fr.n,    cx + cellW/2, cy + cellH*0.24, mob ? fSm   : fSm + 2, P.muted,    'center', false);
-            tx(fr.owner,      cx + cellW/2, cy + cellH*0.52, mob ? fMd+1 : fMd + 4, col_,       'center', true);
-            tx('p' + fr.page, cx + cellW/2, cy + cellH*0.78, mob ? fSm   : fSm + 1, col_+'aa',  'center', false);
-        });
-
-        const p4Frames = frames.filter(function (f) { return f.owner === 'P4'; });
-        const rowH = mob ? 22 : 26;
-
-        tx('P4 페이지 테이블', tableX + tableW/2, tableY - (mob ? 12 : 16), fSm, P.green, 'center', true);
-
-        const tH  = rowH * (p4Frames.length + 1) + 12;
-        rr(tableX, tableY, tableW, tH, 4, P.surf, P.border, 1);
-
-        tx('페이지', tableX + tableW * 0.22, tableY + rowH/2 + 2, fSm, P.muted, 'center', true);
-        tx('프레임',  tableX + tableW * 0.78, tableY + rowH/2 + 2, fSm, P.muted, 'center', true);
-        ctx.beginPath();
-        ctx.moveTo(tableX + 10, tableY + rowH + 1);
-        ctx.lineTo(tableX + tableW - 10, tableY + rowH + 1);
-        ctx.strokeStyle = P.border; ctx.lineWidth = 1; ctx.stroke();
-
-        p4Frames.forEach(function (fr, i) {
-            const ry = tableY + rowH * (i + 1) + 4 + i * 2;
-            tx('p' + fr.page,  tableX + tableW * 0.22, ry + rowH/2, fSm + 1, P.green,  'center', false);
-            tx('→',            tableX + tableW * 0.50, ry + rowH/2, fSm,     P.muted,  'center', false);
-            tx('F' + fr.n,     tableX + tableW * 0.78, ry + rowH/2, fSm + 1, P.green,  'center', true);
-        });
-
-        if (step.pagingOk) {
-            const bY = mob
-                ? tableY + tH + 12
-                : gridY + gridRows*(cellH+gridPad) + gridPad + 14;
-            const bW  = mob ? W - 28 : gridW;
-            const bX  = mob ? 14 : gridX;
-            rr(bX, bY, bW, mob ? 36 : 42, 6, P.green + '18', P.green, 2);
-            tx('✓ 비연속 할당 성공 — 외부 단편화 해결',
-               bX + bW/2, bY + (mob ? 18 : 21), fSm, P.green, 'center', true);
-        }
-    }
-
-    /* ===================== 메인 드로우 ===================== */
-    function draw() {
-        P = window.CsFlow.getP();
-        ctx.clearRect(0, 0, GW(), GH());
-        ctx.fillStyle = P.bg;
-        ctx.fillRect(0, 0, GW(), GH());
-        tooltipHits = [];
-
-        const L    = buildLayout();
-        const step = stepIdx >= 0 ? STEPS[stepIdx] : STEPS[0];
-
-        if (step.mode === 'bar') {
-            drawMemBar(L, step);
-            drawFragPanel(L, step);
-            if (step.showFail) drawFailPanel(L, step);
-        } else {
-            drawPagingGrid(L, step);
-        }
-
-        if (hoveredKey) drawTooltip(L);
-    }
-
-    /* ===================== 툴팁 ===================== */
-    const TIPS = {
+    /* ===================== 상태 ===================== */
+    var TIPS = {
         P1: 'Process 1 (128KB)\n메모리 앞쪽 2 프레임(F0·F1)을 점유합니다.',
         P2: 'Process 2 (256KB)\n종료 후 4 프레임이 HOLE(구멍)이 됩니다.',
         P3: 'Process 3 (64KB)\n1 프레임(F6)을 점유합니다.',
         P4: 'Process 4 (320KB)\n연속 할당에서는 실패하지만, 페이징으로 5개 프레임에 분산 배치되어 성공합니다.',
         HOLE: '외부 단편화 구멍 (256KB)\n총 여유 공간에는 포함되지만 연속 공간이 필요한 프로세스는 이 공간을 활용하지 못합니다.',
-        FREE: '여유 공간 (64KB)\n아직 할당되지 않은 연속 메모리 영역입니다.',
+        FREE: '여유 공간 (64KB)\n아직 할당되지 않은 연속 메모리 영역입니다.'
     };
 
-    function drawTooltip(L) {
-        if (!hoveredKey || !TIPS[hoveredKey]) return;
-        const parts = TIPS[hoveredKey].split('\n');
-        const title = parts[0], desc = parts[1] || '';
-        const W = GW(), H = GH();
-        const pad = 14;
-        const maxTW = Math.min(W - 24, W < 520 ? W * 0.85 : 300);
-        const innerW = maxTW - pad * 2;
-        const tFont = '700 13px "JetBrains Mono",monospace';
-        const dFont = '400 12px "JetBrains Mono",monospace';
-        ctx.font = tFont;
-        const tW2 = ctx.measureText(title).width;
-        ctx.font = dFont;
-        const words = desc.split(' ');
-        const lines = [];
-        let cur = '';
-        words.forEach(function (w) {
-            const t = cur ? cur + ' ' + w : w;
-            if (ctx.measureText(t).width > innerW && cur) { lines.push(cur); cur = w; }
-            else cur = t;
+    /* ===================== 장면 ===================== */
+    var MM_REQ = 320;
+    var mmOx = 0;
+    var mmOy = 0;
+
+    function currentSteps() { return STEPS; }
+    function defaultLog() { return '▶ PLAY를 눌러 메모리 할당과 단편화 과정을 확인하세요.'; }
+    function ez(q) { q = clamp01(q); return q * q * (3 - 2 * q); }
+    function mmFade(t, a, b) { return ez(seg(t, a, b)); }
+    function mmTxtW(str, sz, bold) {
+        var n = 0;
+        for (var i = 0; i < str.length; i++) n += str.charCodeAt(i) > 255 ? 1 : 0.6;
+        return n * sz * (bold ? 1.1 : 1);
+    }
+    function mmHit(x, y, w, h, key) { tipHit(x + mmOx, y + mmOy, w, h, key); }
+    function mmYOf(L, v) { return L.colY + v / TOTAL_KB * L.colH; }
+    function mmRegions(st) {
+        var out = [], acc = 0;
+        st.segs.forEach(function (g) {
+            out.push({ id: g.id, type: g.type, size: g.size, s: acc, e: acc + g.size });
+            acc += g.size;
         });
-        if (cur) lines.push(cur);
-        const lineH = 17, titleH = 24;
-        const th = desc ? titleH + lines.length * lineH + 10 : 36;
-        const tw = Math.min(Math.max(tW2, innerW) + pad * 2, maxTW);
-        let bx = mousePos.x + 14, by = mousePos.y - th - 8;
-        if (bx + tw > W - 8) bx = mousePos.x - tw - 14;
-        if (bx < 8)          bx = 8;
-        if (by < 8)          by = mousePos.y + 14;
-        if (by + th > H - 8) by = H - th - 8;
-        rr(bx, by, tw, th, 6, P.surf2, P.purple + 'cc', 2);
-        ctx.font = tFont; ctx.fillStyle = P.text;
-        ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-        ctx.fillText(title, bx + pad, by + (desc ? 14 : th / 2));
-        if (lines.length) {
-            ctx.font = dFont; ctx.fillStyle = P.sub;
-            lines.forEach(function (l, i) {
-                ctx.fillText(l, bx + pad, by + titleH + i * lineH + 4);
-            });
-        }
+        return out;
     }
-
-    /* ===================== 애니메이션 ===================== */
-    function runAnim(cb) {
-        animProg = 0;
-        animCb   = cb || null;
-        if (rafId) cancelAnimationFrame(rafId);
-        const BASE = 1800, baseStep = 0.007;
-        const s = baseStep * (BASE / speed);
-        (function tick() {
-            animProg = Math.min(1, animProg + s);
-            draw();
-            if (animProg < 1) { rafId = requestAnimationFrame(tick); }
-            else {
-                animProg = 1;
-                draw();
-                if (animCb) { var fn = animCb; animCb = null; fn(); }
+    function mmFind(list, id) {
+        for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i];
+        return null;
+    }
+    function mmReplOf(pr, cur, r) {
+        for (var i = 0; i < pr.length; i++) {
+            var q = pr[i];
+            if (!mmFind(cur, q.id) && q.s === r.s && q.e === r.e) return q;
+        }
+        return null;
+    }
+    function mmStyleAt(list, kb) {
+        for (var i = 0; i < list.length; i++) if (kb >= list[i].s && kb < list[i].e) return list[i];
+        return null;
+    }
+    function mmSums(st) {
+        var free = 0, maxC = 0;
+        st.segs.forEach(function (g) {
+            if (g.type === 'proc') return;
+            free += g.size;
+            if (g.size > maxC) maxC = g.size;
+        });
+        return { free: free, maxC: maxC };
+    }
+    function mmFrameAt(st, n) {
+        for (var i = 0; i < st.frames.length; i++) if (st.frames[i].n === n) return st.frames[i];
+        return null;
+    }
+    function mmP4List(st) {
+        return st.frames.filter(function (f) { return f.owner === 'P4'; });
+    }
+    function mmPgStart(j) { return 0.2 + 0.1 * j; }
+    function mmPgEnd(j) { return mmPgStart(j) + 0.35; }
+    function mmTrack(t, pts) {
+        for (var i = 0; i < pts.length - 1; i++) {
+            var a = pts[i], b = pts[i + 1];
+            if (t <= b[0]) {
+                var u = ez(seg(t, a[0], b[0]));
+                return [lerp(a[1], b[1], u), lerp(a[2], b[2], u)];
             }
-        })();
-    }
-
-    /* ===================== 단계 적용 ===================== */
-    function setBadge(s) {
-        badge.textContent = s;
-        badge.className = 'mem-viz__step-badge' + (s !== 'IDLE' ? ' mem-viz__step-badge--active' : '');
-    }
-    function setSpeedDisabled(v) {
-        root.querySelectorAll('.mem-viz__speed-btn').forEach(function (b) { b.disabled = v; });
-    }
-
-    function applyStep(idx, onDone) {
-        stepIdx  = idx;
-        animProg = 1;
-        const step = STEPS[idx];
-        setBadge(step.badge);
-        logEl.textContent = step.log;
-
-        if (step.anim && step.anim.type === 'alloc') {
-            runAnim(function () {
-                draw();
-                if (onDone) setTimeout(onDone, 0);
-            });
-        } else {
-            draw();
-            if (onDone) setTimeout(onDone, 0);
         }
+        var z = pts[pts.length - 1];
+        return [z[1], z[2]];
+    }
+    function mmChipOrigin(L) {
+        if (L.mob) return { x: L.colX + L.colW / 2, y: L.colY + L.colH + 14 };
+        return { x: L.pX + L.pW - 70, y: L.colY - 14 };
+    }
+    function mmPgOrigin(L, j) {
+        var pad = L.mob ? 8 : 14;
+        if (L.mob) {
+            var cw = Math.floor((L.pW - pad * 2 - 12) / 3);
+            return { x: L.pX + pad + (j % 3) * (cw + 6) + cw / 2, y: L.failY + 35 + Math.floor(j / 3) * 22 };
+        }
+        return { x: L.pX + pad + 50, y: L.failY + 34 + j * 18 };
+    }
+    function mmHatch(x, y, w, h, col) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(x + 1, y + 1, w - 2, h - 2);
+        ctx.clip();
+        ctx.strokeStyle = col;
+        ctx.lineWidth = 1.2;
+        for (var sx = x - h; sx < x + w + h; sx += 10) {
+            ctx.beginPath();
+            ctx.moveTo(sx, y);
+            ctx.lineTo(sx + h, y + h);
+            ctx.stroke();
+        }
+        ctx.restore();
+    }
+    function mmBadge(cx, cy, key) {
+        var on = hoveredKey === key;
+        circ(cx, cy, 7, on ? P.purple + '44' : 'none', P.purple + (on ? 'ff' : '99'), 1.2);
+        tx('?', cx, cy, 9.5, on ? P.text + 'ff' : P.sub + 'ff', 'center', true);
+        mmHit(cx - 10, cy - 10, 20, 20, key);
+    }
+    function mmChip(x, y, txt, col, a, fs) {
+        if (a <= 0.02) return;
+        var cw = mmTxtW(txt, fs, true) + 14;
+        ctx.globalAlpha = a;
+        rr(x - cw / 2, y - 10, cw, 20, 10, col + 'ff');
+        tx(txt, x, y, fs, '#111111', 'center', true);
+        ctx.globalAlpha = 1;
+    }
+    function mmBlock(L, r, y, h, a) {
+        if (a <= 0.02 || h < 0.5) return;
+        var x = L.colX, w = L.colW;
+        var key = r.type === 'proc' ? r.id : (r.type === 'hole' ? 'HOLE' : 'FREE');
+        var hov = hoveredKey === key;
+        var col = r.type === 'proc' ? procCol(r.id) : (r.type === 'hole' ? P.red : P.muted);
+        var lc = r.type === 'proc' ? col : (r.type === 'hole' ? P.red : P.sub);
+        var fsN = L.mob ? 12 : 14, fsS = L.mob ? 11 : 12;
+        ctx.globalAlpha = a;
+        if (r.type === 'proc') rr(x, y, w, h, 4, col + '30', col, hov ? 3 : 2);
+        else if (r.type === 'hole') { rr(x, y, w, h, 4, P.red + '14', P.red, hov ? 3 : 2.5); mmHatch(x, y, w, h, P.red + '40'); }
+        else rr(x, y, w, h, 4, P.surf2, hov ? P.purple + 'ff' : P.border, hov ? 2 : 1);
+        var lab = r.type === 'proc' ? r.id : (r.type === 'hole' ? 'HOLE' : 'FREE');
+        var sz = r.size + 'KB';
+        if (h >= 34) {
+            tx(lab, x + w / 2, y + h / 2 - 7, fsN, lc + 'ff', 'center', true);
+            tx(sz, x + w / 2, y + h / 2 + 9, fsS, (r.type === 'proc' ? P.sub : lc) + 'ff', 'center', false);
+        } else if (h >= 13) {
+            tx(lab + ' · ' + sz, x + w / 2, y + h / 2, fsS, lc + 'ff', 'center', true);
+        }
+        ctx.globalAlpha = 1;
+        mmHit(x, y, w, h, key);
+    }
+    function mmFrameCell(L, y, h, st, label, a) {
+        if (a <= 0.01) return;
+        var x = L.colX, w = L.colW;
+        var col = st.type === 'proc' ? procCol(st.id) : (st.type === 'hole' ? P.red : P.muted);
+        var lc = st.type === 'proc' ? col : (st.type === 'hole' ? P.red : P.sub);
+        ctx.globalAlpha = a;
+        if (st.type === 'proc') rr(x + 1, y + 1, w - 2, h - 2, 3, col + '30', col, 1.5);
+        else if (st.type === 'hole') { rr(x + 1, y + 1, w - 2, h - 2, 3, P.red + '14', P.red, 1.5); mmHatch(x + 1, y + 1, w - 2, h - 2, P.red + '40'); }
+        else rr(x + 1, y + 1, w - 2, h - 2, 3, P.surf2, P.border, 1);
+        tx(label, x + w / 2, y + h / 2, L.mob ? 11 : 12, lc + 'ff', 'center', true);
+        ctx.globalAlpha = 1;
+    }
+
+    /* ===================== 레이아웃 ===================== */
+    function layout(w, mob) {
+        if (mob) {
+            var mpY = 36 + 150 + 34;
+            return { mob: true, colX: 40, colY: 36, colW: w - 40, colH: 150,
+                pX: 0, pY: mpY, pW: w, statH: 52,
+                failY: mpY + 60, failH: 70, okY: mpY + 138, okH: 40, h: mpY + 186 };
+        }
+        var dpX = 56 + 220 + 40;
+        return { mob: false, colX: 56, colY: 36, colW: 220, colH: 320,
+            pX: dpX, pY: 36, pW: w - dpX, statH: 70,
+            failY: 120, failH: 124, okY: 254, okH: 40, h: 376 };
+    }
+    function sceneH(w, mob) { return layout(w, mob).h; }
+
+    /* ===================== 패널 ===================== */
+    function mmStat(L, st, a) {
+        if (a <= 0) return;
+        var pad = L.mob ? 10 : 14, fsS = L.mob ? 11 : 12, fsM = L.mob ? 12 : 14;
+        var x = L.pX, y = L.pY, w = L.pW, h = L.statH;
+        ctx.globalAlpha = a;
+        if (st.mode === 'paging') {
+            rr(x, y, w, h, 6, P.surf, P.border, 1);
+            tx('물리 메모리: 64KB 프레임 8개', x + w / 2, y + h / 2, fsM, P.sub + 'ff', 'center', true);
+        } else if (st.showFrag) {
+            var sm = mmSums(st);
+            var ty = y + (L.mob ? 14 : 16), vy = y + h - (L.mob ? 15 : 18);
+            var tlab = '⚠ 외부 단편화';
+            rr(x, y, w, h, 6, P.red + '12', P.red + '88', 1.5);
+            tx(tlab, x + pad, ty, fsS, P.red + 'ff', 'left', true);
+            mmBadge(x + pad + mmTxtW(tlab, fsS, true) + 12, ty, 'HOLE');
+            ln(x + w / 2, y + 8, x + w / 2, y + h - 8, P.red + '44', 1);
+            tx('총 여유 ' + sm.free + 'KB', x + w * 0.25, vy, fsM, P.orange + 'ff', 'center', true);
+            tx('최대 연속 ' + sm.maxC + 'KB', x + w * 0.75, vy, fsM, P.red + 'ff', 'center', true);
+        } else {
+            rr(x, y, w, h, 6, P.surf, P.border, 1);
+            tx('여유 공간 ' + mmSums(st).free + 'KB', x + w / 2, y + h / 2, fsM, P.sub + 'ff', 'center', true);
+        }
+        ctx.globalAlpha = 1;
+    }
+    function mmFailBox(L, maxC, a) {
+        if (a <= 0) return;
+        var pad = L.mob ? 8 : 14, fsS = L.mob ? 11 : 12;
+        var x = L.pX, y = L.failY, w = L.pW, h = L.failH;
+        var inner = w - pad * 2;
+        var bh = L.mob ? 22 : 30, gap = L.mob ? 8 : 12;
+        var y0 = y + (h - (bh * 2 + gap)) / 2;
+        ctx.globalAlpha = a;
+        rr(x, y, w, h, 6, P.surf, P.red + '88', 1.5);
+        rr(x + pad, y0, inner, bh, 4, P.green + '30', P.green + 'ff', 1.5);
+        tx('P4 필요 ' + MM_REQ + 'KB', x + pad + 8, y0 + bh / 2, fsS, P.green + 'ff', 'left', true);
+        rr(x + pad, y0 + bh + gap, inner * maxC / MM_REQ, bh, 4, P.red + '30', P.red + 'ff', 1.5);
+        tx('최대 연속 ' + maxC + 'KB', x + pad + 8, y0 + bh + gap + bh / 2, fsS, P.red + 'ff', 'left', true);
+        ctx.globalAlpha = 1;
+    }
+    function mmOkBox(L, rows, col, a) {
+        if (a <= 0) return;
+        var x = L.pX, y = L.okY, w = L.pW, h = L.okH;
+        var fs = L.mob ? 11 : 12, gap = fs + 4, n = rows.length;
+        ctx.globalAlpha = a;
+        rr(x, y, w, h, 6, col + '18', col + 'aa', 1.5);
+        rows.forEach(function (txt, i) {
+            tx(txt, x + w / 2, y + h / 2 + (i - (n - 1) / 2) * gap, fs, col + 'ff', 'center', true);
+        });
+        ctx.globalAlpha = 1;
+    }
+    function mmTable(L, st, tt, a) {
+        if (a <= 0) return;
+        var pad = L.mob ? 8 : 14, fsS = L.mob ? 11 : 12;
+        var x = L.pX, y = L.failY, w = L.pW, h = L.failH;
+        var p4 = mmP4List(st);
+        var cw = Math.floor((w - pad * 2 - 12) / 3);
+        var ttl = 'P4 페이지 테이블';
+        ctx.globalAlpha = a;
+        rr(x, y, w, h, 6, P.green + '10', P.green + '88', 1.5);
+        tx(ttl, x + pad, y + 14, fsS, P.green + 'ff', 'left', true);
+        mmBadge(x + pad + mmTxtW(ttl, fsS, true) + 12, y + 14, 'P4');
+        for (var j = 0; j < p4.length; j++) {
+            var fr = p4[j];
+            var o = mmPgOrigin(L, j);
+            ctx.globalAlpha = a * mmFade(tt, mmPgEnd(j) - 0.03, mmPgEnd(j) + 0.05);
+            if (L.mob) {
+                rr(o.x - cw / 2, o.y - 9, cw, 18, 9, P.surf2, P.green + 'cc', 1.2);
+                tx('p' + fr.page + ' → F' + fr.n, o.x, o.y, fsS, P.green + 'ff', 'center', true);
+            } else {
+                tx('p' + fr.page, o.x, o.y, fsS, P.green + 'ff', 'center', true);
+                tx('→', o.x + 70, o.y, fsS, P.sub + 'ff', 'center', false);
+                tx('F' + fr.n, o.x + 130, o.y, fsS, P.green + 'ff', 'center', true);
+            }
+        }
+        ctx.globalAlpha = 1;
+    }
+
+    /* ===================== 막대 장면 ===================== */
+    function mmBars(L, st, pv, tt) {
+        var cur = mmRegions(st);
+        var pr = pv && pv.segs ? mmRegions(pv) : null;
+        var u = mmFade(tt, 0.35, 1);
+        var a;
+        if (!pr) {
+            cur.forEach(function (r) { mmBlock(L, r, mmYOf(L, r.s), mmYOf(L, r.e) - mmYOf(L, r.s), 1); });
+            return;
+        }
+        cur.forEach(function (r) { r.old = mmFind(pr, r.id); r.rep = r.old ? null : mmReplOf(pr, cur, r); });
+        pr.forEach(function (q) { q.gone = !mmFind(cur, q.id); q.by = null; });
+        cur.forEach(function (r) { if (r.rep) r.rep.by = r; });
+        pr.forEach(function (q) {
+            if (!q.gone) return;
+            a = q.by ? 1 - mmFade(tt, 0.3, 1) : 1 - mmFade(tt, 0, 0.4);
+            mmBlock(L, q, mmYOf(L, q.s), mmYOf(L, q.e) - mmYOf(L, q.s), a);
+        });
+        cur.forEach(function (r) {
+            var ss, ee, al = 1;
+            if (r.old) { ss = lerp(r.old.s, r.s, u); ee = lerp(r.old.e, r.e, u); }
+            else if (r.rep) { ss = r.s; ee = r.e; al = mmFade(tt, 0.3, 1); }
+            else { ss = r.s; ee = lerp(r.s, r.e, u); }
+            mmBlock(L, r, mmYOf(L, ss), mmYOf(L, ee) - mmYOf(L, ss), al);
+        });
+    }
+    function mmFlights(L, st, pv, tt) {
+        var fsC = L.mob ? 11 : 12;
+        var cx = L.colX + L.colW / 2, ch = L.colH / 8;
+        var j, s0, e0, o, fr, q;
+        if (st.mode === 'paging') {
+            var p4 = mmP4List(st);
+            for (j = 0; j < p4.length; j++) {
+                s0 = mmPgStart(j); e0 = mmPgEnd(j);
+                if (tt < s0 || tt >= e0) continue;
+                fr = p4[j];
+                o = mmPgOrigin(L, j);
+                q = ez(seg(tt, s0, e0));
+                mmChip(lerp(o.x, cx, q), lerp(o.y, L.colY + (fr.n + 0.5) * ch, q), 'p' + fr.page, P.green, 1, fsC);
+            }
+            return;
+        }
+        if (!pv || !pv.segs) return;
+        var cur = mmRegions(st), pr = mmRegions(pv);
+        var o0 = mmChipOrigin(L);
+        cur.forEach(function (r) {
+            if (r.type !== 'proc' || mmFind(pr, r.id) || mmReplOf(pr, cur, r) || tt >= 0.42) return;
+            var dy = mmYOf(L, (r.s + r.e) / 2);
+            var pos = mmTrack(tt, [[0, o0.x, o0.y], [0.35, cx, dy]]);
+            mmChip(pos[0], pos[1], r.id + ' · ' + r.size + 'KB', procCol(r.id), tt < 0.35 ? 1 : 1 - mmFade(tt, 0.35, 0.42), fsC);
+        });
+        var hole = mmFind(cur, 'hole');
+        if (st.showFail && !pv.showFail && hole) {
+            var hy = mmYOf(L, (hole.s + hole.e) / 2);
+            if (tt < 0.82) {
+                var pf = mmTrack(tt, [[0, o0.x, o0.y], [0.4, cx, hy], [0.55, cx, hy], [0.8, o0.x, o0.y]]);
+                mmChip(pf[0], pf[1], 'P4 · ' + MM_REQ + 'KB', P.green, 1, fsC);
+            }
+            var ra = mmFade(tt, 0.4, 0.5) * (1 - mmFade(tt, 0.85, 1));
+            if (ra > 0) {
+                ctx.globalAlpha = ra;
+                rr(L.colX - 2, mmYOf(L, hole.s) - 2, L.colW + 4, mmYOf(L, hole.e) - mmYOf(L, hole.s) + 4, 6, null, P.red, 3);
+                ctx.globalAlpha = 1;
+            }
+        }
+    }
+
+    /* ===================== 페이징 장면 ===================== */
+    function mmPagingCells(L, st, pv, tt) {
+        var ch = L.colH / 8, n, fr, j, pst, y0, a;
+        var pr = pv && pv.segs ? mmRegions(pv) : null;
+        var p4 = mmP4List(st);
+        for (n = 0; n < 8; n++) {
+            fr = mmFrameAt(st, n);
+            y0 = L.colY + n * ch;
+            j = p4.indexOf(fr);
+            pst = pr ? mmStyleAt(pr, n * FRAME_KB + FRAME_KB / 2) : null;
+            if (pst && j >= 0 && !(pst.type === 'proc' && pst.id === 'P4')) {
+                a = mmFade(tt, mmPgEnd(j) - 0.03, mmPgEnd(j) + 0.05);
+                mmFrameCell(L, y0, ch, pst, 'F' + n + ' ' + (pst.type === 'hole' ? 'HOLE' : 'FREE'), 1 - a);
+                mmFrameCell(L, y0, ch, { type: 'proc', id: 'P4' }, 'F' + n + ' · P4 · p' + fr.page, a);
+            } else {
+                mmFrameCell(L, y0, ch, { type: 'proc', id: fr.owner }, 'F' + n + ' · ' + fr.owner + ' · p' + fr.page, 1);
+            }
+            mmHit(L.colX, y0, L.colW, ch, fr.owner);
+        }
+    }
+
+    /* ===================== 메인 장면 ===================== */
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var L = layout(w, mob);
+        var st = step || currentSteps()[0];
+        var pv = prev || null;
+        var tt = pv ? t : 1;
+        var fsS = mob ? 11 : 12;
+        var pc = st.showFail ? P.red : (st.showFrag ? P.orange : (st.pagingOk ? P.green : P.teal));
+        var bw = mmTxtW(st.badge, fsS, true) + 18;
+        var failSrc = null, failA = 0, k, swap, sc;
+        if (st.showFail) { failSrc = st; failA = pv && pv.showFail ? 1 : mmFade(tt, 0.4, 0.85); }
+        else if (pv && pv.showFail) { failSrc = pv; failA = 1 - mmFade(tt, 0, 0.3); }
+        mmOx = x0;
+        mmOy = top;
+        ctx.save();
+        ctx.translate(x0, top);
+        rr(0, 0, bw, 22, 11, pc + '33', pc + 'ff', 1.5);
+        tx(st.badge, bw / 2, 11, fsS, pc + 'ff', 'center', true);
+        rr(L.colX - 2, L.colY - 2, L.colW + 4, L.colH + 4, 6, null, P.border, 1);
+        [0, 128, 256, 384, 512].forEach(function (kb) {
+            var yy = mmYOf(L, kb);
+            ln(L.colX - 6, yy, L.colX - 2, yy, P.border, 1);
+            tx(kb + 'K', L.colX - 8, yy, fsS, P.sub, 'right', false);
+        });
+        if (st.mode === 'paging') mmPagingCells(L, st, pv, tt);
+        else mmBars(L, st, pv, tt);
+
+        swap = pv && (st.mode === 'paging' ? pv.mode !== 'paging' : (st.showFrag && !pv.showFrag));
+        k = swap ? (st.mode === 'paging' ? mmFade(tt, 0.3, 0.6) : mmFade(tt, 0.5, 0.9)) : 1;
+        if (swap) mmStat(L, pv, 1 - k);
+        mmStat(L, st, k);
+        if (st.mode === 'paging') mmTable(L, st, tt, pv && pv.mode === 'paging' ? 1 : mmFade(tt, 0.2, 0.5));
+        if (failA > 0) {
+            sc = mmSums(failSrc);
+            mmFailBox(L, sc.maxC, failA);
+            mmOkBox(L, [MM_REQ + 'KB > ' + sc.maxC + 'KB → 할당 불가!'], P.red, failA);
+        }
+        if (st.mode === 'paging' && st.pagingOk) {
+            mmOkBox(L, L.mob ? ['✓ 비연속 할당 성공', '외부 단편화 해결'] : ['✓ 비연속 할당 성공 — 외부 단편화 해결'], P.green, mmFade(tt, 0.9, 1));
+        }
+        mmFlights(L, st, pv, tt);
+        ctx.globalAlpha = 1;
+        ctx.restore();
+    }
+
+    /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
+    function draw() {
+        P = window.CsFlow.getP();
+        ctx.clearRect(0, 0, GW(), GH());
+        var W = GW(); var mob = W < 600;
+        var steps = currentSteps();
+        var step = stepIdx >= 0 ? steps[stepIdx] : null;
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        tipHits.length = 0;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
+        if (hoveredKey && typeof TIPS !== 'undefined' && TIPS[hoveredKey]) drawTip(mousePos.x, mousePos.y, TIPS[hoveredKey]);
+    }
+
+    /* ===================== resize ===================== */
+    function resize() {
+        var w = canvasWrap.offsetWidth || 320;
+        var mob = w < 600;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
+        canvasWrap.style.height    = 'auto';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
+        var actualH = canvasWrap.offsetHeight || neededH;
+        if (actualH < neededH) actualH = neededH;
+        canvas.width  = w * dpr;
+        canvas.height = actualH * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        draw();
+    }
+
+    /* ===================== 애니메이션(스텝 전환) ===================== */
+    function animateStep(onDone) {
+        if (rafId) cancelAnimationFrame(rafId);
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
-    function memStart() {
+    function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
+
+    function applyStep(idx, onDone) {
+        stepIdx = idx;
+        logEl.textContent = currentSteps()[idx].log;
+        animateStep(function () { if (onDone) setTimeout(onDone, 0); });
+    }
+
+    function vizStart() {
         if (running) return;
         running = true; btnPlay.disabled = true; btnStep.disabled = true;
         setSpeedDisabled(true);
-
+        var steps = currentSteps();
         function tick() {
-            const next = stepIdx + 1;
-            if (next >= STEPS.length) { running = false; setSpeedDisabled(false); return; }
+            var next = stepIdx + 1;
+            if (next >= steps.length) { running = false; setSpeedDisabled(false); return; }
             applyStep(next, function () {
-                if (next === STEPS.length - 1) {
+                if (next === steps.length - 1) {
                     running = false; btnStep.disabled = true; setSpeedDisabled(false);
                 } else {
-                    timer = setTimeout(tick, speed);
+                    timer = setTimeout(tick, speed * 0.6);
                 }
             });
         }
         tick();
     }
 
-    function memStep() {
-        if (running || animProg < 1) return;
-        const next = stepIdx + 1;
-        if (next >= STEPS.length) return;
+    function vizStep() {
+        if (running) return;
+        var steps = currentSteps();
+        var next = stepIdx + 1;
+        if (next >= steps.length) return;
         applyStep(next, null);
-        if (next === STEPS.length - 1) { btnPlay.disabled = true; btnStep.disabled = true; }
+        if (next === steps.length - 1) { btnPlay.disabled = true; btnStep.disabled = true; }
     }
 
-    function memReset() {
+    function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1; animProg = 1; animCb = null;
-        logEl.textContent = '▶ PLAY를 눌러 메모리 할당과 단편화 과정을 확인하세요.';
-        setBadge('IDLE');
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
+        logEl.textContent = defaultLog();
         setSpeedDisabled(false);
-        draw();
+        resize();
     }
 
     function setSpeed(ms, btn) {
         speed = ms;
-        root.querySelectorAll('.mem-viz__speed-btn').forEach(function (b) {
-            b.classList.remove('mem-viz__speed-btn--active');
-        });
+        speedBtns.forEach(function (b) { b.classList.remove('mem-viz__speed-btn--active'); });
         btn.classList.add('mem-viz__speed-btn--active');
     }
 
+    function switchMode(m) {
+        if (mode === m) return;
+        mode = m;
+        modeDefs.forEach(function (d) { modeBtns[d.key].classList.toggle('mem-viz__mode-btn--active', d.key === m); });
+        vizReset();
+    }
+
+    logEl.textContent = defaultLog();
+
     /* ===================== 라이프사이클 ===================== */
     window.CsFlow.createVizLifecycle({
-        canvas, canvasWrap, resize, draw,
-        getState : function () { return { rafId, timer, running }; },
+        canvas: canvas, canvasWrap: canvasWrap, resize: resize, draw: draw,
+        getState : function () { return { rafId: rafId, timer: timer, running: running }; },
         setState : function (s) { rafId = s.rafId; timer = s.timer; running = s.running; },
         onPause  : function () { setSpeedDisabled(false); },
         getMouseCtx: function () {
             return {
-                GW, GH, mousePos, tooltipHits,
-                hoveredKey   : function ()  { return hoveredKey; },
+                GW: GW, GH: GH,
+                mousePos: mousePos,
+                tooltipHits: tipHits,
+                hoveredKey: function () { return hoveredKey; },
                 setHoveredKey: function (k) { hoveredKey = k; },
-                draw,
+                draw: draw
             };
-        },
+        }
     });
 
     setTimeout(resize, 60);

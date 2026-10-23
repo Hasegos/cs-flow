@@ -1,5 +1,5 @@
 /**
- * 비트 조작 트릭 시각화
+ * 비트 조작 트릭 시각화 시각화
  */
 (function () {
     'use strict';
@@ -39,7 +39,7 @@
     var speedWrap = el('div', 'bit-viz__speed');
     speedWrap.appendChild(el('span', 'bit-viz__speed-label', 'SPEED'));
     var speedBtns = [];
-    [['1x', 1700], ['2x', 850], ['3x', 480]].forEach(function (pair, i) {
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
         var b = el('button', 'bit-viz__speed-btn' + (i === 0 ? ' bit-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
@@ -72,11 +72,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'ops';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 엔진: 비트 조작 ===================== */
     var NUMS = ['7', '6', '5', '4', '3', '2', '1', '0'];
@@ -195,111 +262,327 @@
     })();
 
     /* ===================== 상태 ===================== */
-    var mode    = 'ops';
-    var stepIdx = -1;
-    var running = false;
-    var timer   = null;
-    var rafId   = null;
-    var speed   = 1700;
-
     function currentSteps() {
         if (mode === 'trick') return TRICK_STEPS;
         if (mode === 'mask') return MASK_STEPS;
         return OPS_STEPS;
     }
-
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        var rad = Math.min(r, w / 2, h / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + rad, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, rad);
-        ctx.arcTo(x + w, y + h, x,     y + h, rad);
-        ctx.arcTo(x,     y + h, x,     y,     rad);
-        ctx.arcTo(x,     y,     x + w, y,     rad);
-        ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
-    }
-    function tx(str, x, y, sz, color, align, bold) {
-        if (sz < 11) sz = 11;
-        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
+    function defaultLog() {
+        if (mode === 'trick') return 'n & (n-1)로 가장 낮은 1을 지우는 트릭을 봅니다.';
+        if (mode === 'mask') return '정수 하나로 집합을 표현하는 비트마스크의 추가·삭제·확인을 봅니다.';
+        return 'AND, OR, XOR, 시프트, NOT 연산이 비트에 하는 일을 봅니다.';
     }
 
-    /* ===================== 공통: 비트 행 그리기 ===================== */
-    function drawBits(x0, top, w, mob, step) {
-        var s = step || (mode === 'mask' ? MASK_STEPS[0] : mode === 'trick' ? TRICK_STEPS[0] : OPS_STEPS[0]);
-        var fs = mob ? 11.5 : 13;
-        var valW = mob ? 42 : 56;
-        var cb = Math.min(36, (w - valW - 4) / 8);
-        var ox = x0 + (w - valW - cb * 8) / 2;
-        var rowH = mob ? 54 : 58;
-        var i;
+    /* ===================== 레이아웃 ===================== */
+    var bmCapMemo = {};
+    function ez(q) {
+        q = clamp01(q);
+        return q * q * (3 - 2 * q);
+    }
+    function bmFonts(mob) {
+        return mob ? { b: 11, s: 11 } : { b: 13, s: 12 };
+    }
+    function bmCapH(s, w, F) {
+        var h = 0;
+        if (s.cap) h += lines(s.cap, w - 6, F.b).length * (F.b + 5);
+        if (s.cap2) h += lines(s.cap2, w - 6, F.s).length * (F.s + 4);
+        if (s.cap3) h += lines(s.cap3, w - 6, F.s).length * (F.s + 4);
+        return h;
+    }
+    function bmCapMax(w, mob) {
+        var F = bmFonts(mob);
+        var key = Math.round(w) + (mob ? 'm' : 'd');
+        if (bmCapMemo[key] === undefined) {
+            var best = 0;
+            [OPS_STEPS, TRICK_STEPS, MASK_STEPS].forEach(function (arr) {
+                arr.forEach(function (s) {
+                    var h = bmCapH(s, w, F);
+                    if (h > best) best = h;
+                });
+            });
+            bmCapMemo[key] = best;
+        }
+        return bmCapMemo[key];
+    }
+    function layout(w, mob) {
+        var F = bmFonts(mob);
+        var labelH = F.b + 8;
+        var cellH = mob ? 26 : 32;
+        var gapR = mob ? 9 : 14;
+        var pitch = labelH + cellH + gapR;
+        var rowsTop = F.b + 14;
+        var capTop = rowsTop + 3 * pitch + 6;
+        return { F: F, labelH: labelH, cellH: cellH, pitch: pitch, rowsTop: rowsTop, capTop: capTop, total: capTop + bmCapMax(w, mob) + 10 };
+    }
+    function sceneH(w, mob) {
+        return layout(w, mob).total;
+    }
+
+    /* ===================== 기하 ===================== */
+    function bmGeom(x0, top, w, mob) {
+        var L = layout(w, mob);
+        var valW = mob ? 30 : 46;
+        var cb = Math.min(mob ? 34 : 60, (w - valW) / 8);
+        return { L: L, F: L.F, x0: x0, top: top, w: w, valW: valW, cb: cb, ox: x0 + (w - valW - cb * 8) / 2 };
+    }
+    function bmCellX(g, k) {
+        return g.ox + k * g.cb + 1.5;
+    }
+    function bmRowY(g, i) {
+        return g.top + g.L.rowsTop + i * g.L.pitch + g.L.labelH;
+    }
+    function bmCol(tone) {
+        return tone === 'r' ? P.green : (tone === 'b' ? P.purple : P.teal);
+    }
+
+    /* ===================== 그리기 ===================== */
+    function bmCell(g, x, y, cw, a, bit, tone, hot) {
+        var c = bmCol(tone);
+        ctx.globalAlpha = a;
+        rr(x, y, cw, g.L.cellH, 3, bit ? c + '55' : 'none', hot ? P.yellow + 'ff' : (bit ? c + 'ff' : P.sub + '77'), hot ? 2.4 : 1.2);
+        if (cw >= 12) tx(String(bit), x + cw / 2, y + g.L.cellH / 2, g.F.b, bit ? P.text + 'ff' : P.sub + 'ff', 'center', true);
+        ctx.globalAlpha = 1;
+    }
+    function bmRowAt(g, y, row, a, la) {
         var k;
-        for (i = 0; i < 8; i++) tx(s.hdr[i], ox + i * cb + cb / 2, top + 12, fs - 1, P.sub + 'ff', 'center', true);
-        s.rows.forEach(function (row, ri) {
-            var y = top + 22 + ri * rowH;
-            var tone = row.tone === 'r' ? P.green : row.tone === 'b' ? P.purple : P.teal;
-            tx(row.lab, ox, y + 8, fs - 0.5, P.text + 'ff', 'left', true);
-            for (k = 0; k < 8; k++) {
-                var bit = (row.v >> (7 - k)) & 1;
-                var pos = 7 - k;
-                var hot = row.hot.indexOf(pos) >= 0;
-                rr(ox + k * cb + 1.5, y + 16, cb - 3, 30, 3, bit ? tone + '55' : 'none', hot ? P.yellow + 'ff' : bit ? tone + 'ff' : P.sub + '77', hot ? 2.6 : 1.2);
-                tx(String(bit), ox + k * cb + cb / 2, y + 31, fs + 1, bit ? P.text + 'ff' : P.sub + 'ff', 'center', true);
-            }
-            tx(String(row.v), ox + cb * 8 + 8, y + 31, fs, tone + 'ff', 'left', true);
+        if (la > 0) {
+            ctx.globalAlpha = la;
+            tx(row.lab, g.ox, y - g.L.labelH / 2, g.F.b, bmCol(row.tone) + 'ff', 'left', true);
+            ctx.globalAlpha = 1;
+        }
+        if (a <= 0) return;
+        for (k = 0; k < 8; k++) {
+            bmCell(g, bmCellX(g, k), y, g.cb - 3, a, (row.v >> (7 - k)) & 1, row.tone, row.hot.indexOf(7 - k) >= 0);
+        }
+        ctx.globalAlpha = a;
+        tx(String(row.v), g.ox + 8 * g.cb + 6, y + g.L.cellH / 2, g.F.b, bmCol(row.tone) + 'ff', 'left', true);
+        ctx.globalAlpha = 1;
+    }
+    function bmHeader(g, hdr) {
+        var k;
+        ctx.globalAlpha = 1;
+        for (k = 0; k < 8; k++) {
+            tx(hdr[k], bmCellX(g, k) + (g.cb - 3) / 2, g.top + g.F.b / 2 + 2, g.F.b, P.sub + 'ff', 'center', true);
+        }
+    }
+    function bmBlock(str, cx, y, w, fs, lh, col, bold) {
+        if (!str) return y;
+        var rows = lines(str, w - 6, fs);
+        rows.forEach(function (row, li) {
+            tx(row, cx, y + li * lh + lh / 2, fs, col, 'center', bold);
         });
-        var at = top + 22 + s.rows.length * rowH + 14;
-        if (s.cap) tx(s.cap, x0 + w / 2, at, fs - 0.5, P.yellow + 'ff', 'center', true);
-        if (s.cap2) tx(s.cap2, x0 + w / 2, at + 19, fs - 1, P.text + 'ee', 'center', false);
-        if (s.cap3) tx(s.cap3, x0 + w / 2, at + 38, fs - 1, P.green + 'ee', 'center', true);
+        return y + rows.length * lh;
+    }
+    function bmCaps(g, s, fresh, e) {
+        var cx = g.x0 + g.w / 2;
+        var F = g.F;
+        var y = g.top + g.L.capTop;
+        ctx.globalAlpha = fresh ? 0.35 + 0.65 * ez(e) : 1;
+        y = bmBlock(s.cap, cx, y, g.w, F.b, F.b + 5, P.yellow + 'ff', true);
+        y = bmBlock(s.cap2, cx, y, g.w, F.s, F.s + 4, P.text + 'ee', false);
+        bmBlock(s.cap3, cx, y, g.w, F.s, F.s + 4, P.green + 'ff', true);
+        ctx.globalAlpha = 1;
+    }
+
+    /* ===================== 행 전환 ===================== */
+    function bmRows(g, s, p, fresh, e, skip, combine) {
+        var i;
+        var row;
+        var pr;
+        var a;
+        for (i = 0; i < s.rows.length; i++) {
+            row = s.rows[i];
+            if (i === skip) continue;
+            if (!fresh) {
+                bmRowAt(g, bmRowY(g, i), row, 1, 1);
+                continue;
+            }
+            if (combine && i === 2) {
+                bmCombineRow(g, row, p.rows.length > 2 ? p.rows[2] : null, e);
+                continue;
+            }
+            pr = i < p.rows.length ? p.rows[i] : null;
+            if (!pr) {
+                a = ez(seg(e, 0, 0.3));
+                bmRowAt(g, bmRowY(g, i) + (1 - a) * -6, row, a, a);
+            } else if (pr.lab !== row.lab || pr.v !== row.v) {
+                a = ez(seg(e, 0, 0.4));
+                bmRowAt(g, bmRowY(g, i), pr, 1 - a, 1 - a);
+                bmRowAt(g, bmRowY(g, i), row, a, a);
+            } else {
+                bmRowAt(g, bmRowY(g, i), row, 1, 1);
+            }
+        }
+        for (i = s.rows.length; i < p.rows.length; i++) {
+            a = 1 - ez(seg(e, 0, 0.4));
+            bmRowAt(g, bmRowY(g, i), p.rows[i], a, a);
+        }
+    }
+
+    /* ===================== 두 행의 비트 결합 ===================== */
+    function bmCombineRow(g, row, pr, e) {
+        var y = bmRowY(g, 2);
+        var vx = g.ox + 8 * g.cb + 6;
+        var vy = y + g.L.cellH / 2;
+        var vN = ez(seg(e, 0.9, 1));
+        var k;
+        var pos;
+        var c0;
+        var a;
+        ctx.globalAlpha = pr ? 1 : ez(seg(e, 0, 0.25));
+        tx(row.lab, g.ox, y - g.L.labelH / 2, g.F.b, bmCol(row.tone) + 'ff', 'left', true);
+        ctx.globalAlpha = 1;
+        for (k = 0; k < 8; k++) {
+            pos = 7 - k;
+            c0 = 0.3 + k * 0.075;
+            a = seg(e, c0 + 0.16, c0 + 0.2);
+            if (pr && a < 1) bmCell(g, bmCellX(g, k), y, g.cb - 3, 1 - a, (pr.v >> pos) & 1, pr.tone, pr.hot.indexOf(pos) >= 0);
+            if (a > 0) bmCell(g, bmCellX(g, k), y, g.cb - 3, a, (row.v >> pos) & 1, row.tone, row.hot.indexOf(pos) >= 0);
+        }
+        if (pr) {
+            ctx.globalAlpha = 1 - vN;
+            tx(String(pr.v), vx, vy, g.F.b, bmCol(pr.tone) + 'ff', 'left', true);
+        }
+        ctx.globalAlpha = vN;
+        tx(String(row.v), vx, vy, g.F.b, bmCol(row.tone) + 'ff', 'left', true);
+        ctx.globalAlpha = 1;
+    }
+    function bmCombine(g, s, e) {
+        var yT = bmRowY(g, 0);
+        var yR = bmRowY(g, 2);
+        var bandTop = yT - 4;
+        var bandH = yR + g.L.cellH + 4 - bandTop;
+        var bot0 = yT + g.L.cellH;
+        var bot1 = bmRowY(g, 1) + g.L.cellH;
+        var k;
+        var c0;
+        var q;
+        var x;
+        var cx;
+        for (k = 0; k < 8; k++) {
+            c0 = 0.3 + k * 0.075;
+            q = seg(e, c0, c0 + 0.2);
+            if (q <= 0 || q >= 1) continue;
+            x = bmCellX(g, k);
+            cx = x + (g.cb - 3) / 2;
+            ctx.globalAlpha = 0.22 * Math.sin(Math.PI * q);
+            rr(x - 1, bandTop, g.cb - 1, bandH, 4, P.yellow + 'ff', 'none');
+            ctx.globalAlpha = 1;
+            circ(cx - 5, lerp(bot0, yR, q), 3.2, bmCol(s.rows[0].tone) + 'ff', 'none');
+            circ(cx + 5, lerp(bot1, yR, q), 3.2, bmCol(s.rows[1].tone) + 'ff', 'none');
+        }
+        ctx.globalAlpha = 1;
+    }
+
+    /* ===================== 시프트: 비트가 옆 칸으로 밀림 ===================== */
+    function bmShift(g, s, p, e) {
+        var src = s.rows[0].v;
+        var lab = s.rows[1].lab;
+        var n = parseInt(lab.replace(/\D/g, ''), 10);
+        var dir = lab.indexOf('<<') >= 0 ? n : -n;
+        var mv = ez(seg(e, 0.15, 0.8));
+        var fadeTile = 1 - ez(seg(e, 0.6, 0.85));
+        var y0 = bmRowY(g, 0);
+        var y1 = bmRowY(g, 1);
+        var pos;
+        var dpos;
+        var dropped;
+        var k;
+        var dk;
+        var xs;
+        var xd;
+        var xEnd;
+        var a;
+        if (p.rows.length > 1) bmRowAt(g, y1, p.rows[1], 1 - ez(seg(e, 0, 0.2)), 1 - ez(seg(e, 0, 0.2)));
+        bmRowAt(g, y1, s.rows[1], ez(seg(e, 0.7, 1)), ez(seg(e, 0.85, 1)));
+        if (mv <= 0) return;
+        for (pos = 0; pos < 8; pos++) {
+            dpos = pos + dir;
+            dropped = dpos < 0 || dpos > 7;
+            k = 7 - pos;
+            dk = 7 - dpos;
+            xs = bmCellX(g, k);
+            xd = bmCellX(g, dk);
+            xEnd = dropped ? lerp(xs, xd, 0.5) : xd;
+            a = (dropped ? 1 - ez(seg(e, 0.3, 0.8)) : 1) * fadeTile * ez(seg(e, 0.2, 0.35));
+            if (a <= 0) continue;
+            bmCell(g, lerp(xs, xEnd, mv), lerp(y0, y1, mv), g.cb - 3, a, (src >> pos) & 1, s.rows[0].tone, false);
+        }
+    }
+
+    /* ===================== NOT: 칸이 하나씩 뒤집힘 ===================== */
+    function bmFlip(g, s, e) {
+        var old = s.rows[0].v;
+        var nt = s.rows[1];
+        var y = bmRowY(g, 1);
+        var k;
+        var pos;
+        var f;
+        var bit;
+        var sx;
+        var cw2;
+        var cx;
+        ctx.globalAlpha = 1;
+        tx(nt.lab, g.ox, y - g.L.labelH / 2, g.F.b, bmCol(nt.tone) + 'ff', 'left', true);
+        for (k = 0; k < 8; k++) {
+            pos = 7 - k;
+            f = seg(e, 0.12 + k * 0.08, 0.36 + k * 0.08);
+            bit = f < 0.5 ? (old >> pos) & 1 : (nt.v >> pos) & 1;
+            sx = Math.abs(Math.cos(Math.PI * f));
+            cw2 = (g.cb - 3) * sx;
+            cx = bmCellX(g, k) + (g.cb - 3) / 2;
+            bmCell(g, cx - cw2 / 2, y, cw2, 1, bit, nt.tone, nt.hot.indexOf(pos) >= 0);
+        }
+        ctx.globalAlpha = 1;
+        tx(String(e < 0.9 ? old : nt.v), g.ox + 8 * g.cb + 6, y + g.L.cellH / 2, g.F.b, bmCol(nt.tone) + 'ff', 'left', true);
+    }
+
+    /* ===================== 장면 진입점 ===================== */
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var g = bmGeom(x0, top, w, mob);
+        var e = clamp01(t);
+        var s = step || currentSteps()[0];
+        var p = prev || s;
+        var fresh = s !== p;
+        var n = s.rows.length;
+        var isShift = fresh && n === 2 && /<<|>>/.test(s.rows[1].lab);
+        var isFlip = fresh && n === 2 && s.rows[1].lab.charAt(0) === '~';
+        var pr2 = p.rows.length > 2 ? p.rows[2] : null;
+        var isCombine = fresh && n === 3 && (!pr2 || pr2.lab !== s.rows[2].lab || pr2.v !== s.rows[2].v);
+        bmHeader(g, s.hdr);
+        bmRows(g, s, p, fresh, e, (isShift || isFlip) ? 1 : -1, isCombine);
+        if (isShift) bmShift(g, s, p, e);
+        if (isFlip) bmFlip(g, s, e);
+        if (isCombine) bmCombine(g, s, e);
+        bmCaps(g, s, fresh, e);
+        ctx.globalAlpha = 1;
     }
 
     /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
     function draw() {
         P = window.CsFlow.getP();
         ctx.clearRect(0, 0, GW(), GH());
         var W = GW(); var mob = W < 600;
-        var padX = mob ? 16 : 26;
-        var fullW = W - padX * 2;
-        var top = mob ? 18 : 26;
-
         var steps = currentSteps();
         var step = stepIdx >= 0 ? steps[stepIdx] : null;
-
-        drawBits(padX, top, fullW, mob, step);
-
-        if (!step) {
-            var hint = '아래 STEP으로 비트 조작의 동작을 확인하세요.';
-            ctx.font = '500 ' + (mob ? 11 : 12.5) + 'px "JetBrains Mono",monospace';
-            var hs = mob ? 11 : 12.5;
-            var hl = [hint];
-            if (ctx.measureText(hint).width > W - 16) {
-                var cut = hint.indexOf(' ', Math.floor(hint.length / 2));
-                if (cut < 0) cut = hint.lastIndexOf(' ');
-                hl = [hint.slice(0, cut), hint.slice(cut + 1)];
-            }
-            hl.forEach(function (line, li) {
-                tx(line, W / 2, GH() - (mob ? 12 : 14) - (hl.length - 1 - li) * (hs + 4), hs, P.muted + 'aa', 'center', false);
-            });
-        }
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
         var mob = w < 600;
-        var neededH;
-        neededH = mob ? 330 : 350;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
         canvasWrap.style.height    = 'auto';
-        canvasWrap.style.minHeight = neededH + 'px';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
         var actualH = canvasWrap.offsetHeight || neededH;
         if (actualH < neededH) actualH = neededH;
         canvas.width  = w * dpr;
@@ -311,17 +594,22 @@
     /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        draw();
-        rafId = requestAnimationFrame(function () { rafId = null; if (onDone) onDone(); });
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
     function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
-    function defaultLog() {
-        if (mode === 'trick') return 'n & (n-1)로 가장 낮은 1을 지우는 트릭을 봅니다.';
-        if (mode === 'mask') return '정수 하나로 집합을 표현하는 비트마스크의 추가·삭제·확인을 봅니다.';
-        return 'AND, OR, XOR, 시프트, NOT 연산이 비트에 하는 일을 봅니다.';
-    }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -360,7 +648,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);

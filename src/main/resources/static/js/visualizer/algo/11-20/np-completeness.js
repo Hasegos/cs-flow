@@ -1,5 +1,5 @@
 /**
- * P vs NP / NP-완전 시각화
+ * P vs NP / NP-완전 시각화 시각화
  */
 (function () {
     'use strict';
@@ -39,7 +39,7 @@
     var speedWrap = el('div', 'np-viz__speed');
     speedWrap.appendChild(el('span', 'np-viz__speed-label', 'SPEED'));
     var speedBtns = [];
-    [['1x', 1700], ['2x', 850], ['3x', 480]].forEach(function (pair, i) {
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
         var b = el('button', 'np-viz__speed-btn' + (i === 0 ? ' np-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
@@ -72,11 +72,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'verify';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 엔진: P, NP, NP-완전 ===================== */
     function bat(n) {
@@ -176,227 +243,327 @@
     ];
 
     /* ===================== 상태 ===================== */
-    var mode    = 'verify';
-    var stepIdx = -1;
-    var running = false;
-    var timer   = null;
-    var rafId   = null;
-    var speed   = 1700;
-
     function currentSteps() {
         if (mode === 'reduce') return RD_STEPS;
         if (mode === 'classes') return CL_STEPS;
         return SS_STEPS;
     }
-
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        var rad = Math.min(r, w / 2, h / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + rad, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, rad);
-        ctx.arcTo(x + w, y + h, x,     y + h, rad);
-        ctx.arcTo(x,     y + h, x,     y,     rad);
-        ctx.arcTo(x,     y,     x + w, y,     rad);
-        ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
-    }
-    function tx(str, x, y, sz, color, align, bold) {
-        if (sz < 11) sz = 11;
-        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
+    function defaultLog() {
+        if (mode === 'reduce') return '환원으로 NP-완전 문제가 서로 이어지는 모습을 따라갑니다.';
+        if (mode === 'classes') return 'P, NP, NP-난해, NP-완전의 포함 관계를 단계별로 봅니다.';
+        return '답을 찾는 일과 주어진 답을 검증하는 일의 비용 차이를 부분집합 합으로 봅니다.';
     }
 
-    /* ===================== 공통: 캡션과 화살표 ===================== */
-    function drawCaps(s, x0, w, y, fs) {
-        if (s.cap) tx(s.cap, x0 + w / 2, y, fs - 0.5, P.yellow + 'ff', 'center', true);
-        if (s.cap2) tx(s.cap2, x0 + w / 2, y + 19, fs - 1, P.text + 'ee', 'center', false);
-        if (s.cap3) tx(s.cap3, x0 + w / 2, y + 38, fs - 1, P.green + 'ee', 'center', true);
+    /* ===================== 공통: 보조 함수 ===================== */
+    function ez(q) {
+        q = clamp01(q);
+        return q * q * (3 - 2 * q);
     }
-    function arrow(x1, y1, x2, y2, color) {
-        var ang = Math.atan2(y2 - y1, x2 - x1);
+    function fadeAmt(on, was, e) {
+        if (on === was) return on ? 1 : 0;
+        return on ? ez(e) : 1 - ez(e);
+    }
+    function commaNum(v) {
+        return String(v).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    }
+    function oval(cx, cy, rx, ry, fill, stroke, lw) {
         ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 1.6;
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(x2, y2);
-        ctx.lineTo(x2 - 7 * Math.cos(ang - 0.45), y2 - 7 * Math.sin(ang - 0.45));
-        ctx.lineTo(x2 - 7 * Math.cos(ang + 0.45), y2 - 7 * Math.sin(ang + 0.45));
-        ctx.closePath();
-        ctx.fillStyle = color;
-        ctx.fill();
+        ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+        if (fill !== 'none') { ctx.fillStyle = fill; ctx.fill(); }
+        if (stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+
+    /* ===================== 레이아웃과 캡션 ===================== */
+    function capTop(mob) {
+        if (mode === 'reduce') return 14 + 7 * (mob ? 34 : 38);
+        if (mode === 'classes') return 180;
+        return 218;
+    }
+    function layout(w, mob) {
+        return { fs: mob ? 11 : 13, lh: mob ? 15 : 17, capY: capTop(mob) };
+    }
+    function capRows(s, w, fs) {
+        var rows = [];
+        var parts = [[s.cap, 'yellow', true, fs], [s.cap2, 'text', false, fs - 1], [s.cap3, 'green', true, fs - 1]];
+        parts.forEach(function (pt) {
+            if (!pt[0]) return;
+            lines(pt[0], w - 8, pt[3]).forEach(function (lt) { rows.push({ t: lt, c: pt[1], b: pt[2], f: pt[3] }); });
+        });
+        return rows;
+    }
+    function capH(w, mob) {
+        var fs = mob ? 11 : 13;
+        var mx = 0;
+        currentSteps().forEach(function (st) { mx = Math.max(mx, capRows(st, w, fs).length); });
+        return mx * (mob ? 15 : 17);
+    }
+    function sceneH(w, mob) {
+        return layout(w, mob).capY + capH(w, mob) + 8;
+    }
+    function drawCap(rows, x0, w, y, lh) {
+        rows.forEach(function (rw, ii) {
+            tx(rw.t, x0 + w / 2, y + ii * lh, rw.f, colorOf(rw.c) + 'ff', 'center', rw.b);
+        });
     }
 
     /* ===================== 부분집합 합: 탐색 대 검증 ===================== */
-    function drawSS(x0, top, w, mob, s) {
-        var fs = mob ? 11.5 : 13;
+    function drawSs(x0, top, w, mob, s, p, e) {
+        var L = layout(w, mob);
+        var fs = L.fs, lh = L.lh;
         var n = SS.length;
+        var total = 1 << n;
         var cw = Math.min(54, w / n);
         var ox = x0 + (w - cw * n) / 2;
+        var last = SS_STEPS[SS_STEPS.length - 1];
+        var gAmt = fadeAmt(s === last, p === last, e);
+        var qa = ez(seg(e, 0, 0.5));
+        var cq = ez(seg(e, 0, 0.5));
+        var aq = ez(seg(e, 0.6, 1));
+        var sumNow = sumOf(selVals(s.sel));
+        var sumVal = Math.round(lerp(sumOf(selVals(p.sel)), sumNow, qa));
+        var hit = s.sel.length > 0 && sumNow === SS_T;
+        var vals = selVals(s.sel);
+        var vel = s.add > 0 && s.add !== p.add;
+        var chipY = top + 26, chH = 34;
+        var sumCx = x0 + w / 2, sumY = top + 70, sbH = 28, sumCy = sumY + sbH / 2;
+        var midY = top + 108;
         var k;
-        tx('목표 합 = ' + SS_T, x0 + w / 2, top + 8, fs, P.text + 'ff', 'center', true);
+
+        tx('목표 합 = ' + SS_T, x0 + w / 2, top + 8, fs, colorOf('text') + 'ff', 'center', true);
+
         for (k = 0; k < n; k++) {
-            var on = s.sel.indexOf(k) >= 0;
-            rr(ox + k * cw + 4, top + 24, cw - 8, 34, 4, on ? P.teal + '44' : 'none', on ? P.teal + 'ff' : P.sub + 'aa', on ? 2.4 : 1.2);
-            tx(String(SS[k]), ox + k * cw + cw / 2, top + 41, fs, on ? P.text + 'ff' : P.sub + 'ff', 'center', on);
+            var on1 = s.sel.indexOf(k) >= 0;
+            var on0 = p.sel.indexOf(k) >= 0;
+            var a = on1 === on0 ? (on1 ? 1 : 0) : (on1 ? qa : 1 - qa);
+            var kx = ox + k * cw + 4, kw = cw - 8;
+            var ky = chipY - a * 8;
+            rr(kx, ky, kw, chH, 4, 'none', colorOf('sub') + 'aa', 1.2);
+            if (a > 0) {
+                ctx.globalAlpha = a;
+                rr(kx, ky, kw, chH, 4, colorOf('teal') + '44', colorOf('teal') + 'ff', 2.4);
+                ctx.globalAlpha = 1;
+            }
+            ctx.globalAlpha = vel && on1 ? 1 - seg(e, 0, 0.2) : 1;
+            tx(String(SS[k]), kx + kw / 2, ky + chH / 2, fs, (a > 0.5 ? colorOf('text') : colorOf('sub')) + 'ff', 'center', a > 0.5);
+            ctx.globalAlpha = 1;
         }
-        var by = top + 78;
-        var bw = w - 4;
-        tx('탐색: 확인한 부분집합', x0 + 2, by, fs - 1, P.sub + 'ff', 'left', true);
-        rr(x0 + 2, by + 10, bw, 12, 3, 'none', P.sub + '55', 1);
-        if (s.checked > 0) rr(x0 + 2, by + 10, Math.max(4, bw * s.checked / (1 << n)), 12, 3, P.orange + '66', P.orange + 'ff', 1.4);
-        var vy = by + 40;
-        tx('검증: 덧셈 횟수', x0 + 2, vy, fs - 1, P.sub + 'ff', 'left', true);
-        rr(x0 + 2, vy + 10, bw, 12, 3, 'none', P.sub + '55', 1);
-        if (s.add > 0) rr(x0 + 2, vy + 10, Math.max(4, bw * s.add / (1 << n)), 12, 3, P.green + '66', P.green + 'ff', 1.4);
-        drawCaps(s, x0, w, vy + 50, fs);
+
+        rr(x0 + 2, sumY, w - 4, sbH, 6, hit ? colorOf('green') + '22' : 'none', hit ? colorOf('green') + 'ff' : colorOf('sub') + '88', hit ? 2 : 1.2);
+        if (vel) {
+            var tq = ez(seg(e, 0, 0.6));
+            var tA = seg(e, 0, 0.2) * (1 - seg(e, 0.6, 1));
+            if (tA > 0.001) {
+                ctx.globalAlpha = tA;
+                for (k = 0; k < s.sel.length; k++) {
+                    var fx = lerp(ox + s.sel[k] * cw + cw / 2, sumCx + (k - (s.sel.length - 1) / 2) * 26, tq);
+                    var fy = lerp(chipY - 8 + chH / 2, sumCy, tq);
+                    rr(fx - 12, fy - 9, 24, 18, 4, colorOf('yellow') + 'ff', 'none', 1);
+                    tx(String(SS[s.sel[k]]), fx, fy, fs - 1, '#111111ff', 'center', true);
+                }
+                ctx.globalAlpha = 1;
+            }
+        }
+        var verifyTxt = s.add > 0;
+        var boxTxt = verifyTxt ? vals.join(' + ') + ' = ' + sumNow : (vals.length ? setText(vals) : '공집합') + ' 합 = ' + sumVal;
+        ctx.globalAlpha = vel ? seg(e, 0.55, 0.85) : 1;
+        tx(boxTxt, sumCx, sumCy, fs, (hit ? colorOf('green') : colorOf('text')) + 'ff', 'center', true);
+        ctx.globalAlpha = 1;
+
+        var tallyA = 1 - gAmt;
+        var tallyT = 1 - seg(gAmt, 0, 0.5);
+        var growT = seg(gAmt, 0.5, 1);
+        if (tallyA > 0.001) {
+            var cv = lerp(p.checked, s.checked, cq);
+            var av = lerp(p.add, s.add, aq);
+            ctx.globalAlpha = tallyT;
+            tx('탐색: 확인 ' + Math.round(cv) + ' / ' + total, x0 + 2, midY + 6, fs - 1, colorOf('sub') + 'ff', 'left', true);
+            tx('검증: 덧셈 ' + Math.round(av) + '번', x0 + 2, midY + 40, fs - 1, colorOf('sub') + 'ff', 'left', true);
+            ctx.globalAlpha = tallyA;
+            rr(x0 + 2, midY + 14, w - 4, 10, 3, 'none', colorOf('sub') + '55', 1);
+            if (cv > 0.5) rr(x0 + 2, midY + 14, Math.max(4, (w - 4) * cv / total), 10, 3, colorOf('orange') + '66', colorOf('orange') + 'ff', 1.4);
+            rr(x0 + 2, midY + 48, w - 4, 10, 3, 'none', colorOf('sub') + '55', 1);
+            if (av > 0.5) rr(x0 + 2, midY + 48, Math.max(4, (w - 4) * av / total), 10, 3, colorOf('green') + '66', colorOf('green') + 'ff', 1.4);
+            ctx.globalAlpha = 1;
+        }
+
+        if (gAmt > 0.001) {
+            var gns = [6, 20, 40];
+            ctx.globalAlpha = growT;
+            tx('막대 = 개수의 자릿수(log10)', x0 + 2, midY + 6, fs - 1, colorOf('sub') + 'ff', 'left', true);
+            ctx.globalAlpha = 1;
+            for (var gi = 0; gi < 3; gi++) {
+                var cnt = Math.pow(2, gns[gi]);
+                var frac = Math.log(cnt) / Math.log(Math.pow(2, 40));
+                var rowY = midY + 22 + gi * 28;
+                var gr = clamp01(gAmt * 1.5 - gi * 0.25);
+                ctx.globalAlpha = growT;
+                tx('n = ' + gns[gi] + '  ·  ' + commaNum(cnt) + '개', x0 + 2, rowY, fs - 1, colorOf('text') + 'ff', 'left', true);
+                ctx.globalAlpha = gAmt;
+                rr(x0 + 2, rowY + 10, w - 4, 8, 3, 'none', colorOf('sub') + '55', 1);
+                if (gr > 0) rr(x0 + 2, rowY + 10, Math.max(4, (w - 4) * frac * gr), 8, 3, colorOf('purple') + '66', colorOf('purple') + 'ff', 1.2);
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        drawCap(capRows(s, w, fs), x0, w, top + L.capY, lh);
     }
 
     /* ===================== 환원 사슬 ===================== */
-    function drawReduce(x0, top, w, mob, s) {
-        var fs = mob ? 11.5 : 13;
+    function rdEdge(k, pos, bh) {
+        var a = pos[RD[k].parent];
+        var b = pos[k];
+        if (k === 7) return [a.x + a.w, a.y + bh / 2, b.x - 2, b.y + bh / 2];
+        return [a.x + a.w / 2, a.y + bh, b.x + b.w / 2, b.y - 2];
+    }
+    function drawRd(x0, top, w, mob, s, p, e) {
+        var L = layout(w, mob);
+        var fs = L.fs, lh = L.lh;
         var bh = mob ? 24 : 28;
         var gap = mob ? 34 : 38;
         var cx = x0 + w * 0.3;
         var bw = Math.min(w * 0.48, 180);
         var sx = x0 + w * 0.64;
         var sw = w * 0.34;
-        var k;
+        var last = RD_STEPS[RD_STEPS.length - 1];
+        var fresh = p.upto < s.upto;
+        var finalNow = s === last;
+        var revDot = finalNow && p !== s;
         var pos = [];
-        for (k = 0; k < 8; k++) {
+        var k, j, oi;
+        for (k = 0; k < RD.length; k++) {
             if (k < 7) pos.push({ x: cx - bw / 2, y: top + 6 + k * gap, w: bw });
             else pos.push({ x: sx, y: top + 6 + 2 * gap, w: sw });
         }
+
         for (k = 1; k < RD.length; k++) {
             if (k >= s.upto) continue;
-            var a = pos[RD[k].parent];
-            var b = pos[k];
-            if (k === 7) arrow(a.x + a.w, a.y + bh / 2, b.x - 2, b.y + bh / 2, P.purple + 'ff');
-            else arrow(a.x + a.w / 2, a.y + bh, b.x + b.w / 2, b.y - 2, P.purple + 'ff');
+            var ed = rdEdge(k, pos, bh);
+            var f = fresh && k === s.upto - 1 ? ez(seg(e, 0, 0.5)) : 1;
+            if (f < 1) {
+                var ex = lerp(ed[0], ed[2], f), ey = lerp(ed[1], ed[3], f);
+                ln(ed[0], ed[1], ex, ey, colorOf('purple') + 'ff', 1.6);
+                circ(ex, ey, 3.5, colorOf('purple') + 'ff', 'none');
+            } else {
+                arrow(ed[0], ed[1], ed[2], ed[3], colorOf('purple') + 'ff', 1.6);
+            }
         }
-        for (k = 0; k < RD.length; k++) {
-            var shown = k < s.upto;
-            var cur = k === s.upto - 1;
-            var p = pos[k];
-            rr(p.x, p.y, p.w, bh, 4, shown ? P.teal + (cur ? '55' : '22') : 'none', shown ? P.teal + 'ff' : P.sub + '33', cur ? 2.6 : 1.3);
-            tx(RD[k].name, p.x + p.w / 2, p.y + bh / 2, fs - 0.5, shown ? P.text + 'ff' : P.sub + 'aa', 'center', shown);
+
+        var order = [7, 2, 1];
+        for (oi = 0; oi < 3 && revDot; oi++) {
+            var tt = seg(e, oi / 3, (oi + 1) / 3);
+            if (tt <= 0 || tt >= 1) continue;
+            var ed2 = rdEdge(order[oi], pos, bh);
+            var dx = lerp(ed2[2], ed2[0], ez(tt)), dy = lerp(ed2[3], ed2[1], ez(tt));
+            ln(ed2[0], ed2[1], ed2[2], ed2[3], colorOf('yellow') + 'ff', 2.4);
+            circ(dx, dy, 4.5, colorOf('yellow') + 'ff', 'none');
         }
-        drawCaps(s, x0, w, top + 6 + 7 * gap + 8, fs);
+
+        for (j = 0; j < RD.length; j++) {
+            var pj = pos[j];
+            var shown = j < s.upto;
+            var cur = j === s.upto - 1;
+            var appear = shown ? (cur && fresh ? ez(seg(e, 0.35, 0.9)) : 1) : 0;
+            rr(pj.x, pj.y, pj.w, bh, 4, 'none', colorOf('sub') + '33', 1.3);
+            if (appear > 0) {
+                ctx.globalAlpha = appear;
+                rr(pj.x, pj.y, pj.w, bh, 4, colorOf('teal') + (cur ? '55' : '22'), colorOf('teal') + 'ff', cur ? 2.6 : 1.3);
+                ctx.globalAlpha = 1;
+            }
+            tx(RD[j].name, pj.x + pj.w / 2, pj.y + bh / 2, fs, colorOf(shown ? 'text' : 'sub') + (shown ? 'ff' : 'aa'), 'center', shown);
+        }
+
+        var finA = finalNow ? (revDot ? seg(e, 0.8, 1) : 1) : 0;
+        if (finA > 0.001) {
+            ctx.globalAlpha = finA;
+            tx('P = NP', sx + sw / 2, pos[0].y + bh / 2, fs, colorOf('green') + 'ff', 'center', true);
+            ctx.globalAlpha = 1;
+        }
+
+        drawCap(capRows(s, w, fs), x0, w, top + L.capY, lh);
     }
 
     /* ===================== P, NP, NP-난해의 포함 관계 ===================== */
-    function ell(cx, cy, rx, ry, fill, stroke, lw) {
-        ctx.beginPath();
-        ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
-        if (fill !== 'none') {
-            ctx.fillStyle = fill;
-            ctx.fill();
+    function drawCls(x0, top, w, mob, s, p, e) {
+        var L = layout(w, mob);
+        var fs = L.fs, lh = L.lh;
+        var cy = top + 84, ry = 70;
+        var npC = x0 + w * 0.4, npR = w * 0.33;
+        var nhC = x0 + w * 0.64, nhR = w * 0.3;
+        var q = p === s ? 1 : ez(e);
+        var big = lerp(p.st >= 5 ? 1 : 0, s.st >= 5 ? 1 : 0, q);
+        var pC = lerp(x0 + w * 0.22, npC, big);
+        var pR = lerp(w * 0.1, npR - 3, big);
+        var pRy = lerp(28, ry - 3, big);
+        var pLw = lerp(p.st === 1 ? 3 : 1.6, s.st === 1 ? 3 : 1.6, q);
+        var cut = lerp(p.st === 3 || p.st === 4 ? 1 : 0, s.st === 3 || s.st === 4 ? 1 : 0, q);
+        var emph = lerp(p.st === 2 ? 1 : 0, s.st === 2 ? 1 : 0, q);
+
+        oval(nhC, cy, nhR, ry, 'none', colorOf('sub') + '88', 1.4);
+        oval(npC, cy, npR, ry, 'none', colorOf('sub') + 'cc', 1.6);
+        if (emph > 0.001) {
+            ctx.globalAlpha = emph;
+            oval(npC, cy, npR, ry, 'none', colorOf('purple') + 'ff', 3);
+            ctx.globalAlpha = 1;
         }
-        ctx.strokeStyle = stroke;
-        ctx.lineWidth = lw;
-        ctx.stroke();
-    }
-    function drawClasses(x0, top, w, mob, s) {
-        var fs = mob ? 11.5 : 13;
-        var cy = top + 84;
-        var ry = 70;
-        var st = s.st;
-        var npC = x0 + w * 0.4;
-        var npR = w * 0.33;
-        var nhC = x0 + w * 0.64;
-        var nhR = w * 0.3;
-        var pC = x0 + w * 0.22;
-        var pR = w * 0.1;
-        var pRy = 28;
-        var pFill = P.teal + '22';
-        var pStroke = P.teal + 'ff';
-        var pLw = 1.6;
-        var npFill = 'none';
-        var npStroke = P.sub + 'cc';
-        var npLw = 1.6;
-        var cFill = 'none';
-        if (st === 1) pLw = 3;
-        if (st === 2) {
-            npStroke = P.purple + 'ff';
-            npLw = 3;
-        }
-        if (st === 3 || st === 4) cFill = P.orange + '33';
-        if (st === 5 || st === 6) {
-            pC = npC;
-            pR = npR - 3;
-            pRy = ry - 3;
-            pFill = P.teal + '1a';
-        }
-        ell(nhC, cy, nhR, ry, 'none', P.sub + '88', 1.4);
-        ell(npC, cy, npR, ry, npFill, npStroke, npLw);
-        if (cFill !== 'none') {
+        if (cut > 0.001) {
             ctx.save();
             ctx.beginPath();
             ctx.ellipse(npC, cy, npR, ry, 0, 0, Math.PI * 2);
             ctx.clip();
-            ell(nhC, cy, nhR, ry, cFill, P.orange + 'ff', 2.4);
+            ctx.globalAlpha = cut;
+            oval(nhC, cy, nhR, ry, colorOf('orange') + '33', colorOf('orange') + 'ff', 2.4);
             ctx.restore();
         }
-        ell(pC, cy, pR, pRy, pFill, pStroke, pLw);
-        tx('P', st >= 5 ? x0 + w * 0.2 : pC, cy, fs, P.text + 'ff', 'center', true);
-        tx('NP', x0 + w * 0.2, cy - ry + 14, fs, P.sub + 'ff', 'center', true);
-        tx('NP-난해', x0 + w * 0.84, cy, fs - 1, P.sub + 'ff', 'center', true);
-        tx('NP-완전', x0 + w * 0.53, cy, fs - 1, st === 3 || st === 4 ? P.orange + 'ff' : P.sub + 'ff', 'center', true);
-        if (st === 4) tx('P 밖', x0 + w * 0.53, cy + 18, fs - 1, P.red + 'ff', 'center', true);
-        if (st >= 5) tx('= P', x0 + w * 0.53, cy + 18, fs - 1, P.green + 'ff', 'center', true);
-        drawCaps(s, x0, w, cy + ry + 26, fs);
+        oval(pC, cy, pR, pRy, colorOf('teal') + '22', colorOf('teal') + 'ff', pLw);
+
+        tx('P', x0 + w * 0.2, cy, fs, colorOf('text') + 'ff', 'center', true);
+        tx('NP', x0 + w * 0.3, cy - 50, fs, colorOf('sub') + 'ff', 'center', true);
+        tx('NP-난해', x0 + w * 0.84, cy, fs - 1, colorOf('sub') + 'ff', 'center', true);
+        tx('NP-완전', x0 + w * 0.53, cy, fs - 1, (s.st === 3 || s.st === 4 ? colorOf('orange') : colorOf('sub')) + 'ff', 'center', true);
+        ctx.globalAlpha = fadeAmt(s.st === 4, p.st === 4, seg(e, 0, 0.5));
+        tx('P 밖', x0 + w * 0.53, cy + 18, fs - 1, colorOf('red') + 'ff', 'center', true);
+        ctx.globalAlpha = fadeAmt(s.st >= 5, p.st >= 5, seg(e, 0.5, 1));
+        tx('= P', x0 + w * 0.53, cy + 18, fs - 1, colorOf('green') + 'ff', 'center', true);
+        ctx.globalAlpha = 1;
+
+        drawCap(capRows(s, w, fs), x0, w, top + L.capY, lh);
+    }
+
+    /* ===================== 장면 진입 ===================== */
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var s = step || currentSteps()[0];
+        var p = prev || s;
+        var e = clamp01(t);
+        if (s.kind === 'ss') drawSs(x0, top, w, mob, s, p, e);
+        else if (s.kind === 'reduce') drawRd(x0, top, w, mob, s, p, e);
+        else drawCls(x0, top, w, mob, s, p, e);
     }
 
     /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
     function draw() {
         P = window.CsFlow.getP();
         ctx.clearRect(0, 0, GW(), GH());
         var W = GW(); var mob = W < 600;
-        var padX = mob ? 16 : 26;
-        var fullW = W - padX * 2;
-        var top = mob ? 18 : 26;
-
         var steps = currentSteps();
         var step = stepIdx >= 0 ? steps[stepIdx] : null;
-
-        var dsStep = step || currentSteps()[0];
-        if (dsStep.kind === 'reduce') drawReduce(padX, top, fullW, mob, dsStep);
-        else if (dsStep.kind === 'cls') drawClasses(padX, top, fullW, mob, dsStep);
-        else drawSS(padX, top, fullW, mob, dsStep);
-
-        if (!step) {
-            var hint = '아래 STEP으로 P와 NP, NP-완전의 관계를 확인하세요.';
-            ctx.font = '500 ' + (mob ? 11 : 12.5) + 'px "JetBrains Mono",monospace';
-            var hs = mob ? 11 : 12.5;
-            var hl = [hint];
-            if (ctx.measureText(hint).width > W - 16) {
-                var cut = hint.indexOf(' ', Math.floor(hint.length / 2));
-                if (cut < 0) cut = hint.lastIndexOf(' ');
-                hl = [hint.slice(0, cut), hint.slice(cut + 1)];
-            }
-            hl.forEach(function (line, li) {
-                tx(line, W / 2, GH() - (mob ? 12 : 14) - (hl.length - 1 - li) * (hs + 4), hs, P.muted + 'aa', 'center', false);
-            });
-        }
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
         var mob = w < 600;
-        var neededH;
-        neededH = mob ? 330 : 370;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
         canvasWrap.style.height    = 'auto';
-        canvasWrap.style.minHeight = neededH + 'px';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
         var actualH = canvasWrap.offsetHeight || neededH;
         if (actualH < neededH) actualH = neededH;
         canvas.width  = w * dpr;
@@ -408,17 +575,22 @@
     /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        draw();
-        rafId = requestAnimationFrame(function () { rafId = null; if (onDone) onDone(); });
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
     function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
-    function defaultLog() {
-        if (mode === 'reduce') return '환원으로 NP-완전 문제가 서로 이어지는 모습을 따라갑니다.';
-        if (mode === 'classes') return 'P, NP, NP-난해, NP-완전의 포함 관계를 단계별로 봅니다.';
-        return '답을 찾는 일과 주어진 답을 검증하는 일의 비용 차이를 부분집합 합으로 봅니다.';
-    }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -457,7 +629,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);

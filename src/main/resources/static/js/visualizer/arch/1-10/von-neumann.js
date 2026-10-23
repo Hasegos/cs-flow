@@ -4,112 +4,179 @@
 (function () {
     'use strict';
 
-    const container = document.getElementById('visualizer-container');
+    var container = document.getElementById('visualizer-container');
     if (!container) return;
 
-    /* ===================== DOM 생성 유틸 ===================== */
-    function el(tag, cls, text) {
-        const e = document.createElement(tag);
-        if (cls)  e.className = cls;
-        if (text) e.textContent = text;
+    function el(tag, cls, txt) {
+        var e = document.createElement(tag);
+        if (cls) e.className = cls;
+        if (txt !== undefined && txt !== null) e.textContent = txt;
         return e;
     }
 
-    /* ===================== UI 구성 ===================== */
-    const root = el('div', 'vn');
-
-    const toolbar = el('div', 'vn__toolbar');
-    const tbLeft  = el('div', 'vn__toolbar-left');
+    /* ===================== DOM ===================== */
+    var root    = el('div', 'vn');
+    var toolbar = el('div', 'vn__toolbar');
+    var tbLeft  = el('div', 'vn__toolbar-left');
     tbLeft.appendChild(el('span', 'vn__title', 'Von Neumann Architecture'));
 
-    const phases = el('div', 'vn__phases');
-    const lblFetch   = el('span', 'vn__phase', 'FETCH');   lblFetch.id   = 'vn-fetch';
-    const lblDecode  = el('span', 'vn__phase', 'DECODE');  lblDecode.id  = 'vn-decode';
-    const lblExecute = el('span', 'vn__phase', 'EXECUTE'); lblExecute.id = 'vn-execute';
-    const sep1 = el('span', 'vn__phase-sep', '→');
-    const sep2 = el('span', 'vn__phase-sep', '→');
-    phases.appendChild(lblFetch);
-    phases.appendChild(sep1);
-    phases.appendChild(lblDecode);
-    phases.appendChild(sep2);
-    phases.appendChild(lblExecute);
-    tbLeft.appendChild(phases);
+    var modeWrap = el('div', 'vn__mode');
+    var modeDefs = [
+
+    ];
+    var modeBtns = {};
+    modeDefs.forEach(function (m, i) {
+        var b = el('button', 'vn__mode-btn' + (i === 0 ? ' vn__mode-btn--active' : ''), m.label);
+        b.addEventListener('click', function () { if (!running) switchMode(m.key); });
+        modeWrap.appendChild(b);
+        modeBtns[m.key] = b;
+    });
+    if (modeDefs.length) tbLeft.appendChild(modeWrap);
     toolbar.appendChild(tbLeft);
 
-    const speedWrap = el('div', 'vn__speed');
+    var speedWrap = el('div', 'vn__speed');
     speedWrap.appendChild(el('span', 'vn__speed-label', 'SPEED'));
-    [['1x', 1800], ['2x', 1000], ['3x', 500]].forEach(([label, ms], i) => {
-        const btn = el('button', 'vn__speed-btn' + (i === 0 ? ' vn__speed-btn--active' : ''), label);
-        btn.dataset.ms = ms;
-        btn.addEventListener('click', () => {
-            if (running) return;
-            setSpeed(ms, btn);
-        });
-        speedWrap.appendChild(btn);
+    var speedBtns = [];
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
+        var b = el('button', 'vn__speed-btn' + (i === 0 ? ' vn__speed-btn--active' : ''), pair[0]);
+        b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
+        speedWrap.appendChild(b);
+        speedBtns.push(b);
     });
     toolbar.appendChild(speedWrap);
     root.appendChild(toolbar);
 
-    const canvasWrap = el('div', 'vn__canvas-wrap');
-    const canvas     = document.createElement('canvas');
+    var canvasWrap = el('div', 'vn__canvas-wrap');
+    var canvas     = document.createElement('canvas');
     canvas.className = 'vn__canvas';
     canvasWrap.appendChild(canvas);
     root.appendChild(canvasWrap);
 
-    const logBar = el('div', 'vn__log', '시작 버튼을 눌러 Fetch → Decode → Execute 사이클을 확인하세요.');
-    logBar.id = 'vn-log';
-    root.appendChild(logBar);
+    var logEl = el('div', 'vn__log', '');
+    root.appendChild(logEl);
 
-    const controls = el('div', 'vn__controls');
-    const btnPlay  = el('button', 'vn__btn vn__btn--primary', '▶ PLAY');
-    const btnStep  = el('button', 'vn__btn', '▶| STEP');
-    const btnReset = el('button', 'vn__btn', '↺ RESET');
-    btnPlay.id = 'vn-btn-play';
-    btnStep.id = 'vn-btn-step';
-    btnPlay.addEventListener('click',  vnStart);
-    btnStep.addEventListener('click',  vnStep);
-    btnReset.addEventListener('click', vnReset);
+    var controls = el('div', 'vn__controls');
+    var btnPlay  = el('button', 'vn__btn vn__btn--primary', '▶ PLAY');
+    var btnStep  = el('button', 'vn__btn', '▶| STEP');
+    var btnReset = el('button', 'vn__btn', '↺ RESET');
+    btnPlay.addEventListener('click',  vizStart);
+    btnStep.addEventListener('click',  vizStep);
+    btnReset.addEventListener('click', vizReset);
     controls.appendChild(btnPlay);
     controls.appendChild(btnStep);
     controls.appendChild(btnReset);
     root.appendChild(controls);
-
     container.appendChild(root);
 
-    /* ===================== 캔버스 설정 ===================== */
-    const ctx = canvas.getContext('2d');
-    const dpr = window.devicePixelRatio || 1;
+    var ctx = canvas.getContext('2d');
+    var dpr = window.devicePixelRatio || 1;
+    function GW() { return canvas.width / dpr; }
+    function GH() { return canvas.height / dpr; }
 
-    function resize() {
-        const w = canvasWrap.offsetWidth;
-        const h = Math.max(canvasWrap.offsetHeight, 340);
-        canvas.width  = w * dpr;
-        canvas.height = h * dpr;
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        draw();
+    var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = '';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
     }
-
-    const GW = () => canvas.width  / dpr;
-    const GH = () => canvas.height / dpr;
-
-    /* ===================== 팔레트 ===================== */
-    const PALETTE = window.CsFlow.PALETTE;
-    let P = window.CsFlow.getP();
-
-    /* ===================== 약어 툴팁 데이터 ===================== */
-    const TOOLTIPS = {
-        'PC':  'Program Counter\n다음에 실행할 명령어의 메모리 주소를 보관',
-        'IR':  'Instruction Register\n인출한 명령어를 보관',
-        'R1':  'Register 1\n범용 레지스터 — 연산에 사용되는 데이터 임시 저장',
-        'R2':  'Register 2\n범용 레지스터 — 연산에 사용되는 데이터 임시 저장',
-        'ALU': 'Arithmetic Logic Unit\n산술·논리 연산을 수행하는 회로',
-        'CU':  'Control Unit\n명령어를 해석하고 각 장치를 제어',
-    };
-
-    // 툴팁 히트박스: draw 시마다 갱신
-    let tooltipHits = [];
-    let mousePos    = { x: -1, y: -1 };
-    let hoveredKey  = null;
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    var tipHits = [];
+    var mousePos = { x: -1, y: -1 };
+    var hoveredKey = null;
+    function tipHit(x, y, w, h, key) { tipHits.push({ x: x, y: y, w: w, h: h, key: key }); }
+    function tipBadge(cx, cy, key) {
+        var on = hoveredKey === key;
+        circ(cx, cy, 7, on ? P.purple + '44' : 'none', P.purple + (on ? 'ff' : '99'), 1.2);
+        tx('?', cx, cy, 9.5, on ? P.text + 'ff' : P.sub + 'ff', 'center', true);
+        tipHit(cx - 10, cy - 10, 20, 20, key);
+    }
+    function drawTip(mx, my, text) {
+        var parts = text.split(String.fromCharCode(10));
+        var title = parts[0], desc = parts[1] || '';
+        var W = GW(), H = GH();
+        var pad = 14;
+        var maxIn = W - 16 - pad * 2;
+        ctx.font = '700 14px "JetBrains Mono",monospace';
+        var tl = window.CsFlow.wrapText(ctx, title, maxIn);
+        var titleW = 0;
+        tl.forEach(function (l) { titleW = Math.max(titleW, ctx.measureText(l).width); });
+        ctx.font = '400 13px "JetBrains Mono",monospace';
+        var dl = desc ? window.CsFlow.wrapText(ctx, desc, maxIn) : [];
+        var descW = 0;
+        dl.forEach(function (l) { descW = Math.max(descW, ctx.measureText(l).width); });
+        var tw = Math.min(W - 16, Math.max(titleW, descW) + pad * 2);
+        var th = desc ? 24 + tl.length * 18 + dl.length * 18 : 18 + tl.length * 18;
+        var bx = mx + 14, by = my - th - 8;
+        if (bx + tw > W - 8) bx = mx - tw - 14;
+        if (bx < 8) bx = 8;
+        if (by < 8) by = my + 14;
+        if (by + th > H - 8) by = H - th - 8;
+        rr(bx, by, tw, th, 6, P.surf2, P.purple + 'cc', 2);
+        tl.forEach(function (l, i) { tx(l, bx + pad, by + 18 + i * 18, 14, P.text + 'ff', 'left', true); });
+        dl.forEach(function (l, i) { tx(l, bx + pad, by + 24 + tl.length * 18 + i * 18, 13, P.sub + 'ff', 'left', false); });
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 시뮬레이션 데이터 ===================== */
     const MEM_INIT = [
@@ -154,455 +221,307 @@
     ];
 
     /* ===================== 상태 ===================== */
-    let stepIdx = -1;
-    let running = false;
-    let timer   = null;
-    let speed   = 1800;
-    let memHL   = -1;
-    let curReg  = { PC: '—', IR: '—', R1: '—', R2: '—' };
-    let curPh   = null;
-    let mem     = MEM_INIT.map(m => ({ ...m }));
-    let busAnim = null;
-    let rafId   = null;
-    let aluOn   = false;
-    let cuOn    = false;
+    /* ===================== 툴팁 데이터 ===================== */
+    var TIPS = {
+        'PC':  'Program Counter\n다음에 실행할 명령어의 메모리 주소를 보관',
+        'IR':  'Instruction Register\n인출한 명령어를 보관',
+        'R1':  'Register 1\n범용 레지스터 — 연산에 사용되는 데이터 임시 저장',
+        'R2':  'Register 2\n범용 레지스터 — 연산에 사용되는 데이터 임시 저장',
+        'ALU': 'Arithmetic Logic Unit\n산술·논리 연산을 수행하는 회로',
+        'CU':  'Control Unit\n명령어를 해석하고 각 장치를 제어',
+    };
 
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        ctx.beginPath();
-        ctx.moveTo(x + r, y);
-        ctx.arcTo(x + w, y, x + w, y + h, r);
-        ctx.arcTo(x + w, y + h, x, y + h, r);
-        ctx.arcTo(x, y + h, x, y, r);
-        ctx.arcTo(x, y, x + w, y, r);
-        ctx.closePath();
-        if (fill)   { ctx.fillStyle = fill;     ctx.fill(); }
-        if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.5; ctx.stroke(); }
+    /* ===================== 장면 ===================== */
+    var VN_PH_KEY  = ['f', 'd', 'e'];
+    var VN_PH_NAME = ['FETCH', 'DECODE', 'EXECUTE'];
+    var VN_LANES   = [['CTRL', 'I', -1, 'orange'], ['ADDR', 'A', 0, 'teal'], ['DATA', 'D', 1, 'purple']];
+
+    function currentSteps() { return STEPS; }
+    function defaultLog() { return '시작 버튼을 눌러 Fetch → Decode → Execute 사이클을 확인하세요.'; }
+    function ez(q) { q = clamp01(q); return q * q * (3 - 2 * q); }
+
+    function vnTxtW(str, sz) {
+        var n = 0;
+        for (var i = 0; i < str.length; i++) n += str.charCodeAt(i) > 255 ? 1 : 0.6;
+        return n * sz;
     }
 
-    function tx(str, x, y, sz, color, align, bold) {
-        ctx.font = `${bold ? 700 : 400} ${sz}px "JetBrains Mono",monospace`;
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
+    function vnPhCol(ph) { return ph === 'f' ? P.orange : (ph === 'd' ? P.teal : P.purple); }
+
+    function vnCap(s) {
+        if (s.done) return 'HALT 명령어로 실행을 멈춘다';
+        if (s.ph === 'd') return 'CU가 ' + s.reg.IR + ' 명령어를 해석한다';
+        if (s.ph === 'f') return s.bus && s.bus.toMem ? 'PC의 주소를 ADDR 버스로 메모리에 보낸다' : '메모리가 명령어를 CTRL 버스로 CPU에 돌려준다';
+        if (!s.bus) return 'ALU가 R1과 R2를 더해 결과를 R1에 넣는다';
+        if (s.bus.label === 'A') return s.reg.IR === 'STORE' ? '저장할 주소를 ADDR 버스로 메모리에 보낸다' : '피연산자 주소를 ADDR 버스로 메모리에 보낸다';
+        if (s.bus.toMem) return 'R1의 값을 DATA 버스로 메모리에 쓴다';
+        return '읽은 값을 DATA 버스로 받아 레지스터에 넣는다';
     }
 
-    function phCol(ph) {
-        return ph === 'f' ? P.orange : ph === 'd' ? P.teal : P.purple;
+    function vnCapMax(bw) {
+        var st = currentSteps(), m = 1;
+        for (var i = 0; i < st.length; i++) m = Math.max(m, lines(vnCap(st[i]), bw, 11).length);
+        return m;
+    }
+
+    function layout(w, mob) {
+        var bw = Math.min(w, 520), bx = (w - bw) / 2, colW = (bw - 30) / 2;
+        var cpuY = 40 + vnCapMax(bw) * 15;
+        var memY = cpuY + 183;
+        return {
+            bw: bw, bx: bx, cx: bx + bw / 2, lane: Math.min(76, bw / 2 - 40),
+            colW: colW, colL: bx + 10, colR: bx + 20 + colW,
+            cpuY: cpuY, cpuH: 119, row1: cpuY + 26, row2: cpuY + 55, row3: cpuY + 87,
+            memY: memY, memH: 172, h: memY + 172
+        };
+    }
+
+    function sceneH(w, mob) { return layout(w, mob).h; }
+
+    function vnRegVal(k, s, pr, t) { return pr && pr[k] !== s.reg[k] && t < 0.85 ? pr[k] : s.reg[k]; }
+    function vnChanged(k, s, pr, t) { return !!pr && pr[k] !== s.reg[k] && t >= 0.85; }
+    function vnMemVal7(idx, t) { return idx > 18 || (idx === 18 && t >= 0.85) ? '10' : '?'; }
+
+    function vnLane(lbl) { return lbl === 'I' ? VN_LANES[0] : (lbl === 'A' ? VN_LANES[1] : VN_LANES[2]); }
+
+    function vnPktVal(s) {
+        var m = MEM_INIT[s.mh];
+        if (s.bus.label === 'A') return m.addr;
+        if (s.bus.label === 'I') return m.label.split(' ')[0];
+        if (s.bus.toMem) return s.reg.R1;
+        return m.label;
+    }
+
+    function vnChip(x, y, val, col, alpha) {
+        if (alpha <= 0) return;
+        var w = vnTxtW(val, 11) + 12;
+        ctx.globalAlpha = alpha;
+        rr(x - w / 2, y - 9, w, 18, 6, col, null);
+        tx(val, x, y, 11, '#111111', 'center', true);
+        ctx.globalAlpha = 1;
+    }
+
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var steps = currentSteps();
+        var s = step || steps[0];
+        var idx = steps.indexOf(s);
+        var pr = prev && prev !== s ? prev.reg : null;
+        var L = layout(w, mob);
+        var bx = x0 + L.bx, bw = L.bw, cx = x0 + L.cx, cw = L.colW;
+        var lc = x0 + L.colL, rc = x0 + L.colR;
+        var cpuY = top + L.cpuY, cpuB = cpuY + L.cpuH, memY = top + L.memY;
+        var r1 = top + L.row1, r2 = top + L.row2, r3 = top + L.row3;
+        var pc2 = vnPhCol(s.ph);
+        var cuOn = s.ph === 'd', aluOn = s.ph === 'e' && !s.bus && !s.done;
+        var k, i, px;
+
+        var pw = [], total = 36;
+        for (k = 0; k < 3; k++) { pw[k] = vnTxtW(VN_PH_NAME[k], 11) + 16; total += pw[k]; }
+        px = cx - total / 2;
+        for (k = 0; k < 3; k++) {
+            var on = s.ph === VN_PH_KEY[k], pc = vnPhCol(VN_PH_KEY[k]);
+            rr(px, top, pw[k], 22, 11, on ? pc : P.surf2, on ? pc : P.border, 1);
+            tx(VN_PH_NAME[k], px + pw[k] / 2, top + 11, 11, on ? '#111111' : P.sub + 'ff', 'center', true);
+            px += pw[k];
+            if (k < 2) { tx('→', px + 18, top + 11, 11, P.sub + 'ff', 'center', false); px += 36; }
+        }
+
+        var cl = lines(vnCap(s), bw, 11);
+        for (k = 0; k < cl.length; k++) tx(cl[k], cx, top + 37 + k * 15, 11, P.sub + 'ff', 'center', false);
+
+        rr(bx, cpuY, bw, L.cpuH, 10, P.surf, P.border, 1.5);
+        rr(bx, cpuY, bw, 20, 6, pc2 + '33', null);
+        tx('CPU', cx, cpuY + 10, 11, P.text + 'ff', 'center', true);
+        var regs = [['PC', lc, r1], ['IR', rc, r1], ['R1', lc, r2], ['R2', rc, r2]];
+        for (k = 0; k < 4; k++) {
+            var key = regs[k][0], rx = regs[k][1], ry = regs[k][2];
+            var hi = (key === 'PC' && s.ph === 'f') || (key === 'IR' && s.ph === 'd') ||
+                (key === 'R1' && !!s.bus && !!s.bus.toMem && s.bus.label === 'D') || vnChanged(key, s, pr, t);
+            var hov = hoveredKey === key;
+            rr(rx, ry, cw, 24, 5, hi ? pc2 + '1a' : (hov ? P.purple + '1a' : P.surf2), hi ? pc2 : (hov ? P.purple : P.border), hi || hov ? 2 : 1);
+            rr(rx, ry, 30, 24, 5, hi ? pc2 + '33' : P.bg, null);
+            tx(key, rx + 15, ry + 12, 11, (hi ? pc2 : P.sub) + 'ff', 'center', true);
+            var rv = vnRegVal(key, s, pr, t);
+            if (aluOn && (key === 'R1' || key === 'R2') && t >= 0.1 && t < 0.85) rv = '';
+            tx(rv, rx + 30 + (cw - 44) / 2, ry + 12, 11, (hi ? pc2 : P.text) + 'ff', 'center', true);
+            tipBadge(rx + cw - 9, ry + 12, key);
+        }
+
+        rr(lc, r3, cw, 26, 5, cuOn ? P.teal + '1a' : P.surf2, cuOn ? P.teal : P.border, cuOn ? 2 : 1);
+        tx('CU', lc + 8, r3 + 13, 11, (cuOn ? P.teal : P.sub) + 'ff', 'left', cuOn);
+        tipBadge(lc + cw - 9, r3 + 13, 'CU');
+        rr(rc, r3, cw, 26, 5, aluOn ? P.purple + '1a' : P.surf2, aluOn ? P.purple : P.border, aluOn ? 2 : 1);
+        tx('ALU', rc + 8, r3 + 13, 11, (aluOn ? P.purple : P.sub) + 'ff', 'left', aluOn);
+        tipBadge(rc + cw - 9, r3 + 13, 'ALU');
+
+        var bl = s.bus ? s.bus.label : '';
+        for (k = 0; k < 3; k++) {
+            var lk = VN_LANES[k], lx = cx + lk[2] * L.lane, lcol = P[lk[3]], on2 = bl === lk[1];
+            ln(lx, cpuB + 16, lx, memY - 2, lcol + (on2 ? 'ff' : '66'), on2 ? 2.5 : 1.4, [5, 4]);
+            tx(lk[0], lx, cpuB + 8, 11, lcol + (on2 ? 'ff' : 'aa'), 'center', on2);
+        }
+
+        if (s.bus) {
+            var pl = vnLane(s.bus.label), yA = cpuB + 24, yB = memY - 12;
+            var yc = s.bus.toMem ? lerp(yA, yB, t) : lerp(yB, yA, t);
+            vnChip(cx + pl[2] * L.lane, yc, vnPktVal(s), P[pl[3]], t > 0.9 ? 1 - seg(t, 0.9, 1) : 1);
+        }
+
+        rr(bx, memY, bw, L.memH, 10, P.surf, P.border, 1.5);
+        rr(bx, memY, bw, 20, 6, P.teal + '33', null);
+        tx('MEMORY', cx, memY + 10, 11, P.teal + 'ff', 'center', true);
+        for (i = 0; i < 8; i++) {
+            var my = memY + 24 + i * 18, hl = i === s.mh, hc = MEM_INIT[i].type === 'd' ? P.teal : P.orange;
+            rr(bx + 8, my, bw - 16, 16, 4, hl ? hc + '1a' : P.surf2, hl ? hc : P.border, hl ? 2 : 1);
+            rr(bx + 8, my, 44, 16, 4, hl ? hc + '33' : P.bg, null);
+            tx(MEM_INIT[i].addr, bx + 30, my + 8, 11, hc + 'ff', 'center', true);
+            tx(i === 7 ? vnMemVal7(idx, t) : MEM_INIT[i].label, bx + 52 + (bw - 60) / 2, my + 8, 11, (hl ? P.text : P.sub) + 'ff', 'center', hl);
+        }
+
+        if (aluOn) {
+            var c1x = lc + cw / 2, c2x = rc + cw / 2, cAy = r3 + 13;
+            if (t < 0.45) {
+                var u = ez(seg(t, 0, 0.45));
+                vnChip(lerp(c1x, c2x, u), lerp(r2 + 12, cAy, u), pr ? pr.R1 : s.reg.R1, P.purple, 1);
+                vnChip(c2x, lerp(r2 + 12, cAy, u), pr ? pr.R2 : s.reg.R2, P.purple, 1);
+            } else if (t < 0.85) {
+                var v = ez(seg(t, 0.45, 0.85));
+                vnChip(lerp(c2x, c1x, v), lerp(cAy, r2 + 12, v), s.reg.R1, P.purple, 1);
+            }
+        }
     }
 
     /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
     function draw() {
         P = window.CsFlow.getP();
-        const W = GW(), H = GH();
-        ctx.clearRect(0, 0, W, H);
-        ctx.fillStyle = P.bg;
-        ctx.fillRect(0, 0, W, H);
-
-        const nar   = W < 500;
-        const pad   = nar ? 8 : 20;
-        const gap   = 18;
-        const cpuW  = Math.min(220, W * 0.32);
-        const memW  = Math.min(230, W * (nar ? 0.44 : 0.34));
-        const boxH  = Math.min(H - 32, 320);
-        const boxY  = (H - boxH) / 2;
-        const cpuX  = pad;
-        const memX  = W - memW - pad;
-        const busX1 = cpuX + cpuW;
-        const busX2 = memX;
-        const busY  = H / 2;
-
-        tooltipHits = [];
-        drawBus(busX1, busX2, busY, gap);
-        drawCPU(cpuX, boxY, cpuW, boxH);
-        drawMem(memX, boxY, memW, boxH);
-
-        if (busAnim) {
-            const packetY = busAnim.label === 'A' ? busY + gap
-                          : busAnim.label === 'I' ? busY - gap
-                          : busY;
-            drawPacket(busX1, busX2, packetY);
-        }
-
-        if (hoveredKey && TOOLTIPS[hoveredKey]) {
-            drawTooltip(mousePos.x, mousePos.y, hoveredKey);
-        }
+        ctx.clearRect(0, 0, GW(), GH());
+        var W = GW(); var mob = W < 600;
+        var steps = currentSteps();
+        var step = stepIdx >= 0 ? steps[stepIdx] : null;
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        tipHits.length = 0;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
+        if (hoveredKey && typeof TIPS !== 'undefined' && TIPS[hoveredKey]) drawTip(mousePos.x, mousePos.y, TIPS[hoveredKey]);
     }
 
-    function drawBus(x1, x2, busY, gap) {
-        const mx = (x1 + x2) / 2;
-
-        const buses = [
-            { y: busY,       col: P.purple, op: 0.5,  lw: 2.5, label: 'DATA BUS' },
-            { y: busY + gap, col: P.teal,   op: 0.45, lw: 1.8, label: 'ADDR BUS' },
-            { y: busY - gap, col: P.orange, op: 0.45, lw: 1.8, label: 'CTRL BUS' },
-        ];
-
-        buses.forEach(b => {
-            ctx.beginPath();
-            ctx.setLineDash([6, 4]);
-            ctx.moveTo(x1, b.y);
-            ctx.lineTo(x2, b.y);
-            ctx.strokeStyle = b.col;
-            ctx.globalAlpha = b.op;
-            ctx.lineWidth   = b.lw;
-            ctx.stroke();
-            ctx.globalAlpha = 1;
-            ctx.setLineDash([]);
-
-            const lw = 60, lh = 14;
-            rr(mx - lw / 2, b.y - lh / 2, lw, lh, 3, P.bg, b.col + '55', 1);
-            tx(b.label, mx, b.y, 7.5, b.col, 'center', true);
+    /* ===================== resize ===================== */
+    function resize() {
+        var w = canvasWrap.offsetWidth || 320;
+        var mob = w < 600;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
         });
-    }
-
-    function drawCPU(x, y, w, h) {
-        const col = curPh ? phCol(curPh) : P.border;
-
-        rr(x, y, w, h, 10, P.surf, col, curPh ? 2 : 1.5);
-
-        ctx.fillStyle = col;
-        ctx.beginPath();
-        ctx.moveTo(x + 10, y);
-        ctx.arcTo(x + w, y, x + w, y + 10, 10);
-        ctx.lineTo(x + w, y + 32);
-        ctx.lineTo(x, y + 32);
-        ctx.arcTo(x, y, x + 10, y, 10);
-        ctx.closePath();
-        ctx.fill();
-        tx('CPU', x + w / 2, y + 16, 11, '#0f0f1a', 'center', true);
-
-        const nar = GW() < 500;
-        const rp = nar ? 8 : 12, rh = 34, rg = 6;
-        const nw = nar ? 28 : 32;
-        const rt = y + 44;
-
-        const regs = [
-            { n: 'PC', v: curReg.PC, hi: curPh === 'f' },
-            { n: 'IR', v: curReg.IR, hi: curPh === 'd' },
-            { n: 'R1', v: curReg.R1, hi: false },
-            { n: 'R2', v: curReg.R2, hi: false },
-        ];
-
-        regs.forEach((r, i) => {
-            const ry = rt + i * (rh + rg);
-            const isHov = hoveredKey === r.n;
-            const c  = r.hi ? phCol(curPh) : isHov ? P.purple : P.border;
-            rr(x + rp, ry, w - rp * 2, rh, 5,
-                r.hi ? phCol(curPh) + '1a' : isHov ? P.purple + '18' : P.surf2, c, r.hi ? 2 : isHov ? 2 : 1);
-            rr(x + rp, ry, nw, rh, 5, r.hi ? phCol(curPh) + '33' : isHov ? P.purple + '28' : P.bg, null);
-            tx(r.n, x + rp + nw / 2, ry + rh / 2, 9, r.hi ? phCol(curPh) : isHov ? P.purple : P.muted, 'center', true);
-            ctx.beginPath();
-            ctx.moveTo(x + rp + nw, ry + 6);
-            ctx.lineTo(x + rp + nw, ry + rh - 6);
-            ctx.strokeStyle = c;
-            ctx.lineWidth = 1;
-            ctx.stroke();
-            tx(r.v, x + rp + nw + (w - rp * 2 - nw - (nar ? 14 : 0)) / 2, ry + rh / 2, 10,
-                r.hi ? phCol(curPh) : P.text, 'center', r.hi);
-
-            const qx = x + w - rp - 10, qy = ry + rh - 8;
-            ctx.beginPath();
-            ctx.arc(qx, qy, 6, 0, Math.PI * 2);
-            ctx.fillStyle = isHov ? P.purple : P.surf2;
-            ctx.fill();
-            ctx.strokeStyle = isHov ? P.purple : P.muted;
-            ctx.lineWidth = 1;
-            ctx.stroke();
-            tx('?', qx, qy, 7, isHov ? '#fff' : P.muted, 'center', true);
-            tooltipHits.push({ x: qx - 6, y: qy - 6, w: 12, h: 12, key: r.n });
-        });
-
-        const uy = y + h - 76;
-        const uw = (w - rp * 2 - 8) / 2;
-
-        rr(x + rp, uy, uw, 42, 5,
-            aluOn ? P.purple + '1a' : P.surf2,
-            aluOn ? P.purple : P.border, aluOn ? 2 : 1);
-        tx('ALU', x + rp + uw / 2, uy + 21, 10, aluOn ? P.purple : P.muted, 'center', aluOn);
-
-        const aluQx = x + rp + uw - 8, aluQy = uy + 34;
-        const aluHov = hoveredKey === 'ALU';
-        ctx.beginPath(); ctx.arc(aluQx, aluQy, 6, 0, Math.PI * 2);
-        ctx.fillStyle = aluHov ? P.purple : P.surf2; ctx.fill();
-        ctx.strokeStyle = aluHov ? P.purple : P.muted; ctx.lineWidth = 1; ctx.stroke();
-        tx('?', aluQx, aluQy, 7, aluHov ? '#fff' : P.muted, 'center', true);
-        tooltipHits.push({ x: aluQx - 6, y: aluQy - 6, w: 12, h: 12, key: 'ALU' });
-
-        rr(x + rp + uw + 8, uy, uw, 42, 5,
-            cuOn ? P.teal + '1a' : P.surf2,
-            cuOn ? P.teal : P.border, cuOn ? 2 : 1);
-        tx('CU', x + rp + uw + 8 + uw / 2, uy + 21, 10, cuOn ? P.teal : P.muted, 'center', cuOn);
-
-        const cuQx = x + rp + uw + 8 + uw - 8, cuQy = uy + 34;
-        const cuHov = hoveredKey === 'CU';
-        ctx.beginPath(); ctx.arc(cuQx, cuQy, 6, 0, Math.PI * 2);
-        ctx.fillStyle = cuHov ? P.teal : P.surf2; ctx.fill();
-        ctx.strokeStyle = cuHov ? P.teal : P.muted; ctx.lineWidth = 1; ctx.stroke();
-        tx('?', cuQx, cuQy, 7, cuHov ? '#fff' : P.muted, 'center', true);
-        tooltipHits.push({ x: cuQx - 6, y: cuQy - 6, w: 12, h: 12, key: 'CU' });
-    }
-
-    function drawMem(x, y, w, h) {
-        rr(x, y, w, h, 10, P.surf, P.border, 1.5);
-
-        ctx.fillStyle = P.teal + '33';
-        ctx.beginPath();
-        ctx.moveTo(x + 10, y);
-        ctx.arcTo(x + w, y, x + w, y + 10, 10);
-        ctx.lineTo(x + w, y + 32);
-        ctx.lineTo(x, y + 32);
-        ctx.arcTo(x, y, x + 10, y, 10);
-        ctx.closePath();
-        ctx.fill();
-        tx('MEMORY', x + w / 2, y + 16, 11, P.teal, 'center', true);
-
-        const nar = GW() < 500;
-        const rp = nar ? 6 : 10;
-        const ac = nar ? 38 : 44;
-        const rh = Math.min(28, (h - 46) / mem.length - 3);
-        const rg = 3;
-
-        mem.forEach((m, i) => {
-            const ry  = y + 40 + i * (rh + rg);
-            const hl  = i === memHL;
-            const isD = m.type === 'd';
-            const hc  = isD ? P.teal : P.orange;
-
-            rr(x + rp, ry, w - rp * 2, rh, 4,
-                hl ? hc + '1a' : P.surf2,
-                hl ? hc : P.border, hl ? 2 : 1);
-            rr(x + rp, ry, ac, rh, 4, hl ? hc + '28' : P.bg, null);
-            tx(m.addr, x + rp + ac / 2, ry + rh / 2, 8, isD ? P.teal : P.orange, 'center', true);
-
-            ctx.beginPath();
-            ctx.moveTo(x + rp + ac, ry + 5);
-            ctx.lineTo(x + rp + ac, ry + rh - 5);
-            ctx.strokeStyle = hl ? hc + '88' : P.border;
-            ctx.lineWidth = 1;
-            ctx.stroke();
-
-            const label = (i === 7 && stepIdx >= 18) ? '10' : nar ? m.label.replace(/\s+/g, ' ') : m.label;
-            tx(label, x + rp + ac + (w - rp * 2 - ac) / 2, ry + rh / 2, 9,
-                hl ? P.text : P.sub, 'center', hl);
-        });
-    }
-
-    function drawPacket(x1, x2, y) {
-        if (!busAnim) return;
-        const toM = busAnim.toMem;
-        const px  = toM ? x1 + (x2 - x1) * busAnim.t : x2 - (x2 - x1) * busAnim.t;
-
-        const col = busAnim.label === 'A' ? P.teal
-                  : busAnim.label === 'I' ? P.orange
-                  : P.purple;
-
-        const g = ctx.createRadialGradient(px, y, 0, px, y, 20);
-        g.addColorStop(0, col + '55');
-        g.addColorStop(1, col + '00');
-        ctx.beginPath();
-        ctx.arc(px, y, 20, 0, Math.PI * 2);
-        ctx.fillStyle = g;
-        ctx.fill();
-
-        ctx.beginPath();
-        ctx.arc(px, y, 10, 0, Math.PI * 2);
-        ctx.fillStyle = col;
-        ctx.fill();
-
-        tx(busAnim.label, px, y, 8, '#0f0f1a', 'center', true);
-
-        const ax = toM ? px + 22 : px - 22;
-        ctx.beginPath();
-        if (toM) { ctx.moveTo(ax - 6, y - 4); ctx.lineTo(ax, y); ctx.lineTo(ax - 6, y + 4); }
-        else     { ctx.moveTo(ax + 6, y - 4); ctx.lineTo(ax, y); ctx.lineTo(ax + 6, y + 4); }
-        ctx.strokeStyle = col;
-        ctx.lineWidth   = 2;
-        ctx.stroke();
-    }
-
-    function drawTooltip(mx, my, key) {
-        const lines = TOOLTIPS[key].split('\n');
-        const title = lines[0];
-        const desc  = lines[1] || '';
-
-        ctx.font = '700 14px "JetBrains Mono",monospace';
-        const titleW = ctx.measureText(title).width;
-        ctx.font = '400 13px "JetBrains Mono",monospace';
-        const descW  = ctx.measureText(desc).width;
-
-        const pad = 14;
-        const tw  = Math.max(titleW, descW) + pad * 2;
-        const th  = desc ? 60 : 36;
-        const W   = GW(), H = GH();
-
-        let tx_ = mx + 14;
-        let ty_ = my - th - 8;
-        if (tx_ + tw > W - 8) tx_ = mx - tw - 14;
-        if (tx_ < 8)          tx_ = 8;
-        if (ty_ < 8)          ty_ = my + 14;
-        if (ty_ + th > H - 8) ty_ = H - th - 8;
-
-        rr(tx_, ty_, tw, th, 6, P.surf2, P.purple + 'cc', 2);
-
-        ctx.font = '700 14px "JetBrains Mono",monospace';
-        ctx.fillStyle = P.text;
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(title, tx_ + pad, ty_ + (desc ? 18 : th / 2));
-
-        if (desc) {
-            ctx.font = '400 13px "JetBrains Mono",monospace';
-            ctx.fillStyle = P.sub;
-            ctx.fillText(desc, tx_ + pad, ty_ + 42);
-        }
-    }
-
-    /* ===================== 단계 제어 ===================== */
-    function setPhase(ph) {
-        curPh = ph;
-        aluOn = ph === 'e';
-        cuOn  = ph === 'd';
-
-        const map = { 'vn-fetch': 'f', 'vn-decode': 'd', 'vn-execute': 'e' };
-        const cls = { 'f': 'vn__phase--fetch', 'd': 'vn__phase--decode', 'e': 'vn__phase--execute' };
-
-        Object.entries(map).forEach(([id, p]) => {
-            const e = document.getElementById(id);
-            if (!e) return;
-            e.classList.remove('vn__phase--fetch', 'vn__phase--decode', 'vn__phase--execute');
-            if (p === ph) e.classList.add(cls[ph]);
-        });
-    }
-
-    function setLog(str) {
-        logBar.textContent = str;
-    }
-
-    function animBus(info, cb) {
-        if (!info) { cb && cb(); return; }
-        if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        busAnim = { t: 0, toMem: info.toMem, label: info.label };
-        const BASE_SPEED = 1800;
-        const N = Math.max(30, Math.round(140 * speed / BASE_SPEED));
-        let f = 0;
-        function animTick() {
-            f++;
-            busAnim.t = f / N;
-            draw();
-            if (f < N) rafId = requestAnimationFrame(animTick);
-            else { busAnim = null; draw(); cb && cb(); }
-        }
-        rafId = requestAnimationFrame(animTick);
-    }
-
-    function applyStep(s, onDone) {
-        curReg = { ...s.reg };
-        memHL  = s.mh;
-        setPhase(s.ph);
-        setLog(s.log);
-        animBus(s.bus, onDone || (() => draw()));
+        canvasWrap.style.height    = 'auto';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
+        var actualH = canvasWrap.offsetHeight || neededH;
+        if (actualH < neededH) actualH = neededH;
+        canvas.width  = w * dpr;
+        canvas.height = actualH * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         draw();
     }
 
-    /* ===================== 배속 버튼 활성/비활성 ===================== */
-    function setSpeedBtnsDisabled(disabled) {
-        root.querySelectorAll('.vn__speed-btn').forEach(b => { b.disabled = disabled; });
+    /* ===================== 애니메이션(스텝 전환) ===================== */
+    function animateStep(onDone) {
+        if (rafId) cancelAnimationFrame(rafId);
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
-    /* ===================== 공개 API ===================== */
-    function vnStart() {
-        if (running) return;
-        running = true;
-        btnPlay.disabled = true;
-        btnStep.disabled = true;
-        setSpeedBtnsDisabled(true);
+    /* ===================== 컨트롤 ===================== */
+    function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
 
+    function applyStep(idx, onDone) {
+        stepIdx = idx;
+        logEl.textContent = currentSteps()[idx].log;
+        animateStep(function () { if (onDone) setTimeout(onDone, 0); });
+    }
+
+    function vizStart() {
+        if (running) return;
+        running = true; btnPlay.disabled = true; btnStep.disabled = true;
+        setSpeedDisabled(true);
+        var steps = currentSteps();
         function tick() {
-            stepIdx++;
-            if (stepIdx >= STEPS.length) { running = false; setSpeedBtnsDisabled(false); return; }
-            const s = STEPS[stepIdx];
-            if (s.done) {
-                applyStep(s);
-                running = false;
-                btnStep.disabled = false;
-                setSpeedBtnsDisabled(false);
-                return;
-            }
-            applyStep(s, () => {
-                draw();
-                timer = setTimeout(tick, speed);
+            var next = stepIdx + 1;
+            if (next >= steps.length) { running = false; setSpeedDisabled(false); return; }
+            applyStep(next, function () {
+                if (next === steps.length - 1) {
+                    running = false; btnStep.disabled = true; setSpeedDisabled(false);
+                } else {
+                    timer = setTimeout(tick, speed * 0.6);
+                }
             });
         }
         tick();
     }
 
-    function vnStep() {
+    function vizStep() {
         if (running) return;
-        stepIdx++;
-        if (stepIdx >= STEPS.length) return;
-        const s = STEPS[stepIdx];
-        applyStep(s);
-        if (s.done) {
-            btnPlay.disabled = true;
-            btnStep.disabled = true;
-        }
+        var steps = currentSteps();
+        var next = stepIdx + 1;
+        if (next >= steps.length) return;
+        applyStep(next, null);
+        if (next === steps.length - 1) { btnPlay.disabled = true; btnStep.disabled = true; }
     }
 
-    function vnReset() {
+    function vizReset() {
         clearTimeout(timer);
-        cancelAnimationFrame(rafId);
-        running = false; stepIdx = -1; curPh = null; memHL = -1;
-        busAnim = null; aluOn = false; cuOn = false;
-        curReg = { PC: '—', IR: '—', R1: '—', R2: '—' };
-        mem = MEM_INIT.map(m => ({ ...m }));
-
-        ['vn-fetch', 'vn-decode', 'vn-execute'].forEach(id => {
-            const e = document.getElementById(id);
-            if (e) e.classList.remove('vn__phase--fetch', 'vn__phase--decode', 'vn__phase--execute');
-        });
-        setLog('시작 버튼을 눌러 Fetch → Decode → Execute 사이클을 확인하세요.');
-        btnPlay.disabled = false;
-        btnStep.disabled = false;
-        setSpeedBtnsDisabled(false);
-        draw();
+        if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+        running = false; stepIdx = -1; anim = 1;
+        btnPlay.disabled = false; btnStep.disabled = false;
+        logEl.textContent = defaultLog();
+        setSpeedDisabled(false);
+        resize();
     }
 
     function setSpeed(ms, btn) {
         speed = ms;
-        root.querySelectorAll('.vn__speed-btn').forEach(b => b.classList.remove('vn__speed-btn--active'));
+        speedBtns.forEach(function (b) { b.classList.remove('vn__speed-btn--active'); });
         btn.classList.add('vn__speed-btn--active');
     }
 
+    function switchMode(m) {
+        if (mode === m) return;
+        mode = m;
+        modeDefs.forEach(function (d) { modeBtns[d.key].classList.toggle('vn__mode-btn--active', d.key === m); });
+        vizReset();
+    }
+
+    logEl.textContent = defaultLog();
+
     /* ===================== 라이프사이클 ===================== */
     window.CsFlow.createVizLifecycle({
-        canvas    : canvas,
-        canvasWrap: canvasWrap,
-        resize    : resize,
-        draw      : draw,
-        getState  : function () {
-            return { rafId: rafId, timer: timer, running: running };
-        },
-        setState  : function (s) {
-            rafId   = s.rafId;
-            timer   = s.timer;
-            running = s.running;
-        },
-        onPause    : function () { setSpeedBtnsDisabled(false); },
+        canvas: canvas, canvasWrap: canvasWrap, resize: resize, draw: draw,
+        getState : function () { return { rafId: rafId, timer: timer, running: running }; },
+        setState : function (s) { rafId = s.rafId; timer = s.timer; running = s.running; },
+        onPause  : function () { setSpeedDisabled(false); },
         getMouseCtx: function () {
             return {
-                GW         : GW,
-                GH         : GH,
-                mousePos   : mousePos,
-                tooltipHits: tooltipHits,
-                hoveredKey : function ()  { return hoveredKey; },
+                GW: GW, GH: GH,
+                mousePos: mousePos,
+                tooltipHits: tipHits,
+                hoveredKey: function () { return hoveredKey; },
                 setHoveredKey: function (k) { hoveredKey = k; },
-                draw       : draw,
+                draw: draw
             };
-        },
+        }
     });
 
-    /* ===================== 초기화 ===================== */
     setTimeout(resize, 60);
 })();

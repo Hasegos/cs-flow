@@ -4,77 +4,179 @@
 (function () {
     'use strict';
 
-    const container = document.getElementById('visualizer-container');
+    var container = document.getElementById('visualizer-container');
     if (!container) return;
 
-    /* ===================== UI 구성 ===================== */
     function el(tag, cls, txt) {
-        const e = document.createElement(tag);
+        var e = document.createElement(tag);
         if (cls) e.className = cls;
-        if (txt) e.textContent = txt;
+        if (txt !== undefined && txt !== null) e.textContent = txt;
         return e;
     }
 
-    const root    = el('div', 'virt-mem');
-    const toolbar = el('div', 'virt-mem__toolbar');
-    const tbLeft  = el('div', 'virt-mem__toolbar-left');
+    /* ===================== DOM ===================== */
+    var root    = el('div', 'virt-mem');
+    var toolbar = el('div', 'virt-mem__toolbar');
+    var tbLeft  = el('div', 'virt-mem__toolbar-left');
     tbLeft.appendChild(el('span', 'virt-mem__title', 'Virtual Memory'));
-    const badge = el('span', 'virt-mem__step-badge', 'IDLE');
-    tbLeft.appendChild(badge);
+
+    var modeWrap = el('div', 'virt-mem__mode');
+    var modeDefs = [
+
+    ];
+    var modeBtns = {};
+    modeDefs.forEach(function (m, i) {
+        var b = el('button', 'virt-mem__mode-btn' + (i === 0 ? ' virt-mem__mode-btn--active' : ''), m.label);
+        b.addEventListener('click', function () { if (!running) switchMode(m.key); });
+        modeWrap.appendChild(b);
+        modeBtns[m.key] = b;
+    });
+    if (modeDefs.length) tbLeft.appendChild(modeWrap);
     toolbar.appendChild(tbLeft);
 
-    const speedWrap = el('div', 'virt-mem__speed');
+    var speedWrap = el('div', 'virt-mem__speed');
     speedWrap.appendChild(el('span', 'virt-mem__speed-label', 'SPEED'));
-    [['1x', 1000], ['2x', 500], ['3x', 200]].forEach(([lbl, ms], i) => {
-        const b = el('button', 'virt-mem__speed-btn' + (i === 0 ? ' virt-mem__speed-btn--active' : ''), lbl);
-        b.addEventListener('click', () => { if (!running) setSpeed(ms, b); });
+    var speedBtns = [];
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
+        var b = el('button', 'virt-mem__speed-btn' + (i === 0 ? ' virt-mem__speed-btn--active' : ''), pair[0]);
+        b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
+        speedBtns.push(b);
     });
     toolbar.appendChild(speedWrap);
     root.appendChild(toolbar);
 
-    const canvasWrap = el('div', 'virt-mem__canvas-wrap');
-    const canvas     = document.createElement('canvas');
+    var canvasWrap = el('div', 'virt-mem__canvas-wrap');
+    var canvas     = document.createElement('canvas');
     canvas.className = 'virt-mem__canvas';
     canvasWrap.appendChild(canvas);
     root.appendChild(canvasWrap);
 
-    const logEl = el('div', 'virt-mem__log', '▶ PLAY를 눌러 가상 주소 변환 과정을 확인하세요.');
+    var logEl = el('div', 'virt-mem__log', '');
     root.appendChild(logEl);
 
-    const controls = el('div', 'virt-mem__controls');
-    const btnPlay  = el('button', 'virt-mem__btn virt-mem__btn--primary', '▶ PLAY');
-    const btnStep  = el('button', 'virt-mem__btn', '▶| STEP');
-    const btnReset = el('button', 'virt-mem__btn', '↺ RESET');
-    btnPlay.addEventListener('click',  vmStart);
-    btnStep.addEventListener('click',  vmStep);
-    btnReset.addEventListener('click', vmReset);
+    var controls = el('div', 'virt-mem__controls');
+    var btnPlay  = el('button', 'virt-mem__btn virt-mem__btn--primary', '▶ PLAY');
+    var btnStep  = el('button', 'virt-mem__btn', '▶| STEP');
+    var btnReset = el('button', 'virt-mem__btn', '↺ RESET');
+    btnPlay.addEventListener('click',  vizStart);
+    btnStep.addEventListener('click',  vizStep);
+    btnReset.addEventListener('click', vizReset);
     controls.appendChild(btnPlay);
     controls.appendChild(btnStep);
     controls.appendChild(btnReset);
     root.appendChild(controls);
     container.appendChild(root);
 
-    /* ===================== 캔버스 ===================== */
-    const ctx = canvas.getContext('2d');
-    const dpr = window.devicePixelRatio || 1;
-    const GW  = () => canvas.width  / dpr;
-    const GH  = () => canvas.height / dpr;
+    var ctx = canvas.getContext('2d');
+    var dpr = window.devicePixelRatio || 1;
+    function GW() { return canvas.width / dpr; }
+    function GH() { return canvas.height / dpr; }
 
-    function resize() {
-        const w   = canvasWrap.offsetWidth;
-        const mob = w < 520;
-        const minH = mob ? 280 : 420;
-        const h    = Math.max(canvasWrap.offsetHeight, minH);
-        canvas.width  = w * dpr;
-        canvas.height = h * dpr;
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        draw();
+    var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = '';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
     }
-
-    /* ===================== 팔레트 ===================== */
-    const PALETTE = window.CsFlow.PALETTE;
-    let P = window.CsFlow.getP();
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    var tipHits = [];
+    var mousePos = { x: -1, y: -1 };
+    var hoveredKey = null;
+    function tipHit(x, y, w, h, key) { tipHits.push({ x: x, y: y, w: w, h: h, key: key }); }
+    function tipBadge(cx, cy, key) {
+        var on = hoveredKey === key;
+        circ(cx, cy, 7, on ? P.purple + '44' : 'none', P.purple + (on ? 'ff' : '99'), 1.2);
+        tx('?', cx, cy, 9.5, on ? P.text + 'ff' : P.sub + 'ff', 'center', true);
+        tipHit(cx - 10, cy - 10, 20, 20, key);
+    }
+    function drawTip(mx, my, text) {
+        var parts = text.split(String.fromCharCode(10));
+        var title = parts[0], desc = parts[1] || '';
+        var W = GW(), H = GH();
+        var pad = 14;
+        var maxIn = W - 16 - pad * 2;
+        ctx.font = '700 14px "JetBrains Mono",monospace';
+        var tl = window.CsFlow.wrapText(ctx, title, maxIn);
+        var titleW = 0;
+        tl.forEach(function (l) { titleW = Math.max(titleW, ctx.measureText(l).width); });
+        ctx.font = '400 13px "JetBrains Mono",monospace';
+        var dl = desc ? window.CsFlow.wrapText(ctx, desc, maxIn) : [];
+        var descW = 0;
+        dl.forEach(function (l) { descW = Math.max(descW, ctx.measureText(l).width); });
+        var tw = Math.min(W - 16, Math.max(titleW, descW) + pad * 2);
+        var th = desc ? 24 + tl.length * 18 + dl.length * 18 : 18 + tl.length * 18;
+        var bx = mx + 14, by = my - th - 8;
+        if (bx + tw > W - 8) bx = mx - tw - 14;
+        if (bx < 8) bx = 8;
+        if (by < 8) by = my + 14;
+        if (by + th > H - 8) by = H - th - 8;
+        rr(bx, by, tw, th, 6, P.surf2, P.purple + 'cc', 2);
+        tl.forEach(function (l, i) { tx(l, bx + pad, by + 18 + i * 18, 14, P.text + 'ff', 'left', true); });
+        dl.forEach(function (l, i) { tx(l, bx + pad, by + 24 + tl.length * 18 + i * 18, 13, P.sub + 'ff', 'left', false); });
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 약어 툴팁 ===================== */
     const TOOLTIPS = {
@@ -138,393 +240,420 @@
     ];
 
     /* ===================== 상태 ===================== */
-    let stepIdx    = -1;
-    let running    = false;
-    let timer      = null;
-    let speed      = 1800;
-    let activeSet  = new Set();
-    let resultState = null;
+    var TIPS = TOOLTIPS;
 
-    let pktQueue   = [];
-    let pktCurrent = null;
-    let pktProg    = 0;
-    let pktDone    = null;
-    let rafId      = null;
+    /* ===================== 장면 정의 ===================== */
+    var AVM_T = {
+        'tlb-hit':    { split: 0.16, toTlb: 0.36, decide: 0.36, paA: 0.50, paB: 0.78, frameA: 0.78 },
+        'tlb-miss':   { split: 0.12, toTlb: 0.24, decide: 0.32, toPt: 0.44, ptRes: 0.54, up: 0.68, ins: 0.78, paA: 0.78, paB: 0.90, frameA: 0.90 },
+        'page-fault': { split: 0.10, toTlb: 0.20, decide: 0.27, toPt: 0.36, ptRes: 0.46, disk: 0.64, ptUp: 0.70, up: 0.80, ins: 0.88, paA: 0.88, paB: 0.95, frameA: 0.64 }
+    };
+    var AVM_LONG = {
+        'tlb-hit': '주소 변환 캐시에서 바로 찾음',
+        'tlb-miss': 'TLB에 없어 페이지 테이블을 조회',
+        'page-fault': '페이지 테이블에도 없어 디스크에서 로드'
+    };
+    var AVM_SHORT = { 'tlb-hit': '즉시 변환', 'tlb-miss': '페이지 테이블 조회', 'page-fault': '디스크에서 로드' };
 
-    let tooltipHits = [];
-    let mousePos    = { x: -1, y: -1 };
-    let hoveredKey  = null;
-
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        ctx.beginPath();
-        ctx.moveTo(x + r, y);
-        ctx.arcTo(x + w, y, x + w, y + h, r);
-        ctx.arcTo(x + w, y + h, x, y + h, r);
-        ctx.arcTo(x, y + h, x, y, r);
-        ctx.arcTo(x, y, x + w, y, r);
-        ctx.closePath();
-        if (fill)   { ctx.fillStyle = fill;   ctx.fill(); }
-        if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.5; ctx.stroke(); }
+    function currentSteps() { return STEPS; }
+    function defaultLog() { return '▶ PLAY를 눌러 가상 주소 변환 과정을 확인하세요.'; }
+    function ez(q) { q = clamp01(q); return q * q * (3 - 2 * q); }
+    function avmIn(v, a, b) { return v >= a && v < b; }
+    function avmW(str, sz) {
+        var n = 0;
+        for (var i = 0; i < str.length; i++) n += str.charCodeAt(i) > 255 ? 1 : 0.6;
+        return n * sz;
     }
+    function avmC(r) { return { x: r.x + r.w / 2, y: r.y + r.h / 2 }; }
+    function avmVpn(s) { return parseInt(s.vpn.replace(/\D/g, ''), 10); }
+    function avmFrame(s) { return Math.round(parseInt(s.phys, 16) / 4096); }
+    function avmResCol(r) { return r === 'tlb-hit' ? P.green : (r === 'page-fault' ? P.red : P.orange); }
 
-    function tx(str, x, y, sz, color, align, bold) {
-        ctx.font = (bold ? '700' : '400') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color; ctx.textAlign = align || 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
+    /* ===================== 상태 계산 ===================== */
+    function avmHasVpn(list, v) {
+        for (var i = 0; i < list.length; i++) if (list[i].vpn === v) return true;
+        return false;
     }
-
-    function dottedArrow(x1, y1, x2, y2, col, active) {
-        const dx = x2-x1, dy = y2-y1, len = Math.sqrt(dx*dx+dy*dy);
-        if (len < 2) return;
-        const ux = dx/len, uy = dy/len;
-        const ex = x2 - ux*10, ey = y2 - uy*10;
-        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(ex, ey);
-        ctx.strokeStyle = active ? col : P.border;
-        ctx.lineWidth   = active ? 2 : 1;
-        ctx.setLineDash(active ? [] : [4, 5]);
-        ctx.stroke(); ctx.setLineDash([]);
-        if (!active) return;
-        const p = 4;
-        ctx.beginPath();
-        ctx.moveTo(x2, y2);
-        ctx.lineTo(ex - uy*p, ey + ux*p);
-        ctx.lineTo(ex + uy*p, ey - ux*p);
-        ctx.closePath(); ctx.fillStyle = col; ctx.fill();
+    function avmIdx(list, v) {
+        for (var i = 0; i < list.length; i++) if (list[i].vpn === v) return i;
+        return -1;
+    }
+    function avmFault(v) {
+        for (var i = 0; i < STEPS.length; i++) {
+            if (STEPS[i].result === 'page-fault' && avmVpn(STEPS[i]) === v) return i;
+        }
+        return -1;
+    }
+    function avmState(k) {
+        var tlb = [], pt = [], i, v;
+        if (STEPS[0].result === 'tlb-hit') tlb.push({ vpn: avmVpn(STEPS[0]), frame: avmFrame(STEPS[0]) });
+        for (i = 0; i <= k; i++) {
+            v = avmVpn(STEPS[i]);
+            if (STEPS[i].result !== 'tlb-hit' && !avmHasVpn(tlb, v)) tlb.push({ vpn: v, frame: avmFrame(STEPS[i]) });
+        }
+        STEPS.forEach(function (s) {
+            var v = avmVpn(s);
+            if (avmHasVpn(pt, v)) return;
+            var f = avmFault(v);
+            pt.push({ vpn: v, frame: avmFrame(s), valid: f < 0 || k >= f });
+        });
+        return { tlb: tlb, pt: pt };
+    }
+    function avmOcc(st, f) {
+        for (var i = 0; i < st.pt.length; i++) {
+            if (st.pt[i].valid && st.pt[i].frame === f) return st.pt[i].vpn;
+        }
+        return -1;
     }
 
     /* ===================== 레이아웃 ===================== */
-    function buildLayout() {
-        const W = GW(), H = GH();
-        const mob = W < 520;
-
-        const nw = mob ? 76  : 110;
-        const nh = mob ? 54  : 72;
-
-        if (mob) {
-            const hGap  = Math.max(8, (W - 12 - nw*3) / 2);
-            const addrH = 52;
-            const pad   = 12;
-            const totalEl  = nh * 2 + addrH;
-            const gapSpace = Math.max(14, (H - totalEl) / 4);
-
-            const row1Y = gapSpace;
-            const row2Y = row1Y + nh + gapSpace;
-            const addrY = row2Y + nh + gapSpace;
-
-            const nodes = {
-                CPU:  { x: 6,              y: row1Y, w: nw, h: nh, col: P.purple,  lbl: 'CPU',  sub: 'Processor' },
-                TLB:  { x: 6+nw+hGap,     y: row1Y, w: nw, h: nh, col: P.teal,    lbl: 'TLB',  sub: 'Addr Cache' },
-                PM:   { x: 6+(nw+hGap)*2, y: row1Y, w: nw, h: nh, col: P.orange,  lbl: 'RAM',  sub: 'Phys Mem' },
-                PT:   { x: 6+nw+hGap,     y: row2Y, w: nw, h: nh, col: '#a78bfa', lbl: 'PT',   sub: 'Page Table' },
-                DISK: { x: 6+(nw+hGap)*2, y: row2Y, w: nw, h: nh, col: P.red,     lbl: 'DISK', sub: 'Swap' },
-            };
-            return { W, H, mob, nw, nh, nodes, addrY, addrH };
+    function layout(w, mob) {
+        var L = { stack: mob || w < 720, H: 0 };
+        var st = L.stack, cw, gx;
+        L.hdr = st ? 22 : 26;
+        L.rowH = st ? 28 : 30;
+        L.pad = st ? 8 : 10;
+        L.cellH = st ? 20 : 24;
+        L.cgY = st ? 5 : 6;
+        L.cgX = 6;
+        if (!st) {
+            gx = 26; cw = Math.floor((w - gx * 2) / 3);
+            L.va      = { x: 0, y: 0, w: cw, h: 128 };
+            L.tlb     = { x: cw + gx, y: 0, w: cw, h: 128 };
+            L.ram     = { x: (cw + gx) * 2, y: 0, w: cw, h: 150 };
+            L.pt      = { x: cw + gx, y: 184, w: cw, h: 128 };
+            L.disk    = { x: (cw + gx) * 2, y: 184, w: cw, h: 58 };
+            L.badge   = { x: 0, y: 184, w: cw, h: 128 };
+            L.vpnCell = { x: 10, y: 62, w: (cw - 30) / 2, h: 40 };
+            L.H = 312;
+        } else {
+            gx = 16; cw = Math.floor((w - gx) / 2);
+            L.va      = { x: 0, y: 0, w: w, h: 62 };
+            L.tlb     = { x: 0, y: 92, w: cw, h: 116 };
+            L.pt      = { x: cw + gx, y: 92, w: cw, h: 116 };
+            L.ram     = { x: 0, y: 238, w: w, h: 128 };
+            L.disk    = { x: 0, y: 392, w: w, h: 34 };
+            L.badge   = { x: 0, y: 440, w: w, h: 22 };
+            L.vpnCell = { x: 10, y: 30, w: (w - 30) / 2, h: 26 };
+            L.H = 462;
         }
-
-        const hGap  = Math.max(40, (W - 48 - nw*3) / 2);
-        const vGap  = Math.max(60, (H - 48 - nh*2) / 1);
-        const row1Y = 24;
-        const row2Y = row1Y + nh + vGap;
-        const x0 = 24, x1 = 24 + nw + hGap, x2 = 24 + (nw + hGap)*2;
-
-        const nodes = {
-            CPU:  { x: x0, y: row1Y, w: nw, h: nh, col: P.purple, lbl: 'CPU',    sub: 'Processor' },
-            TLB:  { x: x1, y: row1Y, w: nw, h: nh, col: P.teal,   lbl: 'TLB',    sub: 'Translation LB' },
-            PM:   { x: x2, y: row1Y, w: nw, h: nh, col: P.orange, lbl: 'RAM',    sub: 'Physical Memory' },
-            PT:   { x: x1, y: row2Y, w: nw, h: nh, col: '#a78bfa',lbl: 'PT',     sub: 'Page Table' },
-            DISK: { x: x2, y: row2Y, w: nw, h: nh, col: P.red,    lbl: 'DISK',   sub: 'Swap Space' },
+        L.offCell = { x: L.vpnCell.x + L.vpnCell.w + 10, y: L.vpnCell.y, w: L.vpnCell.w, h: L.vpnCell.h };
+        L.cellW = (L.ram.w - L.pad * 2 - L.cgX * 3) / 4;
+        L.rowRect = function (box, i) {
+            return { x: box.x + L.pad, y: box.y + L.hdr + i * L.rowH + 2, w: box.w - L.pad * 2, h: L.rowH - 4 };
         };
-        return { W, H, mob, nw, nh, nodes };
+        L.frameRect = function (f) {
+            return {
+                x: L.ram.x + L.pad + (f % 4) * (L.cellW + L.cgX),
+                y: L.ram.y + L.hdr + Math.floor(f / 4) * (L.cellH + L.cgY),
+                w: L.cellW, h: L.cellH
+            };
+        };
+        return L;
+    }
+    function avmShift(L, x0, top) {
+        ['va', 'tlb', 'pt', 'ram', 'disk', 'badge', 'vpnCell', 'offCell'].forEach(function (k) {
+            L[k].x += x0; L[k].y += top;
+        });
+    }
+    function sceneH(w, mob) { return layout(w, mob).H; }
+
+    /* ===================== 그리기 헬퍼 ===================== */
+    function avmChip(p, label, col, fs) {
+        var cw2 = avmW(label, fs) + 14;
+        rr(p.x - cw2 / 2, p.y - 10, cw2, 20, 10, col + 'ff', P.bg + 'ff', 1.5);
+        tx(label, p.x, p.y, fs, '#111111', 'center', true);
+    }
+    function avmTrack(v, pts) {
+        for (var i = 0; i < pts.length - 1; i++) {
+            var a = pts[i], b = pts[i + 1];
+            if (v <= b[0]) {
+                var u = ez(seg(v, a[0], b[0]));
+                return { x: lerp(a[1].x, b[1].x, u), y: lerp(a[1].y, b[1].y, u) };
+            }
+        }
+        return pts[pts.length - 1][1];
+    }
+    function avmEdge(e, on, col) {
+        if (on) arrow(e[0], e[1], e[2], e[3], col + 'ff', 2.2);
+        else arrow(e[0], e[1], e[2], e[3], P.border, 1.2, [4, 4]);
     }
 
-    function nc(n) { return { x: n.x + n.w/2, y: n.y + n.h/2 }; }
+    /* ===================== 메인 그리기 ===================== */
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var steps = currentSteps();
+        var L = layout(w, mob);
+        avmShift(L, x0, top);
+        var st = L.stack;
+        var idx = step ? steps.indexOf(step) : -1;
+        var s = idx >= 0 ? steps[idx] : null;
+        var pIdx = prev ? steps.indexOf(prev) : idx - 1;
+        var before = avmState(pIdx);
+        var after = avmState(idx);
+        var tt = s ? t : 0;
+        var T = s ? AVM_T[s.result] : {};
+        var fsS = st ? 11 : 12, fsM = st ? 12 : 14, fsL = st ? 13 : 16;
+        var hm = st ? 11 : 13;
+        var isHit = !!s && s.result === 'tlb-hit';
+        var isFault = !!s && s.result === 'page-fault';
+        var pv = s ? avmVpn(s) : -1;
+        var fS = s ? avmFrame(s) : -1;
+        var resCol = s ? avmResCol(s.result) : P.purple;
+        var vEnd = isHit ? T.paA : T.toPt;
+        var i, row, rc, f, ca;
 
-    /* ===================== 주소 변환 패널 ===================== */
-    function drawAddrPanel(L) {
-        if (stepIdx < 0) return;
-        const step = STEPS[stepIdx];
-        const { W, H, mob, addrY, addrH } = L;
+        var ev = st ? [L.vpnCell.x + L.vpnCell.w / 2, L.va.y + L.va.h, L.tlb.x + L.tlb.w / 2, L.tlb.y]
+                    : [L.va.x + L.va.w, L.va.y + L.va.h / 2, L.tlb.x, L.tlb.y + L.tlb.h / 2];
+        var ep = st ? [L.tlb.x + L.tlb.w, L.tlb.y + L.tlb.h / 2, L.pt.x, L.pt.y + L.pt.h / 2]
+                    : [L.tlb.x + L.tlb.w / 2, L.tlb.y + L.tlb.h, L.pt.x + L.pt.w / 2, L.pt.y];
+        var er = st ? [L.tlb.x + L.tlb.w / 2, L.tlb.y + L.tlb.h, L.ram.x + L.ram.w / 2, L.ram.y]
+                    : [L.tlb.x + L.tlb.w, L.tlb.y + L.tlb.h / 2, L.ram.x, L.ram.y + L.ram.h / 2];
+        var ed = [L.disk.x + L.disk.w / 2, L.disk.y, L.ram.x + L.ram.w / 2, L.ram.y + L.ram.h];
+        var epd = [L.pt.x + L.pt.w, L.pt.y + L.pt.h / 2, L.disk.x, L.disk.y + L.disk.h / 2];
+        avmEdge(ev, !!s && avmIn(tt, T.split, T.toTlb), P.purple);
+        avmEdge(ep, !isHit && !!s && avmIn(tt, T.toPt, T.up), resCol);
+        avmEdge(er, !!s && avmIn(tt, T.paA, T.paB), resCol);
+        if (!st) avmEdge(epd, isFault && avmIn(tt, T.toPt, T.disk), P.red);
+        avmEdge(ed, isFault && avmIn(tt, T.ptRes, T.disk), P.red);
 
-        const pw = mob ? W - 12 : 220;
-        const ph = mob ? (addrH || 56) : 130;
-        const px = mob ? 6 : W - pw - 16;
-        const py = mob ? (addrY || H - ph - 6) : H / 2 - ph / 2;
+        rr(L.va.x, L.va.y, L.va.w, L.va.h, 8, P.surf, P.purple + 'ff', !!s && tt < T.split ? 2.5 : 1.5);
+        tx('CPU' + (st ? '' : ' · 가상 주소'), L.va.x + 10, L.va.y + hm, fsM, P.purple + 'ff', 'left', true);
+        tipBadge(L.va.x + L.va.w - 12, L.va.y + hm, 'CPU');
+        if (st) tx(s ? 'VA ' + s.addr : 'VA 대기', L.va.x + 64, L.va.y + hm, fsM, (s ? P.text : P.sub) + 'ff', 'left', true);
+        else tx(s ? 'VA ' + s.addr : '요청 대기', L.va.x + 10, L.va.y + 46, fsL, (s ? P.text : P.sub) + 'ff', 'left', true);
+        ca = s ? ez(seg(tt, 0, T.split)) : 0.5;
+        ctx.globalAlpha = ca;
+        rr(L.vpnCell.x, L.vpnCell.y, L.vpnCell.w, L.vpnCell.h, 6, P.surf2, P.teal + 'ff', 1.5);
+        if (!s || !avmIn(tt, T.split, vEnd)) tx(s ? s.vpn : 'VPN', L.vpnCell.x + L.vpnCell.w / 2, L.vpnCell.y + L.vpnCell.h / 2, fsS, P.teal + 'ff', 'center', true);
+        rr(L.offCell.x, L.offCell.y, L.offCell.w, L.offCell.h, 6, P.surf2, P.border, 1);
+        tx(s ? s.offset : 'Offset', L.offCell.x + L.offCell.w / 2, L.offCell.y + L.offCell.h / 2, fsS, P.sub + 'ff', 'center', false);
+        ctx.globalAlpha = 1;
 
-        rr(px, py, pw, ph, 8, P.surf2, P.purple + '66', 1.5);
-
-        const fSm = mob ? 9  : 10;
-        const fMd = mob ? 10 : 12;
-        const col = step.result === 'tlb-hit' ? P.green
-                  : step.result === 'page-fault' ? P.red : P.orange;
-
-        if (mob) {
-            tx('VA: ' + step.addr,  px + pw*0.16, py + ph/2, fMd, P.purple, 'center', true);
-            tx(step.vpn,            px + pw*0.38, py + ph/2, fMd, P.teal,   'center', false);
-            tx(step.pfn,            px + pw*0.60, py + ph/2, fMd, col,      'center', false);
-            tx('PA: ' + step.phys,  px + pw*0.82, py + ph/2, fMd, P.orange, 'center', true);
-        } else {
-            tx('주소 변환',     px + pw/2, py + 16,  14, P.muted,  'center', false);
-            tx('VA  ' + step.addr,  px + pw/2, py + 40,  fMd, P.purple, 'center', true);
-            tx(step.vpn,            px + pw/2, py + 62,  fMd, P.teal,   'center', false);
-            tx(step.pfn,            px + pw/2, py + 82,  fMd, col,      'center', false);
-            tx(step.offset,         px + pw/2, py + 102, fSm, P.muted,  'center', false);
-            tx('PA  ' + step.phys,  px + pw/2, py + 118, fMd, P.orange, 'center', true);
+        var red = !!s && !isHit && avmIn(tt, T.toTlb, T.decide);
+        var grn = isHit && avmIn(tt, T.decide, T.paB);
+        var tc = red ? P.red : (grn ? P.green : P.teal);
+        rr(L.tlb.x, L.tlb.y, L.tlb.w, L.tlb.h, 8, P.surf, tc + 'ff', red || grn ? 2.5 : 1.5);
+        tx('TLB' + (st ? '' : ' · 주소 변환 캐시'), L.tlb.x + 10, L.tlb.y + hm, fsM, P.teal + 'ff', 'left', true);
+        tipBadge(L.tlb.x + L.tlb.w - 12, L.tlb.y + hm, 'TLB');
+        var tlbList = (s && tt >= T.up) ? after.tlb : before.tlb;
+        for (i = 0; i < tlbList.length; i++) {
+            row = tlbList[i];
+            rc = L.rowRect(L.tlb, i);
+            var fresh = !avmHasVpn(before.tlb, row.vpn);
+            var hitRow = grn && row.vpn === pv;
+            ctx.globalAlpha = fresh ? ez(seg(tt, T.up, T.ins)) : 1;
+            rr(rc.x, rc.y, rc.w, rc.h, 5, hitRow ? P.green + '33' : P.surf2, hitRow ? P.green + 'ff' : P.border, hitRow ? 2 : 1);
+            tx('VPN ' + row.vpn + ' → PFN ' + row.frame, rc.x + 8, rc.y + rc.h / 2, fsS, (hitRow ? P.green : P.text) + 'ff', 'left', hitRow);
+            ctx.globalAlpha = 1;
         }
+
+        var ptBad = isFault && avmIn(tt, T.toPt, T.ptRes);
+        var ptHi = !isHit && !!s && avmIn(tt, T.toPt, T.ptRes);
+        var pc = ptBad ? P.red : P.purple;
+        rr(L.pt.x, L.pt.y, L.pt.w, L.pt.h, 8, P.surf, pc + 'ff', ptHi ? 2.5 : 1.5);
+        tx('PT' + (st ? '' : ' · 페이지 테이블'), L.pt.x + 10, L.pt.y + hm, fsM, P.purple + 'ff', 'left', true);
+        tipBadge(L.pt.x + L.pt.w - 12, L.pt.y + hm, 'PT');
+        var ptList = (s && tt >= T.ptUp) ? after.pt : before.pt;
+        for (i = 0; i < ptList.length; i++) {
+            row = ptList[i];
+            rc = L.rowRect(L.pt, i);
+            var on = ptHi && row.vpn === pv;
+            var onCol = ptBad ? P.red : P.purple;
+            rr(rc.x, rc.y, rc.w, rc.h, 5, on ? onCol + '33' : P.surf2, on ? onCol + 'ff' : P.border, on ? 2 : 1);
+            tx('VPN ' + row.vpn + ' → ' + (row.valid ? 'PFN ' + row.frame : '없음'), rc.x + 8, rc.y + rc.h / 2, fsS, (row.valid ? P.text : P.sub) + 'ff', 'left', on);
+        }
+
+        var frameOn = !!s && tt >= T.frameA;
+        var ramSt = frameOn ? after : before;
+        rr(L.ram.x, L.ram.y, L.ram.w, L.ram.h, 8, P.surf, P.orange + 'ff', frameOn ? 2.5 : 1.5);
+        tx('RAM' + (st ? '' : ' · 물리 메모리'), L.ram.x + 10, L.ram.y + hm, fsM, P.orange + 'ff', 'left', true);
+        tipBadge(L.ram.x + L.ram.w - 12, L.ram.y + hm, 'PM');
+        if (s && tt >= T.paB) tx('PA ' + s.phys, L.ram.x + L.ram.w - 26, L.ram.y + hm, fsS, P.orange + 'ff', 'right', true);
+        for (f = 0; f < 16; f++) {
+            rc = L.frameRect(f);
+            var occ = avmOcc(ramSt, f);
+            var lit = frameOn && f === fS;
+            rr(rc.x, rc.y, rc.w, rc.h, 4, lit ? P.orange + '33' : P.surf2, lit ? P.orange + 'ff' : P.border, lit ? 2 : 1);
+            tx(String(f), rc.x + 5, rc.y + rc.h / 2, fsS, P.sub + 'ff', 'left', false);
+            if (occ >= 0) tx('VPN' + occ, rc.x + rc.w - 5, rc.y + rc.h / 2, fsS, (lit ? P.orange : P.text) + 'ff', 'right', true);
+        }
+
+        var diskOn = isFault && avmIn(tt, T.ptRes, T.disk);
+        var dcy = L.disk.y + L.disk.h / 2;
+        rr(L.disk.x, L.disk.y, L.disk.w, L.disk.h, 8, diskOn ? P.red + '22' : P.surf, diskOn ? P.red + 'ff' : P.red + '99', diskOn ? 2.5 : 1.5);
+        tx('DISK · Swap' + (st ? '' : ' 영역'), L.disk.x + L.disk.w / 2, dcy, fsM, P.red + 'ff', 'center', true);
+        tipBadge(L.disk.x + L.disk.w - 12, dcy, 'DISK');
+
+        if (s) {
+            var vpnP = avmC(L.vpnCell), tlbP = avmC(L.tlb), diskP = avmC(L.disk), fP = avmC(L.frameRect(fS));
+            var hitI = avmIdx(before.tlb, pv), insI = before.tlb.length;
+            var srcP = avmC(L.rowRect(L.tlb, isHit ? hitI : insI));
+            var insP = avmC(L.rowRect(L.tlb, insI));
+            var ptP = avmC(L.rowRect(L.pt, avmIdx(after.pt, pv)));
+            if (avmIn(tt, T.split, vEnd)) {
+                var vpts = isHit ? [[T.split, vpnP], [T.toTlb, srcP], [T.paA, srcP]]
+                                 : [[T.split, vpnP], [T.toTlb, tlbP], [T.toPt, ptP]];
+                avmChip(avmTrack(tt, vpts), 'VPN ' + pv, P.teal, fsS);
+            }
+            if (!isHit) {
+                var pStart = isFault ? T.ptUp : T.ptRes;
+                if (avmIn(tt, pStart, T.up)) avmChip(avmTrack(tt, [[pStart, ptP], [T.up, insP]]), 'PFN ' + fS, P.teal, fsS);
+            }
+            if (avmIn(tt, T.paA, T.paB)) avmChip(avmTrack(tt, [[T.paA, srcP], [T.paB, fP]]), 'PA ' + s.phys, resCol, fsS);
+            if (isFault && avmIn(tt, T.ptRes, T.disk)) avmChip(avmTrack(tt, [[T.ptRes, diskP], [T.disk, fP]]), 'PAGE', P.red, fsS);
+        }
+
+        var bx = L.badge;
+        var shown = !!s && tt >= T.decide;
+        if (!st) {
+            rr(bx.x, bx.y, bx.w, bx.h, 8, shown ? resCol + '22' : P.surf, shown ? resCol + 'ff' : P.border, shown ? 2 : 1);
+            if (!s) {
+                tx('TLB 주소 변환 경로', bx.x + 12, bx.y + 20, fsM, P.sub + 'ff', 'left', true);
+                tx('TLB 적중 · TLB → RAM', bx.x + 12, bx.y + 52, fsS, P.green + 'ff', 'left', false);
+                tx('TLB 미스 · TLB → PT → RAM', bx.x + 12, bx.y + 76, fsS, P.orange + 'ff', 'left', false);
+                tx('페이지 폴트 · PT → DISK → RAM', bx.x + 12, bx.y + 100, fsS, P.red + 'ff', 'left', false);
+            } else if (shown) {
+                tx(s.badge, bx.x + 12, bx.y + 22, fsM, resCol + 'ff', 'left', true);
+                var dl = lines(AVM_LONG[s.result], bx.w - 24, fsS);
+                for (i = 0; i < dl.length; i++) tx(dl[i], bx.x + 12, bx.y + 48 + i * 18, fsS, P.sub + 'ff', 'left', false);
+            }
+        } else if (shown) {
+            tx(s.badge + '  ' + AVM_SHORT[s.result], bx.x + bx.w / 2, bx.y + bx.h / 2, fsS, resCol + 'ff', 'center', true);
+        }
+        ctx.globalAlpha = 1;
     }
 
     /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
     function draw() {
         P = window.CsFlow.getP();
         ctx.clearRect(0, 0, GW(), GH());
-        ctx.fillStyle = P.bg; ctx.fillRect(0, 0, GW(), GH());
-        tooltipHits = [];
-
-        const L = buildLayout();
-        drawEdges(L);
-        drawNodes(L);
-        drawAddrPanel(L);
-        drawPacket(L);
-
-        if (hoveredKey && TOOLTIPS[hoveredKey]) drawTooltip(mousePos.x, mousePos.y, hoveredKey);
+        var W = GW(); var mob = W < 600;
+        var steps = currentSteps();
+        var step = stepIdx >= 0 ? steps[stepIdx] : null;
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        tipHits.length = 0;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
+        if (hoveredKey && typeof TIPS !== 'undefined' && TIPS[hoveredKey]) drawTip(mousePos.x, mousePos.y, TIPS[hoveredKey]);
     }
 
-    /* ===================== 연결선 ===================== */
-    function drawEdges(L) {
-        const { nodes } = L;
-        const step = stepIdx >= 0 ? STEPS[stepIdx] : null;
-
-        function isActive(a, b) {
-            if (!step) return false;
-            for (let i = 0; i < step.path.length - 1; i++) {
-                if ((step.path[i]===a && step.path[i+1]===b) ||
-                    (step.path[i]===b && step.path[i+1]===a))
-                    return true;
-            }
-            return false;
-        }
-        function edgeCol(a, b) {
-            if (!step) return P.border;
-            for (let i = 0; i < step.path.length - 1; i++) {
-                if ((step.path[i]===a && step.path[i+1]===b) ||
-                    (step.path[i]===b && step.path[i+1]===a))
-                    return step.cols[i];
-            }
-            return P.border;
-        }
-
-        [['CPU','TLB'],['TLB','PM'],['TLB','PT'],['PT','DISK'],['DISK','PM']].forEach(([a, b]) => {
-            const ca = nc(nodes[a]), cb = nc(nodes[b]);
-            const act = isActive(a, b);
-            const margin = 0.18;
-            dottedArrow(
-                ca.x + (cb.x-ca.x)*margin, ca.y + (cb.y-ca.y)*margin,
-                ca.x + (cb.x-ca.x)*(1-margin), ca.y + (cb.y-ca.y)*(1-margin),
-                edgeCol(a, b), act
-            );
+    /* ===================== resize ===================== */
+    function resize() {
+        var w = canvasWrap.offsetWidth || 320;
+        var mob = w < 600;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
         });
+        canvasWrap.style.height    = 'auto';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
+        var actualH = canvasWrap.offsetHeight || neededH;
+        if (actualH < neededH) actualH = neededH;
+        canvas.width  = w * dpr;
+        canvas.height = actualH * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        draw();
     }
 
-    /* ===================== 노드 ===================== */
-    function drawNodes(L) {
-        const { nodes, mob } = L;
-        const fMd = mob ? 12 : 15;
-        const fSm = mob ? 9  : 11;
-
-        Object.entries(nodes).forEach(([key, n]) => {
-            const isAct = activeSet.has(key);
-            const isHov = hoveredKey === key;
-            const col   = n.col;
-
-            rr(n.x, n.y, n.w, n.h, 8,
-                isAct ? col+'28' : isHov ? P.purple+'18' : P.surf,
-                isAct ? col : isHov ? P.purple : P.border,
-                isAct ? 2.5 : isHov ? 2 : 1.5);
-
-            const cx = n.x + n.w/2, cy = n.y + n.h/2;
-            tx(n.lbl, cx, cy - (mob ? 7 : 9), fMd, isAct ? col : isHov ? P.purple : P.text, 'center', true);
-            tx(n.sub, cx, cy + (mob ? 7 : 10), fSm, P.muted, 'center', false);
-
-            const qx = n.x + n.w - 9, qy = n.y + 9;
-            const isHovQ = hoveredKey === key;
-            ctx.beginPath(); ctx.arc(qx, qy, 6, 0, Math.PI*2);
-            ctx.fillStyle   = isHovQ ? col : P.surf2; ctx.fill();
-            ctx.strokeStyle = isHovQ ? col : P.muted; ctx.lineWidth = 1; ctx.stroke();
-            tx('?', qx, qy, 7, isHovQ ? '#fff' : P.muted, 'center', true);
-            tooltipHits.push({ x: qx-6, y: qy-6, w: 12, h: 12, key });
-        });
-
-        if (resultState) {
-            const { W, H, mob, addrY, addrH } = L;
-            const info = {
-                'tlb-hit':    ['TLB HIT ✓ — 즉시 변환',        P.green ],
-                'tlb-miss':   ['TLB MISS → 페이지 테이블 조회', P.orange],
-                'page-fault': ['PAGE FAULT! → 디스크 로드',     P.red   ],
-            }[resultState];
-            const ry = mob ? (addrY ? addrY - 14 : H - 80) : H - 14;
-            if (info) tx(info[0], W/2, ry, mob ? 10 : 12, info[1], 'center', true);
-        }
-    }
-
-    /* ===================== 패킷 애니메이션 ===================== */
-    function drawPacket(L) {
-        if (!pktCurrent) return;
-        const { nodes } = L;
-        const fn = nodes[pktCurrent.from], tn = nodes[pktCurrent.to];
-        if (!fn || !tn) return;
-        const fc = nc(fn), tc = nc(tn);
-        const x = fc.x + (tc.x-fc.x)*pktProg;
-        const y = fc.y + (tc.y-fc.y)*pktProg;
-        ctx.beginPath(); ctx.arc(x, y, 10, 0, Math.PI*2);
-        ctx.fillStyle = pktCurrent.col; ctx.fill();
-        tx(pktCurrent.lbl, x, y, 8, '#0f0f1a', 'center', true);
-    }
-
-    function spawnPkt(from, to, col, lbl) { pktQueue.push({ from, to, col, lbl }); }
-
-    function pktNext() {
-        if (!pktQueue.length) {
-            pktCurrent = null; draw();
-            if (pktDone) { const cb = pktDone; pktDone = null; cb(); }
-            return;
-        }
-        pktCurrent = pktQueue.shift(); pktProg = 0;
-        activeSet.add(pktCurrent.from); activeSet.add(pktCurrent.to);
+    /* ===================== 애니메이션(스텝 전환) ===================== */
+    function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        const BASE_SPEED = 1800;
-        const baseStep   = 0.014;
-        const step       = baseStep * (BASE_SPEED / speed);
-        (function tick() {
-            pktProg = Math.min(1, pktProg + step);
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
             draw();
-            if (pktProg < 1) rafId = requestAnimationFrame(tick);
-            else pktNext();
-        })();
-    }
-
-    function animPkts(cb) { pktDone = cb || null; pktNext(); }
-
-    /* ===================== 툴팁 ===================== */
-    function drawTooltip(mx, my, key) {
-        const lines = TOOLTIPS[key].split('\n');
-        const title = lines[0], desc = lines[1] || '';
-        ctx.font = '700 14px "JetBrains Mono",monospace';
-        const tw1 = ctx.measureText(title).width;
-        ctx.font = '400 13px "JetBrains Mono",monospace';
-        const tw2 = ctx.measureText(desc).width;
-        const pad = 14, tw = Math.max(tw1, tw2) + pad*2, th = desc ? 60 : 36;
-        const W = GW(), H = GH();
-        let tx_ = mx+14, ty_ = my-th-8;
-        if (tx_+tw > W-8) tx_ = mx-tw-14;
-        if (tx_ < 8)      tx_ = 8;
-        if (ty_ < 8)      ty_ = my+14;
-        if (ty_+th > H-8) ty_ = H-th-8;
-        rr(tx_, ty_, tw, th, 6, P.surf2, P.purple+'cc', 2);
-        ctx.font = '700 14px "JetBrains Mono",monospace';
-        ctx.fillStyle = P.text; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-        ctx.fillText(title, tx_+pad, ty_+(desc ? 18 : th/2));
-        if (desc) {
-            ctx.font = '400 13px "JetBrains Mono",monospace';
-            ctx.fillStyle = P.sub;
-            ctx.fillText(desc, tx_+pad, ty_+42);
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
         }
-    }
-
-    /* ===================== 단계 제어 ===================== */
-    function setLog(s)   { logEl.textContent = s; }
-    function setBadge(s) {
-        badge.textContent = s;
-        badge.className = 'virt-mem__step-badge' + (s !== 'IDLE' ? ' virt-mem__step-badge--active' : '');
-    }
-    function setSpeedDis(v) { root.querySelectorAll('.virt-mem__speed-btn').forEach(b => { b.disabled = v; }); }
-
-    function applyStep(idx, onDone) {
-        stepIdx = idx;
-        const step = STEPS[idx];
-        setBadge(step.badge);
-        setLog(step.log);
-        resultState = null;
-        activeSet.clear();
-        pktQueue = [];
-
-        for (let i = 0; i < step.path.length - 1; i++) {
-            spawnPkt(step.path[i], step.path[i+1], step.cols[i], step.path[i+1]);
-        }
-        animPkts(() => {
-            resultState = step.result;
-            draw();
-            onDone && setTimeout(onDone, 0);
-        });
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
-    function vmStart() {
+    function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
+
+    function applyStep(idx, onDone) {
+        stepIdx = idx;
+        logEl.textContent = currentSteps()[idx].log;
+        animateStep(function () { if (onDone) setTimeout(onDone, 0); });
+    }
+
+    function vizStart() {
         if (running) return;
-        running = true; btnPlay.disabled = true; btnStep.disabled = true; setSpeedDis(true);
+        running = true; btnPlay.disabled = true; btnStep.disabled = true;
+        setSpeedDisabled(true);
+        var steps = currentSteps();
         function tick() {
-            const next = stepIdx + 1;
-            if (next >= STEPS.length) { running = false; setSpeedDis(false); return; }
-            applyStep(next, () => {
-                if (next === STEPS.length - 1) { running = false; btnStep.disabled = true; setSpeedDis(false); }
-                else timer = setTimeout(tick, speed);
+            var next = stepIdx + 1;
+            if (next >= steps.length) { running = false; setSpeedDisabled(false); return; }
+            applyStep(next, function () {
+                if (next === steps.length - 1) {
+                    running = false; btnStep.disabled = true; setSpeedDisabled(false);
+                } else {
+                    timer = setTimeout(tick, speed * 0.6);
+                }
             });
         }
         tick();
     }
 
-    function vmStep() {
+    function vizStep() {
         if (running) return;
-        const next = stepIdx + 1;
-        if (next >= STEPS.length) return;
+        var steps = currentSteps();
+        var next = stepIdx + 1;
+        if (next >= steps.length) return;
         applyStep(next, null);
-        if (next === STEPS.length - 1) { btnPlay.disabled = true; btnStep.disabled = true; }
+        if (next === steps.length - 1) { btnPlay.disabled = true; btnStep.disabled = true; }
     }
 
-    function vmReset() {
+    function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1; activeSet.clear(); resultState = null;
-        pktQueue = []; pktCurrent = null; pktProg = 0; pktDone = null;
-        setLog('▶ PLAY를 눌러 가상 주소 변환 과정을 확인하세요.');
-        setBadge('IDLE');
-        btnPlay.disabled = false; btnStep.disabled = false; setSpeedDis(false);
-        draw();
+        running = false; stepIdx = -1; anim = 1;
+        btnPlay.disabled = false; btnStep.disabled = false;
+        logEl.textContent = defaultLog();
+        setSpeedDisabled(false);
+        resize();
     }
 
     function setSpeed(ms, btn) {
         speed = ms;
-        root.querySelectorAll('.virt-mem__speed-btn').forEach(b => b.classList.remove('virt-mem__speed-btn--active'));
+        speedBtns.forEach(function (b) { b.classList.remove('virt-mem__speed-btn--active'); });
         btn.classList.add('virt-mem__speed-btn--active');
     }
 
+    function switchMode(m) {
+        if (mode === m) return;
+        mode = m;
+        modeDefs.forEach(function (d) { modeBtns[d.key].classList.toggle('virt-mem__mode-btn--active', d.key === m); });
+        vizReset();
+    }
+
+    logEl.textContent = defaultLog();
+
     /* ===================== 라이프사이클 ===================== */
     window.CsFlow.createVizLifecycle({
-       canvas    : canvas,
-       canvasWrap: canvasWrap,
-       resize    : resize,
-       draw      : draw,
-       getState  : function () {
-           return { rafId: rafId, timer: timer, running: running };
-       },
-       setState  : function (s) {
-           rafId   = s.rafId;
-           timer   = s.timer;
-           running = s.running;
-       },
-       onPause    : function () { setSpeedDis(false); },
-       getMouseCtx: function () {
-           return {
-               GW         : GW,
-               GH         : GH,
-               mousePos   : mousePos,
-               tooltipHits: tooltipHits,
-               hoveredKey : function ()  { return hoveredKey; },
-               setHoveredKey: function (k) { hoveredKey = k; },
-               draw       : draw,
-           };
-       },
-   });
+        canvas: canvas, canvasWrap: canvasWrap, resize: resize, draw: draw,
+        getState : function () { return { rafId: rafId, timer: timer, running: running }; },
+        setState : function (s) { rafId = s.rafId; timer = s.timer; running = s.running; },
+        onPause  : function () { setSpeedDisabled(false); },
+        getMouseCtx: function () {
+            return {
+                GW: GW, GH: GH,
+                mousePos: mousePos,
+                tooltipHits: tipHits,
+                hoveredKey: function () { return hoveredKey; },
+                setHoveredKey: function (k) { hoveredKey = k; },
+                draw: draw
+            };
+        }
+    });
 
-    /* ===================== 초기화 ===================== */
     setTimeout(resize, 60);
 })();

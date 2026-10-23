@@ -1,5 +1,5 @@
 /**
- * 위상 정렬 시각화
+ * 위상 정렬 시각화 시각화
  */
 (function () {
     'use strict';
@@ -39,7 +39,7 @@
     var speedWrap = el('div', 'ts-viz__speed');
     speedWrap.appendChild(el('span', 'ts-viz__speed-label', 'SPEED'));
     var speedBtns = [];
-    [['1x', 1700], ['2x', 850], ['3x', 480]].forEach(function (pair, i) {
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
         var b = el('button', 'ts-viz__speed-btn' + (i === 0 ? ' ts-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
@@ -72,11 +72,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'kahn';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 엔진: 위상 정렬 ===================== */
     var N = 6;
@@ -190,177 +257,273 @@
     })();
 
     /* ===================== 상태 ===================== */
-    var mode    = 'kahn';
-    var stepIdx = -1;
-    var running = false;
-    var timer   = null;
-    var rafId   = null;
-    var speed   = 1700;
-
     function currentSteps() {
         if (mode === 'dfs') return DFS_STEPS;
         if (mode === 'cycle') return CYCLE_STEPS;
         return KAHN_STEPS;
     }
-
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        var rad = Math.min(r, w / 2, h / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + rad, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, rad);
-        ctx.arcTo(x + w, y + h, x,     y + h, rad);
-        ctx.arcTo(x,     y + h, x,     y,     rad);
-        ctx.arcTo(x,     y,     x + w, y,     rad);
-        ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
-    }
-    function tx(str, x, y, sz, color, align, bold) {
-        if (sz < 11) sz = 11;
-        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
+    function defaultLog() {
+        if (mode === 'dfs') return '깊이 우선 탐색이 끝나는 순서를 뒤집어 위상 순서를 얻는 방식을 봅니다.';
+        if (mode === 'cycle') return '사이클이 있는 그래프에서 Kahn 알고리즘이 어디서 멈추는지 봅니다.';
+        return '진입 차수가 0인 정점을 큐에서 꺼내며 순서를 만드는 Kahn 알고리즘을 봅니다.';
     }
 
-    /* ===================== 공통: 방향 그래프와 목록 그리기 ===================== */
-    function drawTS(x0, top, w, mob, step) {
-        var dfs = mode === 'dfs';
-        var edges = step ? step.edges : (mode === 'cycle' ? CYC_EDGES : EDGES);
-        var deg = step ? step.deg : indegOf(edges);
-        var col = step ? step.col : [0, 0, 0, 0, 0, 0];
-        var row1 = step ? step.row1 : [];
-        var row2 = step ? step.row2 : [];
-        var cur = step ? step.cur : -1;
-        var hot = step ? step.hot : [];
-        var bad = step ? step.bad : [];
-        var fs = mob ? 11.5 : 13;
-        var r = mob ? 17 : 20;
-        var gx = x0 + r + 8;
-        var gw = w - 2 * (r + 8);
-        var yTop = top + 62;
-        var yBot = yTop + (mob ? 104 : 124);
-        var src = edges.length ? edges : EDGES;
-        function px(v) { return gx + POS[v][0] * gw; }
-        function py(v) { return POS[v][1] ? yBot : yTop; }
-        var i;
-        src.forEach(function (e, k) {
-            var a = e[0];
-            var b = e[1];
-            var curved = k >= EDGES.length;
-            var isHot = hot.indexOf(k) >= 0;
-            var isBad = bad.indexOf(a) >= 0 && bad.indexOf(b) >= 0;
-            var done = !isHot && !isBad && col[a] === 2;
-            var color = isHot ? P.yellow + 'ff' : isBad ? P.red + 'ff' : done ? P.sub + '55' : P.sub + 'cc';
-            var ax = px(a);
-            var ay = py(a);
-            var bx = px(b);
-            var by = py(b);
-            var qx = (ax + bx) / 2;
-            var qy = Math.min(ay, by) - r - 56;
-            var d1 = Math.atan2((curved ? qy : by) - ay, (curved ? qx : bx) - ax);
-            var d2 = Math.atan2((curved ? qy : ay) - by, (curved ? qx : ax) - bx);
-            var sx = ax + Math.cos(d1) * r;
-            var sy = ay + Math.sin(d1) * r;
-            var ex = bx + Math.cos(d2) * (r + 3);
-            var ey = by + Math.sin(d2) * (r + 3);
-            var fx = curved ? qx : sx;
-            var fy = curved ? qy : sy;
-            var ang = Math.atan2(ey - fy, ex - fx);
-            ctx.beginPath();
-            ctx.moveTo(sx, sy);
-            if (curved) ctx.quadraticCurveTo(qx, qy, ex, ey);
-            else ctx.lineTo(ex, ey);
-            ctx.strokeStyle = color;
-            ctx.lineWidth = isHot || isBad ? 3 : 1.8;
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(ex, ey);
-            ctx.lineTo(ex - 9 * Math.cos(ang - 0.4), ey - 9 * Math.sin(ang - 0.4));
-            ctx.lineTo(ex - 9 * Math.cos(ang + 0.4), ey - 9 * Math.sin(ang + 0.4));
-            ctx.closePath();
-            ctx.fillStyle = color;
-            ctx.fill();
-        });
-        for (i = 0; i < N; i++) {
-            var inQ = !dfs && row1.indexOf(i) >= 0;
-            var isCur = i === cur;
-            var isBadN = bad.indexOf(i) >= 0;
-            var c = isBadN ? P.red : col[i] === 2 ? P.green : (col[i] === 1 || inQ) ? (dfs ? P.yellow : P.teal) : P.sub;
-            ctx.beginPath();
-            ctx.arc(px(i), py(i), r, 0, Math.PI * 2);
-            ctx.fillStyle = col[i] === 2 || col[i] === 1 || inQ || isBadN ? c + '44' : P.surf2;
-            ctx.fill();
-            ctx.strokeStyle = (isCur ? P.yellow : c) + 'ff';
-            ctx.lineWidth = isCur ? 3.4 : 2;
-            ctx.stroke();
-            tx(NAMES[i], px(i), py(i) - 1, fs + 1, P.text + 'ff', 'center', true);
-            var lab = dfs ? (col[i] === 1 ? '탐색 중' : col[i] === 2 ? '종료 ' + (row1.indexOf(i) + 1) : '') : (col[i] === 2 ? '완료' : '진입 ' + deg[i]);
-            if (lab) tx(lab, px(i), py(i) + r + 12, fs - 1.5, c + 'ff', 'center', true);
+    /* ===================== 레이아웃 ===================== */
+    var tsCapMemo = {};
+    var TS_QUEUE  = { sA: 0.08, sB: 0.6, eA: 0.35, eB: 0.9, node: true };
+    var TS_RESULT = { sA: 0, sB: 0, eA: 0.6, eB: 0.7, node: false };
+    var TS_FIN    = { sA: 0, sB: 0, eA: 0.3, eB: 0.8, node: true };
+    var TS_REV    = { sA: 0, sB: 0.7, eA: 0.7, eB: 1, node: false };
+    function ez(q) { q = clamp01(q); return q * q * (3 - 2 * q); }
+    function tsCapH(s, w, fs) {
+        var h = 4;
+        if (s.cap) h += lines(s.cap, w - 8, fs).length * (fs + 5);
+        if (s.cap2) h += lines(s.cap2, w - 8, fs).length * (fs + 4);
+        if (s.cap3) h += lines(s.cap3, w - 8, fs).length * (fs + 4);
+        return h;
+    }
+    function tsCapMax(w, mob) {
+        var fs = mob ? 11 : 12;
+        var key = Math.round(w) + (mob ? 'm' : 'd');
+        if (tsCapMemo[key] === undefined) {
+            var best = 0;
+            [KAHN_STEPS, DFS_STEPS, CYCLE_STEPS].forEach(function (arr) {
+                arr.forEach(function (s) {
+                    var h = tsCapH(s, w, fs);
+                    if (h > best) best = h;
+                });
+            });
+            tsCapMemo[key] = best;
         }
-        var rowY = yBot + r + 28;
-        var cw = Math.min(42, (w - 56) / N);
-        var sx0 = x0 + 56 + (w - 56 - cw * N) / 2;
-        var labels = dfs ? ['종료', '역순'] : ['큐', '결과'];
-        var rows = [row1, row2];
-        var k2;
-        for (k2 = 0; k2 < 2; k2++) {
-            var ry = rowY + k2 * 40;
-            tx(labels[k2], x0, ry + 20, fs - 1, P.sub + 'ee', 'left', true);
-            for (i = 0; i < N; i++) {
-                var has = i < rows[k2].length;
-                rr(sx0 + i * cw + 2, ry, cw - 4, 32, 4, has ? P.teal + '33' : 'none', has ? P.teal + 'ff' : P.sub + '55', has ? 1.6 : 1);
-                if (has) tx(NAMES[rows[k2][i]], sx0 + i * cw + cw / 2, ry + 17, fs, P.text + 'ff', 'center', true);
+        return tsCapMemo[key];
+    }
+    function layout(w, mob) {
+        var r = mob ? 14 : 18;
+        var ch = mob ? 22 : 26;
+        var labW = mob ? 26 : 38;
+        var yTop = mob ? 34 : 40;
+        var yBot = yTop + (mob ? 74 : 84);
+        var rowQ = yBot + r + 26;
+        var rowR = rowQ + ch + 10;
+        var capTop = rowR + ch + 14;
+        return {
+            fs: mob ? 11 : 12, r: r, ch: ch, labW: labW, cw: Math.min((w - labW) / N, mob ? 99 : 52),
+            yTop: yTop, yBot: yBot, rowQ: rowQ, rowR: rowR, capTop: capTop,
+            total: capTop + tsCapMax(w, mob) + 4
+        };
+    }
+    function sceneH(w, mob) { return layout(w, mob).total; }
+    function tsGeom(x0, top, w, mob) {
+        var L = layout(w, mob);
+        L.x0 = x0; L.top = top; L.w = w;
+        L.cx0 = x0 + L.labW + (w - L.labW - L.cw * N) / 2;
+        L.gx = x0 + L.r + 8;
+        L.gw = w - 2 * (L.r + 8);
+        L.yTop += top; L.yBot += top; L.rowQ += top; L.rowR += top; L.capTop += top;
+        return L;
+    }
+
+    /* ===================== 기하 ===================== */
+    function tsNX(g, v) { return g.gx + POS[v][0] * g.gw; }
+    function tsNY(g, v) { return POS[v][1] ? g.yBot : g.yTop; }
+    function tsCX(g, i) { return g.cx0 + i * g.cw + g.cw / 2; }
+    function tsEdge(g, edges, k) {
+        var a = edges[k][0], b = edges[k][1];
+        var ax = tsNX(g, a), ay = tsNY(g, a), bx = tsNX(g, b), by = tsNY(g, b);
+        if (k < EDGES.length) {
+            var dx = bx - ax, dy = by - ay, L = Math.sqrt(dx * dx + dy * dy) || 1;
+            return { sx: ax + dx / L * g.r, sy: ay + dy / L * g.r, ex: bx - dx / L * (g.r + 3), ey: by - dy / L * (g.r + 3), curved: false };
+        }
+        return { sx: ax, sy: ay - g.r, ex: bx, ey: by - g.r - 3, qx: (ax + bx) / 2, qy: g.yTop - 2 * g.r - 28, curved: true };
+    }
+    function tsEdgeAt(ge, q) {
+        if (!ge.curved) return { x: lerp(ge.sx, ge.ex, q), y: lerp(ge.sy, ge.ey, q) };
+        var u = 1 - q;
+        return {
+            x: u * u * ge.sx + 2 * u * q * ge.qx + q * q * ge.ex,
+            y: u * u * ge.sy + 2 * u * q * ge.qy + q * q * ge.ey
+        };
+    }
+    function tsPath(ge, col, lw) {
+        ctx.beginPath();
+        ctx.moveTo(ge.sx, ge.sy);
+        if (ge.curved) ctx.quadraticCurveTo(ge.qx, ge.qy, ge.ex, ge.ey);
+        else ctx.lineTo(ge.ex, ge.ey);
+        ctx.strokeStyle = col;
+        ctx.lineWidth = lw;
+        ctx.stroke();
+        var a = ge.curved ? Math.atan2(ge.ey - ge.qy, ge.ex - ge.qx) : Math.atan2(ge.ey - ge.sy, ge.ex - ge.sx);
+        ctx.beginPath();
+        ctx.moveTo(ge.ex, ge.ey);
+        ctx.lineTo(ge.ex - 8 * Math.cos(a - 0.4), ge.ey - 8 * Math.sin(a - 0.4));
+        ctx.lineTo(ge.ex - 8 * Math.cos(a + 0.4), ge.ey - 8 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = col;
+        ctx.fill();
+    }
+
+    /* ===================== 간선 ===================== */
+    function tsEdges(g, s, fresh, e) {
+        var badE = [];
+        s.edges.forEach(function (ed, k) {
+            var ge = tsEdge(g, s.edges, k);
+            var isHot = s.hot.indexOf(k) >= 0;
+            var isBad = s.bad.indexOf(ed[0]) >= 0 && s.bad.indexOf(ed[1]) >= 0;
+            var col = isHot ? P.yellow + 'ff' : isBad ? P.red + 'ff' : s.col[ed[0]] === 2 ? P.sub + '55' : P.sub + 'cc';
+            tsPath(ge, col, isHot || isBad ? 3 : 1.8);
+            if (isBad) badE.push(ge);
+            if (isHot && fresh && e < 0.55) {
+                var dp = tsEdgeAt(ge, e / 0.55);
+                circ(dp.x, dp.y, 5, P.yellow + 'ff');
+            }
+        });
+        if (fresh && badE.length && e < 1) {
+            var pos = e * badE.length;
+            var j = Math.min(Math.floor(pos), badE.length - 1);
+            var pt = tsEdgeAt(badE[j], pos - j);
+            circ(pt.x, pt.y, 5, P.red + 'ff');
+        }
+    }
+
+    /* ===================== 정점 ===================== */
+    function tsNodes(g, s, p, fresh, e) {
+        var dfs = mode === 'dfs';
+        var early = fresh && e < 0.35;
+        var cs = early ? p.col : s.col;
+        var qs = early ? p.row1 : s.row1;
+        var toIdx = [];
+        if (fresh && !dfs) s.hot.forEach(function (k) { toIdx.push(s.edges[k][1]); });
+        var i;
+        for (i = 0; i < N; i++) {
+            var x = tsNX(g, i), y = tsNY(g, i), r = g.r;
+            var inQ = !dfs && qs.indexOf(i) >= 0;
+            var isBad = s.bad.indexOf(i) >= 0;
+            var c = isBad ? P.red : cs[i] === 2 ? P.green : (cs[i] === 1 || inQ) ? (dfs ? P.yellow : P.teal) : P.sub;
+            var isCur = i === s.cur;
+            circ(x, y, r, (cs[i] !== 0 || inQ || isBad) ? c + '44' : P.surf2);
+            if (fresh && isCur && e < 1) {
+                ctx.globalAlpha = 1 - e;
+                circ(x, y, r + 4 + 12 * ez(e), 'none', P.yellow + 'ff', 2);
+                ctx.globalAlpha = 1;
+            }
+            circ(x, y, r, 'none', (isCur ? P.yellow : c) + 'ff', isCur ? 3.2 : 2);
+            tx(NAMES[i], x, y - 1, g.fs + 1, P.text + 'ff', 'center', true);
+            var lab = '';
+            if (dfs) lab = cs[i] === 1 ? '탐색 중' : cs[i] === 2 ? '종료 ' + (qs.indexOf(i) + 1) : '';
+            else if (cs[i] === 2) lab = '완료';
+            else {
+                var dv = s.deg[i];
+                if (fresh && e < 0.55 && toIdx.indexOf(i) >= 0) dv = p.deg[i];
+                lab = '진입 ' + dv;
+            }
+            if (lab) tx(lab, x, y + r + 10, g.fs, c + 'ff', 'center', true);
+            if (fresh && !dfs && e >= 0.55 && toIdx.indexOf(i) >= 0) {
+                var f = seg(e, 0.55, 0.95);
+                ctx.globalAlpha = 1 - f;
+                tx('-1', x + r + 14, y + r + 10 - 8 * f, g.fs, P.yellow + 'ff', 'center', true);
+                ctx.globalAlpha = 1;
             }
         }
-        var at = rowY + 98;
-        if (step && step.cap) tx(step.cap, x0 + w / 2, at, fs - 0.5, P.yellow + 'ff', 'center', true);
-        if (step && step.cap2) tx(step.cap2, x0 + w / 2, at + 19, fs - 1, P.text + 'ee', 'center', false);
-        if (step && step.cap3) tx(step.cap3, x0 + w / 2, at + 38, fs - 1, P.green + 'ee', 'center', true);
+    }
+
+    /* ===================== 행 (큐 · 결과 / 종료 · 역순) ===================== */
+    function tsSlots(g, y) {
+        var i;
+        for (i = 0; i < N; i++) rr(g.cx0 + i * g.cw + 2, y, g.cw - 4, g.ch, 4, 'none', P.sub + '55', 1);
+    }
+    function tsCell(g, cx, cy, name, col, alpha) {
+        ctx.globalAlpha = alpha;
+        rr(cx - (g.cw - 4) / 2, cy - g.ch / 2, g.cw - 4, g.ch, 4, col + '33', col + 'ff', 1.6);
+        tx(name, cx, cy, g.fs, P.text + 'ff', 'center', true);
+        ctx.globalAlpha = 1;
+    }
+    function tsLeaving(g, s, p, e) {
+        var qy = g.rowQ + g.ch / 2, ry = g.rowR + g.ch / 2;
+        p.row1.forEach(function (v, pi) {
+            var ri = s.row2.indexOf(v);
+            if (s.row1.indexOf(v) >= 0 || ri < 0 || e >= 0.6) return;
+            var m = ez(seg(e, 0.08, 0.6));
+            tsCell(g, lerp(tsCX(g, pi), tsCX(g, ri), m), lerp(qy, ry, m), NAMES[v], P.green, 1);
+        });
+    }
+    function tsRow(g, y, list, pl, fresh, e, spec, col) {
+        var cy = y + g.ch / 2;
+        list.forEach(function (v, i) {
+            var cx = tsCX(g, i);
+            var pi = pl.indexOf(v);
+            if (!fresh || pi === i) { tsCell(g, cx, cy, NAMES[v], col, 1); return; }
+            if (pi >= 0) { tsCell(g, lerp(tsCX(g, pi), cx, ez(seg(e, spec.sA, spec.sB))), cy, NAMES[v], col, 1); return; }
+            if (!spec.node) { tsCell(g, cx, cy, NAMES[v], col, ez(seg(e, spec.eA, spec.eB))); return; }
+            if (e < spec.eA) return;
+            var m = ez(seg(e, spec.eA, spec.eB));
+            tsCell(g, lerp(tsNX(g, v), cx, m), lerp(tsNY(g, v), cy, m), NAMES[v], col, 1);
+        });
+    }
+
+    /* ===================== 설명 ===================== */
+    function tsCapBlock(str, cx, y, w, fs, lh, col, bold) {
+        if (!str) return y;
+        var rows = lines(str, w - 8, fs);
+        rows.forEach(function (row, li) {
+            tx(row, cx, y + li * lh + lh / 2, fs, col, 'center', bold);
+        });
+        return y + rows.length * lh;
+    }
+    function tsCaps(g, s, e) {
+        var cx = g.x0 + g.w / 2;
+        ctx.globalAlpha = 0.35 + 0.65 * ez(e);
+        var y = tsCapBlock(s.cap, cx, g.capTop + 4, g.w, g.fs, g.fs + 5, P.yellow + 'ff', true);
+        y = tsCapBlock(s.cap2, cx, y, g.w, g.fs, g.fs + 4, P.text + 'ee', false);
+        tsCapBlock(s.cap3, cx, y, g.w, g.fs, g.fs + 4, P.green + 'ff', true);
+        ctx.globalAlpha = 1;
+    }
+
+    /* ===================== 메인 장면 ===================== */
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var s = step || currentSteps()[0];
+        var p = prev || s;
+        var fresh = s !== p;
+        var e = fresh ? clamp01(t) : 1;
+        var dfs = mode === 'dfs';
+        var g = tsGeom(x0, top, w, mob);
+        var names = dfs ? ['종료', '역순'] : ['큐', '결과'];
+        tsSlots(g, g.rowQ);
+        tsSlots(g, g.rowR);
+        tx(names[0], x0, g.rowQ + g.ch / 2, g.fs, P.sub + 'ff', 'left', true);
+        tx(names[1], x0, g.rowR + g.ch / 2, g.fs, P.sub + 'ff', 'left', true);
+        tsEdges(g, s, fresh, e);
+        tsNodes(g, s, p, fresh, e);
+        if (!dfs) tsLeaving(g, s, p, e);
+        tsRow(g, g.rowQ, s.row1, p.row1, fresh, e, dfs ? TS_FIN : TS_QUEUE, P.teal);
+        tsRow(g, g.rowR, s.row2, p.row2, fresh, e, dfs ? TS_REV : TS_RESULT, P.green);
+        tsCaps(g, s, e);
     }
 
     /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
     function draw() {
         P = window.CsFlow.getP();
         ctx.clearRect(0, 0, GW(), GH());
         var W = GW(); var mob = W < 600;
-        var padX = mob ? 16 : 26;
-        var fullW = W - padX * 2;
-        var top = mob ? 18 : 26;
-
         var steps = currentSteps();
         var step = stepIdx >= 0 ? steps[stepIdx] : null;
-
-        drawTS(padX, top, fullW, mob, step);
-
-        if (!step) {
-            var hint = '아래 STEP으로 위상 정렬의 동작을 확인하세요.';
-            ctx.font = '500 ' + (mob ? 11 : 12.5) + 'px "JetBrains Mono",monospace';
-            var hs = mob ? 11 : 12.5;
-            var hl = [hint];
-            if (ctx.measureText(hint).width > W - 16) {
-                var cut = hint.indexOf(' ', Math.floor(hint.length / 2));
-                if (cut < 0) cut = hint.lastIndexOf(' ');
-                hl = [hint.slice(0, cut), hint.slice(cut + 1)];
-            }
-            hl.forEach(function (line, li) {
-                tx(line, W / 2, GH() - (mob ? 12 : 14) - (hl.length - 1 - li) * (hs + 4), hs, P.muted + 'aa', 'center', false);
-            });
-        }
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
         var mob = w < 600;
-        var neededH;
-        neededH = mob ? 400 : 430;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
         canvasWrap.style.height    = 'auto';
-        canvasWrap.style.minHeight = neededH + 'px';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
         var actualH = canvasWrap.offsetHeight || neededH;
         if (actualH < neededH) actualH = neededH;
         canvas.width  = w * dpr;
@@ -372,17 +535,22 @@
     /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        draw();
-        rafId = requestAnimationFrame(function () { rafId = null; if (onDone) onDone(); });
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
     function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
-    function defaultLog() {
-        if (mode === 'dfs') return '깊이 우선 탐색이 끝나는 순서를 뒤집어 위상 순서를 얻는 방식을 봅니다.';
-        if (mode === 'cycle') return '사이클이 있는 그래프에서 Kahn 알고리즘이 어디서 멈추는지 봅니다.';
-        return '진입 차수가 0인 정점을 큐에서 꺼내며 순서를 만드는 Kahn 알고리즘을 봅니다.';
-    }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -421,7 +589,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);

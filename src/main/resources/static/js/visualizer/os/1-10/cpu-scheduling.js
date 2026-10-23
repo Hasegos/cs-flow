@@ -1,103 +1,184 @@
 /**
- * CPU 스케줄링 시각화 — FCFS / SJF / Round Robin 간트 차트 애니메이션
+ * CPU 스케줄링 시각화
  */
 (function () {
     'use strict';
 
-    const container = document.getElementById('visualizer-container');
+    var container = document.getElementById('visualizer-container');
     if (!container) return;
 
-    /* ===================== UI 구성 ===================== */
     function el(tag, cls, txt) {
-        const e = document.createElement(tag);
+        var e = document.createElement(tag);
         if (cls) e.className = cls;
-        if (txt) e.textContent = txt;
+        if (txt !== undefined && txt !== null) e.textContent = txt;
         return e;
     }
 
-    const root    = el('div', 'sched-viz');
-    const toolbar = el('div', 'sched-viz__toolbar');
-    const tbLeft  = el('div', 'sched-viz__toolbar-left');
+    /* ===================== DOM ===================== */
+    var root    = el('div', 'sched-viz');
+    var toolbar = el('div', 'sched-viz__toolbar');
+    var tbLeft  = el('div', 'sched-viz__toolbar-left');
     tbLeft.appendChild(el('span', 'sched-viz__title', 'CPU Scheduling'));
 
-    const algoTabs = el('div', 'sched-viz__algo-tabs');
-    ['FCFS', 'SJF', 'RR (q=2)'].forEach(function (lbl, i) {
-        const b = el('button', 'sched-viz__algo-btn' + (i === 0 ? ' sched-viz__algo-btn--active' : ''), lbl);
-        b.dataset.algo = i;
-        b.addEventListener('click', function () {
-            if (running) return;
-            setAlgo(i, b);
-        });
-        algoTabs.appendChild(b);
+    var modeWrap = el('div', 'sched-viz__mode');
+    var modeDefs = [
+        { key: 'fcfs', label: 'FCFS' },
+        { key: 'sjf', label: 'SJF' },
+        { key: 'rr', label: 'RR (q=2)' }
+    ];
+    var modeBtns = {};
+    modeDefs.forEach(function (m, i) {
+        var b = el('button', 'sched-viz__mode-btn' + (i === 0 ? ' sched-viz__mode-btn--active' : ''), m.label);
+        b.addEventListener('click', function () { if (!running) switchMode(m.key); });
+        modeWrap.appendChild(b);
+        modeBtns[m.key] = b;
     });
-    const algoHint = el('span', 'sched-viz__algo-hint', '알고리즘 선택 →');
-    tbLeft.appendChild(algoHint);
-    tbLeft.appendChild(algoTabs);
+    if (modeDefs.length) tbLeft.appendChild(modeWrap);
     toolbar.appendChild(tbLeft);
 
-    const speedWrap = el('div', 'sched-viz__speed');
+    var speedWrap = el('div', 'sched-viz__speed');
     speedWrap.appendChild(el('span', 'sched-viz__speed-label', 'SPEED'));
-    [['1x', 1800], ['2x', 900], ['3x', 600]].forEach(function (pair, i) {
-        const lbl = pair[0], ms = pair[1];
-        const b = el('button', 'sched-viz__speed-btn' + (i === 0 ? ' sched-viz__speed-btn--active' : ''), lbl);
-        b.addEventListener('click', function () { if (!running) setSpeed(ms, b); });
+    var speedBtns = [];
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
+        var b = el('button', 'sched-viz__speed-btn' + (i === 0 ? ' sched-viz__speed-btn--active' : ''), pair[0]);
+        b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
+        speedBtns.push(b);
     });
     toolbar.appendChild(speedWrap);
     root.appendChild(toolbar);
 
-    const canvasWrap = el('div', 'sched-viz__canvas-wrap');
-    const canvas     = document.createElement('canvas');
+    var canvasWrap = el('div', 'sched-viz__canvas-wrap');
+    var canvas     = document.createElement('canvas');
     canvas.className = 'sched-viz__canvas';
     canvasWrap.appendChild(canvas);
     root.appendChild(canvasWrap);
 
-    const logEl = el('div', 'sched-viz__log', '▶ PLAY를 눌러 스케줄링 과정을 확인하세요. 상단 버튼으로 알고리즘을 바꿀 수 있습니다.');
+    var logEl = el('div', 'sched-viz__log', '');
     root.appendChild(logEl);
 
-    const controls = el('div', 'sched-viz__controls');
-    const btnPlay  = el('button', 'sched-viz__btn sched-viz__btn--primary', '▶ PLAY');
-    const btnStep  = el('button', 'sched-viz__btn', '▶| STEP');
-    const btnReset = el('button', 'sched-viz__btn', '↺ RESET');
-    btnPlay.addEventListener('click',  schedStart);
-    btnStep.addEventListener('click',  schedStep);
-    btnReset.addEventListener('click', schedReset);
+    var controls = el('div', 'sched-viz__controls');
+    var btnPlay  = el('button', 'sched-viz__btn sched-viz__btn--primary', '▶ PLAY');
+    var btnStep  = el('button', 'sched-viz__btn', '▶| STEP');
+    var btnReset = el('button', 'sched-viz__btn', '↺ RESET');
+    btnPlay.addEventListener('click',  vizStart);
+    btnStep.addEventListener('click',  vizStep);
+    btnReset.addEventListener('click', vizReset);
     controls.appendChild(btnPlay);
     controls.appendChild(btnStep);
     controls.appendChild(btnReset);
     root.appendChild(controls);
     container.appendChild(root);
 
-    /* ===================== 캔버스 ===================== */
-    const ctx = canvas.getContext('2d');
-    const dpr = window.devicePixelRatio || 1;
-    const GW  = function () { return canvas.width  / dpr; };
-    const GH  = function () { return canvas.height / dpr; };
+    var ctx = canvas.getContext('2d');
+    var dpr = window.devicePixelRatio || 1;
+    function GW() { return canvas.width / dpr; }
+    function GH() { return canvas.height / dpr; }
 
-    function calcMinHeight() {
-        const rowH   = 34, rowGap = 8, rows = PROCS.length;
-        const tAxisH = 48;
-        const ganttH = rows * (rowH + rowGap);
-        const timeLblH = 20;
-        const statH  = (rows + 2) * 24 + 8;
-        const extra  = 48;
-        return tAxisH + ganttH + timeLblH + statH + extra;
+    var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'fcfs';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
     }
-
-    function resize() {
-        const w    = canvasWrap.offsetWidth;
-        const mob  = w < 520;
-        const minH = mob ? calcMinHeight() : 480;
-        canvasWrap.style.minHeight = minH + 'px';
-        const h    = Math.max(canvasWrap.offsetHeight, minH);
-        canvas.width  = w * dpr;
-        canvas.height = h * dpr;
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        draw();
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
     }
-
-    /* ===================== 팔레트 ===================== */
-    let P = window.CsFlow.getP();
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    var tipHits = [];
+    var mousePos = { x: -1, y: -1 };
+    var hoveredKey = null;
+    function tipHit(x, y, w, h, key) { tipHits.push({ x: x, y: y, w: w, h: h, key: key }); }
+    function tipBadge(cx, cy, key) {
+        var on = hoveredKey === key;
+        circ(cx, cy, 7, on ? P.purple + '44' : 'none', P.purple + (on ? 'ff' : '99'), 1.2);
+        tx('?', cx, cy, 9.5, on ? P.text + 'ff' : P.sub + 'ff', 'center', true);
+        tipHit(cx - 10, cy - 10, 20, 20, key);
+    }
+    function drawTip(mx, my, text) {
+        var parts = text.split(String.fromCharCode(10));
+        var title = parts[0], desc = parts[1] || '';
+        var W = GW(), H = GH();
+        var pad = 14;
+        var maxIn = W - 16 - pad * 2;
+        ctx.font = '700 14px "JetBrains Mono",monospace';
+        var tl = window.CsFlow.wrapText(ctx, title, maxIn);
+        var titleW = 0;
+        tl.forEach(function (l) { titleW = Math.max(titleW, ctx.measureText(l).width); });
+        ctx.font = '400 13px "JetBrains Mono",monospace';
+        var dl = desc ? window.CsFlow.wrapText(ctx, desc, maxIn) : [];
+        var descW = 0;
+        dl.forEach(function (l) { descW = Math.max(descW, ctx.measureText(l).width); });
+        var tw = Math.min(W - 16, Math.max(titleW, descW) + pad * 2);
+        var th = desc ? 24 + tl.length * 18 + dl.length * 18 : 18 + tl.length * 18;
+        var bx = mx + 14, by = my - th - 8;
+        if (bx + tw > W - 8) bx = mx - tw - 14;
+        if (bx < 8) bx = 8;
+        if (by < 8) by = my + 14;
+        if (by + th > H - 8) by = H - th - 8;
+        rr(bx, by, tw, th, 6, P.surf2, P.purple + 'cc', 2);
+        tl.forEach(function (l, i) { tx(l, bx + pad, by + 18 + i * 18, 14, P.text + 'ff', 'left', true); });
+        dl.forEach(function (l, i) { tx(l, bx + pad, by + 24 + tl.length * 18 + i * 18, 13, P.sub + 'ff', 'left', false); });
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 프로세스 데이터 ===================== */
     const PROCS = [
@@ -228,463 +309,420 @@
         return end > mx ? end : mx;
     }, 0);
 
-    /* ===================== 상태 변수 ===================== */
-    let algoIdx    = 0;
-    let stepIdx    = -1;
-    let running    = false;
-    let timer      = null;
-    let rafId      = null;
-    let speed      = 1800;
+    /* ===================== 상태 ===================== */
+    var TIPS = {};
+    var OCS_MODE_IDX = { fcfs: 0, sjf: 1, rr: 2 };
+    var ocsStepCache = {};
+    var ocsWaitCache = {};
 
-    let animProg   = 0;
-    let animActive = false;
-
-    let tooltipHits = [];
-    let mousePos    = { x: -1, y: -1 };
-    let hoveredKey  = null;
-
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        ctx.beginPath();
-        ctx.moveTo(x + r, y);
-        ctx.arcTo(x + w, y, x + w, y + h, r);
-        ctx.arcTo(x + w, y + h, x, y + h, r);
-        ctx.arcTo(x, y + h, x, y, r);
-        ctx.arcTo(x, y, x + w, y, r);
-        ctx.closePath();
-        if (fill)   { ctx.fillStyle = fill;   ctx.fill(); }
-        if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.5; ctx.stroke(); }
+    /* ===================== 단계와 대기 큐 ===================== */
+    function ocsIdx() { return OCS_MODE_IDX[mode] || 0; }
+    function ocsCol(id) { return id === 'P1' ? P.teal : id === 'P2' ? P.purple : id === 'P3' ? P.orange : P.green; }
+    function ocsLast(id, slots) {
+        var r = -1;
+        slots.forEach(function (s, k) { if (s.id === id) r = k; });
+        return r;
     }
-
-    function tx(str, x, y, sz, color, align, bold) {
-        ctx.font = (bold ? '700' : '400') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
-    }
-
-    /* ===================== 프로세스 색상 ===================== */
-    function procCol(id) {
-        const map = { P1: P.teal, P2: P.purple, P3: P.orange, P4: P.green };
-        return map[id] || P.muted;
-    }
-
-    /* ===================== 레이아웃 계산 ===================== */
-    function layout() {
-        const W   = GW(), H = GH();
-        const mob = W < 520;
-        const pad = mob ? 12 : 24;
-
-        const chartX = pad + (mob ? 28 : 36);
-        const chartW = W - chartX - pad;
-        const unitW  = chartW / MAX_T;
-
-        const rowH   = mob ? 34 : 42;
-        const rowGap = mob ? 8  : 12;
-        const rows   = PROCS.length;
-
-        const timeAxisY = (mob ? 28 : 36);
-        const ganttStartY = timeAxisY + (mob ? 20 : 26);
-        const statsY = ganttStartY + rows * (rowH + rowGap) + (mob ? 24 : 36);
-
-        return { W, H, mob, pad, chartX, chartW, unitW, rowH, rowGap, rows,
-                 timeAxisY, ganttStartY, statsY };
-    }
-
-    /* ===================== 메인 드로우 ===================== */
-    function draw() {
-        P = window.CsFlow.getP();
-        ctx.clearRect(0, 0, GW(), GH());
-        ctx.fillStyle = P.bg;
-        ctx.fillRect(0, 0, GW(), GH());
-        tooltipHits = [];
-
-        const L    = layout();
-        const algo = ALGOS[algoIdx];
-        const slots = algo.slots;
-
-        drawAlgoLabel(L, algo);
-        drawTimeAxis(L);
-        drawGantt(L, slots);
-        drawStats(L, slots);
-        drawTooltipIfNeeded();
-    }
-
-    /* ===================== 알고리즘 라벨 ===================== */
-    function drawAlgoLabel(L, algo) {
-        const { mob } = L;
-        tx(algo.desc, GW() / 2, mob ? 10 : 14, mob ? 11 : 12, P.muted, 'center', false);
-    }
-
-    /* ===================== 타임 축 ===================== */
-    function drawTimeAxis(L) {
-        const { chartX, chartW, unitW, timeAxisY, mob } = L;
-        const fSm = mob ? 11 : 13;
-
-        ctx.beginPath();
-        ctx.moveTo(chartX, timeAxisY + 14);
-        ctx.lineTo(chartX + chartW, timeAxisY + 14);
-        ctx.strokeStyle = P.border; ctx.lineWidth = 1; ctx.stroke();
-
-        for (let t = 0; t <= MAX_T; t++) {
-            const x = chartX + t * unitW;
-            ctx.beginPath();
-            ctx.moveTo(x, timeAxisY + 10);
-            ctx.lineTo(x, timeAxisY + 18);
-            ctx.strokeStyle = P.border; ctx.lineWidth = 1; ctx.stroke();
-            if (t === 0 || t % 2 === 0 || t === MAX_T) {
-                tx(String(t), x, timeAxisY + 4, fSm, P.muted, 'center', false);
-            }
-        }
-    }
-
-    /* ===================== 간트 차트 ===================== */
-    function drawGantt(L, slots) {
-        const { pad, chartX, chartW, unitW, rowH, rowGap, ganttStartY, mob } = L;
-        const fSm = mob ? 11 : 13;
-        const fMd = mob ? 12 : 14;
-
-        PROCS.forEach(function (p, i) {
-            const rowY = ganttStartY + i * (rowH + rowGap);
-
-            ctx.fillStyle = P.surf + 'aa';
-            ctx.fillRect(chartX, rowY, chartW, rowH);
-            ctx.strokeStyle = P.border;
-            ctx.lineWidth = 0.5;
-            ctx.strokeRect(chartX, rowY, chartW, rowH);
-
-            const lx = chartX - (mob ? 4 : 6);
-            const col = procCol(p.id);
-            tx(p.id, lx, rowY + rowH / 2, fMd, col, 'right', true);
-
-            if (p.arrival > 0) {
-                const ax = chartX + p.arrival * unitW;
-                ctx.beginPath();
-                ctx.moveTo(ax, rowY + 2);
-                ctx.lineTo(ax, rowY + rowH - 2);
-                ctx.strokeStyle = col + '55';
-                ctx.lineWidth = 1;
-                ctx.setLineDash([3, 3]);
-                ctx.stroke();
-                ctx.setLineDash([]);
-            }
-        });
-
-        const drawUpTo = animActive ? stepIdx : stepIdx;
-
-        slots.forEach(function (slot, si) {
-            if (si > drawUpTo) return;
-
-            const procIdx = PROCS.findIndex(function (p) { return p.id === slot.id; });
-            if (procIdx === -1) return;
-
-            const rowY  = ganttStartY + procIdx * (rowH + rowGap);
-            const col   = procCol(slot.id);
-            const slotW = (slot.end - slot.start) * unitW;
-            const slotX = chartX + slot.start * unitW;
-
-            const drawW = (si === drawUpTo && animActive)
-                ? slotW * animProg
-                : slotW;
-
-            if (drawW < 1) return;
-
-            rr(slotX, rowY + 2, drawW, rowH - 4, 4,
-                col + '30', col, 2);
-
-            if (drawW > 22) {
-                ctx.save();
-                ctx.rect(slotX, rowY, drawW, rowH);
-                ctx.clip();
-                tx(slot.id, slotX + drawW / 2, rowY + rowH / 2, fSm, col, 'center', true);
-                ctx.restore();
-            }
-
-            if (si === 0 || slots[si - 1].id !== slot.id || si === drawUpTo) {
-                tx(String(slot.start), slotX, ganttStartY - (mob ? 2 : 4) +
-                    PROCS.length * (rowH + rowGap) + (mob ? 8 : 10),
-                    mob ? 11 : 12, P.muted + 'bb', 'center', false);
-            }
-
-            if (si < drawUpTo || (si === drawUpTo && !animActive)) {
-                tx(String(slot.end), slotX + slotW, ganttStartY - (mob ? 2 : 4) +
-                    PROCS.length * (rowH + rowGap) + (mob ? 8 : 10),
-                    mob ? 11 : 12, P.muted + 'bb', 'center', false);
-            }
-
-            if (si === drawUpTo && animActive) {
-                ctx.beginPath();
-                ctx.arc(slotX + drawW, rowY + rowH / 2, 5, 0, Math.PI * 2);
-                ctx.fillStyle = col;
-                ctx.globalAlpha = 0.5 + 0.5 * Math.sin(Date.now() / 200);
-                ctx.fill();
-                ctx.globalAlpha = 1;
-            }
-        });
-    }
-
-    /* ===================== 통계 테이블 ===================== */
-    function drawStats(L, slots) {
-        const { W, mob, pad, chartX, chartW, statsY } = L;
-
-        /* 통계를 모두 표시할 충분한 단계인지 확인 */
-        const totalSlots  = slots.length;
-        const revealStats = stepIdx >= totalSlots - 1 && !animActive;
-        if (stepIdx < 0) return;
-
-        const stats = calcStats(PROCS, slots);
-        const fSm   = mob ? 11 : 13;
-        const fMd   = mob ? 12 : 13;
-        const cols  = mob
-            ? [0, 0.20, 0.42, 0.63, 0.82]
-            : [0, 0.18, 0.36, 0.54, 0.72, 0.88];
-        const headers = mob
-            ? ['PID', 'Arr', 'Burst', 'Wait', 'TAT']
-            : ['Process', 'Arrival', 'Burst', 'Finish', 'Waiting', 'Turnaround'];
-
-        const tblX = chartX;
-        const tblW = chartW;
-        const rowH = mob ? 22 : 26;
-
-        rr(tblX, statsY, tblW, rowH, 4, P.surf2, P.border, 1);
-        headers.forEach(function (h, ci) {
-            tx(h, tblX + tblW * cols[ci] + (mob ? 4 : 6), statsY + rowH / 2,
-                fSm, P.muted, 'left', true);
-        });
-
-        stats.forEach(function (s, i) {
-            const ry  = statsY + rowH * (i + 1) + 2;
-            const col = procCol(s.id);
-
-            const myDone = revealStats || slots.slice(0, stepIdx + 1)
-                .filter(function (sl) { return sl.id === s.id; })
-                .reduce(function (sm, sl) { return sm + (sl.end - sl.start); }, 0) >= s.burst;
-
-            rr(tblX, ry, tblW, rowH, 2,
-                myDone ? col + '12' : P.surf,
-                myDone ? col + '44' : P.border, 1);
-
-            if (!mob) {
-                const vals = [s.id, s.arrival, s.burst,
-                    myDone ? s.finish     : '-',
-                    myDone ? s.waiting    : '-',
-                    myDone ? s.turnaround : '-'];
-                vals.forEach(function (v, ci) {
-                    const vc = ci === 0 ? col : myDone ? P.text : P.muted;
-                    tx(String(v), tblX + tblW * cols[ci] + 6, ry + rowH / 2,
-                        fMd, vc, 'left', ci === 0);
-                });
-            } else {
-                const vals = [s.id, s.arrival, s.burst,
-                    myDone ? s.waiting    : '-',
-                    myDone ? s.turnaround : '-'];
-                vals.forEach(function (v, ci) {
-                    const vc = ci === 0 ? col : myDone ? P.text : P.muted;
-                    tx(String(v), tblX + tblW * cols[ci] + 4, ry + rowH / 2,
-                        fMd - 1, vc, 'left', ci === 0);
-                });
-            }
-        });
-
-        if (revealStats) {
-            const avgW = stats.reduce(function (s, r) { return s + r.waiting; }, 0) / stats.length;
-            const avgT = stats.reduce(function (s, r) { return s + r.turnaround; }, 0) / stats.length;
-            const sumY = statsY + rowH * (stats.length + 1) + 8;
-            const col  = ALGOS[algoIdx].name === 'FCFS' ? P.orange
-                       : ALGOS[algoIdx].name === 'SJF'  ? P.green
-                       : P.purple;
-            rr(tblX, sumY, tblW, rowH, 4, col + '18', col, 1.5);
-            const avgTxt = '평균 대기: ' + avgW.toFixed(1) + 'ms    평균 반환: ' + avgT.toFixed(1) + 'ms';
-            tx(avgTxt, tblX + tblW / 2, sumY + rowH / 2, fSm + 1, col, 'center', true);
-        }
-    }
-
-    /* ===================== 툴팁 ===================== */
-    function drawTooltipIfNeeded() {
-        if (!hoveredKey) return;
-        const p = PROCS.find(function (x) { return x.id === hoveredKey; });
-        if (!p) return;
-        const algo  = ALGOS[algoIdx];
-        const stats = calcStats(PROCS, algo.slots);
-        const st    = stats.find(function (x) { return x.id === hoveredKey; });
-        const lines = [
-            p.id + ' — 도착: ' + p.arrival + '   버스트: ' + p.burst,
-            '반환 시간: ' + st.turnaround + '   대기 시간: ' + st.waiting,
-        ];
-        const col  = procCol(p.id);
-        const pad  = 14, lineH = 20;
-        const tw   = 260, th = lines.length * lineH + pad * 2;
-        const W = GW(), H = GH();
-        let tx_ = mousePos.x + 14, ty_ = mousePos.y - th - 8;
-        if (tx_ + tw > W - 8) tx_ = mousePos.x - tw - 14;
-        if (ty_ < 8)          ty_ = mousePos.y + 14;
-        if (ty_ + th > H - 8) ty_ = H - th - 8;
-
-        rr(tx_, ty_, tw, th, 6, P.surf2, col + 'cc', 2);
-        lines.forEach(function (line, i) {
-            ctx.font = (i === 0 ? '700' : '400') + ' 12px "JetBrains Mono",monospace';
-            ctx.fillStyle = i === 0 ? P.text : P.sub;
-            ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-            ctx.fillText(line, tx_ + pad, ty_ + pad + i * lineH + lineH / 2);
-        });
-    }
-
-    /* ===================== 단계 로그 ===================== */
-    function stepLog(si, slots) {
-        if (si < 0)              return '▶ PLAY를 눌러 스케줄링 과정을 확인하세요. 상단 버튼으로 알고리즘을 바꿀 수 있습니다.';
-        if (si >= slots.length)  return ALGOS[algoIdx].name + ' 완료 — 통계 테이블에서 각 프로세스의 대기·반환 시간을 확인하세요.';
-        const s = slots[si];
-        const p = PROCS.find(function (x) { return x.id === s.id; });
-        const algo = ALGOS[algoIdx].name;
-
+    function ocsLog(idx, i) {
+        var s = ALGOS[idx].slots[i];
+        var p = PROCS.find(function (x) { return x.id === s.id; });
+        var algo = ALGOS[idx].name;
         if (algo === 'FCFS') {
             return 'T=' + s.start + ' — ' + s.id + ' 실행 시작 (버스트: ' + p.burst +
                    '). FCFS: 도착 순서대로 선점 없이 완료까지 실행합니다. → T=' + s.end + ' 완료.';
         }
         if (algo === 'SJF') {
-            const avail = PROCS.filter(function (x) { return x.arrival <= s.start; });
-            avail.sort(function (a, b) { return a.burst - b.burst; });
             return 'T=' + s.start + ' — 도착한 프로세스 중 버스트 최소인 ' + s.id +
                    ' 선택 (버스트: ' + p.burst + '). 비선점 실행 → T=' + s.end + ' 완료.';
         }
-        const sliceLen = s.end - s.start;
+        var sliceLen = s.end - s.start;
         return 'T=' + s.start + ' — ' + s.id + ' 에 퀀텀 ' + sliceLen +
-               ' 단위 할당' + (sliceLen < p.burst ? ' (선점 후 Ready Queue 재삽입)' : ' (완료)') +
+               ' 단위 할당' + (ocsLast(s.id, ALGOS[idx].slots) !== i ? ' (선점 후 Ready Queue 재삽입)' : ' (완료)') +
                '. → T=' + s.end + '.';
     }
+    function ocsSteps(idx) {
+        if (!ocsStepCache[idx]) {
+            var arr = [];
+            ALGOS[idx].slots.forEach(function (s, i) { arr.push({ log: ocsLog(idx, i) }); });
+            arr.push({ log: ALGOS[idx].name + ' 완료 — 통계 테이블에서 각 프로세스의 대기·반환 시간을 확인하세요.' });
+            ocsStepCache[idx] = arr;
+        }
+        return ocsStepCache[idx];
+    }
+    function ocsWait(idx) {
+        if (ocsWaitCache[idx]) return ocsWaitCache[idx];
+        var slots = ALGOS[idx].slots;
+        var out;
+        if (idx === 2) {
+            var queue = [], enq = {}, rem = {};
+            PROCS.forEach(function (p) { rem[p.id] = p.burst; });
+            var pushArr = function (at) {
+                PROCS.forEach(function (p) {
+                    if (p.arrival <= at && !enq[p.id] && rem[p.id] > 0) { queue.push(p.id); enq[p.id] = true; }
+                });
+            };
+            out = slots.map(function (s) {
+                pushArr(s.start);
+                var qi = queue.indexOf(s.id);
+                if (qi >= 0) queue.splice(qi, 1);
+                rem[s.id] -= s.end - s.start;
+                pushArr(s.end);
+                if (rem[s.id] > 0) queue.push(s.id);
+                return queue.slice();
+            });
+        } else {
+            var lastEnd = {};
+            slots.forEach(function (s) { lastEnd[s.id] = Math.max(lastEnd[s.id] || 0, s.end); });
+            out = slots.map(function (s) {
+                var w2 = PROCS.filter(function (p) { return p.arrival <= s.end && lastEnd[p.id] > s.end; });
+                if (idx === 0) w2.sort(function (a, b) { return a.arrival - b.arrival; });
+                else w2.sort(function (a, b) { return a.burst - b.burst || a.arrival - b.arrival; });
+                return w2.map(function (p) { return p.id; });
+            });
+        }
+        ocsWaitCache[idx] = out;
+        return out;
+    }
 
-    /* ===================== 슬롯 애니메이션 ===================== */
-    function animSlot(si, onDone) {
-        animActive = true;
-        animProg   = 0;
-        const BASE_SPEED = 1800, baseStep = 0.007;
-        const step = baseStep * (BASE_SPEED / speed);
+    /* ===================== 장면 ===================== */
+    function currentSteps() { return ocsSteps(ocsIdx()); }
+    function defaultLog() { return '▶ PLAY를 눌러 스케줄링 과정을 확인하세요. 상단 버튼으로 알고리즘을 바꿀 수 있습니다.'; }
+    function ez(q) { q = clamp01(q); return q * q * (3 - 2 * q); }
 
-        function tick() {
-            animProg = Math.min(1, animProg + step);
-            draw();
-            if (animProg < 1) {
-                rafId = requestAnimationFrame(tick);
-            } else {
-                animActive = false;
-                draw();
-                if (onDone) onDone();
+    function layout(w, mob) {
+        var fsS = mob ? 11 : 12;
+        var lh = fsS + 6;
+        var hdrN = 1;
+        [0, 1, 2].forEach(function (k) {
+            var n = lines(ALGOS[k].desc, w, fsS).length;
+            if (n > hdrN) hdrN = n;
+        });
+        var hdrH = hdrN * lh + 6;
+        var cpuW = mob ? 56 : 100, cpuH = mob ? 54 : 60;
+        var chipW = mob ? 32 : 48, chipH = mob ? 22 : 24;
+        var rowTop = hdrH + 14;
+        var qTop = rowTop + cpuH - chipH - 6;
+        var qX = cpuW + (mob ? 22 : 34);
+        var labelW = mob ? 26 : 34;
+        var cX = labelW, cW = w - labelW;
+        var clockY = rowTop + cpuH + 10;
+        var axisY = clockY + 16;
+        var rowsY = axisY + 16;
+        var rowH = mob ? 22 : 26, rowGap = mob ? 6 : 8;
+        var ganttH = PROCS.length * (rowH + rowGap);
+        var statY = rowsY + ganttH + 16;
+        var sRowH = mob ? 20 : 24;
+        var avgH = (mob ? 2 : 1) * lh + 8;
+        var avgY = statY + sRowH * (PROCS.length + 1) + 6;
+        return {
+            fsS: fsS, lh: lh, cpuW: cpuW, cpuH: cpuH, chipW: chipW, chipH: chipH, gap: mob ? 4 : 6,
+            rowTop: rowTop, qTop: qTop, qX: qX, qW: w - qX,
+            labelW: labelW, cX: cX, cW: cW, unit: cW / MAX_T,
+            clockY: clockY, axisY: axisY, rowsY: rowsY, rowH: rowH, rowGap: rowGap, ganttH: ganttH,
+            statY: statY, sRowH: sRowH, avgY: avgY, avgH: avgH,
+            total: avgY + avgH + 4
+        };
+    }
+    function sceneH(w, mob) { return layout(w, mob).total; }
+
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var L = layout(w, mob);
+        var fsS = L.fsS, lh = L.lh;
+        var fsM = mob ? 12 : 13;
+        var idx = ocsIdx();
+        var steps = currentSteps();
+        var slots = ALGOS[idx].slots;
+        var N = slots.length;
+        var si = step ? steps.indexOf(step) : -1;
+        var ghost = si < 0;
+        var waitAfter = ocsWait(idx);
+        var stats = calcStats(PROCS, slots);
+        var pA = seg(t, 0, 0.3), pB = seg(t, 0.3, 0.85), pC = seg(t, 0.85, 1);
+        var run = si >= 0 && si < N ? slots[si] : null;
+        var preQ = si > 0 ? waitAfter[si - 1] : [];
+        var postQ = run ? waitAfter[si] : [];
+        var alphaMul = ghost ? 0.22 : 1;
+        var curT = si < 0 ? 0 : (si >= N ? slots[N - 1].end : run.start + (run.end - run.start) * pB);
+
+        function ocsA(a) { ctx.globalAlpha = a * alphaMul; }
+        function ocsLaneX(k) { return x0 + L.qX + 6 + k * (L.chipW + L.gap); }
+        function ocsChip(x, y, id, a) {
+            ctx.globalAlpha = a;
+            rr(x, y, L.chipW, L.chipH, 6, ocsCol(id) + 'ff');
+            tx(id, x + L.chipW / 2, y + L.chipH / 2, fsS, '#111111', 'center', true);
+            ctx.globalAlpha = 1;
+        }
+
+        TIPS = {};
+        stats.forEach(function (st) {
+            TIPS[st.id] = st.id + ' — 도착: ' + st.arrival + '   버스트: ' + st.burst + '\n' +
+                          '반환 시간: ' + st.turnaround + '   대기 시간: ' + st.waiting;
+        });
+
+        lines(ALGOS[idx].desc, w, fsS).forEach(function (s2, i2) {
+            tx(s2, x0 + w / 2, top + i2 * lh + lh / 2, fsS, P.sub, 'center', false);
+        });
+
+        rr(x0 + L.qX, top + L.qTop - 6, L.qW, L.chipH + 12, 6, P.surf2, P.border, 1);
+        tx('Ready Queue', x0 + L.qX + 6, top + L.rowTop + 6, fsS, P.sub, 'left', true);
+        if (!preQ.length && !postQ.length) {
+            tx('비어 있음', x0 + L.qX + L.qW / 2, top + L.qTop + L.chipH / 2, fsS, P.sub, 'center', false);
+        }
+        var qIds = preQ.concat(postQ).filter(function (id, i, arr) { return arr.indexOf(id) === i; });
+        qIds.forEach(function (id) {
+            if (run && id === run.id) return;
+            var ip = preQ.indexOf(id), iq = postQ.indexOf(id);
+            var x, a;
+            if (ip >= 0 && iq >= 0) { x = lerp(ocsLaneX(ip), ocsLaneX(iq), ez(pA)); a = 1; }
+            else if (iq >= 0) { x = ocsLaneX(iq); a = ez(pC); }
+            else { x = ocsLaneX(ip); a = 1 - ez(pC); }
+            ocsChip(x, top + L.qTop, id, a);
+        });
+
+        arrow(x0 + L.qX - 3, top + L.qTop + L.chipH / 2, x0 + L.cpuW + 4, top + L.qTop + L.chipH / 2,
+              P.sub + '99', 1.2, [3, 3]);
+
+        var cpuChipX = x0 + (L.cpuW - L.chipW) / 2;
+        var chipY = top + L.qTop;
+        var runAlpha = 0, runX = cpuChipX;
+        if (run) {
+            var ipr = preQ.indexOf(run.id), iwr = postQ.indexOf(run.id);
+            if (ipr >= 0) { runX = lerp(ocsLaneX(ipr), cpuChipX, ez(pA)); runAlpha = 1; }
+            else { runX = cpuChipX; runAlpha = ez(pA); }
+            if (iwr >= 0) runX = lerp(runX, ocsLaneX(iwr), ez(pC));
+            else runAlpha = runAlpha * (1 - ez(pC));
+        }
+        rr(x0, top + L.rowTop, L.cpuW, L.cpuH, 8, P.surf2,
+           run && pB > 0 ? ocsCol(run.id) + 'cc' : P.border, 1.8);
+        tx('CPU', x0 + L.cpuW / 2, top + L.rowTop + 11, fsS, P.sub, 'center', true);
+        if (runAlpha > 0.01) ocsChip(runX, chipY, run.id, runAlpha);
+        else tx('IDLE', cpuChipX + L.chipW / 2, chipY + L.chipH / 2, fsS, P.sub, 'center', true);
+        tx('T = ' + Math.round(curT), x0 + L.cpuW / 2, top + L.clockY, fsS, P.sub, 'center', true);
+
+        var ax0 = x0 + L.cX, axY = top + L.axisY;
+        var every = L.unit >= 22 ? 1 : 2;
+        ln(ax0, axY + 9, ax0 + L.cW, axY + 9, P.border, 1);
+        for (var tt = 0; tt <= MAX_T; tt++) {
+            var tkx = ax0 + tt * L.unit;
+            ln(tkx, axY + 9, tkx, axY + 13, P.border, 1);
+            if ((tt % every === 0 && (every === 1 || tt < MAX_T - 1)) || tt === MAX_T) {
+                tx(String(tt), tkx, axY, fsS, P.sub, 'center', false);
             }
         }
+
+        var rowY0 = top + L.rowsY;
+        var rowStep = L.rowH + L.rowGap;
+        PROCS.forEach(function (p, i) {
+            var y = rowY0 + i * rowStep;
+            var c = ocsCol(p.id);
+            var hov = hoveredKey === p.id;
+            rr(ax0, y, L.cW, L.rowH, 4, P.surf + 'aa', hov ? c + 'cc' : P.border, hov ? 1.8 : 1);
+            tx(p.id, x0 + L.labelW - 6, y + L.rowH / 2, fsM, c, 'right', true);
+            if (p.arrival > 0) {
+                ln(ax0 + p.arrival * L.unit, y + 2, ax0 + p.arrival * L.unit, y + L.rowH - 2, c + '77', 1, [3, 3]);
+            }
+            tipHit(x0, y, w, L.rowH, p.id);
+        });
+
+        slots.forEach(function (s, k) {
+            var pi = PROCS.findIndex(function (x) { return x.id === s.id; });
+            var y = rowY0 + pi * rowStep;
+            var frac = ghost ? 1 : (k < si ? 1 : (k === si ? pB : 0));
+            if (frac <= 0) return;
+            var bx = ax0 + s.start * L.unit, bw = (s.end - s.start) * L.unit * frac;
+            ocsA(1);
+            rr(bx, y + 2, bw, L.rowH - 4, 4, ocsCol(s.id) + 'ff');
+            if (bw > 20) {
+                ctx.save();
+                ctx.beginPath(); ctx.rect(bx, y, bw, L.rowH); ctx.clip();
+                tx(s.id, bx + bw / 2, y + L.rowH / 2, fsS, '#111111', 'center', true);
+                ctx.restore();
+            }
+            if (!ghost && k === si && frac < 1) circ(bx + bw, y + L.rowH / 2, 4, P.text + 'ff');
+            ctx.globalAlpha = 1;
+        });
+
+        if (!ghost) {
+            var cx = ax0 + curT * L.unit;
+            ln(cx, axY + 9, cx, rowY0 + L.ganttH - L.rowGap, P.text + '99', 1.2, [2, 3]);
+        }
+
+        var tblX = ax0, tblW = L.cW, sY = top + L.statY, sRowH = L.sRowH;
+        var fsV = mob ? fsS : fsM;
+        var cols = mob ? [0, 0.2, 0.42, 0.63, 0.82] : [0, 0.18, 0.36, 0.54, 0.72, 0.88];
+        var heads = mob ? ['PID', 'Arr', 'Burst', 'Wait', 'TAT'] : ['Process', 'Arrival', 'Burst', 'Finish', 'Waiting', 'Turnaround'];
+        rr(tblX, sY, tblW, sRowH, 4, P.surf2, P.border, 1);
+        heads.forEach(function (h, ci) {
+            tx(h, tblX + tblW * cols[ci] + (mob ? 4 : 6), sY + sRowH / 2, fsS, P.sub, 'left', true);
+        });
+        stats.forEach(function (st, i) {
+            var ry = sY + sRowH * (i + 1);
+            var c = ocsCol(st.id);
+            var last = ocsLast(st.id, slots);
+            var da = ghost ? 0 : (si >= N || si > last ? 1 : (si === last ? ez(pC) : 0));
+            rr(tblX, ry, tblW, sRowH - 2, 2, P.surf, P.border, 1);
+            if (da > 0) {
+                ctx.globalAlpha = da;
+                rr(tblX, ry, tblW, sRowH - 2, 2, c + '22', c + '77', 1);
+                ctx.globalAlpha = 1;
+            }
+            var vals = mob ? [st.id, st.arrival, st.burst, st.waiting, st.turnaround]
+                           : [st.id, st.arrival, st.burst, st.finish, st.waiting, st.turnaround];
+            vals.forEach(function (v, ci) {
+                var vx = tblX + tblW * cols[ci] + (mob ? 4 : 6), vy = ry + (sRowH - 2) / 2;
+                if (ci === 0) { tx(String(v), vx, vy, fsV, c, 'left', true); return; }
+                if (ci < 3) { tx(String(v), vx, vy, fsV, P.text, 'left', false); return; }
+                if (da < 1) { ctx.globalAlpha = 1 - da; tx('-', vx, vy, fsV, P.sub, 'left', false); }
+                if (da > 0) { ctx.globalAlpha = da; tx(String(v), vx, vy, fsV, P.text, 'left', false); }
+                ctx.globalAlpha = 1;
+            });
+        });
+
+        var avgA = !ghost && si >= N ? ez(t) : 0;
+        if (avgA > 0) {
+            var avgW = stats.reduce(function (s0, r) { return s0 + r.waiting; }, 0) / stats.length;
+            var avgT = stats.reduce(function (s0, r) { return s0 + r.turnaround; }, 0) / stats.length;
+            var ca = idx === 0 ? P.orange : idx === 1 ? P.green : P.purple;
+            var ay = top + L.avgY;
+            ctx.globalAlpha = avgA;
+            rr(tblX, ay, tblW, L.avgH, 4, ca + '18', ca, 1.5);
+            var al = lines('평균 대기: ' + avgW.toFixed(1) + 'ms    평균 반환: ' + avgT.toFixed(1) + 'ms', tblW - 12, fsS);
+            var ay0 = ay + L.avgH / 2 - (al.length - 1) * L.lh / 2;
+            al.forEach(function (s2, i2) { tx(s2, tblX + tblW / 2, ay0 + i2 * L.lh, fsS, ca, 'center', true); });
+            ctx.globalAlpha = 1;
+        }
+    }
+
+    /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
+    function draw() {
+        P = window.CsFlow.getP();
+        ctx.clearRect(0, 0, GW(), GH());
+        var W = GW(); var mob = W < 600;
+        var steps = currentSteps();
+        var step = stepIdx >= 0 ? steps[stepIdx] : null;
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        tipHits.length = 0;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
+        if (hoveredKey && typeof TIPS !== 'undefined' && TIPS[hoveredKey]) drawTip(mousePos.x, mousePos.y, TIPS[hoveredKey]);
+    }
+
+    /* ===================== resize ===================== */
+    function resize() {
+        var w = canvasWrap.offsetWidth || 320;
+        var mob = w < 600;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
+        canvasWrap.style.height    = 'auto';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
+        var actualH = canvasWrap.offsetHeight || neededH;
+        if (actualH < neededH) actualH = neededH;
+        canvas.width  = w * dpr;
+        canvas.height = actualH * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        draw();
+    }
+
+    /* ===================== 애니메이션(스텝 전환) ===================== */
+    function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        rafId = requestAnimationFrame(tick);
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
-    function schedStart() {
+    function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
+
+    function applyStep(idx, onDone) {
+        stepIdx = idx;
+        logEl.textContent = currentSteps()[idx].log;
+        animateStep(function () { if (onDone) setTimeout(onDone, 0); });
+    }
+
+    function vizStart() {
         if (running) return;
         running = true; btnPlay.disabled = true; btnStep.disabled = true;
-        setAlgoTabsDisabled(true);
         setSpeedDisabled(true);
-
+        var steps = currentSteps();
         function tick() {
-            const slots = ALGOS[algoIdx].slots;
-            const next  = stepIdx + 1;
-            if (next >= slots.length) {
-                running = false;
-                logEl.textContent = stepLog(slots.length, slots);
-                btnStep.disabled  = true;
-                setSpeedDisabled(false);
-                draw();
-                return;
-            }
-            stepIdx = next;
-            logEl.textContent = stepLog(next, slots);
-            animSlot(next, function () {
-                timer = setTimeout(tick, speed * 0.3);
+            var next = stepIdx + 1;
+            if (next >= steps.length) { running = false; setSpeedDisabled(false); return; }
+            applyStep(next, function () {
+                if (next === steps.length - 1) {
+                    running = false; btnStep.disabled = true; setSpeedDisabled(false);
+                } else {
+                    timer = setTimeout(tick, speed * 0.6);
+                }
             });
         }
         tick();
     }
 
-    function schedStep() {
-        if (running || animActive) return;
-        const slots = ALGOS[algoIdx].slots;
-        const next  = stepIdx + 1;
-        if (next >= slots.length) {
-            logEl.textContent = stepLog(slots.length, slots);
-            draw();
-            btnPlay.disabled = true;
-            btnStep.disabled = true;
-            return;
-        }
-        stepIdx = next;
-        logEl.textContent = stepLog(next, slots);
-        animSlot(next, function () {
-            if (stepIdx >= slots.length - 1) {
-                logEl.textContent = stepLog(slots.length, slots);
-                btnPlay.disabled = true;
-                btnStep.disabled = true;
-            }
-            draw();
-        });
+    function vizStep() {
+        if (running) return;
+        var steps = currentSteps();
+        var next = stepIdx + 1;
+        if (next >= steps.length) return;
+        applyStep(next, null);
+        if (next === steps.length - 1) { btnPlay.disabled = true; btnStep.disabled = true; }
     }
 
-    function schedReset() {
+    function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1; animActive = false; animProg = 0;
-        logEl.textContent = '▶ PLAY를 눌러 스케줄링 과정을 확인하세요. 상단 버튼으로 알고리즘을 바꿀 수 있습니다.';
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
-        setAlgoTabsDisabled(false);
+        logEl.textContent = defaultLog();
         setSpeedDisabled(false);
-        draw();
-    }
-
-    function setAlgo(idx, btn) {
-        algoIdx = idx;
-        root.querySelectorAll('.sched-viz__algo-btn').forEach(function (b) {
-            b.classList.remove('sched-viz__algo-btn--active');
-        });
-        btn.classList.add('sched-viz__algo-btn--active');
-        schedReset();
-    }
-
-    function setAlgoTabsDisabled(v) {
-        root.querySelectorAll('.sched-viz__algo-btn').forEach(function (b) {
-            b.disabled = v;
-        });
+        resize();
     }
 
     function setSpeed(ms, btn) {
         speed = ms;
-        root.querySelectorAll('.sched-viz__speed-btn').forEach(function (b) {
-            b.classList.remove('sched-viz__speed-btn--active');
-        });
+        speedBtns.forEach(function (b) { b.classList.remove('sched-viz__speed-btn--active'); });
         btn.classList.add('sched-viz__speed-btn--active');
     }
 
-    function setSpeedDisabled(v) {
-        root.querySelectorAll('.sched-viz__speed-btn').forEach(function (b) { b.disabled = v; });
+    function switchMode(m) {
+        if (mode === m) return;
+        mode = m;
+        modeDefs.forEach(function (d) { modeBtns[d.key].classList.toggle('sched-viz__mode-btn--active', d.key === m); });
+        vizReset();
     }
+
+    logEl.textContent = defaultLog();
 
     /* ===================== 라이프사이클 ===================== */
     window.CsFlow.createVizLifecycle({
-        canvas    : canvas,
-        canvasWrap: canvasWrap,
-        resize    : resize,
-        draw      : draw,
-        getState  : function () { return { rafId: rafId, timer: timer, running: running }; },
-        setState  : function (s) { rafId = s.rafId; timer = s.timer; running = s.running; },
-        onPause   : function () { setSpeedDisabled(false); },
+        canvas: canvas, canvasWrap: canvasWrap, resize: resize, draw: draw,
+        getState : function () { return { rafId: rafId, timer: timer, running: running }; },
+        setState : function (s) { rafId = s.rafId; timer = s.timer; running = s.running; },
+        onPause  : function () { setSpeedDisabled(false); },
         getMouseCtx: function () {
             return {
-                GW           : GW,
-                GH           : GH,
-                mousePos     : mousePos,
-                tooltipHits  : tooltipHits,
-                hoveredKey   : function ()  { return hoveredKey; },
+                GW: GW, GH: GH,
+                mousePos: mousePos,
+                tooltipHits: tipHits,
+                hoveredKey: function () { return hoveredKey; },
                 setHoveredKey: function (k) { hoveredKey = k; },
-                draw         : draw,
+                draw: draw
             };
-        },
+        }
     });
 
     setTimeout(resize, 60);

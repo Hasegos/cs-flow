@@ -37,8 +37,8 @@
   color: var(--color-purple);
 }
 
-/* === 모드 탭 버튼 === */
-.sync-viz__mode-tabs {
+/* === 모드 버튼 === */
+.sync-viz__mode {
   display: flex;
   gap: 6px;
 }
@@ -81,16 +81,6 @@
   opacity: 0.3;
   cursor: not-allowed;
   pointer-events: none;
-}
-
-/* === 모드 힌트 === */
-.sync-viz__mode-hint {
-  font-family: var(--font-mono);
-  font-size: 0.58rem;
-  letter-spacing: 0.10em;
-  color: var(--color-text-muted);
-  opacity: 0.7;
-  white-space: nowrap;
 }
 
 /* === 속도 버튼 === */

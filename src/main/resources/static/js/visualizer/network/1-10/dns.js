@@ -4,70 +4,179 @@
 (function () {
     'use strict';
 
-    const container = document.getElementById('visualizer-container');
+    var container = document.getElementById('visualizer-container');
     if (!container) return;
 
     function el(tag, cls, txt) {
-        const e = document.createElement(tag);
+        var e = document.createElement(tag);
         if (cls) e.className = cls;
-        if (txt) e.textContent = txt;
+        if (txt !== undefined && txt !== null) e.textContent = txt;
         return e;
     }
 
-    /* ===================== DOM 구성 ===================== */
-    const root    = el('div', 'dns-viz');
-    const toolbar = el('div', 'dns-viz__toolbar');
-    const tbLeft  = el('div', 'dns-viz__toolbar-left');
+    /* ===================== DOM ===================== */
+    var root    = el('div', 'dns-viz');
+    var toolbar = el('div', 'dns-viz__toolbar');
+    var tbLeft  = el('div', 'dns-viz__toolbar-left');
     tbLeft.appendChild(el('span', 'dns-viz__title', 'DNS Recursive Query'));
+
+    var modeWrap = el('div', 'dns-viz__mode');
+    var modeDefs = [
+
+    ];
+    var modeBtns = {};
+    modeDefs.forEach(function (m, i) {
+        var b = el('button', 'dns-viz__mode-btn' + (i === 0 ? ' dns-viz__mode-btn--active' : ''), m.label);
+        b.addEventListener('click', function () { if (!running) switchMode(m.key); });
+        modeWrap.appendChild(b);
+        modeBtns[m.key] = b;
+    });
+    if (modeDefs.length) tbLeft.appendChild(modeWrap);
     toolbar.appendChild(tbLeft);
 
-    const speedWrap = el('div', 'dns-viz__speed');
+    var speedWrap = el('div', 'dns-viz__speed');
     speedWrap.appendChild(el('span', 'dns-viz__speed-label', 'SPEED'));
-    [['1x', 1800], ['2x', 900], ['3x', 600]].forEach(function (pair, i) {
-        const b = el('button', 'dns-viz__speed-btn' + (i === 0 ? ' dns-viz__speed-btn--active' : ''), pair[0]);
+    var speedBtns = [];
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
+        var b = el('button', 'dns-viz__speed-btn' + (i === 0 ? ' dns-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
+        speedBtns.push(b);
     });
     toolbar.appendChild(speedWrap);
     root.appendChild(toolbar);
 
-    const canvasWrap = el('div', 'dns-viz__canvas-wrap');
-    const canvas     = document.createElement('canvas');
+    var canvasWrap = el('div', 'dns-viz__canvas-wrap');
+    var canvas     = document.createElement('canvas');
     canvas.className = 'dns-viz__canvas';
     canvasWrap.appendChild(canvas);
     root.appendChild(canvasWrap);
 
-    const logEl = el('div', 'dns-viz__log', '▶ PLAY를 눌러 DNS 재귀 질의 과정을 확인하세요.');
+    var logEl = el('div', 'dns-viz__log', '');
     root.appendChild(logEl);
 
-    const controls = el('div', 'dns-viz__controls');
-    const btnPlay  = el('button', 'dns-viz__btn dns-viz__btn--primary', '▶ PLAY');
-    const btnStep  = el('button', 'dns-viz__btn', '▶| STEP');
-    const btnReset = el('button', 'dns-viz__btn', '↺ RESET');
-    btnPlay.addEventListener('click',  dnsStart);
-    btnStep.addEventListener('click',  dnsStep);
-    btnReset.addEventListener('click', dnsReset);
+    var controls = el('div', 'dns-viz__controls');
+    var btnPlay  = el('button', 'dns-viz__btn dns-viz__btn--primary', '▶ PLAY');
+    var btnStep  = el('button', 'dns-viz__btn', '▶| STEP');
+    var btnReset = el('button', 'dns-viz__btn', '↺ RESET');
+    btnPlay.addEventListener('click',  vizStart);
+    btnStep.addEventListener('click',  vizStep);
+    btnReset.addEventListener('click', vizReset);
     controls.appendChild(btnPlay);
     controls.appendChild(btnStep);
     controls.appendChild(btnReset);
     root.appendChild(controls);
     container.appendChild(root);
 
-    const ctx = canvas.getContext('2d');
-    const dpr = window.devicePixelRatio || 1;
-    const GW  = function () { return canvas.width  / dpr; };
-    const GH  = function () { return canvas.height / dpr; };
+    var ctx = canvas.getContext('2d');
+    var dpr = window.devicePixelRatio || 1;
+    function GW() { return canvas.width / dpr; }
+    function GH() { return canvas.height / dpr; }
 
-    function resize() {
-        const w = canvasWrap.offsetWidth;
-        const h = Math.max(canvasWrap.offsetHeight, 500);
-        canvas.width  = w * dpr;
-        canvas.height = h * dpr;
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        draw();
+    var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = '';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
     }
-
-    let P = window.CsFlow.getP();
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    var tipHits = [];
+    var mousePos = { x: -1, y: -1 };
+    var hoveredKey = null;
+    function tipHit(x, y, w, h, key) { tipHits.push({ x: x, y: y, w: w, h: h, key: key }); }
+    function tipBadge(cx, cy, key) {
+        var on = hoveredKey === key;
+        circ(cx, cy, 7, on ? P.purple + '44' : 'none', P.purple + (on ? 'ff' : '99'), 1.2);
+        tx('?', cx, cy, 9.5, on ? P.text + 'ff' : P.sub + 'ff', 'center', true);
+        tipHit(cx - 10, cy - 10, 20, 20, key);
+    }
+    function drawTip(mx, my, text) {
+        var parts = text.split(String.fromCharCode(10));
+        var title = parts[0], desc = parts[1] || '';
+        var W = GW(), H = GH();
+        var pad = 14;
+        var maxIn = W - 16 - pad * 2;
+        ctx.font = '700 14px "JetBrains Mono",monospace';
+        var tl = window.CsFlow.wrapText(ctx, title, maxIn);
+        var titleW = 0;
+        tl.forEach(function (l) { titleW = Math.max(titleW, ctx.measureText(l).width); });
+        ctx.font = '400 13px "JetBrains Mono",monospace';
+        var dl = desc ? window.CsFlow.wrapText(ctx, desc, maxIn) : [];
+        var descW = 0;
+        dl.forEach(function (l) { descW = Math.max(descW, ctx.measureText(l).width); });
+        var tw = Math.min(W - 16, Math.max(titleW, descW) + pad * 2);
+        var th = desc ? 24 + tl.length * 18 + dl.length * 18 : 18 + tl.length * 18;
+        var bx = mx + 14, by = my - th - 8;
+        if (bx + tw > W - 8) bx = mx - tw - 14;
+        if (bx < 8) bx = 8;
+        if (by < 8) by = my + 14;
+        if (by + th > H - 8) by = H - th - 8;
+        rr(bx, by, tw, th, 6, P.surf2, P.purple + 'cc', 2);
+        tl.forEach(function (l, i) { tx(l, bx + pad, by + 18 + i * 18, 14, P.text + 'ff', 'left', true); });
+        dl.forEach(function (l, i) { tx(l, bx + pad, by + 24 + tl.length * 18 + i * 18, 13, P.sub + 'ff', 'left', false); });
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 노드 정의 ===================== */
     var NODES = [
@@ -137,305 +246,369 @@
         },
     ];
 
-    let stepIdx   = -1;
-    let running   = false;
-    let timer     = null;
-    let rafId     = null;
-    let speed     = 1800;
     let pktMoving = false;
     let pktProg   = 1;
     let history   = [];
 
-    /* ===================== 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        ctx.beginPath();
-        ctx.moveTo(x + r, y);
-        ctx.arcTo(x + w, y, x + w, y + h, r);
-        ctx.arcTo(x + w, y + h, x, y + h, r);
-        ctx.arcTo(x, y + h, x, y, r);
-        ctx.arcTo(x, y, x + w, y, r);
-        ctx.closePath();
-        if (fill)   { ctx.fillStyle = fill;                        ctx.fill(); }
-        if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.5; ctx.stroke(); }
+    /* ===================== 상태 ===================== */
+    function currentSteps() {
+        return STEPS;
     }
-
-    function tx(str, x, y, sz, color, align, bold) {
-        ctx.font = (bold ? '700' : '400') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle    = color;
-        ctx.textAlign    = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
+    function defaultLog() {
+        return '▶ PLAY를 눌러 DNS 재귀 질의 과정을 확인하세요.';
     }
 
     /* ===================== 레이아웃 ===================== */
-    function buildLayout() {
-        const W   = GW(), H = GH();
-        const mob = W < 560;
-        const pad = mob ? 6 : 16;
+    function ez(q) { q = clamp01(q); return q * q * (3 - 2 * q); }
 
-        const F_NODE = mob ? 10 : 12;
-        const F_PKT  = mob ? 10 : 12;
-        const F_PSUB = mob ?  9 : 10;
+    function dnW(str, sz, bold) {
+        ctx.font = (bold ? '700 ' : '400 ') + sz + 'px "JetBrains Mono",monospace';
+        return ctx.measureText(str).width;
+    }
 
-        const nodeH  = mob ? 36 : 48;
-        const nodeY  = mob ?  8 : 14;
-        const unit   = Math.floor((W - pad * 2) / 5);
-        const nodeW  = unit - (mob ? 6 : 10);
-        const nodeXs = NODES.map(function (_, i) {
-            return pad + i * unit + unit / 2;
+    function layout(w, mob) {
+        var fs = mob ? 11 : 12;
+        var lh = mob ? 14 : 16;
+        var edge = mob ? 14 : 70;
+        var dh = mob ? 58 : 66;
+        var hb = mob ? 34 : 50;
+        var nMsg = STEPS.filter(function (st) { return st.pkt; }).length;
+        var maxLines = 1;
+        STEPS.forEach(function (st) {
+            if (!st.pkt) return;
+            var n = lines(st.pkt.label, w - 4, fs).length;
+            if (n > maxLines) maxLines = n;
+        });
+        var rh = maxLines * lh + (mob ? 18 : 28);
+        var rowsTop = dh + 8 + hb + 8;
+        var cy = rowsTop + nMsg * rh + 10;
+        var p2 = 12 + lh + 8;
+        var p3 = p2 + lh + 4;
+        var p4 = p3 + lh / 2 + 6;
+        return { mob: mob, fs: fs, lh: lh, rh: rh, edge: edge, lane: (w - edge * 2) / 4,
+                 dh: dh, hb: hb, nMsg: nMsg, rowsTop: rowsTop, cy: cy,
+                 ayOff: mob ? 6 : 8, labOff: mob ? 12 : 14, headR: mob ? 8 : 11,
+                 p2: p2, p3: p3, p4: p4, ph: p4 + 14, total: cy + p4 + 22 };
+    }
+    function sceneH(w, mob) { return layout(w, mob).total; }
+
+    /* ===================== 도메인 풀이 ===================== */
+    function dnX(L, x0, i) { return x0 + L.edge + i * L.lane; }
+
+    function dnCX(cx, str, sz, bold, x0, w) {
+        var hw = dnW(str, sz, bold) / 2 + 2;
+        return Math.min(x0 + w - hw, Math.max(x0 + hw, cx));
+    }
+
+    function dnResolved(k) {
+        if (k < 2) return 0;
+        if (k >= 8) return 3;
+        return k % 2 === 0 ? (k - 2) / 2 : (k - 1) / 2;
+    }
+    function dnCurrent(k) {
+        return (k >= 2 && k <= 6 && k % 2 === 0) ? (k - 2) / 2 : -1;
+    }
+    function dnChipState(k, r) {
+        if (r < dnResolved(k)) return 2;
+        if (r === dnCurrent(k)) return 1;
+        return 0;
+    }
+    function dnChip(x, y, w, h, label, st, fs, a) {
+        var col = st === 2 ? P.green : (st === 1 ? P.yellow : P.sub);
+        ctx.globalAlpha = a;
+        if (st === 0) rr(x, y, w, h, 5, 'none', P.sub + '77', 1.2);
+        else rr(x, y, w, h, 5, col + '30', col + 'ff', 1.8);
+        tx(label, x + w / 2, y + h / 2, fs, st === 0 ? P.sub + 'ff' : P.text + 'ff', 'center', st !== 0);
+        ctx.globalAlpha = 1;
+    }
+
+    /* ===================== 메시지 ===================== */
+    function dnMsg(L, x0, w, rowTop, pkt, e) {
+        var fs = L.fs;
+        var col = nColor(pkt.color);
+        var ay = rowTop + L.rh - L.ayOff;
+        var xa = dnX(L, x0, pkt.from);
+        var xb = dnX(L, x0, pkt.to);
+        var moving = e < 1;
+        if (moving) {
+            var head = xa + (xb - xa) * ez(seg(e, 0.05, 0.85));
+            ln(xa, ay, head, ay, col + '77', 2);
+            circ(head, ay, L.headR, col + '33', col + 'ff', 1.6);
+            tx(pkt.dir === 'query' ? '?' : '!', head, ay, fs, col + 'ff', 'center', true);
+        } else {
+            arrow(xa, ay, xb, ay, col + 'ff', 2);
+        }
+        var la = moving ? seg(e, 0.4, 0.9) : 1;
+        var ls = lines(pkt.label, w - 4, fs);
+        var lw = 0;
+        ls.forEach(function (l) { lw = Math.max(lw, dnW(l, fs, true)); });
+        var mx = Math.min(x0 + w - lw / 2 - 2, Math.max(x0 + lw / 2 + 2, (xa + xb) / 2));
+        ctx.globalAlpha = la;
+        ls.forEach(function (l, li) {
+            tx(l, mx, ay - L.labOff - (ls.length - 1 - li) * L.lh, fs, col + 'ff', 'center', true);
+        });
+        ctx.globalAlpha = 1;
+    }
+
+    function dnCacheInfo() {
+        var hit = '';
+        STEPS.forEach(function (st) {
+            if (!hit && st.pkt && /TTL/.test(st.pkt.label)) hit = st.pkt.label;
+        });
+        var ip = hit.match(/\d+\.\d+\.\d+\.\d+/);
+        var ttl = hit.match(/TTL\s*(\d+)/);
+        return { ip: ip ? ip[0] : '', ttl: ttl ? ttl[1] : '' };
+    }
+
+    /* ===================== 장면 ===================== */
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var L = layout(w, mob);
+        var fs = L.fs;
+        var steps = currentSteps();
+        var s = step || steps[0];
+        var p = prev || s;
+        var k = steps.indexOf(s);
+        var kp = steps.indexOf(p);
+        var fresh = p !== s;
+        var e = fresh ? clamp01(t) : 1;
+        var hy = top + L.dh + 8;
+        var rowsTop = top + L.rowsTop;
+        var lifeEnd = rowsTop + L.nMsg * L.rh + 2;
+
+        NODES.forEach(function (node, i) {
+            var cx = dnX(L, x0, i);
+            var col = nColor(node.color);
+            var lit = s.active.indexOf(i) !== -1;
+            ln(cx, hy + L.hb, cx, lifeEnd, lit ? col + 'aa' : P.sub + '55', lit ? 2 : 1.2, lit ? [] : [4, 4]);
         });
 
-        var pktCount  = STEPS.filter(function (s) { return s.pkt; }).length;
-        const areaTop = nodeY + nodeH + (mob ? 8 : 12);
-        const avail   = H - areaTop - (mob ? 4 : 8);
-        const ROW_H   = Math.floor(avail / pktCount);
+        NODES.forEach(function (node, i) {
+            var cx = dnX(L, x0, i);
+            var col = nColor(node.color);
+            var isAct = s.active.indexOf(i) !== -1;
+            var parts = node.label.split(' ');
+            var bw = L.lane - 4;
+            if (L.mob) {
+                var tw = 0;
+                parts.forEach(function (pt) { tw = Math.max(tw, dnW(pt, fs, true)); });
+                bw = Math.min(L.lane - 4, tw + 10);
+            }
+            var fg = isAct ? col + 'ff' : P.sub + 'ff';
+            rr(cx - bw / 2, hy, bw, L.hb, 5, isAct ? col + '28' : P.surf, isAct ? col + 'ff' : P.border, isAct ? 2 : 1.2);
+            if (L.mob) {
+                if (parts.length > 1) {
+                    tx(parts[0], cx, hy + L.hb / 2 - L.lh / 2, fs, fg, 'center', true);
+                    tx(parts[1], cx, hy + L.hb / 2 + L.lh / 2, fs, fg, 'center', true);
+                } else {
+                    tx(parts[0], cx, hy + L.hb / 2, fs, fg, 'center', true);
+                }
+            } else {
+                tx(node.label, cx, hy + L.hb * 0.36, fs, fg, 'center', true);
+                tx(node.sub, cx, hy + L.hb * 0.74, fs - 1.5, P.sub + 'ff', 'center', false);
+            }
+        });
 
-        return { W, H, mob, pad,
-                 F_NODE, F_PKT, F_PSUB,
-                 nodeW, nodeH, nodeY, nodeXs,
-                 areaTop, ROW_H, pktCount };
-    }
+        var chipY = top + 18;
+        var chipH = 22;
+        var toks = [{ t: 'example', r: 2, z: 'AUTH' }, { t: 'com', r: 1, z: 'TLD' }, { t: '.', r: 0, z: 'ROOT' }];
+        tx('질의 이름: 오른쪽(.)부터 풀기', x0, top + 6, fs, P.sub + 'ff', 'left', true);
+        var cxp = x0;
+        toks.forEach(function (tk, ti) {
+            var cwid = Math.max(dnW(tk.t, fs, true) + 12, 22);
+            var st = dnChipState(k, tk.r);
+            var sp = dnChipState(kp, tk.r);
+            if (fresh && st !== sp) {
+                dnChip(cxp, chipY, cwid, chipH, tk.t, sp, fs, 1 - e);
+                dnChip(cxp, chipY, cwid, chipH, tk.t, st, fs, e);
+            } else {
+                dnChip(cxp, chipY, cwid, chipH, tk.t, st, fs, 1);
+            }
+            var zc = st === 2 ? P.green : (st === 1 ? P.yellow : P.sub);
+            tx(tk.z, dnCX(cxp + cwid / 2, tk.z, fs, st !== 0, x0, w), chipY + chipH + 10, fs, zc + 'ff', 'center', st !== 0);
+            cxp += cwid;
+            if (ti === 0) {
+                tx('.', cxp + 4, chipY + chipH / 2, fs, P.sub + 'ff', 'center', true);
+                cxp += 9;
+            }
+        });
 
-    function rowY(L, rowIdx) {
-        return L.areaTop + rowIdx * L.ROW_H + L.ROW_H / 2;
-    }
+        var rowsBase = rowsTop;
+        for (var i = 1; i < steps.length; i++) {
+            if (!steps[i].pkt || i > k) continue;
+            dnMsg(L, x0, w, rowsBase + (i - 1) * L.rh, steps[i].pkt, i === k ? e : 1);
+        }
 
-    function pktRowIdx(sIdx) {
-        var n = 0;
-        for (var k = 0; k < sIdx; k++) { if (STEPS[k] && STEPS[k].pkt) n++; }
-        return n;
+        if (k === 0) {
+            var hint = '(아직 보낸 질의가 없습니다)';
+            var hw = dnW(hint, fs, false) + 16;
+            var hcy = rowsTop + L.rh * 2 + L.rh / 2;
+            rr(x0 + w / 2 - hw / 2, hcy - 10, hw, 20, 5, P.surf, P.sub + '44', 1);
+            tx(hint, x0 + w / 2, hcy, fs, P.sub + 'ff', 'center', false);
+        }
+
+        var info = dnCacheInfo();
+        var cy = top + L.cy;
+        var stored = k >= 7;
+        var newly = stored && fresh && kp < 7;
+        var a = newly ? ez(seg(e, 0.3, 0.7)) : (stored ? 1 : 0);
+        var titleY = cy + 12;
+        var recY = cy + L.p2;
+        var ttlY = cy + L.p3;
+        var barY = cy + L.p4;
+        rr(x0, cy, w, L.ph, 6, 'none', P.sub + '66', 1.2);
+        tx('로컬 DNS 캐시', x0 + 10, titleY, fs, P.sub + 'ff', 'left', true);
+        if (s.done) tx(L.mob ? '✓ 완료' : '✓ 전체 과정 완료', x0 + w - 10, titleY, fs, P.green + 'ff', 'right', true);
+        if (a < 1) {
+            ctx.globalAlpha = 1 - a;
+            tx('(아직 저장된 응답이 없습니다)', x0 + 10, recY, fs, P.sub + 'ff', 'left', false);
+            ctx.globalAlpha = 1;
+        }
+        if (a > 0) {
+            if (newly && e < 1) {
+                ctx.globalAlpha = 1 - seg(e, 0.6, 1);
+                rr(x0 + 6, recY - L.lh / 2 - 3, w - 12, L.lh + 6, 4, P.yellow + '33', P.yellow + 'ff', 1.2);
+                ctx.globalAlpha = 1;
+            }
+            ctx.globalAlpha = a;
+            tx('example.com A ' + info.ip, x0 + 10, recY, fs, P.text + 'ff', 'left', true);
+            tx('TTL ' + info.ttl + '초 동안 재사용', x0 + 10, ttlY, fs, P.sub + 'ff', 'left', false);
+            ctx.globalAlpha = 1;
+        }
+        rr(x0 + 10, barY, w - 20, 6, 3, P.sub + '33', null);
+        var fill = a > 0 ? (newly ? ez(seg(e, 0.35, 0.95)) : 1) : 0;
+        if (fill > 0) rr(x0 + 10, barY, (w - 20) * fill, 6, 3, P.green + 'cc', null);
     }
 
     /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
     function draw() {
         P = window.CsFlow.getP();
         ctx.clearRect(0, 0, GW(), GH());
-        const L    = buildLayout();
-        const step = stepIdx >= 0 ? STEPS[stepIdx] : STEPS[0];
-
-        drawNodes(L, step);
-        drawHistory(L);
-        if (stepIdx >= 0 && step.pkt) {
-            var ri = pktRowIdx(stepIdx);
-            if (pktMoving) {
-                drawMovingPkt(L, step, pktProg, ri);
-            } else {
-                var inHistory = history.some(function (h) { return h.rowIdx === ri; });
-                if (!inHistory) drawStaticPkt(L, step, ri);
-            }
-        }
+        var W = GW(); var mob = W < 600;
+        var steps = currentSteps();
+        var step = stepIdx >= 0 ? steps[stepIdx] : null;
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        tipHits.length = 0;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
+        if (hoveredKey && typeof TIPS !== 'undefined' && TIPS[hoveredKey]) drawTip(mousePos.x, mousePos.y, TIPS[hoveredKey]);
     }
 
-    /* ===================== 노드 박스 ===================== */
-    function drawNodes(L, step) {
-        const { nodeXs, nodeY, nodeW, nodeH, F_NODE, mob } = L;
-        var active = step.active || [];
-
-        NODES.forEach(function (node, i) {
-            var col   = nColor(node.color);
-            var isAct = active.indexOf(i) !== -1;
-            var bx    = nodeXs[i] - nodeW / 2;
-
-            rr(bx, nodeY, nodeW, nodeH, 5,
-               isAct ? col + '28' : P.surf,
-               isAct ? col : P.border,
-               isAct ? 2.5 : 1.5);
-
-            ctx.save();
-            ctx.beginPath();
-            ctx.rect(bx + 3, nodeY + 2, nodeW - 6, nodeH - 4);
-            ctx.clip();
-            if (mob) {
-                tx(node.label, nodeXs[i], nodeY + nodeH / 2,
-                   F_NODE, isAct ? col : P.muted + 'cc', 'center', isAct);
-            } else {
-                tx(node.label, nodeXs[i], nodeY + nodeH * 0.34,
-                   F_NODE, isAct ? col : P.muted + 'cc', 'center', isAct);
-                tx(node.sub, nodeXs[i], nodeY + nodeH * 0.70,
-                   F_NODE - 2, P.muted + '77', 'center', false);
-            }
-            ctx.restore();
-
-            if (isAct) {
-                ctx.beginPath();
-                ctx.arc(nodeXs[i], nodeY + nodeH, 4, 0, Math.PI * 2);
-                ctx.fillStyle = col;
-                ctx.fill();
-            }
+    /* ===================== resize ===================== */
+    function resize() {
+        var w = canvasWrap.offsetWidth || 320;
+        var mob = w < 600;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
         });
+        canvasWrap.style.height    = 'auto';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
+        var actualH = canvasWrap.offsetHeight || neededH;
+        if (actualH < neededH) actualH = neededH;
+        canvas.width  = w * dpr;
+        canvas.height = actualH * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        draw();
     }
 
-
-    /* ===================== 히스토리 패킷 (완료) ===================== */
-    function drawHistory(L) {
-        history.forEach(function (item, hi) {
-            drawStaticPkt(L, item.step, item.rowIdx);
-        });
-    }
-
-    /* ===================== 정적 패킷 (도착 완료) ===================== */
-    function drawStaticPkt(L, step, rowIdx) {
-        if (!step.pkt) return;
-        var pkt    = step.pkt;
-        var col    = nColor(pkt.color);
-        var fromX  = L.nodeXs[pkt.from];
-        var toX    = L.nodeXs[pkt.to];
-        var ry     = rowY(L, rowIdx);
-
-        var isQuery = pkt.dir === 'query';
-        var midX    = (fromX + toX) / 2;
-        var fPkt    = L.F_PKT;
-        var lblH    = fPkt + 5;
-
-        var lineY, lblY;
-        if (isQuery) {
-            lblY  = ry - L.ROW_H * 0.30;
-            lineY = lblY + lblH;
-        } else {
-            lineY = ry + L.ROW_H * 0.02;
-            lblY  = lineY + lblH;
-        }
-
-        ctx.beginPath();
-        ctx.moveTo(fromX, lineY);
-        ctx.lineTo(toX,   lineY);
-        ctx.strokeStyle = col + 'bb';
-        ctx.lineWidth   = 1.5;
-        ctx.stroke();
-
-        var ad = toX > fromX ? 1 : -1;
-        ctx.beginPath();
-        ctx.moveTo(toX, lineY);
-        ctx.lineTo(toX - ad * 9, lineY - 5);
-        ctx.lineTo(toX - ad * 9, lineY + 5);
-        ctx.closePath();
-        ctx.fillStyle = col + 'bb';
-        ctx.fill();
-
-        tx(pkt.label, midX, lblY, fPkt, col, 'center', true);
-    }
-
-    /* ===================== 이동 중 패킷 ===================== */
-    function drawMovingPkt(L, step, prog, rowIdx) {
-        if (!step.pkt) return;
-        var pkt   = step.pkt;
-        var col   = nColor(pkt.color);
-        var fromX = L.nodeXs[pkt.from];
-        var toX   = L.nodeXs[pkt.to];
-        var ry    = rowY(L, rowIdx);
-        var isQuery = pkt.dir === 'query';
-        var lineY   = isQuery ? ry - L.ROW_H * 0.20 : ry + L.ROW_H * 0.05;
-        var cx      = fromX + (toX - fromX) * prog;
-
-        ctx.beginPath();
-        ctx.moveTo(fromX, lineY);
-        ctx.lineTo(cx, lineY);
-        ctx.strokeStyle = col + '55';
-        ctx.lineWidth   = 1.5;
-        ctx.stroke();
-
-        var r = L.mob ? 12 : 15;
-        ctx.beginPath(); ctx.arc(cx, lineY, r, 0, Math.PI * 2);
-        ctx.fillStyle   = col + '22'; ctx.fill();
-        ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.stroke();
-        tx(isQuery ? '?' : '!', cx, lineY, L.F_PKT, col, 'center', true);
-
-        var lblY = isQuery ? lineY - r - 7 : lineY + r + 7;
-        tx(pkt.label, cx, lblY, L.F_PSUB, col + 'cc', 'center', false);
-    }
-
-    /* ===================== 애니메이션 ===================== */
-    function animateStep(step, cb) {
-        if (!step.pkt) { pktProg = 1; draw(); if (cb) cb(); return; }
-        pktProg   = 0;
-        pktMoving = true;
+    /* ===================== 애니메이션(스텝 전환) ===================== */
+    function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        var s = 0.007 * (1800 / speed);
-        (function tick() {
-            pktProg = Math.min(1, pktProg + s);
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
             draw();
-            if (pktProg < 1) {
-                rafId = requestAnimationFrame(tick);
-            } else {
-                pktMoving = false;
-                draw();
-                if (cb) cb();
-            }
-        })();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
-    function setSpeedDisabled(v) {
-        root.querySelectorAll('.dns-viz__speed-btn').forEach(function (b) { b.disabled = v; });
-    }
+    function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
-        var step = STEPS[idx];
-        logEl.textContent = step.log;
-        animateStep(step, function () {
-            if (step.pkt) history.push({ step: step, rowIdx: pktRowIdx(idx) });
-            draw();
-            if (onDone) setTimeout(onDone, 0);
-        });
+        logEl.textContent = currentSteps()[idx].log;
+        animateStep(function () { if (onDone) setTimeout(onDone, 0); });
     }
 
-    function dnsStart() {
+    function vizStart() {
         if (running) return;
         running = true; btnPlay.disabled = true; btnStep.disabled = true;
         setSpeedDisabled(true);
+        var steps = currentSteps();
         function tick() {
             var next = stepIdx + 1;
-            if (next >= STEPS.length) { running = false; setSpeedDisabled(false); return; }
+            if (next >= steps.length) { running = false; setSpeedDisabled(false); return; }
             applyStep(next, function () {
-                if (next === STEPS.length - 1) {
+                if (next === steps.length - 1) {
                     running = false; btnStep.disabled = true; setSpeedDisabled(false);
                 } else {
-                    timer = setTimeout(tick, speed);
+                    timer = setTimeout(tick, speed * 0.6);
                 }
             });
         }
         tick();
     }
 
-    function dnsStep() {
-        if (running || pktMoving) return;
+    function vizStep() {
+        if (running) return;
+        var steps = currentSteps();
         var next = stepIdx + 1;
-        if (next >= STEPS.length) return;
+        if (next >= steps.length) return;
         applyStep(next, null);
-        if (next === STEPS.length - 1) { btnPlay.disabled = true; btnStep.disabled = true; }
+        if (next === steps.length - 1) { btnPlay.disabled = true; btnStep.disabled = true; }
     }
 
-    function dnsReset() {
+    function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1; pktProg = 1; pktMoving = false; history = [];
-        logEl.textContent = '▶ PLAY를 눌러 DNS 재귀 질의 과정을 확인하세요.';
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
+        logEl.textContent = defaultLog();
         setSpeedDisabled(false);
-        draw();
+        resize();
     }
 
     function setSpeed(ms, btn) {
         speed = ms;
-        root.querySelectorAll('.dns-viz__speed-btn').forEach(function (b) {
-            b.classList.remove('dns-viz__speed-btn--active');
-        });
+        speedBtns.forEach(function (b) { b.classList.remove('dns-viz__speed-btn--active'); });
         btn.classList.add('dns-viz__speed-btn--active');
     }
 
+    function switchMode(m) {
+        if (mode === m) return;
+        mode = m;
+        modeDefs.forEach(function (d) { modeBtns[d.key].classList.toggle('dns-viz__mode-btn--active', d.key === m); });
+        vizReset();
+    }
+
+    logEl.textContent = defaultLog();
+
+    /* ===================== 라이프사이클 ===================== */
     window.CsFlow.createVizLifecycle({
-        canvas, canvasWrap, resize, draw,
+        canvas: canvas, canvasWrap: canvasWrap, resize: resize, draw: draw,
         getState : function () { return { rafId: rafId, timer: timer, running: running }; },
         setState : function (s) { rafId = s.rafId; timer = s.timer; running = s.running; },
         onPause  : function () { setSpeedDisabled(false); },
         getMouseCtx: function () {
             return {
-                GW, GH, mousePos: { x: -1, y: -1 }, tooltipHits: [],
-                hoveredKey: function () { return null; }, setHoveredKey: function () {}, draw,
+                GW: GW, GH: GH,
+                mousePos: mousePos,
+                tooltipHits: tipHits,
+                hoveredKey: function () { return hoveredKey; },
+                setHoveredKey: function (k) { hoveredKey = k; },
+                draw: draw
             };
-        },
+        }
     });
 
     setTimeout(resize, 60);

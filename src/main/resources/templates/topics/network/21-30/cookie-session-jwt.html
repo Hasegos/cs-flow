@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">쿠키 · 세션 · JWT | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/network/21-30/cookie-session-jwt.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/network}" class="topic-breadcrumb__link">네트워크</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">쿠키 · 세션 · JWT</span>
+                </nav>
+
+                <span class="topic-hero__slug">network · 21</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">쿠키 · 세션 · JWT</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+                <button type="button" class="topic-like" th:classappend="${liked} ? ' topic-like--active' : ''" th:attr="data-topic-slug=${topic.slug}">
+                    <svg class="topic-like__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <span class="topic-like__count" th:text="${likeCount}">0</span>
+                </button>
+                <div class="topic-share">
+                    <button type="button" class="topic-share__btn topic-share__btn--copy" aria-label="링크 복사">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="topic-share__btn topic-share__btn--kakao" aria-label="카카오톡 공유">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                        </svg>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+                <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        웹 서버는 로그인한 사용자를 어떻게 알아볼까요? HTTP는 요청 하나하나를 독립적으로 처리하는 상태 없는(stateless) 프로토콜이어서, 서버는 방금 로그인한 사람이 지금 보낸 요청의 주인인지를 스스로 기억하지 못합니다. 그래서 요청마다 "나는 아까 로그인한 그 사용자다"를 증명할 방법이 따로 필요합니다. 가장 오래되고 흔한 방법은 서버가 사용자 상태를 저장하고 <strong>쿠키(cookie)</strong>로 그 번호표인 <strong>세션 ID</strong>만 건네는 <strong>쿠키 + 세션</strong> 방식입니다. 또 하나의 선택지는 서버가 상태를 저장하지 않고 사용자 정보를 담아 서명한 <strong>JWT(JSON Web Token)</strong>를 건네는 방식입니다.
+                    </p>
+                    <p class="overview-lead">
+                        이 토픽에서는 세션이 서버에, 번호표가 쿠키에 놓이는 구조와 JWT가 헤더 · 페이로드 · 서명 세 부분으로 이루어져 서명으로만 변조를 막는 구조를 단계별로 봅니다. 그리고 로그아웃하거나 쿠키 · 토큰이 유출됐을 때 두 방식이 왜 다르게 행동하는지도 확인합니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">쿠키</h3>
+                            <p class="overview-card__desc">서버가 Set-Cookie 응답 헤더로 보낸 작은 데이터를 브라우저가 저장했다가, 이후 조건이 맞는 요청의 Cookie 헤더에 실어 돌려보내는 장치입니다. 쿠키 자체가 로그인 상태는 아니고, 값을 나르는 수단입니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">세션</h3>
+                            <p class="overview-card__desc">서버가 사용자별 상태(로그인한 사용자, 장바구니 등)를 서버 쪽 저장소에 보관하고 세션 ID로 찾아 쓰는 방식입니다. 상태는 서버에 있고 클라이언트는 번호표만 갖습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">세션 ID</h3>
+                            <p class="overview-card__desc">저장소에서 세션을 찾는 키입니다. 다른 사람이 추측할 수 없도록 예측 불가능한 난수여야 하고, 알아내면 그 세션을 그대로 쓸 수 있으므로 비밀번호처럼 다뤄야 합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">JWT</h3>
+                            <p class="overview-card__desc">사용자 정보(클레임)를 JSON으로 담아 헤더.페이로드.서명 세 부분을 점으로 이은 토큰 문자열입니다. 서버는 저장소를 조회하는 대신 서명이 맞는지 검증해 토큰을 믿습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">서명과 클레임</h3>
+                            <p class="overview-card__desc">서명은 헤더와 페이로드를 비밀키로 계산한 값이라 내용이 바뀌면 맞지 않습니다. 하지만 페이로드는 암호화가 아니라 인코딩이어서 누구나 읽을 수 있습니다. sub(주체), exp(만료 시각) 같은 이름이 정해진 클레임이 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">쿠키 보안 속성</h3>
+                            <p class="overview-card__desc">HttpOnly는 자바스크립트가 쿠키를 읽지 못하게 하고, Secure는 HTTPS 같은 보안 연결에서만 쿠키를 보내게 하며, SameSite는 다른 사이트에서 시작된 요청에 쿠키를 붙일지를 정합니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>상태가 어디에 있는가가 핵심입니다</strong> — 세션 방식은 사용자 정보가 서버에 있고, JWT 방식은 사용자 정보가 토큰에 담겨 클라이언트가 들고 다닙니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>쿠키는 수단이고 세션은 구조입니다</strong> — 세션 ID를 쿠키로 나르는 것이 일반적이지만, 쿠키에 JWT를 담을 수도 있고 JWT를 Authorization 헤더로 보낼 수도 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>요청마다 하는 일이 다릅니다</strong> — 세션은 요청마다 저장소를 조회하고, JWT는 저장소 없이 서명과 만료 시각만 검증합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>무효화의 통제권이 다릅니다</strong> — 세션은 서버가 저장소에서 지우면 즉시 끝나고, JWT는 서버가 기억하지 않으므로 만료되기 전까지 유효합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "세션 + 쿠키" 탭에서 번호표가 오가는 흐름을, "JWT" 탭에서 서명 검증과 변조 거부를, "로그아웃과 폐기" 탭에서 두 방식의 무효화 차이를 STEP으로 확인하세요.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">배경</h2>
+                    <p class="overview-lead">
+                        쿠키의 현재 표준은 2011년 4월에 나온 RFC 6265(HTTP State Management Mechanism)입니다. 서버가 Set-Cookie 헤더로 상태 정보를 보내고, 사용자 에이전트(브라우저)가 이후 요청의 Cookie 헤더로 돌려보내는 방식을 정의합니다. JWT는 2015년 5월에 RFC 7519로 표준화됐습니다. 두 방식 모두 "상태 없는 HTTP 위에서 상태를 이어 붙이는" 방법이지만, 상태를 두는 위치가 다릅니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>세션 ID의 크기</strong> — 128비트 난수는 16바이트이고, 16진수로 쓰면 한 자리가 4비트이므로 32글자입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>예시 토큰의 구성</strong> — 이 시각화의 헤더 JSON은 27바이트이고 Base64url로 인코딩하면 36글자, 페이로드 JSON은 30바이트에 40글자, HMAC-SHA256 서명은 32바이트에 43글자(끝 패딩 제외)입니다. 점 2개를 더하면 토큰 전체가 121글자입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Base64url의 부피</strong> — 3바이트를 4글자로 바꾸므로 원래 크기보다 약 33% 커집니다. 클레임을 많이 담을수록 요청마다 보내는 헤더가 커집니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>쿠키 개수와 크기</strong> — RFC 6265는 브라우저가 최소한 쿠키 하나(이름 · 값 · 속성의 길이 합)당 4096바이트, 도메인당 50개, 전체 3000개를 지원하라고 권고합니다. 실제 한도는 브라우저마다 다릅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>쿠키가 곧 세션이다</strong> — 쿠키는 브라우저가 저장하고 보내는 작은 데이터이고, 세션은 서버가 보관하는 사용자 상태입니다. 세션 ID를 쿠키에 담아 나르는 경우가 많아 같은 것처럼 보일 뿐입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>JWT는 암호화돼 있어 비밀 정보를 넣어도 된다</strong> — 일반적인 서명 JWT의 페이로드는 Base64url로 인코딩됐을 뿐이라 누구나 풀어 읽을 수 있습니다. 서명은 변조를 막을 뿐 내용을 숨기지 않으므로 비밀번호 같은 값을 넣으면 안 됩니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>JWT가 세션보다 항상 낫다</strong> — 서버가 상태를 저장하지 않아도 되는 장점이 있는 대신, 발급한 토큰을 즉시 무효화하기 어렵고 요청마다 토큰 크기만큼 더 보내야 합니다. 상황에 따라 장단점이 갈립니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>HttpOnly 쿠키면 공격이 모두 막힌다</strong> — HttpOnly는 스크립트가 쿠키 값을 읽지 못하게 할 뿐입니다. 쿠키가 요청에 자동으로 붙는 성질을 악용하는 CSRF는 SameSite 속성이나 CSRF 토큰 같은 별도 대책이 필요합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">쿠키와 세션의 차이는 무엇인가요?</h3>
+                            <p class="overview-card__desc">쿠키는 브라우저에 저장되는 작은 데이터이고 요청마다 자동으로 서버에 전달됩니다. 세션은 서버가 사용자별 상태를 저장소에 두고 세션 ID로 찾는 방식입니다. 보통 세션 ID를 쿠키로 주고받습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">세션 방식과 JWT 방식의 장단점을 비교해 보세요</h3>
+                            <p class="overview-card__desc">세션은 서버가 즉시 무효화할 수 있지만 저장소 조회와 서버 간 세션 공유가 필요합니다. JWT는 서버가 상태를 저장하지 않아도 검증할 수 있지만 만료 전 무효화가 어렵고 토큰이 요청에 실려 크기가 커집니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">발급한 JWT를 서버가 즉시 무효화할 수 있나요?</h3>
+                            <p class="overview-card__desc">서버가 토큰을 저장하지 않으므로 만료 전에는 서명이 맞는 한 유효합니다. 대응은 액세스 토큰의 만료를 짧게 하고 갱신 토큰으로 재발급하거나, 폐기한 토큰의 ID를 차단 목록에 두고 검사하는 것입니다. 후자는 요청마다 저장소를 조회하게 됩니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">토큰을 브라우저 어디에 저장해야 하나요?</h3>
+                            <p class="overview-card__desc">localStorage는 페이지의 스크립트가 읽을 수 있어 XSS가 생기면 토큰이 털립니다. HttpOnly 쿠키는 스크립트가 읽지 못하는 대신 요청에 자동으로 붙어 CSRF 대책이 함께 필요합니다. OWASP는 세션 식별자를 localStorage에 두지 말라고 안내합니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>자바 서블릿 컨테이너</strong> — 서블릿 명세에서 세션 추적 쿠키의 이름은 JSESSIONID이고, Tomcat도 기본으로 이 이름의 쿠키로 세션 ID를 주고받습니다. Spring Boot에서는 server.servlet.session.cookie.* 설정으로 HttpOnly, Secure, SameSite를 조정하며, 지정하지 않으면 서블릿 컨테이너의 기본을 따릅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>세션 저장소 분리</strong> — 서버가 여러 대이면 세션을 서버마다 따로 두지 않고 Redis 같은 외부 저장소에 모아 공유하는 구성을 씁니다. Spring Session이 이런 구성을 위한 모듈입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Django</strong> — 세션 프레임워크가 기본으로 세션 데이터를 데이터베이스에 저장하고, 브라우저에는 sessionid 쿠키로 세션 키만 보냅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>OpenID Connect</strong> — 로그인 결과로 받는 ID 토큰이 JWT 형식입니다. OAuth 2.0 액세스 토큰을 JWT로 발급하는 방법은 RFC 9068이 따로 정의합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/http}">HTTP</a> — 요청과 응답의 구조, 그리고 상태가 없다는 성질의 출발점을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/https-tls}">HTTPS / TLS</a> — 쿠키와 토큰이 평문으로 새지 않게 하는 보안 연결을 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/network/load-balancer}">로드 밸런서</a> — 서버가 여러 대일 때 요청이 나뉘며 세션 공유가 필요해지는 이유를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/ds/hash-table}">해시 테이블</a> — 세션 저장소가 키로 값을 찾는 방식과 같은 구조를 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>RFC</strong> — <a href="https://www.rfc-editor.org/rfc/rfc6265" target="_blank" rel="noopener">RFC 6265 HTTP State Management Mechanism</a>, <a href="https://www.rfc-editor.org/rfc/rfc7519" target="_blank" rel="noopener">RFC 7519 JSON Web Token (JWT)</a>, <a href="https://www.rfc-editor.org/rfc/rfc8725" target="_blank" rel="noopener">RFC 8725 JSON Web Token Best Current Practices</a>, <a href="https://www.rfc-editor.org/rfc/rfc9110" target="_blank" rel="noopener">RFC 9110 HTTP Semantics</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>OWASP</strong> — <a href="https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html" target="_blank" rel="noopener">Session Management Cheat Sheet</a>, <a href="https://cheatsheetseries.owasp.org/cheatsheets/HTML5_Security_Cheat_Sheet.html" target="_blank" rel="noopener">HTML5 Security Cheat Sheet</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>OpenID Connect</strong> — <a href="https://openid.net/specs/openid-connect-core-1_0.html" target="_blank" rel="noopener">OpenID Connect Core 1.0</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>구현</strong> — <a href="https://docs.spring.io/spring-boot/appendix/application-properties/index.html" target="_blank" rel="noopener">Spring Boot Common Application Properties</a>, <a href="https://pyjwt.readthedocs.io/en/stable/usage.html" target="_blank" rel="noopener">PyJWT Usage Examples</a></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/network/21-30/cookie-session-jwt-code :: code}"></th:block>
+            </div>
+
+            <!-- 탭 4: 퀴즈 -->
+            <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
+                <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+    <script th:src="@{/js/quiz.js}"></script>
+    <script th:src="@{/js/like.js}"></script>
+    <script th:src="@{/js/share.js}"></script>
+</body>
+</html>

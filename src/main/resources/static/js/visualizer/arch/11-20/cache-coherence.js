@@ -1,5 +1,5 @@
 /**
- * 캐시 일관성(MESI) 시각화
+ * 캐시 일관성(MESI) 시각화 시각화
  */
 (function () {
     'use strict';
@@ -39,7 +39,7 @@
     var speedWrap = el('div', 'coh-viz__speed');
     speedWrap.appendChild(el('span', 'coh-viz__speed-label', 'SPEED'));
     var speedBtns = [];
-    [['1x', 1700], ['2x', 850], ['3x', 480]].forEach(function (pair, i) {
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
         var b = el('button', 'coh-viz__speed-btn' + (i === 0 ? ' coh-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
@@ -72,11 +72,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'problem';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 데이터: 일관성 문제 ===================== */
     var V0 = 5;
@@ -132,192 +199,281 @@
     ];
 
     /* ===================== 상태 ===================== */
-    var mode    = 'problem';
-    var stepIdx = -1;
-    var running = false;
-    var timer   = null;
-    var rafId   = null;
-    var speed   = 1700;
-
     function currentSteps() {
         if (mode === 'mesi') return MESI_STEPS;
         if (mode === 'false') return FALSE_STEPS;
         return PROB_STEPS;
     }
+    function defaultLog() {
+        if (mode === 'mesi') return '캐시 라인 상태(M, E, S, I)가 읽기와 쓰기에 따라 어떻게 바뀌는지 코어 0과 코어 1로 따라가 봅니다.';
+        if (mode === 'false') return '서로 다른 변수인데 같은 캐시 라인에 있어서 라인이 코어 사이를 오가는 거짓 공유를 봅니다.';
+        return '일관성 프로토콜이 없다면 코어마다 같은 변수의 값이 달라질 수 있습니다. 읽기와 쓰기를 따라가 봅니다.';
+    }
+
+    /* ===================== 레이아웃 ===================== */
+    function layout(w, mob) {
+        var gap = mob ? 12 : 40;
+        var bw = Math.min(250, (w - gap) / 2);
+        var bh = mob ? 106 : 120;
+        var sx = (w - 2 * bw - gap) / 2;
+        var busY = bh + 22;
+        var memY = busY + 48;
+        var memH = mob ? 60 : 64;
+        var capY = memY + memH + 12;
+        return {
+            fs: mob ? 11 : 12.5, bw: bw, bh: bh,
+            xs: [sx, sx + bw + gap],
+            busY: busY, busW: Math.min(w - 16, mob ? 210 : 300),
+            memY: memY, memH: memH, memW: Math.min(w - 40, mob ? 192 : 220),
+            capY: capY, total: capY + 44
+        };
+    }
+    function sceneH(w, mob) { return layout(w, mob).total; }
+    function ez(q) { q = clamp01(q); return q * q * (3 - 2 * q); }
 
     /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        var rad = Math.min(r, w / 2, h / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + rad, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, rad);
-        ctx.arcTo(x + w, y + h, x,     y + h, rad);
-        ctx.arcTo(x,     y + h, x,     y,     rad);
-        ctx.arcTo(x,     y,     x + w, y,     rad);
-        ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    function cohA(a) {
+        var h = Math.round(clamp01(a) * 255).toString(16);
+        return h.length < 2 ? '0' + h : h;
     }
-    function tx(str, x, y, sz, color, align, bold) {
-        if (sz < 9.5) sz = 9.5;
-        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
-    }
-
-    /* ===================== 공통: 코어 상자와 버스 ===================== */
-    function geom(x0, top, w, mob) {
-        var gap = mob ? 12 : 40;
-        var bw  = Math.min(250, (w - gap) / 2);
-        var bh  = mob ? 124 : 134;
-        var sx  = x0 + (w - 2 * bw - gap) / 2;
-        var by  = top + 6;
-        return { bw: bw, bh: bh, by: by, xs: [sx, sx + bw + gap], busY: by + bh + 26 };
-    }
-
-    function drawFrame(g, i, col, active, mob) {
-        var fs = mob ? 10.5 : 12;
-        rr(g.xs[i], g.by, g.bw, g.bh, 8, col + '14', active ? P.purple + 'ee' : col + '77', active ? 2.6 : 1.4);
-        tx('Core ' + i, g.xs[i] + 12, g.by + 16, fs + 1, P.text + 'ee', 'left', true);
-        tx('L1 캐시', g.xs[i] + g.bw - 12, g.by + 16, fs - 1, P.muted + 'cc', 'right', false);
-    }
-
-    function drawBus(g, label, memTxt, memStale, mob) {
-        var fs  = mob ? 10 : 11.5;
-        var cx0 = g.xs[0] + g.bw / 2;
-        var cx1 = g.xs[1] + g.bw / 2;
-        var bx  = cx0 - 14;
-        var bwd = cx1 - cx0 + 28;
-        ctx.strokeStyle = P.muted + '99';
-        ctx.lineWidth = 1.6;
-        ctx.beginPath();
-        ctx.moveTo(cx0, g.by + g.bh);
-        ctx.lineTo(cx0, g.busY);
-        ctx.moveTo(cx1, g.by + g.bh);
-        ctx.lineTo(cx1, g.busY);
-        ctx.stroke();
-        rr(bx, g.busY, bwd, 26, 6, label ? P.orange + '26' : P.muted + '12', label ? P.orange + 'cc' : P.muted + '66', 1.4);
-        tx(label || '버스', bx + bwd / 2, g.busY + 13, fs, label ? P.orange + 'ee' : P.muted + 'aa', 'center', true);
-        if (memTxt === null) return;
-        var mx = (cx0 + cx1) / 2;
-        var mw = Math.min(230, bwd);
-        ctx.beginPath();
-        ctx.moveTo(mx, g.busY + 26);
-        ctx.lineTo(mx, g.busY + 44);
-        ctx.stroke();
-        var mc = memStale ? P.red : P.green;
-        rr(mx - mw / 2, g.busY + 44, mw, 44, 6, mc + '14', mc + 'aa', 1.4);
-        tx('Memory', mx, g.busY + 44 + 14, fs, P.muted + 'dd', 'center', true);
-        tx(memTxt + (memStale ? ' (낡음)' : ''), mx, g.busY + 44 + 31, fs + 1, mc + 'ee', 'center', true);
-    }
-
-    /* ===================== 모드: 일관성 문제 · MESI ===================== */
-    function drawCoh(x0, top, w, mob, step, mesi) {
-        var fs = mob ? 10.5 : 12;
-        var g  = geom(x0, top, w, mob);
-        for (var i = 0; i < 2; i++) {
-            var c      = step ? step.c[i] : (mesi ? cs('I', null) : cs('N', null));
-            var col    = c.stale ? P.red : stCol(c.s);
-            var active = step && step.act === i;
-            drawFrame(g, i, col, active, mob);
-            var x = g.xs[i];
-            rr(x + 12, g.by + 34, g.bw - 24, 32, 6, col + '26', col + 'cc', 1.4);
-            tx(ST_LABEL[c.s], x + g.bw / 2, g.by + 50, fs + 1, col + 'ee', 'center', true);
-            var val = c.v === null ? 'X = —' : 'X = ' + c.v;
-            tx(val, x + g.bw / 2, g.by + 88, fs + 4, c.v === null ? P.muted + '99' : P.text + 'ee', 'center', true);
-            if (c.stale) tx('낡은 값', x + g.bw / 2, g.by + 112, fs, P.red + 'ee', 'center', true);
+    function cohAlong(pts, u) {
+        var tot = 0, L = [], i, d, k;
+        for (i = 1; i < pts.length; i++) {
+            L[i] = Math.abs(pts[i][0] - pts[i - 1][0]) + Math.abs(pts[i][1] - pts[i - 1][1]);
+            tot += L[i];
         }
-        var label = step ? step.msg : '';
-        var memTxt = 'X = ' + (step ? step.mem : V0);
-        drawBus(g, label, memTxt, !!(step && step.ms), mob);
+        d = clamp01(u) * tot;
+        for (i = 1; i < pts.length; i++) {
+            if (d <= L[i] || i === pts.length - 1) {
+                k = L[i] > 0 ? clamp01(d / L[i]) : 1;
+                return [lerp(pts[i - 1][0], pts[i][0], k), lerp(pts[i - 1][1], pts[i][1], k)];
+            }
+            d -= L[i];
+        }
+        return pts[pts.length - 1];
+    }
+    function cohRouteMem(g, x0, top, w, i) {
+        var cx = x0 + g.xs[i] + g.bw / 2, lane = top + g.busY - 6;
+        return [[cx, top + g.bh], [cx, lane], [x0 + w / 2, lane], [x0 + w / 2, top + g.memY - 4]];
+    }
+    function cohRouteCore(g, x0, top, a, b) {
+        var ca = x0 + g.xs[a] + g.bw / 2, cb = x0 + g.xs[b] + g.bw / 2, lane = top + g.busY - 6;
+        return [[ca, top + g.bh], [ca, lane], [cb, lane], [cb, top + g.bh]];
+    }
+    function cohRouteBus(g, x0, top, i) {
+        var cx = x0 + g.xs[i] + g.bw / 2, lane = top + g.busY - 6;
+        return [[cx, top + g.bh], [cx, lane]];
+    }
+    function cohPacket(pt, label, col, alpha, mob) {
+        var pw = mob ? 48 : 64, ph = 20;
+        ctx.globalAlpha = clamp01(alpha);
+        rr(pt[0] - pw / 2, pt[1] - ph / 2, pw, ph, 5, col + 'ff', col + 'ff', 1.2);
+        tx(label, pt[0], pt[1], mob ? 11 : 12, '#111111', 'center', true);
+        ctx.globalAlpha = 1;
+    }
+    function cohBox(g, x0, top, i, st, col, active) {
+        var x = x0 + g.xs[i];
+        rr(x, top, g.bw, g.bh, 8, col + '14', active ? P.purple + 'ee' : col + '77', active ? 2.6 : 1.4);
+        tx('Core ' + i, x + 10, top + 14, g.fs, P.text + 'ee', 'left', true);
+        rr(x + 8, top + 26, g.bw - 16, 24, 6, col + '26', col + 'cc', 1.4);
+        tx(ST_LABEL[st], x + g.bw / 2, top + 38, g.fs, col + 'ee', 'center', true);
+    }
+    function cohBus(g, x0, top, w, text, col, lit) {
+        var by = top + g.busY, mx = x0 + w / 2, bwid = g.busW;
+        var c0 = x0 + g.xs[0] + g.bw / 2, c1 = x0 + g.xs[1] + g.bw / 2;
+        ln(c0, top + g.bh, c0, by, P.sub + '88', 1.6);
+        ln(c1, top + g.bh, c1, by, P.sub + '88', 1.6);
+        ln(mx, by + 22, mx, top + g.memY, P.sub + '88', 1.6);
+        rr(mx - bwid / 2, by, bwid, 22, 6, lit ? col + '26' : P.sub + '12', lit ? col + 'cc' : P.sub + '66', 1.4);
+        tx(text, mx, by + 11, g.fs, lit ? col + 'ff' : P.sub + 'ff', 'center', true);
+    }
+    function cohMemBox(g, x0, top, w, col) {
+        var y = top + g.memY;
+        rr(x0 + w / 2 - g.memW / 2, y, g.memW, g.memH, 6, col + '14', col + '99', 1.4);
+        tx('Memory', x0 + w / 2, y + 12, g.fs, P.sub + 'ff', 'center', true);
+    }
+    function cohRing(g, x0, top, i, tt) {
+        var ex = 4 + 8 * tt, x = x0 + g.xs[i];
+        rr(x - ex, top - ex, g.bw + 2 * ex, g.bh + 2 * ex, 10, 'none', P.purple + cohA(1 - tt), 2);
+    }
+    function cohChip(cx, cy, cw, ch, cells, col, alpha, hi, mob) {
+        var fs = mob ? 11 : 12.5, n = cells.length, cwi = cw / n, k, ccx;
+        ctx.globalAlpha = clamp01(alpha);
+        rr(cx - cw / 2, cy - ch / 2, cw, ch, 6, col + '26', col + 'cc', 1.6);
+        for (k = 0; k < n; k++) {
+            ccx = cx - cw / 2 + cwi * (k + 0.5);
+            if (k === hi) rr(ccx - cwi / 2 + 3, cy - ch / 2 + 3, cwi - 6, ch - 6, 4, P.purple + '40', P.purple + 'ff', 1.8);
+            tx(cells[k], ccx, cy, fs, (k === hi ? P.text : P.sub) + 'ff', 'center', true);
+        }
+        ctx.globalAlpha = 1;
+    }
+    function cohMsgCol(msg) {
+        if (msg === '읽기 요청') return P.yellow;
+        if (msg === '데이터 제공(코어 0)') return P.green;
+        if (msg === '무효화 신호') return P.red;
+        return P.sub;
+    }
+    function cohSwitchAt(msg, isAct) {
+        if (msg === '읽기 요청') return isAct ? 0.95 : 0.6;
+        if (msg === '신호 없음') return isAct ? 0.25 : 0.6;
+        if (msg === '데이터 제공(코어 0)') return 0.8;
+        if (msg === '무효화 신호') return isAct ? 0.7 : 0.5;
+        return 0.6;
+    }
+    function cohReadPkts(g, x0, top, w, mob, a, val, tt) {
+        var route = cohRouteMem(g, x0, top, w, a);
+        if (tt < 0.45) cohPacket(cohAlong(route, tt / 0.45), '읽기', P.yellow, 1, mob);
+        else if (tt >= 0.5 && tt < 0.95) cohPacket(cohAlong(route.slice().reverse(), (tt - 0.5) / 0.45), 'X = ' + val, P.green, 1, mob);
+    }
+    function cohDataPkts(g, x0, top, w, mob, s, tt) {
+        if (tt < 0.25) cohPacket(cohAlong(cohRouteBus(g, x0, top, 1), tt / 0.25), '읽기', P.yellow, 1, mob);
+        if (tt >= 0.3 && tt < 0.8) cohPacket(cohAlong(cohRouteCore(g, x0, top, 0, 1), (tt - 0.3) / 0.5), 'X = ' + s.c[1].v, P.green, 1, mob);
+        if (tt >= 0.5 && tt < 0.95) cohPacket(cohAlong(cohRouteMem(g, x0, top, w, 0), (tt - 0.5) / 0.45), 'X = ' + s.mem, P.orange, 1, mob);
+    }
+    function cohInvPkts(g, x0, top, mob, tt) {
+        if (tt < 0.5) cohPacket(cohAlong(cohRouteCore(g, x0, top, 0, 1), tt / 0.5), '무효화', P.red, 1, mob);
+    }
+    function cohFsOwner(n, split) {
+        if (split || n <= 0) return -1;
+        return FS_SEQ[n - 1];
+    }
+    function cohFsSt(n, split, i) {
+        var k;
+        if (split) return n > 0 ? 'M' : 'N';
+        if (n > 0 && FS_SEQ[n - 1] === i) return 'M';
+        for (k = 0; k < n; k++) if (FS_SEQ[k] === i) return 'I';
+        return 'N';
+    }
+    function cohSlot(g, x0, top, w, o) {
+        if (o < 0) return [x0 + w / 2, top + g.memY + 39];
+        return [x0 + g.xs[o] + g.bw / 2, top + 75];
+    }
+
+    /* ===================== 모드: 일관성 문제 · MESI 상태 전이 ===================== */
+    function cohDrawCore(g, x0, top, w, mob, s, p, fresh, tt) {
+        var mesi = mode === 'mesi';
+        var fs = g.fs;
+        var shown = [];
+        var i, c, cxm, memSw, memVal, memStale, diff, pDiff, da, pc, sc, changed;
+        for (i = 0; i < 2; i++) {
+            pc = p.c[i];
+            sc = s.c[i];
+            changed = pc.s !== sc.s || pc.v !== sc.v || !!pc.stale !== !!sc.stale;
+            shown.push(fresh && changed && tt < cohSwitchAt(s.msg, i === s.act) ? pc : sc);
+        }
+        memSw = s.msg === '데이터 제공(코어 0)' ? 0.95 : 0.5;
+        memVal = (fresh && p.mem !== s.mem && tt < memSw) ? p.mem : s.mem;
+        memStale = mesi && ((fresh && p.ms !== s.ms && tt < memSw) ? p.ms : s.ms);
+        cohMemBox(g, x0, top, w, memStale ? P.red : P.green);
+        tx('X = ' + memVal + (memStale ? ' (낡음)' : ''), x0 + w / 2, top + g.memY + 40, fs + 2, (memStale ? P.red : P.green) + 'ee', 'center', true);
+        cohBus(g, x0, top, w, s.msg || (s.act >= 0 ? '버스 사용 없음' : '버스'), s.msg ? cohMsgCol(s.msg) : P.sub, !!s.msg);
+        for (i = 0; i < 2; i++) {
+            c = shown[i];
+            cohBox(g, x0, top, i, c.s, c.stale ? P.red : stCol(c.s), s.act === i);
+            cxm = x0 + g.xs[i] + g.bw / 2;
+            tx(c.v === null ? 'X = —' : 'X = ' + c.v, cxm, top + 66, fs + 3, c.v === null ? P.sub + 'ff' : P.text + 'ee', 'center', true);
+            if (c.stale) tx('낡은 값', cxm, top + 88, fs, P.red + 'ff', 'center', true);
+        }
+        if (fresh && s.act >= 0 && (s.msg === '신호 없음' || s.msg === '')) cohRing(g, x0, top, s.act, tt);
+        if (fresh) {
+            if (s.msg === '읽기 요청' && s.act >= 0) cohReadPkts(g, x0, top, w, mob, s.act, s.mem, tt);
+            if (s.msg === '데이터 제공(코어 0)') cohDataPkts(g, x0, top, w, mob, s, tt);
+            if (s.msg === '무효화 신호') cohInvPkts(g, x0, top, mob, tt);
+        }
+        diff = s.c[0].v !== null && s.c[1].v !== null && s.c[0].v !== s.c[1].v;
+        pDiff = p.c[0].v !== null && p.c[1].v !== null && p.c[0].v !== p.c[1].v;
+        if (diff) {
+            da = (fresh && !pDiff) ? ez(tt) : 1;
+            tx('두 코어의 X 값이 다릅니다', x0 + w / 2, top + g.capY + 8, fs, P.red + cohA(da), 'center', true);
+        }
     }
 
     /* ===================== 모드: 거짓 공유 ===================== */
-    function drawFalse(x0, top, w, mob, step) {
-        var fs    = mob ? 10.5 : 12;
-        var n     = step ? step.n : 0;
-        var split = step ? step.split : false;
-        var g     = geom(x0, top, w, mob);
-        var last  = n > 0 ? FS_SEQ[n - 1] : -1;
-        var wrote = [false, false];
-        for (var k = 0; k < n; k++) wrote[FS_SEQ[k]] = true;
+    function cohDrawFalse(g, x0, top, w, mob, s, p, fresh, tt) {
+        var fs = g.fs;
+        var pn = p.n, sn = s.n, ps = p.split, ss = s.split;
+        var pOwner = cohFsOwner(pn, ps), sOwner = cohFsOwner(sn, ss);
+        var lineOwner = ss ? pOwner : sOwner;
+        var lastW = sn > 0 ? FS_SEQ[sn - 1] : -1;
+        var moved = !ss && sn >= 2 && FS_SEQ[sn - 1] !== FS_SEQ[sn - 2];
+        var moving = fresh && !ss && pOwner !== sOwner;
+        var splitIn = fresh && ss && !ps;
+        var sharedA = ss ? (splitIn ? 1 - ez(tt) : 0) : 1;
+        var splitA = ss ? (splitIn ? ez(tt) : 1) : 0;
+        var cw = g.bw - 20, ch = 30;
+        var i, st, stP, shownSt, from, to, pos, sp, cnt, cy, sa;
 
-        for (var i = 0; i < 2; i++) {
-            var st = 'N';
-            if (split) st = n > 0 ? 'M' : 'N';
-            else if (i === last) st = 'M';
-            else if (wrote[i]) st = 'I';
-            var col = stCol(st);
-            drawFrame(g, i, col, n > 0 && i === last, mob);
-            var x = g.xs[i];
-            tx(split ? '라인 ' + (i === 0 ? 'A' : 'B') : '같은 캐시 라인', x + 12, g.by + 38, fs - 0.5, P.muted + 'dd', 'left', false);
-            var vars = split ? [i === 0 ? 'a' : 'b'] : ['a', 'b'];
-            var cw = (g.bw - 24 - 8 * (vars.length - 1)) / vars.length;
-            vars.forEach(function (v, vi) {
-                var own = (v === 'a' && i === 0) || (v === 'b' && i === 1);
-                var cx  = x + 12 + vi * (cw + 8);
-                rr(cx, g.by + 50, cw, 30, 5, own ? P.purple + '30' : P.muted + '14', own ? P.purple + 'cc' : P.muted + '66', own ? 1.8 : 1.1);
-                tx(v + (own && !mob ? ' (쓰기)' : ''), cx + cw / 2, g.by + 65, fs - 0.5, own ? P.text + 'ee' : P.muted + 'cc', 'center', own);
-            });
-            rr(x + 12, g.by + 92, g.bw - 24, 28, 6, col + '26', col + 'cc', 1.4);
-            tx(ST_LABEL[st], x + g.bw / 2, g.by + 106, fs, col + 'ee', 'center', true);
+        cohMemBox(g, x0, top, w, P.sub);
+        cohBus(g, x0, top, w, moved ? '캐시 라인 이동' : '버스', P.orange, moved);
+        for (i = 0; i < 2; i++) {
+            st = cohFsSt(sn, ss, i);
+            stP = cohFsSt(pn, ps, i);
+            shownSt = (fresh && st !== stP && tt < 0.9) ? stP : st;
+            cohBox(g, x0, top, i, shownSt, stCol(shownSt), lastW === i);
+        }
+        if (fresh && sn > pn && lastW >= 0) cohRing(g, x0, top, lastW, tt);
+
+        if (sharedA > 0) {
+            from = cohSlot(g, x0, top, w, pOwner);
+            to = cohSlot(g, x0, top, w, sOwner);
+            if (moving) pos = [lerp(from[0], to[0], ez(tt)), lerp(from[1], to[1], ez(tt))];
+            else pos = cohSlot(g, x0, top, w, lineOwner);
+            cohChip(pos[0], pos[1], cw, ch, ['a', 'b'], lineOwner >= 0 ? P.orange : P.sub, sharedA, lastW, mob);
+        }
+        if (splitA > 0) {
+            for (i = 0; i < 2; i++) {
+                sp = cohSlot(g, x0, top, w, i);
+                cohChip(sp[0], sp[1], cw, ch, [i === 0 ? 'a' : 'b'], sn > 0 ? P.orange : P.sub, splitA, lastW === i ? 0 : -1, mob);
+            }
         }
 
-        var moved = !split && n >= 2 && FS_SEQ[n - 1] !== FS_SEQ[n - 2];
-        drawBus(g, moved ? '캐시 라인 이동' : '', null, false, mob);
-
-        var cy  = g.busY + 52;
-        var cnt = fsMoves(split, n);
-        tx('캐시 라인 이동: ' + cnt + '회', x0, cy, fs + 2, cnt > 0 ? P.orange + 'ee' : P.green + 'ee', 'left', true);
-        if (step && step.sum) {
-            tx('같은 라인 ' + fsMoves(false, FS_N) + '회 → 라인 분리 ' + fsMoves(true, FS_N) + '회', x0, cy + 24, fs, P.green + 'ee', 'left', true);
+        cnt = fsMoves(ss, sn);
+        cy = top + g.capY + 8;
+        tx('캐시 라인 이동: ' + cnt + '회', x0 + w / 2, cy, fs + 1, cnt > 0 ? P.orange + 'ff' : P.green + 'ff', 'center', true);
+        if (s.sum) {
+            sa = fresh ? ez(tt) : 1;
+            ctx.globalAlpha = sa;
+            tx((mob ? '같은 라인 ' + fsMoves(false, FS_N) + '회 → 분리 ' : '같은 라인 ' + fsMoves(false, FS_N) + '회 → 라인 분리 ') + fsMoves(true, FS_N) + '회', x0 + w / 2, cy + 20, fs, P.green + 'ff', 'center', true);
+            ctx.globalAlpha = 1;
         }
     }
 
+    /* ===================== 메인 장면 ===================== */
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var g = layout(w, mob);
+        var s = step || currentSteps()[0];
+        var p = prev || s;
+        var fresh = s !== p;
+        var tt = fresh ? clamp01(t) : 1;
+        if (mode === 'false') cohDrawFalse(g, x0, top, w, mob, s, p, fresh, tt);
+        else cohDrawCore(g, x0, top, w, mob, s, p, fresh, tt);
+    }
+
     /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
     function draw() {
         P = window.CsFlow.getP();
         ctx.clearRect(0, 0, GW(), GH());
         var W = GW(); var mob = W < 600;
-        var padX = mob ? 16 : 26;
-        var fullW = W - padX * 2;
-        var top = mob ? 18 : 26;
-
         var steps = currentSteps();
         var step = stepIdx >= 0 ? steps[stepIdx] : null;
-
-        if (mode === 'false') drawFalse(padX, top, fullW, mob, step);
-        else drawCoh(padX, top, fullW, mob, step, mode === 'mesi');
-
-        if (!step) {
-            var hint = '아래 STEP을 눌러 캐시 일관성이 어떻게 유지되는지 확인하세요.';
-            ctx.font = '500 ' + (mob ? 11 : 12.5) + 'px "JetBrains Mono",monospace';
-            var hs = mob ? 11 : 12.5;
-            var hl = [hint];
-            if (ctx.measureText(hint).width > W - 16) {
-                var cut = hint.indexOf(' ', Math.floor(hint.length / 2));
-                if (cut < 0) cut = hint.lastIndexOf(' ');
-                hl = [hint.slice(0, cut), hint.slice(cut + 1)];
-            }
-            hl.forEach(function (line, li) {
-                tx(line, W / 2, GH() - (mob ? 12 : 14) - (hl.length - 1 - li) * (hs + 4), hs, P.muted + 'aa', 'center', false);
-            });
-        }
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
         var mob = w < 600;
-        var neededH;
-        if (mode === 'false') neededH = mob ? 360 : 380;
-        else neededH = mob ? 330 : 350;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
         canvasWrap.style.height    = 'auto';
-        canvasWrap.style.minHeight = neededH + 'px';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
         var actualH = canvasWrap.offsetHeight || neededH;
         if (actualH < neededH) actualH = neededH;
         canvas.width  = w * dpr;
@@ -329,17 +485,22 @@
     /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        draw();
-        rafId = requestAnimationFrame(function () { rafId = null; if (onDone) onDone(); });
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
     function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
-    function defaultLog() {
-        if (mode === 'mesi') return '캐시 라인 상태(M, E, S, I)가 읽기와 쓰기에 따라 어떻게 바뀌는지 코어 0과 코어 1로 따라가 봅니다.';
-        if (mode === 'false') return '서로 다른 변수인데 같은 캐시 라인에 있어서 라인이 코어 사이를 오가는 거짓 공유를 봅니다.';
-        return '일관성 프로토콜이 없다면 코어마다 같은 변수의 값이 달라질 수 있습니다. 읽기와 쓰기를 따라가 봅니다.';
-    }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -378,7 +539,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);

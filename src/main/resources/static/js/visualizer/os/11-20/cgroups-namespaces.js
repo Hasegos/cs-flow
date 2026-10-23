@@ -39,7 +39,7 @@
     var speedWrap = el('div', 'ns-viz__speed');
     speedWrap.appendChild(el('span', 'ns-viz__speed-label', 'SPEED'));
     var speedBtns = [];
-    [['1x', 1700], ['2x', 850], ['3x', 480]].forEach(function (pair, i) {
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
         var b = el('button', 'ns-viz__speed-btn' + (i === 0 ? ' ns-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
@@ -72,11 +72,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'pid';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 데이터: namespace ===================== */
     var PROCS = [
@@ -130,188 +197,194 @@
         .concat([{ k: LAYERS.length, done: true, log: '정리 — 컨테이너는 별도의 커널 기능이 아니라 호스트 커널의 namespace(보이는 범위)와 cgroups(자원 상한) 같은 기능을 조합해 프로세스를 격리한 것입니다.' }]);
 
     /* ===================== 상태 ===================== */
-    var mode    = 'pid';
-    var stepIdx = -1;
-    var running = false;
-    var timer   = null;
-    var rafId   = null;
-    var speed   = 1700;
-
     function currentSteps() {
         if (mode === 'cg') return CG_STEPS;
         if (mode === 'compose') return COMPOSE_STEPS;
         return PID_STEPS;
     }
-
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        var rad = Math.min(r, w / 2, h / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + rad, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, rad);
-        ctx.arcTo(x + w, y + h, x,     y + h, rad);
-        ctx.arcTo(x,     y + h, x,     y,     rad);
-        ctx.arcTo(x,     y,     x + w, y,     rad);
-        ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
-    }
-    function tx(str, x, y, sz, color, align, bold) {
-        if (sz < 9.5) sz = 9.5;
-        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
+    function defaultLog() {
+        if (mode === 'cg') return 'cgroups가 메모리와 CPU 사용량을 제한하는 모습을 봅니다.';
+        if (mode === 'compose') return 'namespace와 cgroups가 겹쳐 컨테이너가 되는 과정을 봅니다.';
+        return 'PID namespace 안에서 같은 프로세스가 다른 PID로 보이는 모습을 봅니다.';
     }
 
-    /* ===================== 공통: 선 ===================== */
-    function ln(x1, y1, x2, y2, col, lw) {
-        ctx.strokeStyle = col;
-        ctx.lineWidth = lw || 1.4;
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
-        ctx.stroke();
+    /* ===================== 레이아웃 ===================== */
+    function layout(w, mob) {
+        return { fs: mob ? 10.5 : 12, total: mode === 'cg' ? (mob ? 262 : 270) : (mode === 'compose' ? 266 : 260) };
     }
+    function sceneH(w, mob) { return layout(w, mob).total; }
 
-    /* ===================== 모드: namespace ===================== */
-    function drawPid(x0, top, w, mob, step) {
-        var fs = mob ? 10 : 11.5;
-        var k = step ? step.k : 0;
+    function ez(q) { q = clamp01(q); return q * q * (3 - 2 * q); }
+
+    /* ===================== namespace ===================== */
+    function drawPid(x0, top, w, mob, s, p, e, fs) {
+        var k = s.k, pk = p.k;
         var rh = 24;
         var hw = w * 0.5;
         var gx = x0 + hw + (mob ? 22 : 40);
         var gw = w - hw - (mob ? 22 : 40);
-        tx('호스트에서 본 프로세스', x0, top + 12, fs, P.text + 'ee', 'left', true);
+        tx('호스트에서 본 프로세스', x0, top + 12, fs, P.text + 'ff', 'left', true);
         var rowY = [];
-        PROCS.forEach(function (p, i) {
+        PROCS.forEach(function (pr, i) {
             var y = top + 28 + i * (rh + 4);
             rowY.push(y);
-            var col = p.ns === 'A' ? P.orange : (p.ns === 'B' ? P.teal : P.muted);
-            rr(x0, y, hw, rh, 4, col + '1c', col + 'aa', 1.2);
-            tx('PID ' + p.h + '  ' + p.n, x0 + 8, y + rh / 2, fs, P.text + 'ee', 'left', true);
+            var inGroup = (pr.ns === 'A' && k >= 1) || (pr.ns === 'B' && k >= 2);
+            var col = pr.ns === 'A' ? P.orange : (pr.ns === 'B' ? P.teal : P.sub);
+            rr(x0, y, hw, rh, 4, col + (inGroup ? '30' : '1c'), col + (inGroup ? 'ff' : 'aa'), inGroup ? 1.6 : 1.2);
+            tx('PID ' + pr.h + '  ' + pr.n, x0 + 8, y + rh / 2, fs, P.text + 'ff', 'left', true);
         });
         var panels = [['A', P.orange, 1, top + 28], ['B', P.teal, 2, top + 28 + 2 * (rh + 4) + 44]];
         panels.forEach(function (pn) {
             var on = k >= pn[2];
-            tx('컨테이너 ' + pn[0] + ' 안', gx, pn[3] - 12 + 4, fs - 0.5, on ? pn[1] + 'ee' : P.muted + '77', 'left', true);
-            inNs(pn[0]).forEach(function (p, i) {
+            var fresh = k === pn[2] && pk < pn[2];
+            tx('컨테이너 ' + pn[0] + ' 안', gx, pn[3] - 8, fs - 0.5, on ? pn[1] + 'ff' : P.sub + 'ff', 'left', true);
+            inNs(pn[0]).forEach(function (pr, i) {
                 var y = pn[3] + 6 + i * (rh + 4);
-                rr(gx, y, gw, rh, 4, on ? pn[1] + '24' : 'none', on ? pn[1] + 'cc' : P.muted + '33', 1.3);
+                var a = on ? (fresh ? clamp01((e - 0.3 - i * 0.15) / 0.4) : 1) : 0;
+                rr(gx, y, gw, rh, 4, 'none', pn[1] + '55', 1.3);
                 if (on) {
-                    tx('PID ' + nsPid(p) + '  ' + p.n, gx + 6, y + rh / 2, fs - 0.5, P.text + 'ee', 'left', true);
-                    if (k >= 3) ln(x0 + hw, rowY[PROCS.indexOf(p)] + rh / 2, gx, y + rh / 2, pn[1] + '88', 1.2);
+                    ctx.globalAlpha = a;
+                    rr(gx, y, gw, rh, 4, pn[1] + '24', pn[1] + 'ff', 1.5);
+                    tx('PID ' + nsPid(pr) + '  ' + pr.n, gx + 6, y + rh / 2, fs - 0.5, P.text + 'ff', 'left', true);
+                    ctx.globalAlpha = 1;
+                    if (fresh && e < 0.9) {
+                        var cq = ez((e - i * 0.15) / 0.6);
+                        if (cq > 0 && cq < 1) {
+                            var hy = rowY[PROCS.indexOf(pr)] + rh / 2;
+                            var cx = lerp(x0 + hw, gx, cq);
+                            var cy = lerp(hy, y + rh / 2, cq);
+                            rr(cx - 40, cy - 11, 80, 22, 4, pn[1] + '66', pn[1] + 'ff', 1.8);
+                            tx(cq < 0.5 ? 'PID ' + pr.h : 'PID ' + nsPid(pr), cx, cy, fs - 0.5, P.text + 'ff', 'center', true);
+                        }
+                    }
+                    if (k >= 3) {
+                        var lq = pk >= 3 ? 1 : ez((e - i * 0.1) / 0.7);
+                        var hy2 = rowY[PROCS.indexOf(pr)] + rh / 2;
+                        ln(x0 + hw, hy2, lerp(x0 + hw, gx, lq), lerp(hy2, y + rh / 2, lq), pn[1] + 'aa', 1.4);
+                    }
                 }
             });
         });
     }
 
-    /* ===================== 모드: cgroups ===================== */
-    function drawCg(x0, top, w, mob, step) {
-        var fs = mob ? 10.5 : 12;
-        var mem = step ? step.mem : 0;
-        var oom = step ? !!step.oom : false;
-        var k = step ? step.k : 0;
+    /* ===================== cgroups ===================== */
+    function drawCg(x0, top, w, mob, s, p, e, fs) {
+        var q = ez(e);
+        var k = s.k, pk = p.k;
+        var memShown = lerp(p.mem, s.mem, q);
+        var oom = !!s.oom;
         var barH = mob ? 30 : 34;
-        var lw = 0;
-        tx('메모리 (상한 ' + MEM_LIMIT + 'MB)', x0, top + 12, fs, P.text + 'ee', 'left', true);
+        tx('메모리 (상한 ' + MEM_LIMIT + 'MB)', x0, top + 12, fs, P.text + 'ff', 'left', true);
         var maxW = w - 2 - (mob ? 80 : 100);
         var scale = maxW / (MEM_LIMIT + ALLOC);
         var by = top + 24;
-        rr(x0, by, maxW, barH, 4, 'none', P.muted + '33', 1);
-        var used = Math.min(mem, MEM_LIMIT);
-        if (used > 0) rr(x0, by, used * scale, barH, 4, (used >= MEM_LIMIT ? P.orange : P.teal) + '30', (used >= MEM_LIMIT ? P.orange : P.teal) + 'cc', 1.5);
+        rr(x0, by, maxW, barH, 4, 'none', P.sub + '55', 1);
+        var used = Math.min(memShown, MEM_LIMIT);
+        var hitLimit = used >= MEM_LIMIT - 0.5;
+        if (used > 0) rr(x0, by, used * scale, barH, 4, (hitLimit ? P.orange : P.teal) + '30', (hitLimit ? P.orange : P.teal) + 'ff', 1.5);
         var limX = x0 + MEM_LIMIT * scale;
-        ln(limX, by - 6, limX, by + barH + 6, P.yellow + 'ee', 2);
-        tx('상한', limX, by + barH + 18, fs - 1.5, P.yellow + 'ee', 'center', true);
-        if (oom) {
-            rr(limX, by, ALLOC * scale, barH, 4, P.red + '38', P.red + 'ee', 1.8);
-            tx('OOM', limX + ALLOC * scale / 2, by + barH / 2, fs - 1, P.red + 'ee', 'center', true);
+        ln(limX, by - 6, limX, by + barH + 6, P.yellow + 'ff', 2);
+        tx('상한', limX, by + barH + 18, fs - 1.5, P.yellow + 'ff', 'center', true);
+        if (hitLimit && p.mem < MEM_LIMIT && e < 1) circ(limX, by + barH / 2, 8 + e * 30, 'none', P.orange + 'ff', 2);
+        if (memShown > MEM_LIMIT) {
+            var shake = oom && e < 1 ? Math.sin(e * 40) * 2.5 * (1 - e) : 0;
+            rr(limX + shake, by, (memShown - MEM_LIMIT) * scale, barH, 4, P.red + '38', P.red + 'ff', 1.8);
+            if (e > 0.6) tx('OOM', limX + shake + (memShown - MEM_LIMIT) * scale / 2, by + barH / 2, fs - 1, P.red + 'ff', 'center', true);
         }
-        tx((oom ? MEM_LIMIT + ALLOC : mem) + 'MB', x0 + maxW + 8, by + barH / 2, fs, oom ? P.red + 'ee' : P.text + 'ee', 'left', true);
-        if (oom) tx('그룹 안에서 프로세스 종료 (다른 그룹은 보통 무사)', x0, by + barH + 42, fs - 0.5, P.red + 'ee', 'left', true);
+        tx(Math.round(memShown) + 'MB', x0 + maxW + 8, by + barH / 2, fs, oom ? P.red + 'ff' : P.text + 'ff', 'left', true);
+        if (oom) {
+            ctx.globalAlpha = p.oom ? 1 : clamp01((e - 0.5) / 0.5);
+            lines('그룹 안에서 프로세스 종료 (다른 그룹은 보통 무사)', w, fs - 0.5).forEach(function (l, li) {
+                tx(l, x0, by + barH + 42 + li * (fs + 3), fs - 0.5, P.red + 'ff', 'left', true);
+            });
+            ctx.globalAlpha = 1;
+        }
 
         var cy = top + 148;
-        tx('CPU (' + CPU_QUOTA + 'µs / ' + CPU_PERIOD + 'µs 주기)', x0, cy, fs, k >= 2 ? P.text + 'ee' : P.muted + '88', 'left', true);
-        var rows = [['요구', CPU_DEMAND, P.orange], ['실행됨', cpuGot(CPU_DEMAND), P.teal]];
+        tx('CPU (' + CPU_QUOTA + 'µs / ' + CPU_PERIOD + 'µs 주기)', x0, cy, fs, k >= 2 ? P.text + 'ff' : P.sub + 'ff', 'left', true);
+        var rows = [['요구', CPU_DEMAND, P.orange, 0], ['실행됨', cpuGot(CPU_DEMAND), P.teal, 0.35]];
         rows.forEach(function (r, i) {
             var y = cy + 14 + i * (barH * 0.8 + 6);
             var hh = barH * 0.8;
-            rr(x0, y, maxW, hh, 4, 'none', P.muted + '33', 1);
+            rr(x0, y, maxW, hh, 4, 'none', P.sub + '55', 1);
             if (k >= 2) {
-                rr(x0, y, maxW * r[1], hh, 4, r[2] + '30', r[2] + 'cc', 1.4);
-                tx(r[0] + ' ' + pct(r[1]), x0 + maxW * r[1] + 8, y + hh / 2, fs - 1, r[2] + 'ee', 'left', true);
+                var g = pk >= 2 ? 1 : ez((e - r[3]) / 0.65);
+                rr(x0, y, maxW * r[1] * g, hh, 4, r[2] + '30', r[2] + 'ff', 1.4);
+                if (g > 0.4) tx((i === 1 ? '실행' : r[0]) + ' ' + pct(r[1] * g), i === 1 ? x0 + 6 : x0 + maxW * r[1] * g + 8, y + hh / 2, fs - 1, r[2] + 'ff', 'left', true);
+                if (i === 1 && g > 0.9) {
+                    var sx = x0 + maxW * r[1];
+                    ctx.setLineDash([4, 3]);
+                    rr(sx + 2, y, maxW * (CPU_DEMAND - r[1]) - 4, hh, 4, P.red + '1a', P.red + 'ff', 1.4);
+                    ctx.setLineDash([]);
+                    tx('throttling', sx + 8, y + hh / 2, fs - 1.5, P.red + 'ff', 'left', true);
+                }
             }
         });
     }
 
-    /* ===================== 모드: 컨테이너의 조합 ===================== */
-    function drawCompose(x0, top, w, mob, step) {
-        var fs = mob ? 10 : 11.5;
-        var k = step ? step.k : 0;
+    /* ===================== 컨테이너의 조합 ===================== */
+    function drawCompose(x0, top, w, mob, s, p, e, fs) {
+        var k = s.k, pk = p.k;
+        var q = ez(e);
         var colMap = { orange: P.orange, teal: P.teal, purple: P.purple, green: P.green, yellow: P.yellow };
         var pad = mob ? 18 : 22;
         var totalH = 250;
         var n = LAYERS.length;
         for (var i = n - 1; i >= 0; i--) {
             var on = k >= i + 1;
+            if (!on) {
+                var shrink0 = (n - 1 - i) * pad;
+                rr(x0 + shrink0, top + 6 + shrink0, w - 2 * shrink0, totalH - 2 * shrink0, 8, 'none', P.sub + '33', 1);
+                continue;
+            }
+            var fresh = k === i + 1 && pk < k;
             var shrink = (n - 1 - i) * pad;
-            var rx = x0 + shrink;
-            var ry = top + 6 + shrink;
-            var rw = w - 2 * shrink;
-            var rh = totalH - 2 * shrink;
+            var sh = fresh ? lerp(shrink + pad, shrink, q) : shrink;
+            var rx = x0 + sh, ry = top + 6 + sh, rw = w - 2 * sh, rh = totalH - 2 * sh;
             var c = colMap[LAYERS[i].col];
-            rr(rx, ry, rw, rh, 8, on ? c + '14' : 'none', on ? c + 'cc' : P.muted + '22', on ? 1.6 : 1);
-            if (on) tx(LAYERS[i].name, rx + 8, ry + 12, fs - (mob ? 1 : 0), c + 'ee', 'left', true);
+            var glow = s.done && e < 1 ? 2 + 2 * Math.sin(e * 14) : 1.6;
+            rr(rx, ry, rw, rh, 8, c + '14', c + 'ff', glow);
+            ctx.globalAlpha = fresh ? clamp01((e - 0.4) / 0.6) : 1;
+            tx(LAYERS[i].name, rx + 8, ry + 12, fs - (mob ? 1 : 0), c + 'ff', 'left', true);
+            ctx.globalAlpha = 1;
         }
-        tx('컨테이너 속 프로세스', x0 + w / 2, top + 6 + totalH / 2 + 8, fs + 0.5, P.orange + 'ee', 'center', true);
+    }
+
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var L = layout(w, mob);
+        var e = clamp01(t);
+        var s = step || currentSteps()[0];
+        var p = prev || s;
+        if (mode === 'cg') drawCg(x0, top, w, mob, s, p, e, L.fs);
+        else if (mode === 'compose') drawCompose(x0, top, w, mob, s, p, e, L.fs);
+        else drawPid(x0, top, w, mob, s, p, e, L.fs);
     }
 
     /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
     function draw() {
         P = window.CsFlow.getP();
         ctx.clearRect(0, 0, GW(), GH());
         var W = GW(); var mob = W < 600;
-        var padX = mob ? 16 : 26;
-        var fullW = W - padX * 2;
-        var top = mob ? 18 : 26;
-
         var steps = currentSteps();
         var step = stepIdx >= 0 ? steps[stepIdx] : null;
-
-        if (mode === 'cg') drawCg(padX, top, fullW, mob, step);
-        else if (mode === 'compose') drawCompose(padX, top, fullW, mob, step);
-        else drawPid(padX, top, fullW, mob, step);
-
-        if (!step) {
-            var hint = '아래 STEP으로 격리와 제한을 확인하세요.';
-            ctx.font = '500 ' + (mob ? 11 : 12.5) + 'px "JetBrains Mono",monospace';
-            var hs = mob ? 11 : 12.5;
-            var hl = [hint];
-            if (ctx.measureText(hint).width > W - 16) {
-                var cut = hint.indexOf(' ', Math.floor(hint.length / 2));
-                if (cut < 0) cut = hint.lastIndexOf(' ');
-                hl = [hint.slice(0, cut), hint.slice(cut + 1)];
-            }
-            hl.forEach(function (line, li) {
-                tx(line, W / 2, GH() - (mob ? 12 : 14) - (hl.length - 1 - li) * (hs + 4), hs, P.muted + 'aa', 'center', false);
-            });
-        }
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
         var mob = w < 600;
-        var neededH;
-        if (mode === 'cg') neededH = mob ? 270 : 280;
-        else if (mode === 'compose') neededH = mob ? 280 : 280;
-        else neededH = mob ? 290 : 290;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
         canvasWrap.style.height    = 'auto';
-        canvasWrap.style.minHeight = neededH + 'px';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
         var actualH = canvasWrap.offsetHeight || neededH;
         if (actualH < neededH) actualH = neededH;
         canvas.width  = w * dpr;
@@ -323,17 +396,22 @@
     /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        draw();
-        rafId = requestAnimationFrame(function () { rafId = null; if (onDone) onDone(); });
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
     function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
-    function defaultLog() {
-        if (mode === 'cg') return 'cgroups가 프로세스 그룹의 메모리와 CPU 사용량을 제한하는 방식을 봅니다.';
-        if (mode === 'compose') return '일반 프로세스에 namespace와 cgroups를 하나씩 더해 컨테이너가 되는 과정을 봅니다.';
-        return 'PID namespace가 컨테이너마다 프로세스 번호와 보이는 범위를 분리하는 모습을 봅니다.';
-    }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -372,7 +450,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);

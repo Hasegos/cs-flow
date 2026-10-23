@@ -62,6 +62,7 @@
 }
 
 .gnb__nav-item {
+  white-space: nowrap;
   padding: 0.4rem 0.75rem;
   border-radius: var(--radius-sm);
   font-size: 0.875rem;
@@ -140,7 +141,7 @@
 }
 
 /* === 반응형 === */
-@media (max-width: 768px) {
+@media (max-width: 1140px) {
   .gnb__nav { display: none; }
 
   .gnb__hamburger {

@@ -398,15 +398,20 @@
         const desc   = lines[1] || '';
         const stageCol = (STAGES.find(s => s.id === key) || {}).col || P.purple;
 
-        ctx.font = '700 14px "JetBrains Mono",monospace';
-        const titleW = ctx.measureText(title).width;
-        ctx.font = '400 13px "JetBrains Mono",monospace';
-        const descW  = ctx.measureText(desc).width;
-
         const pad = 14;
-        const tw  = Math.max(titleW, descW) + pad * 2;
-        const th  = desc ? 60 : 36;
         const W   = GW(), H = GH();
+        const maxIn = W - 16 - pad * 2;
+        ctx.font = '700 14px "JetBrains Mono",monospace';
+        const tl = window.CsFlow.wrapText(ctx, title, maxIn);
+        let titleW = 0;
+        tl.forEach(l => { titleW = Math.max(titleW, ctx.measureText(l).width); });
+        ctx.font = '400 13px "JetBrains Mono",monospace';
+        const dl = desc ? window.CsFlow.wrapText(ctx, desc, maxIn) : [];
+        let descW = 0;
+        dl.forEach(l => { descW = Math.max(descW, ctx.measureText(l).width); });
+
+        const tw  = Math.min(W - 16, Math.max(titleW, descW) + pad * 2);
+        const th  = desc ? 24 + tl.length * 18 + dl.length * 18 : 18 + tl.length * 18;
 
         let tx_ = mx + 14;
         let ty_ = my - th - 8;
@@ -421,12 +426,12 @@
         ctx.fillStyle = P.text;
         ctx.textAlign = 'left';
         ctx.textBaseline = 'middle';
-        ctx.fillText(title, tx_ + pad, ty_ + (desc ? 18 : th / 2));
+        tl.forEach((l, i) => ctx.fillText(l, tx_ + pad, ty_ + 18 + i * 18));
 
         if (desc) {
             ctx.font = '400 13px "JetBrains Mono",monospace';
             ctx.fillStyle = P.sub;
-            ctx.fillText(desc, tx_ + pad, ty_ + 42);
+            dl.forEach((l, i) => ctx.fillText(l, tx_ + pad, ty_ + 24 + tl.length * 18 + i * 18));
         }
     }
 

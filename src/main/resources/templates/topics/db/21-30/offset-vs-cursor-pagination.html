@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">오프셋 vs 커서 페이지네이션 | CS 지식 정리 - CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/db/21-30/offset-vs-cursor-pagination.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="topic-hero">
+            <div class="topic-hero__bg-grid"></div>
+            <div class="topic-hero__glow"></div>
+            <div class="topic-hero__inner">
+
+                <nav class="topic-breadcrumb">
+                    <a th:href="@{/}" class="topic-breadcrumb__link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <a th:href="@{/db}" class="topic-breadcrumb__link">데이터베이스</a>
+                    <span class="topic-breadcrumb__sep">/</span>
+                    <span class="topic-breadcrumb__current" th:text="${topic.title}">오프셋 vs 커서 페이지네이션</span>
+                </nav>
+
+                <span class="topic-hero__slug">db · 22</span>
+                <h1 class="topic-hero__title" th:text="${topic.title}">오프셋 vs 커서 페이지네이션</h1>
+
+                <div class="topic-tags">
+                    <span th:each="tag : ${topic.tags}" class="topic-tag" th:text="${tag.tag}">태그</span>
+                </div>
+
+                <button type="button" class="topic-like" th:classappend="${liked} ? ' topic-like--active' : ''" th:attr="data-topic-slug=${topic.slug}">
+                    <svg class="topic-like__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <span class="topic-like__count" th:text="${likeCount}">0</span>
+                </button>
+                <div class="topic-share">
+                    <button type="button" class="topic-share__btn topic-share__btn--copy" aria-label="링크 복사">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="topic-share__btn topic-share__btn--kakao" aria-label="카카오톡 공유">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                        </svg>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="topic-tabs">
+            <div class="topic-tabs__inner">
+                <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
+                <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
+                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
+                <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
+            </div>
+        </nav>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="topic-content">
+
+            <!-- 탭 1: 큰 그림 -->
+            <div class="topic-panel is-active" id="panel-overview">
+                <div class="overview-section">
+
+                    <p class="overview-lead">
+                        목록을 여러 페이지로 나누어 가져올 때, 다음 데이터를 어떻게 이어서 가져오는가가 <strong>페이지네이션</strong> 방식입니다. 방식에 따라 뒤쪽 페이지로 갈수록 느려지거나, 목록을 넘기는 동안 데이터가 바뀌면 방금 본 글이 다음 페이지에 또 나오는 문제가 생깁니다. 흔히 쓰는 <strong>OFFSET 방식</strong>은 위치를 번호로 기억하고, <strong>커서(keyset) 방식</strong>은 마지막으로 본 행의 키를 기억합니다.
+                    </p>
+                    <p class="overview-lead">
+                        이 토픽에서는 100만 행 테이블을 10개씩 나누어 보며, OFFSET이 뒤쪽 페이지로 갈수록 거치는 행이 늘어나는 모습, 커서 방식이 위치와 상관없이 일정한 비용으로 이어지는 모습, 그리고 페이지를 넘기는 사이 데이터가 바뀔 때 두 방식의 결과가 어떻게 달라지는지를 단계별로 비교합니다.
+                    </p>
+
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">OFFSET / LIMIT</h3>
+                            <p class="overview-card__desc">LIMIT는 가져올 행 수, OFFSET은 앞에서 건너뛸 행 수입니다. 페이지 번호를 (page − 1) × size로 바꿔 쓰면 원하는 페이지로 바로 이동할 수 있습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">커서(keyset) 방식</h3>
+                            <p class="overview-card__desc">마지막으로 받은 행의 정렬 키를 다음 요청에 실어 "그 키 뒤의 행"을 요청하는 방식입니다. where 조건과 인덱스로 위치를 바로 찾아 키셋(keyset) 또는 seek 방식이라고도 부릅니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">건너뛴 행의 비용</h3>
+                            <p class="overview-card__desc">OFFSET으로 건너뛰는 행도 DB가 정렬 순서대로 거쳐야 합니다. 그래서 돌려주는 행은 10개여도 offset이 클수록 실제로 처리하는 행이 늘어납니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">고유한 정렬 기준</h3>
+                            <p class="overview-card__desc">LIMIT를 쓸 때는 결과 순서가 항상 같게 정해지는 ORDER BY가 필요합니다. 작성 시각처럼 중복될 수 있는 값으로 정렬한다면 고유한 id를 함께 정렬 기준에 넣어야 합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">복합 커서와 행 값 비교</h3>
+                            <p class="overview-card__desc">정렬 기준이 (작성 시각, id)처럼 둘 이상이면 커서도 둘을 함께 담습니다. PostgreSQL은 where (created_at, id) &lt; (값1, 값2)처럼 행 값을 사전순으로 비교하는 문법을 지원합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">핵심 개념</p>
+                            <h3 class="overview-card__title">불투명 커서</h3>
+                            <p class="overview-card__desc">API가 커서를 내부 키 그대로 주지 않고 인코딩한 문자열로 주면, 클라이언트가 내용을 해석해 의존하지 않게 되어 나중에 정렬 기준을 바꾸기 쉽습니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>OFFSET은 구현이 쉽고 페이지 번호 UI에 맞습니다</strong> — 임의의 페이지로 바로 이동할 수 있고 전체 페이지 수도 계산할 수 있어, 데이터가 작거나 깊은 페이지까지 가지 않는 화면에서는 충분합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>OFFSET의 약점은 깊은 페이지와 변하는 데이터입니다</strong> — 뒤쪽 페이지일수록 느려지고, 앞쪽 데이터가 추가 · 삭제되면 중복이나 누락이 생깁니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>커서 방식은 뒤쪽 위치에서도 거치는 행이 늘지 않습니다</strong> — 정렬 기준에 맞는 인덱스가 있으면 기준 행 다음부터 바로 읽기 때문에 건너뛰는 행이 없고, 데이터가 바뀌어도 기준 행 다음으로 이어집니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>커서 방식은 순차 이동에만 맞습니다</strong> — "50페이지로 바로 이동"은 할 수 없어, 무한 스크롤이나 다음 · 이전 버튼에 어울립니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>이 시각화에서 확인할 것</strong> — "OFFSET 페이지네이션" 탭에서 거치는 행이 20개에서 약 100만 개로 늘어나는 과정을, "커서 페이지네이션" 탭에서 항상 10행만 읽는 모습을, "데이터가 바뀔 때" 탭에서 중복과 누락이 생기는 차이를 STEP으로 확인하세요.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">배경</h2>
+                    <p class="overview-lead">
+                        PostgreSQL과 MySQL은 LIMIT와 OFFSET 문법으로, SQL:2008 표준은 OFFSET ... FETCH FIRST ... ROWS ONLY로 결과의 일부만 돌려받는 기능을 제공합니다. 페이지 번호를 offset으로 바꾸기 쉬워 목록 페이지네이션에 쓰입니다. GraphQL 공식 문서는 오프셋 방식이 큰 데이터에서 성능과 보안 면의 단점이 있고, 새 레코드가 추가되면 이후 페이지의 오프셋 계산이 모호해질 수 있다고 설명합니다. 그래서 마지막으로 본 행을 기준으로 이어 가는 커서 방식을 권하며, GraphQL의 Relay 커넥션 규약도 커서를 기본 모델로 삼습니다.
+                    </p>
+
+                    <h2 class="overview-heading">숫자로 확인하기</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>OFFSET 값</strong> — 페이지 크기 10에서 100,000번째 페이지는 offset이 999,990입니다. DB는 앞의 999,990행을 거쳐 건너뛴 뒤 10행을 돌려주므로 처리하는 행이 약 100만 개입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>처리하는 행 수</strong> — OFFSET 방식은 offset + size, 커서 방식은 인덱스로 위치를 찾으므로 size개입니다. 1페이지는 둘 다 10개이지만 10만 페이지는 약 100만 대 10입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>변경 시 어긋남</strong> — 최신순 목록에서 1페이지를 본 뒤 새 글이 3개 올라오면 OFFSET 2페이지에 이미 본 글 3개가 다시 나옵니다. 반대로 1페이지의 글이 하나 삭제되면 2페이지가 한 칸 앞으로 당겨져 다음 글 하나가 건너뛰어집니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>검색 엔진의 한계</strong> — Elasticsearch는 from + size를 기본 10,000개까지만 허용하고(index.max_result_window), 그보다 깊은 곳은 마지막 정렬 값으로 이어 가는 search_after를 쓰도록 안내합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">자주 하는 오해</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>인덱스를 걸면 OFFSET도 빨라진다</strong> — 인덱스는 정렬을 생략하게 해 줄 뿐, offset만큼의 행을 거치는 비용은 남아서 큰 offset에서는 인덱스를 써도 느려질 수 있습니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>커서 방식은 항상 OFFSET보다 낫다</strong> — 페이지 번호로 이동하거나 전체 페이지 수를 보여 주는 화면에는 맞지 않습니다. 용도가 순차 탐색인지 임의 이동인지가 선택 기준입니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>ORDER BY 없이 LIMIT만 써도 된다</strong> — 순서가 정해지지 않은 결과에 LIMIT를 걸면 어떤 행이 나올지 예측할 수 없고, 호출마다 다른 행이 나와 중복과 누락이 생깁니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>작성 시각만 커서로 쓰면 된다</strong> — 같은 시각에 여러 행이 있으면 경계에서 행이 건너뛰어질 수 있습니다. 고유한 id를 함께 넣어 (작성 시각, id)로 비교해야 합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">OFFSET 페이지네이션의 문제점은 무엇인가요?</h3>
+                            <p class="overview-card__desc">OFFSET만큼의 행을 DB가 거쳐 건너뛰어야 해서 뒤쪽 페이지일수록 느려지고, 페이지를 넘기는 사이 앞쪽 데이터가 추가나 삭제되면 같은 글이 중복되거나 어떤 글이 누락됩니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">커서 방식은 어떻게 동작하고 단점은 무엇인가요?</h3>
+                            <p class="overview-card__desc">마지막으로 받은 행의 정렬 키를 where 조건으로 넘겨 그 뒤 행만 인덱스로 읽습니다. 정렬 기준에 맞는 인덱스가 있으면 위치와 무관하게 읽는 행 수가 같고 변경에 강하지만, 임의 페이지로 바로 이동할 수 없고 전체 개수는 별도 COUNT로 구해야 합니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">정렬 기준이 중복되면 커서를 어떻게 만드나요?</h3>
+                            <p class="overview-card__desc">고유한 키를 정렬 기준에 덧붙여 (작성 시각, id) 같은 복합 기준으로 정렬하고, 커서도 그 두 값을 담아 where (created_at, id) &lt; (값1, 값2)처럼 사전순으로 비교합니다. 복합 인덱스가 있으면 효율적으로 읽습니다.</p>
+                        </div>
+                        <div class="overview-card">
+                            <p class="overview-card__label">면접 질문</p>
+                            <h3 class="overview-card__title">무한 스크롤 피드에는 어떤 방식이 맞나요?</h3>
+                            <p class="overview-card__desc">새 글이 계속 올라오고 사용자가 순서대로만 내려가므로 커서 방식이 잘 맞습니다. 변경에도 중복이 없고 깊은 곳까지 일정한 비용으로 읽을 수 있습니다.</p>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">실제 시스템에서는</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>Spring Data</strong> — Pageable과 Page는 OFFSET 방식이고 Page는 보통 전체 개수를 위한 count 쿼리를 추가로 실행합니다(결과가 덜 찬 경우 등에는 생략될 수 있음). 개수가 필요 없으면 Slice를 쓰고, 최근 버전의 Spring Data는 키셋 기반 스크롤(ScrollPosition, Window)도 제공합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>공개 API</strong> — Stripe는 목록 API에서 starting_after, ending_before 커서를 쓰고, GitHub GraphQL API는 first, after 인자와 커서로 이어 가는 커넥션을 씁니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>검색과 NoSQL</strong> — Elasticsearch는 깊은 페이지에 search_after를, DynamoDB는 LastEvaluatedKey와 ExclusiveStartKey로 이어 읽는 커서형 방식을 씁니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>전체 개수 표시</strong> — 페이지 번호 UI는 총 개수를 세는 COUNT가 필요한데, PostgreSQL처럼 MVCC에서 행의 가시성을 확인해야 하는 DB에서는 큰 테이블의 COUNT가 전체 행이나 인덱스를 훑는 일이 되어 비쌀 수 있습니다. 그래서 "다음" 버튼만 두거나 근사값을 쓰기도 합니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">함께 보면 좋은 토픽</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/index}">인덱스</a> — 커서 조건이 인덱스로 위치를 찾는 원리를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/query-plan}">실행 계획</a> — OFFSET 쿼리가 몇 행을 거치는지 실행 계획으로 확인합니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/n-plus-one}">N+1 문제</a> — 목록 API에서 쿼리 횟수가 늘어나는 또 하나의 대표 문제를 봅니다.</span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><a th:href="@{/db/isolation-levels}">트랜잭션 격리 수준</a> — 읽는 도중 데이터가 바뀔 때 보이는 값이 어떻게 달라지는지 봅니다.</span>
+                        </div>
+                    </div>
+
+                    <h2 class="overview-heading">참고 자료</h2>
+                    <div class="overview-points">
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>PostgreSQL</strong> — <a href="https://www.postgresql.org/docs/current/queries-limit.html" target="_blank" rel="noopener">LIMIT and OFFSET</a>, <a href="https://www.postgresql.org/docs/current/functions-comparisons.html#ROW-WISE-COMPARISON" target="_blank" rel="noopener">Row Constructor Comparison</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>구현</strong> — <a href="https://docs.spring.io/spring-data/commons/reference/repositories/scrolling.html" target="_blank" rel="noopener">Spring Data Scrolling</a>, <a href="https://docs.spring.io/spring-data/commons/reference/repositories/query-methods-details.html" target="_blank" rel="noopener">Spring Data Page · Slice</a>, <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/paginate-search-results.html" target="_blank" rel="noopener">Elasticsearch Paginate search results</a></span>
+                        </div>
+                        <div class="overview-point">
+                            <span class="overview-point__dot"></span>
+                            <span><strong>API 규약</strong> — <a href="https://relay.dev/graphql/connections.htm" target="_blank" rel="noopener">GraphQL Cursor Connections Specification</a>, <a href="https://docs.stripe.com/api/pagination" target="_blank" rel="noopener">Stripe API Pagination</a></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 탭 2: 작동 원리 -->
+            <div class="topic-panel" id="panel-visualizer">
+                <div class="visualizer-wrap">
+                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                </div>
+            </div>
+
+            <!-- 탭 3: 코드 연결 -->
+            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code/db/21-30/offset-vs-cursor-pagination-code :: code}"></th:block>
+            </div>
+
+            <!-- 탭 4: 퀴즈 -->
+            <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
+                <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
+            </div>
+
+        </div>
+
+        <!-- 연관 개념 -->
+        <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
+            <p class="related-section__label">Related Concepts</p>
+            <div class="related-grid">
+                <a th:each="related : ${relatedTopics}"
+                   th:href="@{/{subject}/{topic}(subject=${related.subject.slug}, topic=${related.slug})}"
+                   class="related-card">
+                    <div>
+                        <p class="related-card__subject" th:text="${related.subject.name}">과목</p>
+                        <p class="related-card__title" th:text="${related.title}">토픽 제목</p>
+                    </div>
+                    <svg class="related-card__arrow" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/visualizer/viz-common.js}"></script>
+    <script th:src="@{'/js/visualizer/' + ${jsFileKey} + '.js'}"></script>
+    <script th:src="@{/js/quiz.js}"></script>
+    <script th:src="@{/js/like.js}"></script>
+    <script th:src="@{/js/share.js}"></script>
+</body>
+</html>

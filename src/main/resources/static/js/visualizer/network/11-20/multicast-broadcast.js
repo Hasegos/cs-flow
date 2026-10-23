@@ -39,7 +39,7 @@
     var speedWrap = el('div', 'mc-viz__speed');
     speedWrap.appendChild(el('span', 'mc-viz__speed-label', 'SPEED'));
     var speedBtns = [];
-    [['1x', 1700], ['2x', 850], ['3x', 480]].forEach(function (pair, i) {
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
         var b = el('button', 'mc-viz__speed-btn' + (i === 0 ? ' mc-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
@@ -72,11 +72,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'cast';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 데이터: 호스트와 전송 방식 ===================== */
     var HOSTS = ['H1', 'H2', 'H3', 'H4', 'H5'];
@@ -144,173 +211,293 @@
     ];
 
     /* ===================== 상태 ===================== */
-    var mode    = 'cast';
-    var stepIdx = -1;
-    var running = false;
-    var timer   = null;
-    var rafId   = null;
-    var speed   = 1700;
-
     function currentSteps() {
         if (mode === 'addr') return ADDR_STEPS;
         if (mode === 'igmp') return IGMP_STEPS;
         return CAST_STEPS;
     }
-
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        var rad = Math.min(r, w / 2, h / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + rad, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, rad);
-        ctx.arcTo(x + w, y + h, x,     y + h, rad);
-        ctx.arcTo(x,     y + h, x,     y,     rad);
-        ctx.arcTo(x,     y,     x + w, y,     rad);
-        ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
-    }
-    function tx(str, x, y, sz, color, align, bold) {
-        if (sz < 9.5) sz = 9.5;
-        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
+    function defaultLog() {
+        if (mode === 'addr') return '전송 방식별 목적지 주소와 멀티캐스트 MAC 주소 변환을 봅니다.';
+        if (mode === 'igmp') return '멀티캐스트 그룹 가입과 스위치의 전달 범위를 봅니다.';
+        return '유니캐스트, 브로드캐스트, 멀티캐스트가 누구에게 전달되는지 비교합니다.';
     }
 
-    /* ===================== 공통 ===================== */
-    function drawArrow(x1, y1, x2, y2, color) {
-        var ang = Math.atan2(y2 - y1, x2 - x1);
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 2.2;
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(x2, y2);
-        ctx.lineTo(x2 - 8 * Math.cos(ang - 0.45), y2 - 8 * Math.sin(ang - 0.45));
-        ctx.lineTo(x2 - 8 * Math.cos(ang + 0.45), y2 - 8 * Math.sin(ang + 0.45));
-        ctx.closePath();
-        ctx.fillStyle = color;
-        ctx.fill();
+    /* ===================== 레이아웃 ===================== */
+    function layout(w, mob) {
+        var t = mode === 'addr' ? (mob ? 318 : 312) : (mob ? 330 : 290);
+        return { fs: mob ? 10.5 : 12, total: t };
     }
+    function sceneH(w, mob) { return layout(w, mob).total; }
 
-    /* ===================== 모드: 네트워크 장면 (전송 방식, 그룹 가입) ===================== */
-    function drawNet(x0, top, w, mob, step) {
-        var fs = mob ? 10 : 11.5;
+    function ez(q) { q = clamp01(q); return q * q * (3 - 2 * q); }
+
+    /* ===================== 전송 방식, 그룹 가입 ===================== */
+    function drawNet(x0, top, w, mob, s, p, e, fs) {
         var gap = 6;
         var bw = (w - gap * 4) / 5;
-        var hy = top + 108;
-        var hh = 34;
-        var sx = x0 + w / 2 - 44;
-        var sw = 88;
-        var sy = top + 6;
-        var swy = top + 56;
-        var swh = 26;
-        var st = step ? step.st : none();
-        var up = step ? step.up : [];
-        var mem = step ? step.mem : null;
-        var copies = step ? step.copies : 0;
-        rr(sx, sy, sw, 30, 6, P.orange + '18', P.orange + 'aa', 1.3);
-        tx('송신자', sx + sw / 2, sy + 15, fs, P.orange + 'ff', 'center', true);
-        rr(sx - 20, swy, sw + 40, swh, 6, P.purple + '18', P.purple + 'aa', 1.3);
-        tx('스위치', sx + sw / 2, swy + swh / 2, fs, P.purple + 'ff', 'center', true);
-        for (var c = 0; c < copies; c++) {
-            var ox = copies === 1 ? 0 : (c - (copies - 1) / 2) * 12;
-            drawArrow(sx + sw / 2 + ox, sy + 30, sx + sw / 2 + ox, swy, P.yellow + 'ff');
+        var hy = top + 112, hh = mob ? 48 : 38;
+        var sw = 88, sx = x0 + w / 2 - sw / 2, sy = top + 6;
+        var swy = top + 58, swh = mode === 'igmp' ? 42 : 26;
+        var mem = s.mem;
+        var cxS = x0 + w / 2;
+        var hostCx = function (i) { return x0 + i * (bw + gap) + bw / 2; };
+        var replay = s.copies !== p.copies || s.st.join() !== p.st.join() || s.up.join() !== p.up.join();
+        var tag = '패킷';
+
+        rr(sx, sy, sw, 30, 6, P.orange + '18', P.orange + 'ff', 1.3);
+        tx('송신자', cxS, sy + 15, fs, P.orange + 'ff', 'center', true);
+        rr(sx - 20, swy, sw + 40, swh, 6, P.purple + '18', P.purple + 'ff', 1.3);
+        tx('스위치', cxS, swy + 13, fs, P.purple + 'ff', 'center', true);
+        if (mode === 'igmp') {
+            for (var di = 0; di < 5; di++) {
+                var dx = cxS + (di - 2) * 22;
+                var on = mem && mem[di] === 1;
+                var pOn = p.mem && p.mem[di] === 1;
+                var ch = on !== pOn ? seg(e, 0.35, 0.6) : 1;
+                var a = on ? (pOn ? 1 : ch) : (pOn ? 1 - ch : 0);
+                circ(dx, swy + 30, 5, 'none', P.sub + '88', 1.2);
+                if (a > 0) {
+                    ctx.globalAlpha = a;
+                    circ(dx, swy + 30, 5, P.green + 'ff', 'none', 1);
+                    ctx.globalAlpha = 1;
+                }
+            }
         }
+        var swB = swy + swh;
+        var recvList = [];
+        s.st.forEach(function (v, i) { if (v) recvList.push(i); });
+
+        for (var c = 0; c < s.copies; c++) {
+            var ox = s.copies === 1 ? 0 : (c - (s.copies - 1) / 2) * 14;
+            var u1 = replay ? ez(seg(e, c * 0.1, c * 0.1 + 0.3)) : 1;
+            var ya = sy + 30, yb = swy;
+            if (u1 >= 1) arrow(cxS + ox, ya, cxS + ox, yb, P.yellow + 'ff', 2.2);
+            else if (u1 > 0) {
+                var cy = lerp(ya, yb, u1);
+                ln(cxS + ox, ya, cxS + ox, cy, P.yellow + 'ff', 2.2);
+                rr(cxS + ox - 16, cy - 8, 32, 16, 4, P.yellow + 'ff', 'none', 1);
+                tx(tag, cxS + ox, cy, fs - 2, '#111111', 'center', true);
+            }
+        }
+
         HOSTS.forEach(function (name, i) {
             var hx = x0 + i * (bw + gap);
-            var s = st[i];
+            var st = s.st[i];
+            var pst = p.st[i];
             var isMem = mem ? mem[i] === 1 : INTERESTED[i] === 1;
             var col = isMem ? P.green : P.sub;
-            rr(hx, hy, bw, hh, 5, s === 1 ? P.green + '30' : 'none', s === 1 ? P.green + 'ff' : (s === 2 ? P.red + 'cc' : col + '88'), s ? 1.8 : 1.2);
-            tx(name, hx + bw / 2, hy + 12, fs, (isMem ? P.green : P.text) + 'ee', 'center', true);
-            tx(s === 1 ? '수신' : (s === 2 ? '폐기' : (isMem ? (mem ? '가입' : '원함') : (mem ? '미가입' : '관심 없음'))), hx + bw / 2, hy + 26, fs - 2, (s === 2 ? P.red : (isMem ? P.green : P.sub)) + 'ee', 'center', false);
-            var tcx = hx + bw / 2;
-            if (s) drawArrow(sx + sw / 2 + (tcx - (sx + sw / 2)) * 0.15, swy + swh, tcx, hy, (s === 2 ? P.red : P.green) + 'ee');
-            if (up.indexOf(i) >= 0) drawArrow(tcx, hy, sx + sw / 2 + (tcx - (sx + sw / 2)) * 0.15, swy + swh, P.yellow + 'ff');
-        });
-        var py = hy + hh + 14;
-        var lh = mob ? 15 : 17;
-        var ph = lh * 3 + 14;
-        rr(x0, py, w, ph, 6, 'none', P.muted + '55', 1.2);
-        tx('전달 상황', x0 + 10, py + 11, fs - 2, P.sub + 'ee', 'left', true);
-        if (step && step.lines.length) {
-            step.lines.forEach(function (ln, i) {
-                tx(ln, x0 + 10, py + 11 + lh * (i + 1), fs - 1.5, (i === 0 ? P.text : P.yellow) + 'ee', 'left', false);
+            var order = recvList.indexOf(i);
+            var startT = s.copies > 1 && order >= 0 ? 0.3 + order * 0.1 : 0.35;
+            var u2 = st && replay ? ez(seg(e, startT, startT + 0.3)) : 1;
+            var arrived = st ? (replay ? seg(e, startT + 0.25, startT + 0.45) : 1) : 0;
+            var tcx = hostCx(i);
+            var from = { x: cxS + (tcx - cxS) * 0.15, y: swB };
+            var fcol = st === 2 ? P.red : P.green;
+            if (st && u2 > 0) {
+                if (u2 >= 1) arrow(from.x, from.y, tcx, hy, fcol + 'ff', 2);
+                else {
+                    var px = lerp(from.x, tcx, u2), py = lerp(from.y, hy, u2);
+                    ln(from.x, from.y, px, py, P.yellow + 'ff', 2);
+                    rr(px - 14, py - 8, 28, 16, 4, P.yellow + 'ff', 'none', 1);
+                    tx(tag, px, py, fs - 2, '#111111', 'center', true);
+                }
+            }
+            if (s.up.indexOf(i) >= 0) {
+                var uu = replay ? ez(seg(e, 0.05, 0.45)) : 1;
+                var ux = lerp(tcx, from.x, uu), uy = lerp(hy, swB, uu);
+                ln(tcx, hy, ux, uy, P.yellow + 'ff', 2);
+                if (uu < 1) {
+                    var lab = mem && mem[i] === 1 ? 'JOIN' : 'LEAVE';
+                    rr(ux - 20, uy - 8, 40, 16, 4, P.yellow + 'ff', 'none', 1);
+                    tx(lab, ux, uy, fs - 2, '#111111', 'center', true);
+                }
+            }
+            var fillA = st === 1 ? arrived : 0;
+            var edge = st === 1 ? (arrived > 0.3 ? P.green + 'ff' : col + '88') : (st === 2 && arrived > 0.3 ? P.red + 'ff' : col + '88');
+            rr(hx, hy, bw, hh, 5, 'none', edge, st && arrived > 0.3 ? 1.8 : 1.2);
+            if (fillA > 0) { ctx.globalAlpha = fillA; rr(hx, hy, bw, hh, 5, P.green + '30', 'none', 1); ctx.globalAlpha = 1; }
+            tx(name, hx + bw / 2, hy + 12, fs, (isMem ? P.green : P.text) + 'ff', 'center', true);
+            var stateTxt = st === 1 ? '수신' : (st === 2 ? '폐기' : (isMem ? (mem ? '가입' : '원함') : (mem ? '미가입' : '관심 없음')));
+            var showState = st ? arrived : 1;
+            ctx.globalAlpha = showState;
+            lines(stateTxt, bw - 4, fs - 1.5).forEach(function (l, li) {
+                tx(l, hx + bw / 2, hy + 27 + li * 12, fs - 1.5, (st === 2 ? P.red : (isMem || st === 1 ? P.green : P.sub)) + 'ff', 'center', false);
             });
+            ctx.globalAlpha = 1;
+            if (st === 2 && arrived > 0.5) {
+                ln(hx + bw - 16, hy + 4, hx + bw - 6, hy + 14, P.red + 'ff', 2.4);
+                ln(hx + bw - 6, hy + 4, hx + bw - 16, hy + 14, P.red + 'ff', 2.4);
+            }
+            if (pst && !st && e < 1) {
+                ctx.globalAlpha = 1 - e;
+                rr(hx, hy, bw, hh, 5, 'none', P.red + 'ff', 2);
+                ctx.globalAlpha = 1;
+            }
+        });
+
+        var py0 = hy + hh + 14;
+        var lh = mob ? 15 : 17;
+        var wrapped = [];
+        s.lines.forEach(function (l, i) { lines(l, w - 20, fs - 1).forEach(function (m) { wrapped.push([m, i]); }); });
+        var ph = lh * Math.max(3, wrapped.length) + 14;
+        var same = s.lines.join('|') === p.lines.join('|');
+        var ca = same ? 1 : ez(seg(e, 0.2, 0.6));
+        rr(x0, py0, w, ph, 6, 'none', P.sub + '66', 1.2);
+        tx('전달 상황', x0 + 10, py0 + 12, fs - 1, P.sub + 'ff', 'left', true);
+        if (s.lines.length) {
+            ctx.globalAlpha = ca;
+            var yy = py0 + 12 + lh;
+            wrapped.forEach(function (m) {
+                tx(m[0], x0 + 10, yy, fs - 1, (m[1] === 0 ? P.text : P.yellow) + 'ff', 'left', false);
+                yy += lh;
+            });
+            ctx.globalAlpha = 1;
         } else {
-            tx('(아직 전송이 없습니다)', x0 + 10, py + 11 + lh, fs - 1.5, P.sub + 'ee', 'left', false);
+            tx('(아직 전송이 없습니다)', x0 + 10, py0 + 12 + lh, fs - 1, P.sub + 'ff', 'left', false);
         }
-        var ty = py + ph + 10;
+        var ty = py0 + ph + 10;
         var th = 24 + lh;
-        rr(x0, ty, w, th, 6, 'none', P.muted + '55', 1.2);
-        tx(step && step.lab ? step.lab : '확인할 값', x0 + 10, ty + 11, fs - 2, P.sub + 'ee', 'left', true);
-        tx(step && step.val ? step.val : '(없음)', x0 + 10, ty + 11 + lh, fs - 1.5, (step && step.val ? P.green : P.sub) + 'ee', 'left', false);
+        rr(x0, ty, w, th, 6, 'none', P.sub + '66', 1.2);
+        tx(s.lab || '확인할 값', x0 + 10, ty + 12, fs - 1, P.sub + 'ff', 'left', true);
+        var va = s.val === p.val ? 1 : ez(seg(e, 0.4, 0.8));
+        ctx.globalAlpha = s.val ? va : 1;
+        tx(s.val || '(없음)', x0 + 10, ty + 12 + lh, fs - 1, (s.val ? P.green : P.sub) + 'ff', 'left', false);
+        ctx.globalAlpha = 1;
     }
 
-    /* ===================== 모드: 주소 ===================== */
-    function drawAddr(x0, top, w, mob, step) {
-        var fs = mob ? 10 : 11.5;
-        var k = step ? step.k : 0;
-        var rowH = 62;
+    /* ===================== 주소 ===================== */
+    function drawAddr(x0, top, w, mob, s, p, e, fs) {
+        var k = s.k, pk = p.k;
+        var rowH = 52;
         ADDR_ROWS.forEach(function (r, i) {
-            if (k < i + 1 && !(i === 3 && k >= 5)) return;
-            var y = top + i * rowH;
-            var cur = k === i + 1;
+            var shown = k >= i + 1 || (i === 3 && k >= 5);
+            var y = top + 8 + i * rowH;
             var c = P[r.col];
+            if (!shown) {
+                ctx.globalAlpha = 0.3;
+                tx(r.name, x0, y + 8, fs - 0.5, c + 'ff', 'left', true);
+                if (i < 3) {
+                    rr(x0, y + 18, w, 24, 5, 'none', c + 'ff', 1.2);
+                } else {
+                    var gw = Math.min(64, (w - 3 * 4) / 4);
+                    for (var g = 0; g < 4; g++) rr(x0 + g * (gw + 4), y + 18, gw, 22, 4, 'none', c + 'ff', 1.2);
+                }
+                ctx.globalAlpha = 1;
+                return;
+            }
+            var cur = k === i + 1;
+            var fresh = cur && pk < k;
+            var q = fresh ? ez(seg(e, 0, 0.5)) : 1;
+            ctx.globalAlpha = fresh ? lerp(0.3, 1, clamp01(e * 4)) : 1;
             tx(r.name, x0, y + 8, fs - 0.5, c + 'ff', 'left', true);
-            rr(x0, y + 18, w, 24, 5, c + (cur ? '30' : '18'), c + (cur ? 'ff' : '88'), cur ? 1.8 : 1.2);
-            tx(r.val, x0 + w / 2, y + 30, fs - 1, P.text + 'ee', 'center', true);
-            tx(r.note, x0, y + 52, fs - 2, P.sub + 'ee', 'left', false);
+            ctx.globalAlpha = 1;
+            if (i < 3) {
+                rr(x0, y + 18, w, 24, 5, 'none', c + '55', 1.2);
+                rr(x0, y + 18, w * q, 24, 5, c + (cur ? '30' : '18'), c + (cur ? 'ff' : '88'), cur ? 1.8 : 1.2);
+                if (q > 0.6) tx(r.val, x0 + w / 2, y + 30, fs - 0.5, P.text + 'ff', 'center', true);
+                return;
+            }
+            var ipParts = GROUP.split('.');
+            var macParts = macOf(GROUP).split(':');
+            var cw = (w - 5 * 4) / 6;
+            var ipW = Math.min(64, (w - 3 * 4) / 4);
+            var fly = k === 4 && pk < 4 ? ez(seg(e, 0.25, 0.8)) : 1;
+            var showMac = k >= 4 ? (k === 4 && pk < 4 ? seg(e, 0, 0.3) : 1) : 0;
+            var ipY = y + 18, macY = y + 56;
+            tx('IP', x0 + w - 2, ipY - 8, fs - 1.5, P.sub + 'ff', 'right', true);
+            for (var b = 0; b < 4; b++) {
+                var bx = x0 + b * (ipW + 4);
+                rr(bx, ipY, ipW, 22, 4, c + '20', c + 'cc', 1.2);
+                tx(ipParts[b], bx + ipW / 2, ipY + 11, fs - 0.5, P.text + 'ff', 'center', true);
+            }
+            if (k >= 4) {
+                tx('MAC', x0 + w - 2, macY - 8, fs - 1.5, P.sub + 'ff', 'right', true);
+                macParts.forEach(function (m, mi) {
+                    var mx = x0 + mi * (cw + 5);
+                    rr(mx, macY, cw, 22, 4, 'none', P.sub + '55', 1.2);
+                    if (mi < 3) {
+                        ctx.globalAlpha = showMac;
+                        rr(mx, macY, cw, 22, 4, c + '30', c + 'ff', 1.4);
+                        tx(m, mx + cw / 2, macY + 11, fs - 0.5, P.text + 'ff', 'center', true);
+                        ctx.globalAlpha = 1;
+                    } else {
+                        var srcX = x0 + (mi - 2) * (ipW + 4) + ipW / 2 - cw / 2;
+                        var cx2 = lerp(srcX, mx, fly), cy2 = lerp(ipY, macY, fly);
+                        rr(cx2, cy2, cw, 22, 4, c + '40', c + 'ff', 1.4);
+                        tx(m, cx2 + cw / 2, cy2 + 11, fs - 0.5, P.text + 'ff', 'center', true);
+                    }
+                });
+                ctx.globalAlpha = showMac;
+                tx('01:00:5e + 하위 23비트', x0, macY + 34, fs - 1.5, c + 'ff', 'left', true);
+                ctx.globalAlpha = 1;
+            }
         });
+        var baseY = top + 8 + 3 * rowH + (k >= 4 ? 100 : 28);
+        if (k >= 5) {
+            var fresh5 = pk < 5;
+            var q5 = fresh5 ? ez(seg(e, 0.1, 0.7)) : 1;
+            var cw5 = (w - 27) / 28;
+            for (var bi = 0; bi < 28; bi++) {
+                var lost = bi < 5;
+                var col5 = lost ? P.red : P.green;
+                var a5 = clamp01(q5 * 28 - bi);
+                rr(x0 + bi * (cw5 + 1), baseY, cw5, 12, 2, 'none', P.sub + '44', 1);
+                if (a5 > 0) {
+                    ctx.globalAlpha = a5;
+                    rr(x0 + bi * (cw5 + 1), baseY, cw5, 12, 2, col5 + '55', col5 + 'ff', 1);
+                    ctx.globalAlpha = 1;
+                }
+            }
+            lines('그룹 주소 28비트 중 23비트만 MAC으로 · 5비트는 버려져 32개 그룹이 같은 MAC 사용', w, fs - 1).forEach(function (l, li) {
+                ctx.globalAlpha = q5;
+                tx(l, x0, baseY + 24 + li * 14, fs - 1, P.yellow + 'ff', 'left', true);
+                ctx.globalAlpha = 1;
+            });
+        } else if (k >= 1 && k <= 4) {
+            var row = ADDR_ROWS[k - 1];
+            var na = k === pk ? 1 : ez(seg(e, 0.3, 0.8));
+            ctx.globalAlpha = na;
+            lines(row.note, w, fs - 1).forEach(function (l, li) {
+                tx(l, x0, baseY + li * 14, fs - 1, P.yellow + 'ff', 'left', false);
+            });
+            ctx.globalAlpha = 1;
+        }
+    }
+
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var L = layout(w, mob);
+        var e = clamp01(t);
+        var s = step || currentSteps()[0];
+        var p = prev || s;
+        if (mode === 'addr') drawAddr(x0, top, w, mob, s, p, e, L.fs);
+        else drawNet(x0, top, w, mob, s, p, e, L.fs);
     }
 
     /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
     function draw() {
         P = window.CsFlow.getP();
         ctx.clearRect(0, 0, GW(), GH());
         var W = GW(); var mob = W < 600;
-        var padX = mob ? 16 : 26;
-        var fullW = W - padX * 2;
-        var top = mob ? 18 : 26;
-
         var steps = currentSteps();
         var step = stepIdx >= 0 ? steps[stepIdx] : null;
-
-        if (mode === 'addr') drawAddr(padX, top, fullW, mob, step);
-        else drawNet(padX, top, fullW, mob, step);
-
-        if (!step) {
-            var hint = '아래 STEP으로 전송 방식을 확인하세요.';
-            ctx.font = '500 ' + (mob ? 11 : 12.5) + 'px "JetBrains Mono",monospace';
-            var hs = mob ? 11 : 12.5;
-            var hl = [hint];
-            if (ctx.measureText(hint).width > W - 16) {
-                var cut = hint.indexOf(' ', Math.floor(hint.length / 2));
-                if (cut < 0) cut = hint.lastIndexOf(' ');
-                hl = [hint.slice(0, cut), hint.slice(cut + 1)];
-            }
-            hl.forEach(function (line, li) {
-                tx(line, W / 2, GH() - (mob ? 12 : 14) - (hl.length - 1 - li) * (hs + 4), hs, P.muted + 'aa', 'center', false);
-            });
-        }
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
         var mob = w < 600;
-        var neededH;
-        if (mode === 'addr') neededH = mob ? 270 : 280;
-        else neededH = mob ? 290 : 300;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
         canvasWrap.style.height    = 'auto';
-        canvasWrap.style.minHeight = neededH + 'px';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
         var actualH = canvasWrap.offsetHeight || neededH;
         if (actualH < neededH) actualH = neededH;
         canvas.width  = w * dpr;
@@ -322,17 +509,22 @@
     /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        draw();
-        rafId = requestAnimationFrame(function () { rafId = null; if (onDone) onDone(); });
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
     function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
-    function defaultLog() {
-        if (mode === 'addr') return '전송 방식별 목적지 주소와 멀티캐스트 MAC 주소 변환을 봅니다.';
-        if (mode === 'igmp') return '멀티캐스트 그룹 가입과 스위치의 전달 범위를 봅니다.';
-        return '유니캐스트, 브로드캐스트, 멀티캐스트가 누구에게 전달되는지 비교합니다.';
-    }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -371,7 +563,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);

@@ -44,3 +44,4 @@ architecture/
 .claude-designlog-hooks.log
 ### graphify ###
 graphify-out/
+scripts/__pycache__/

@@ -39,7 +39,7 @@
     var speedWrap = el('div', 'zo-viz__speed');
     speedWrap.appendChild(el('span', 'zo-viz__speed-label', 'SPEED'));
     var speedBtns = [];
-    [['1x', 1700], ['2x', 850], ['3x', 480]].forEach(function (pair, i) {
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
         var b = el('button', 'zo-viz__speed-btn' + (i === 0 ? ' zo-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
@@ -72,11 +72,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'zombie';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 데이터: 프로세스 테이블 ===================== */
     var INIT = { pid: 1, ppid: 0, st: 'S', n: 'init (systemd)' };
@@ -116,135 +183,271 @@
         .concat([{ z: 0, reaped: true, log: '부모가 wait()로 좀비를 회수하거나 부모가 종료되면 좀비 항목이 사라지고 칸이 비워집니다. 자식이 끝날 때마다 회수하는 것이 해결책입니다.' }]);
 
     /* ===================== 상태 ===================== */
-    var mode    = 'zombie';
-    var stepIdx = -1;
-    var running = false;
-    var timer   = null;
-    var rafId   = null;
-    var speed   = 1700;
-
     function currentSteps() {
         if (mode === 'orphan') return ORPHAN_STEPS;
         if (mode === 'pile') return PILE_STEPS;
         return ZOMBIE_STEPS;
     }
-
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        var rad = Math.min(r, w / 2, h / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + rad, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, rad);
-        ctx.arcTo(x + w, y + h, x,     y + h, rad);
-        ctx.arcTo(x,     y + h, x,     y,     rad);
-        ctx.arcTo(x,     y,     x + w, y,     rad);
-        ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
-    }
-    function tx(str, x, y, sz, color, align, bold) {
-        if (sz < 9.5) sz = 9.5;
-        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
+    function defaultLog() {
+        if (mode === 'orphan') return '부모가 먼저 종료되었을 때 자식이 init에게 입양되는 과정을 봅니다.';
+        if (mode === 'pile') return '부모가 종료 상태를 회수하지 않을 때 좀비가 프로세스 테이블을 채우는 모습을 봅니다.';
+        return '자식이 종료했는데 부모가 회수하지 않을 때 좀비가 되는 과정을 봅니다.';
     }
 
-    /* ===================== 모드: 프로세스 테이블 ===================== */
-    function drawTable(x0, top, w, mob, step) {
-        var fs = mob ? 10.5 : 12;
-        var rows = step ? step.rows : [];
-        var hl = step ? step.hl : -1;
+    /* ===================== 레이아웃 ===================== */
+    function dims(w, mob) {
+        var lvl = mob ? 46 : 52;
+        var nodeH = 34;
         var rh = mob ? 32 : 36;
-        var c = [x0 + 8, x0 + w * 0.2, x0 + w * 0.38, x0 + w * 0.6];
-        tx('PID', c[0], top + 12, fs - 1, P.muted + 'ee', 'left', true);
-        tx('PPID', c[1], top + 12, fs - 1, P.muted + 'ee', 'left', true);
-        tx('상태', c[2], top + 12, fs - 1, P.muted + 'ee', 'left', true);
-        tx('프로세스', c[3], top + 12, fs - 1, P.muted + 'ee', 'left', true);
-        rows.forEach(function (r, i) {
-            var y = top + 24 + i * (rh + 6);
-            var zom = r.st === 'Z';
-            var col = zom ? P.red : (r.pid === 1 ? P.purple : P.teal);
-            var hot = i === hl;
-            rr(x0, y, w - 2, rh, 5, col + (hot ? '34' : '1c'), col + (hot ? 'ff' : 'aa'), hot ? 2 : 1.3);
-            tx(String(r.pid), c[0], y + rh / 2, fs, P.text + 'ee', 'left', true);
-            tx(String(r.ppid), c[1], y + rh / 2, fs, r.ppid === 1 && r.pid !== 1 ? P.yellow + 'ee' : P.text + 'ee', 'left', true);
-            tx(STATE_LABEL[r.st], c[2], y + rh / 2, fs - 0.5, col + 'ee', 'left', true);
-            tx(r.n, c[3], y + rh / 2, fs - 0.5, P.text + 'ee', 'left', false);
+        var treeH = 2 * lvl + nodeH + 44;
+        var tableH = 24 + 3 * (rh + 6);
+        var stack = mob;
+        return { lvl: lvl, nodeH: nodeH, rh: rh, treeH: treeH, tableH: tableH, stack: stack, fs: mob ? 11 : 12 };
+    }
+    function layout(w, mob) {
+        var d = dims(w, mob);
+        if (mode === 'pile') return { fs: d.fs, total: 28 + 2 * ((mob ? 44 : 50) + 6) + 14 + 24 };
+        return { fs: d.fs, total: (d.stack ? d.treeH + 10 + d.tableH : Math.max(d.treeH, d.tableH)) + 14 };
+    }
+    function sceneH(w, mob) { return layout(w, mob).total; }
+
+    function ez(q) { q = clamp01(q); return q * q * (3 - 2 * q); }
+    function findRow(rows, pid) {
+        for (var i = 0; i < rows.length; i++) { if (rows[i].pid === pid) return i; }
+        return -1;
+    }
+    function depthOf(rows, r) {
+        if (r.pid === 1) return 0;
+        var pi = findRow(rows, r.ppid);
+        if (pi >= 0) return depthOf(rows, rows[pi]) + 1;
+        if (r.ppid === 1) return 1;
+        return r.pid === C_PID ? 2 : 1;
+    }
+
+    /* ===================== 프로세스 트리와 표 ===================== */
+    function drawTree(x0, top, w, mob, s, p, e, d) {
+        var cx = x0 + w / 2;
+        var nw = mob ? 104 : 116;
+        var y0 = top + 40;
+        var col = function (r) { return r.st === 'Z' ? P.red : (r.pid === 1 ? P.purple : P.teal); };
+        tx('프로세스 트리', x0, top + 8, d.fs - 0.5, P.sub + 'ff', 'left', true);
+        function posOf(rows, r) { return { x: cx, y: y0 + depthOf(rows, r) * d.lvl }; }
+        var k;
+        var seen = {};
+        var list = [];
+        s.rows.forEach(function (r) { list.push({ r: r, cur: true }); seen[r.pid] = 1; });
+        p.rows.forEach(function (r) { if (!seen[r.pid]) list.push({ r: r, cur: false }); });
+        var q = ez(e);
+        var ghost = null;
+        s.rows.forEach(function (r) {
+            if (r.pid !== 1 && r.ppid !== 1 && findRow(s.rows, r.ppid) < 0 && r.pid === C_PID) ghost = { pid: r.ppid, y: y0 + d.lvl };
+        });
+        /* 선 */
+        s.rows.forEach(function (r) {
+            if (r.pid === 1) return;
+            var pi = findRow(p.rows, r.pid);
+            var to = posOf(s.rows, r);
+            var from = pi >= 0 ? posOf(p.rows, p.rows[pi]) : null;
+            var par = findRow(s.rows, r.ppid);
+            var src = par >= 0 ? posOf(s.rows, s.rows[par]) : (r.ppid === 1 ? posOf(s.rows, s.rows[0]) : (ghost && r.pid === C_PID ? { x: cx, y: ghost.y } : null));
+            if (!src) return;
+            var ppar = pi >= 0 ? findRow(p.rows, p.rows[pi].ppid) : -1;
+            var psrc = ppar >= 0 ? posOf(p.rows, p.rows[ppar]) : (pi >= 0 && p.rows[pi].ppid === 1 ? posOf(p.rows, p.rows[0]) : (pi >= 0 ? { x: cx, y: y0 + d.lvl } : src));
+            var sy = lerp(psrc.y, src.y, q);
+            var ny = pi >= 0 ? lerp(from.y, to.y, q) : lerp(src.y, to.y, q);
+            var dang = par < 0 && r.ppid !== 1;
+            ctx.setLineDash(dang ? [4, 3] : []);
+            ln(cx, sy + d.nodeH / 2 - 2, cx, ny - d.nodeH / 2 + 2, (dang ? P.yellow : P.sub) + 'ff', 2);
+            ctx.setLineDash([]);
+        });
+        /* 사라지는 부모의 자리표시 */
+        if (ghost) {
+            ctx.setLineDash([4, 3]);
+            rr(cx - nw / 2, ghost.y - d.nodeH / 2, nw, d.nodeH, 6, 'none', P.red + 'aa', 1.4);
+            ctx.setLineDash([]);
+            tx('PID ' + ghost.pid + ' 종료', cx, ghost.y, d.fs - 1, P.red + 'cc', 'center', true);
+        }
+        /* 노드 */
+        list.forEach(function (it) {
+            var r = it.r;
+            var pi = findRow(p.rows, r.pid);
+            var ci = findRow(s.rows, r.pid);
+            var to = ci >= 0 ? posOf(s.rows, r) : posOf(p.rows, r);
+            var from = pi >= 0 ? posOf(p.rows, p.rows[pi]) : null;
+            var pos = { x: to.x, y: to.y };
+            var a = 1;
+            var sc = 1;
+            if (ci >= 0 && pi >= 0) pos.y = lerp(from.y, to.y, q);
+            else if (ci >= 0) {
+                var pr = findRow(s.rows, r.ppid);
+                var ps = pr >= 0 ? posOf(s.rows, s.rows[pr]) : to;
+                pos.y = lerp(ps.y, to.y, q);
+                a = clamp01(e * 2);
+            } else { a = clamp01(1 - e * 1.6); sc = 1 - 0.1 * q; }
+            if (a <= 0) return;
+            var c = col(r);
+            var prevSt = pi >= 0 ? p.rows[pi].st : r.st;
+            var changed = ci >= 0 && pi >= 0 && prevSt !== r.st;
+            var hot = ci >= 0 && s.hl === ci && s.rows.length > 0;
+            ctx.globalAlpha = a;
+            rr(cx - nw * sc / 2, pos.y - d.nodeH * sc / 2, nw * sc, d.nodeH * sc, 6, c + '2a', changed && e < 1 ? P.yellow + 'ff' : c + (hot ? 'ff' : 'cc'), changed && e < 1 ? 3 : (hot ? 2.4 : 1.6));
+            var label = r.n.split(' ')[0] + ' · ' + r.pid;
+            tx(label, cx, pos.y - 6, d.fs - 1, P.text + 'ff', 'center', true);
+            tx(STATE_LABEL[r.st], cx, pos.y + 8, d.fs - 1.5, c + 'ff', 'center', true);
+            ctx.globalAlpha = 1;
+            if (changed && e < 1) circ(cx, pos.y, 14 + e * 40, 'none', c + 'ff', 2);
+            if (ci < 0 && e < 1) {
+                tx('exit', cx + nw / 2 + 24, pos.y, d.fs - 1, P.red + 'ff', 'left', true);
+            }
+        });
+        /* wait() 회수 */
+        var zIn = p.rows.filter(function (r) { return r.st === 'Z'; });
+        zIn.forEach(function (z) {
+            if (findRow(s.rows, z.pid) >= 0 || e >= 1) return;
+            var par = findRow(p.rows, z.ppid);
+            if (par < 0) return;
+            var a = posOf(p.rows, z), b = posOf(p.rows, p.rows[par]);
+            circ(cx + nw / 2 + 10, lerp(a.y, b.y, ez(e)), 5, P.yellow + 'ff', 'none');
+            tx('wait()', cx + nw / 2 + 22, lerp(a.y, b.y, ez(e)) - 12, d.fs - 1, P.yellow + 'ff', 'left', true);
         });
     }
 
-    /* ===================== 모드: 좀비 누적 ===================== */
-    function drawPile(x0, top, w, mob, step) {
-        var fs = mob ? 10.5 : 12;
-        var z = step ? step.z : 0;
-        var fail = step ? !!step.fail : false;
-        var gap = 6;
-        var perRow = 4;
+    function drawTable(x0, top, w, mob, s, p, e, d) {
+        var fs = d.fs;
+        var rh = d.rh;
+        var c = [x0 + 8, x0 + w * 0.2, x0 + w * 0.38, x0 + w * 0.6];
+        var q = ez(e);
+        tx('PID', c[0], top + 12, fs - 1, P.sub + 'ff', 'left', true);
+        tx('PPID', c[1], top + 12, fs - 1, P.sub + 'ff', 'left', true);
+        tx('상태', c[2], top + 12, fs - 1, P.sub + 'ff', 'left', true);
+        tx('프로세스', c[3], top + 12, fs - 1, P.sub + 'ff', 'left', true);
+        var seen = {};
+        var list = [];
+        s.rows.forEach(function (r, i) { list.push({ r: r, i: i, cur: true }); seen[r.pid] = 1; });
+        p.rows.forEach(function (r, i) { if (!seen[r.pid]) list.push({ r: r, i: i, cur: false }); });
+        list.forEach(function (it) {
+            var r = it.r;
+            var pi = findRow(p.rows, r.pid);
+            var ci = findRow(s.rows, r.pid);
+            var yi = ci >= 0 ? ci : pi;
+            var y = top + 24 + yi * (rh + 6);
+            var a = 1;
+            if (ci >= 0 && pi >= 0) y = top + 24 + lerp(pi, ci, q) * (rh + 6);
+            else if (ci >= 0) a = clamp01(e * 2);
+            else a = clamp01(1 - e * 1.6);
+            if (a <= 0) return;
+            var zom = r.st === 'Z';
+            var col = zom ? P.red : (r.pid === 1 ? P.purple : P.teal);
+            var hot = ci >= 0 && ci === s.hl;
+            var prow = pi >= 0 ? p.rows[pi] : r;
+            var chSt = ci >= 0 && pi >= 0 && prow.st !== r.st && e < 1;
+            var chPp = ci >= 0 && pi >= 0 && prow.ppid !== r.ppid;
+            var off = ci >= 0 && pi < 0 ? (1 - clamp01(e * 2)) * 24 : 0;
+            ctx.globalAlpha = a;
+            rr(x0 + off, y, w - 2, rh, 5, col + (hot ? '34' : '1c'), chSt ? P.yellow + 'ff' : col + (hot ? 'ff' : 'aa'), chSt ? 2.6 : (hot ? 2 : 1.3));
+            tx(String(r.pid), c[0] + off, y + rh / 2, fs, P.text + 'ee', 'left', true);
+            if (chPp && e < 1) {
+                ctx.globalAlpha = a * (1 - q);
+                tx(String(prow.ppid), c[1], y + rh / 2 - q * 10, fs, P.text + 'ee', 'left', true);
+                ctx.globalAlpha = a * q;
+                tx(String(r.ppid), c[1], y + rh / 2 + (1 - q) * 10, fs, P.yellow + 'ff', 'left', true);
+                ctx.globalAlpha = a;
+            } else {
+                tx(String(r.ppid), c[1] + off, y + rh / 2, fs, r.ppid === 1 && r.pid !== 1 ? P.yellow + 'ee' : P.text + 'ee', 'left', true);
+            }
+            tx(STATE_LABEL[r.st], c[2] + off, y + rh / 2, fs - 0.5, col + 'ee', 'left', true);
+            tx(r.n, c[3] + off, y + rh / 2, fs - 0.5, P.text + 'ee', 'left', false);
+            ctx.globalAlpha = 1;
+        });
+    }
+
+    /* ===================== 좀비 누적 ===================== */
+    function drawPile(x0, top, w, mob, s, p, e, d) {
+        var fs = d.fs;
+        var gap = 6, perRow = 4;
         var cw = (w - gap * (perRow - 1)) / perRow;
         var ch = mob ? 44 : 50;
+        var shake = s.fail && !p.fail && e < 1 ? Math.sin(e * 50) * 3 * (1 - e) : 0;
         tx('프로세스 테이블 (' + CAP + '칸 가정)', x0, top + 12, fs, P.text + 'ee', 'left', true);
         for (var i = 0; i < CAP; i++) {
-            var gx = x0 + (i % perRow) * (cw + gap);
+            var gx = x0 + (i % perRow) * (cw + gap) + shake;
             var gy = top + 28 + Math.floor(i / perRow) * (ch + gap);
             var label = '';
-            var col = P.muted;
+            var col = P.sub;
+            var a = 1;
+            var sc = 1;
             if (i === 0) { label = 'init'; col = P.purple; }
             else if (i === 1) { label = '부모'; col = P.teal; }
-            else if (i - FIXED < z) { label = '좀비'; col = P.red; }
+            else if (i - FIXED < s.z) {
+                label = '좀비'; col = P.red;
+                if (i - FIXED >= p.z) { var qq = clamp01((e - (i - FIXED - p.z) * 0.18) / 0.4); a = qq; sc = 0.6 + 0.4 * qq; }
+            } else if (i - FIXED < p.z) {
+                label = '좀비'; col = P.red;
+                a = clamp01(1 - e * 1.8);
+                sc = 0.6 + 0.4 * a;
+            }
             var on = label !== '';
-            rr(gx, gy, cw, ch, 5, on ? col + '24' : 'none', on ? col + 'cc' : P.muted + '44', on ? 1.6 : 1.2);
-            if (on) tx(label, gx + cw / 2, gy + ch / 2, fs, col + 'ee', 'center', true);
+            rr(gx, gy, cw, ch, 5, 'none', P.sub + '66', 1.2);
+            if (on) {
+                ctx.globalAlpha = a;
+                rr(gx + cw * (1 - sc) / 2, gy + ch * (1 - sc) / 2, cw * sc, ch * sc, 5, col + '30', s.fail ? P.red + 'ff' : col + 'dd', s.fail ? 2.4 : 1.8);
+                tx(label, gx + cw / 2, gy + ch / 2, fs, col + 'ff', 'center', true);
+                ctx.globalAlpha = 1;
+            }
         }
-        var used = FIXED + z;
+        var used = FIXED + s.z;
         var by = top + 28 + 2 * (ch + gap) + 14;
-        tx('사용 ' + used + ' / ' + CAP, x0, by, fs + 0.5, used >= CAP ? P.red + 'ee' : P.text + 'ee', 'left', true);
-        if (fail) tx('fork 실패: 더 만들 수 없음', x0 + w, by, fs, P.red + 'ee', 'right', true);
+        var shownUsed = Math.round(lerp(FIXED + p.z, used, ez(e)));
+        tx('사용 ' + shownUsed + ' / ' + CAP, x0, by, fs + 0.5, shownUsed >= CAP ? P.red + 'ff' : P.text + 'ee', 'left', true);
+        if (s.fail) {
+            ctx.globalAlpha = p.fail ? 1 : clamp01((e - 0.4) / 0.6);
+            tx('fork 실패: 더 만들 수 없음', x0 + w, by, fs, P.red + 'ff', 'right', true);
+            ctx.globalAlpha = 1;
+        }
+        if (s.reaped && e < 1) tx('wait()로 회수', x0 + w, by, fs, P.yellow + 'ff', 'right', true);
+    }
+
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var d = dims(w, mob);
+        var e = clamp01(t);
+        var s = step || currentSteps()[0];
+        var p = prev || s;
+        if (mode === 'pile') { drawPile(x0, top + 8, w, mob, s, p, e, d); return; }
+        if (d.stack) {
+            drawTree(x0, top + 8, w, mob, s, p, e, d);
+            drawTable(x0, top + 8 + d.treeH + 10, w, mob, s, p, e, d);
+        } else {
+            var tw = w * 0.4;
+            drawTree(x0, top + 8, tw, mob, s, p, e, d);
+            drawTable(x0 + tw + w * 0.04, top + 8, w - tw - w * 0.04, mob, s, p, e, d);
+        }
     }
 
     /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
     function draw() {
         P = window.CsFlow.getP();
         ctx.clearRect(0, 0, GW(), GH());
         var W = GW(); var mob = W < 600;
-        var padX = mob ? 16 : 26;
-        var fullW = W - padX * 2;
-        var top = mob ? 18 : 26;
-
         var steps = currentSteps();
         var step = stepIdx >= 0 ? steps[stepIdx] : null;
-
-        if (mode === 'pile') drawPile(padX, top, fullW, mob, step);
-        else drawTable(padX, top, fullW, mob, step);
-
-        if (!step) {
-            var hint = '아래 STEP으로 좀비와 고아의 차이를 확인하세요.';
-            ctx.font = '500 ' + (mob ? 11 : 12.5) + 'px "JetBrains Mono",monospace';
-            var hs = mob ? 11 : 12.5;
-            var hl = [hint];
-            if (ctx.measureText(hint).width > W - 16) {
-                var cut = hint.indexOf(' ', Math.floor(hint.length / 2));
-                if (cut < 0) cut = hint.lastIndexOf(' ');
-                hl = [hint.slice(0, cut), hint.slice(cut + 1)];
-            }
-            hl.forEach(function (line, li) {
-                tx(line, W / 2, GH() - (mob ? 12 : 14) - (hl.length - 1 - li) * (hs + 4), hs, P.muted + 'aa', 'center', false);
-            });
-        }
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
         var mob = w < 600;
-        var neededH;
-        if (mode === 'pile') neededH = mob ? 230 : 240;
-        else neededH = mob ? 210 : 220;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
         canvasWrap.style.height    = 'auto';
-        canvasWrap.style.minHeight = neededH + 'px';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
         var actualH = canvasWrap.offsetHeight || neededH;
         if (actualH < neededH) actualH = neededH;
         canvas.width  = w * dpr;
@@ -256,17 +459,22 @@
     /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        draw();
-        rafId = requestAnimationFrame(function () { rafId = null; if (onDone) onDone(); });
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
     function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
-    function defaultLog() {
-        if (mode === 'orphan') return '부모가 먼저 종료되었을 때 자식이 init에게 입양되는 과정을 봅니다.';
-        if (mode === 'pile') return '부모가 종료 상태를 회수하지 않을 때 좀비가 프로세스 테이블을 채우는 모습을 봅니다.';
-        return '자식이 종료했는데 부모가 회수하지 않을 때 좀비가 되는 과정을 봅니다.';
-    }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -305,7 +513,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);

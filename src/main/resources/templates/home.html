@@ -67,7 +67,7 @@
                 <div class="section-header">
                     <p class="section-header__label">Subjects</p>
                     <h2 class="section-header__title">무엇을 배울까요?</h2>
-                    <p class="section-header__desc">6개 과목, 핵심 개념만 골라 시각화했어요.</p>
+                    <p class="section-header__desc"><span th:text="${#lists.size(subjects)}">6</span>개 과목, 핵심 개념만 골라 시각화했어요.</p>
                 </div>
 
                 <div class="subject-grid">
@@ -79,6 +79,20 @@
                         <div class="subject-card__body">
                             <span class="subject-card__slug" th:text="${subject.slug}">arch</span>
                             <h3 class="subject-card__name" th:text="${subject.name}">컴퓨터 구조</h3>
+                        </div>
+                        <div class="subject-card__arrow">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                 stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="5" y1="12" x2="19" y2="12"/>
+                                <polyline points="12 5 19 12 12 19"/>
+                            </svg>
+                        </div>
+                    </a>
+                    <a th:href="@{/errors}" class="subject-card subject-card--errors">
+                        <div class="subject-card__accent-bar"></div>
+                        <div class="subject-card__body">
+                            <span class="subject-card__slug">errors</span>
+                            <h3 class="subject-card__name">에러 사전</h3>
                         </div>
                         <div class="subject-card__arrow">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"

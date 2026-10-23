@@ -1,5 +1,5 @@
 /**
- * 세그먼트 트리 시각화
+ * 세그먼트 트리 시각화 시각화
  */
 (function () {
     'use strict';
@@ -39,7 +39,7 @@
     var speedWrap = el('div', 'seg-viz__speed');
     speedWrap.appendChild(el('span', 'seg-viz__speed-label', 'SPEED'));
     var speedBtns = [];
-    [['1x', 1700], ['2x', 850], ['3x', 480]].forEach(function (pair, i) {
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
         var b = el('button', 'seg-viz__speed-btn' + (i === 0 ? ' seg-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
@@ -72,11 +72,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'build';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 엔진: 구간 합 세그먼트 트리 ===================== */
     function jg(n, a, b) {
@@ -203,141 +270,318 @@
     UP_STEPS.push({ show: 0, vals: upVals.slice(), st: upSt, cap: '갱신한 노드 ' + UP_PATH.length + '개 (전체 ' + (2 * N - 1) + '개)', cap2: '', arr: [], mark: UP_IDX, log: '정리 — 값 하나를 바꾸려고 리프에서 루트까지의 노드 ' + UP_PATH.length + '개만 다시 계산했습니다. 이 개수는 층 수와 같은 ⌈log2 n⌉ + 1이어서 갱신은 O(log n)입니다.' });
 
     /* ===================== 상태 ===================== */
-    var mode    = 'build';
-    var stepIdx = -1;
-    var running = false;
-    var timer   = null;
-    var rafId   = null;
-    var speed   = 1700;
-
     function currentSteps() {
         if (mode === 'query') return QUERY_STEPS;
         if (mode === 'update') return UP_STEPS;
         return BUILD_STEPS;
     }
-
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        var rad = Math.min(r, w / 2, h / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + rad, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, rad);
-        ctx.arcTo(x + w, y + h, x,     y + h, rad);
-        ctx.arcTo(x,     y + h, x,     y,     rad);
-        ctx.arcTo(x,     y,     x + w, y,     rad);
-        ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    function defaultLog() {
+        if (mode === 'query') return '구간 합을 구할 때 트리의 어떤 노드를 방문하고 더하는지 봅니다.';
+        if (mode === 'update') return '배열 값을 바꿀 때 트리의 노드가 어떻게 갱신되는지 봅니다.';
+        return '배열에서 구간 합 세그먼트 트리를 아래에서 위로 만드는 과정을 봅니다.';
     }
-    function tx(str, x, y, sz, color, align, bold) {
-        if (sz < 9.5) sz = 9.5;
-        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
-    }
+    function ez(q) { q = clamp01(q); return q * q * (3 - 2 * q); }
 
-    /* ===================== 공통: 트리 그리기 ===================== */
-    function drawSeg(x0, top, w, mob, step, mode) {
-        var fs = mob ? 10 : 11.5;
-        var vals = step && step.vals ? step.vals : TREE;
-        var st = step ? step.st : {};
-        var show = step ? step.show : 0;
-        var bw = mob ? 34 : 46;
-        var bh = 22;
-        var dy = 44;
+    /* ===================== 레이아웃 ===================== */
+    var sgLayMemo = {};
+    function sgCapH(w, fs) {
+        var mx = 0;
+        currentSteps().forEach(function (s) {
+            var h = 0;
+            if (s.cap) h += lines(s.cap, w - 8, fs).length * (fs + 5);
+            if (s.cap2) h += lines(s.cap2, w - 8, fs).length * (fs + 5);
+            if (h > mx) mx = h;
+        });
+        return mx;
+    }
+    function layout(w, mob) {
+        var key = mode + '|' + Math.round(w) + (mob ? 'm' : 'd');
+        if (sgLayMemo[key]) return sgLayMemo[key];
+        var fs = mob ? 11 : 12;
+        var bh = mob ? 20 : 24;
+        var ah = mob ? 20 : 24;
+        var dy = mob ? 38 : 50;
+        var L = { fs: fs, bw: mob ? 24 : 40, bh: bh, ah: ah, dy: dy, leafW: w / N, treeTop: bh / 2 + 4, gc: mob ? 32 : 46, cw2: mob ? 28 : 38 };
+        L.arrY = L.treeTop + MAXD * dy + bh / 2 + (mob ? 20 : 24);
+        L.idxY = L.arrY + ah + 8;
+        L.barY = L.arrY + ah + 18;
+        L.accY = L.barY + 14;
+        L.capTop = (mode === 'query' ? L.accY + ah : L.barY + 6) + 14;
+        L.total = L.capTop + sgCapH(w, fs) + 6;
+        sgLayMemo[key] = L;
+        return L;
+    }
+    function sceneH(w, mob) { return layout(w, mob).total; }
+    function sgPos(x0, top, L) {
         var pos = {};
-        var leafW = w / N;
-        for (var i = 2 * N - 1; i >= 1; i--) {
-            var d = depthOf(i);
-            var x;
-            if (i >= N) x = x0 + (i - N + 0.5) * leafW;
-            else x = (pos[i * 2].x + pos[i * 2 + 1].x) / 2;
-            pos[i] = { x: x, y: top + 14 + d * dy };
+        var i;
+        for (i = 2 * N - 1; i >= 1; i--) {
+            var x = i >= N ? x0 + (i - N + 0.5) * L.leafW : (pos[i * 2].x + pos[i * 2 + 1].x) / 2;
+            pos[i] = { x: x, y: top + L.treeTop + depthOf(i) * L.dy };
         }
-        for (var e = 2; e < 2 * N; e++) {
-            var p = e >> 1;
-            if (depthOf(e) < show) continue;
-            ctx.beginPath();
-            ctx.moveTo(pos[p].x, pos[p].y + bh / 2);
-            ctx.lineTo(pos[e].x, pos[e].y - bh / 2);
-            ctx.strokeStyle = P.sub + '88';
-            ctx.lineWidth = 1.3;
-            ctx.stroke();
+        return pos;
+    }
+    function sgVis(st, n) { return depthOf(n) >= st.show; }
+    function sgVal(st, n) { return st.vals ? st.vals[n] : TREE[n]; }
+    function sgArrVal(st, a) { return st.mark === a && st.vals ? st.vals[N + a] : ARR[a]; }
+    function sgCover(st) {
+        var out = [];
+        var a;
+        var n;
+        for (a = 0; a < N; a++) out.push(false);
+        for (n = 1; n < 2 * N; n++) {
+            if (st.st[n] !== 'full') continue;
+            for (a = RNG[n][0]; a <= RNG[n][1]; a++) out[a] = true;
         }
-        for (var n = 1; n < 2 * N; n++) {
-            if (depthOf(n) < show) continue;
-            var s = st[n];
-            var col = P.sub;
-            var fill = 'none';
-            var lw = 1.2;
-            if (s === 'new') { col = P.teal; fill = P.teal + '30'; lw = 1.8; }
-            else if (s === 'part') { col = P.yellow; fill = P.yellow + '22'; lw = 1.8; }
-            else if (s === 'out') { col = P.red; fill = P.red + '18'; lw = 1.4; }
-            else if (s === 'full') { col = P.green; fill = P.green + '35'; lw = 2; }
-            else if (s === 'upd') { col = P.orange; fill = P.orange + '35'; lw = 2; }
-            else if (mode !== 'build') { col = P.teal; fill = 'none'; lw = 1.2; }
-            else { col = P.teal; fill = P.teal + '18'; }
-            rr(pos[n].x - bw / 2, pos[n].y - bh / 2, bw, bh, 4, fill, col + (s ? 'ff' : '99'), lw);
-            tx(String(vals[n]), pos[n].x, pos[n].y, fs, P.text + 'ee', 'center', true);
+        return out;
+    }
+
+    /* ===================== 그리기 헬퍼 ===================== */
+    function sgCol(st) {
+        if (st === 'out') return P.red;
+        if (st === 'full') return P.green;
+        if (st === 'part') return P.yellow;
+        if (st === 'upd') return P.orange;
+        if (st === 'new') return P.teal;
+        return P.sub;
+    }
+    function sgStyle(st) {
+        if (!st) return null;
+        return { col: sgCol(st), fill: sgCol(st) + '40', lw: 2 };
+    }
+    function sgBox(x, y, L, sty, alpha) {
+        ctx.globalAlpha = alpha;
+        if (sty) rr(x - L.bw / 2, y - L.bh / 2, L.bw, L.bh, 4, sty.fill, sty.col + 'ff', sty.lw);
+        else rr(x - L.bw / 2, y - L.bh / 2, L.bw, L.bh, 4, 'none', P.sub + '88', 1.2);
+        ctx.globalAlpha = 1;
+    }
+    function sgGhost(x, y, L) {
+        rr(x - L.bw / 2, y - L.bh / 2, L.bw, L.bh, 4, 'none', P.sub + '44', 1);
+    }
+    function sgNum(x, y, str, L, alpha) {
+        ctx.globalAlpha = alpha;
+        tx(str, x, y, L.fs, P.text + 'ff', 'center', true);
+        ctx.globalAlpha = 1;
+    }
+    function sgChip(x, y, L, str, col, alpha) {
+        ctx.globalAlpha = alpha;
+        rr(x - L.cw2 / 2, y - L.ah / 2, L.cw2, L.ah, 4, col + '40', col + 'ff', 1.4);
+        tx(str, x, y, L.fs, P.text + 'ff', 'center', true);
+        ctx.globalAlpha = 1;
+    }
+    function sgLink(a, b, L, col, lw, alpha) {
+        ctx.globalAlpha = alpha;
+        ln(a.x, a.y + L.bh / 2, b.x, b.y - L.bh / 2, col, lw);
+        ctx.globalAlpha = 1;
+    }
+    function sgBar(x0, y, L, l, r, col, prog) {
+        rr(x0 + l * L.leafW + 2, y, ((r - l + 1) * L.leafW - 4) * prog, 6, 3, col + 'bb', col + 'ff', 1);
+    }
+    function sgSlotX(gx0, L, idx) { return gx0 + idx * L.gc + L.gc / 2; }
+
+    /* ===================== 장면 진입점 ===================== */
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var s = step || currentSteps()[0];
+        var p = prev || s;
+        var fresh = s !== p;
+        var e = fresh ? clamp01(t) : 1;
+        var L = layout(w, mob);
+        var NN = 2 * N;
+        var pos = sgPos(x0, top, L);
+        var cur = -1;
+        var mv = [];
+        var rise = [];
+        var dpos = [];
+        var n;
+        var a;
+        if (fresh && mode !== 'build') {
+            for (n = 1; n < NN; n++) {
+                if ((s.st[n] || '') !== (p.st[n] || '')) cur = n;
+            }
         }
-        var ay = top + 14 + (MAXD + 1) * dy + 4;
-        var arr = step ? step.arr : [];
-        var aw = leafW - 4;
-        for (var a = 0; a < N; a++) {
-            var ax = x0 + a * leafW + 2;
-            var inq = arr.indexOf(a) >= 0;
-            var mk = step && step.mark === a;
-            var c = mk ? P.orange : (inq ? P.yellow : P.sub);
-            rr(ax, ay, aw, 20, 3, mk ? P.orange + '35' : (inq ? P.yellow + '25' : 'none'), c + (inq || mk ? 'ff' : '88'), inq || mk ? 1.6 : 1.1);
-            tx(String(mk && mode === 'update' && step.vals ? step.vals[N + a] : ARR[a]), ax + aw / 2, ay + 10, fs - 0.5, P.text + 'ee', 'center', true);
-            tx(String(a), ax + aw / 2, ay + 31, fs - 2, P.sub + 'ee', 'center', false);
+        for (n = 1; n < NN; n++) {
+            rise[n] = fresh && sgVis(s, n) && !sgVis(p, n);
+            if (!sgVis(s, n)) mv[n] = 0;
+            else if (!rise[n]) mv[n] = 1;
+            else if (n >= N) mv[n] = ez(seg(e, (n - N) * 0.07, (n - N) * 0.07 + 0.5));
+            else mv[n] = ez(seg(e, 0.2, 1));
+            dpos[n] = pos[n];
+            if (rise[n]) {
+                var og = n >= N
+                    ? { x: x0 + (n - N + 0.5) * L.leafW, y: top + L.arrY + L.ah / 2 }
+                    : { x: (pos[n * 2].x + pos[n * 2 + 1].x) / 2, y: (pos[n * 2].y + pos[n * 2 + 1].y) / 2 };
+                dpos[n] = { x: lerp(og.x, pos[n].x, mv[n]), y: lerp(og.y, pos[n].y, mv[n]) };
+            }
         }
-        if (step && step.cap) tx(step.cap, x0 + w / 2, ay + 52, fs - 0.5, P.yellow + 'ff', 'center', true);
-        if (step && step.cap2) tx(step.cap2, x0 + w / 2, ay + 68, fs - 2, P.sub + 'ee', 'center', false);
+
+        if (mode === 'build') {
+            for (n = 1; n < NN; n++) {
+                if (!sgVis(s, n)) sgGhost(pos[n].x, pos[n].y, L);
+            }
+        }
+        for (n = 2; n < NN; n++) {
+            var par = n >> 1;
+            var hot = mode === 'update' && s.st[n] === 'upd' && s.st[par] === 'upd';
+            if (mv[n] * mv[par] <= 0) continue;
+            sgLink(dpos[par], dpos[n], L, hot ? P.orange + 'ff' : P.sub + 'aa', hot ? 2.4 : 1.3, mv[n] * mv[par]);
+        }
+        for (n = 1; n < NN; n++) {
+            if (!sgVis(s, n)) continue;
+            var st = s.st[n];
+            if (fresh && n === cur && e < 0.5) st = p.st[n];
+            var sty = sgStyle(st);
+            if (!sty && mode === 'build') sty = { col: P.teal, fill: P.teal + '18', lw: 1.4 };
+            var na = rise[n] ? clamp01(mv[n] * 2.5) : 1;
+            var nx = dpos[n].x;
+            var ny = dpos[n].y;
+            sgBox(nx, ny, L, sty, na);
+            if (fresh && mode === 'update' && p.vals[n] !== s.vals[n]) {
+                var f = ez(seg(e, 0.5, 1));
+                sgNum(nx, ny - 7 * f, String(p.vals[n]), L, na * (1 - f));
+                sgNum(nx, ny + 7 * (1 - f), String(s.vals[n]), L, na * f);
+            } else {
+                sgNum(nx, ny, String(sgVal(s, n)), L, na);
+            }
+        }
+
+        if (fresh && cur > 0 && mode !== 'build') {
+            var cp = pos[cur];
+            var ccol = sgCol(mode === 'query' ? s.st[cur] : 'upd');
+            if (mode === 'query') {
+                if (cur > 1 && e < 0.5) {
+                    var fp = pos[cur >> 1];
+                    var dq = ez(seg(e, 0, 0.5));
+                    circ(lerp(fp.x, cp.x, dq), lerp(fp.y, cp.y, dq), 5, ccol + 'ff');
+                }
+            } else if (e < 0.6) {
+                var from = cur >= N
+                    ? { x: x0 + (cur - N + 0.5) * L.leafW, y: top + L.arrY + L.ah / 2 }
+                    : (s.st[cur * 2] === 'upd' ? pos[cur * 2] : pos[cur * 2 + 1]);
+                var dd = ez(seg(e, 0.1, 0.5));
+                sgChip(lerp(from.x, cp.x, dd), lerp(from.y, cp.y, dd), L, (UP_DELTA > 0 ? '+' : '') + UP_DELTA, P.orange, seg(e, 0.1, 0.2) * (1 - seg(e, 0.5, 0.6)));
+            }
+            if (e >= 0.5) {
+                var rq = seg(e, 0.5, 1);
+                ctx.globalAlpha = 1 - rq;
+                circ(cp.x, cp.y, Math.max(L.bw, L.bh) / 2 + 4 + 10 * ez(rq), 'none', ccol + 'ff', 2);
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        var barY = top + L.barY;
+        rr(x0, barY, w, 6, 3, 'none', P.sub + '33', 1);
+        if (mode === 'build') {
+            var bl = [];
+            for (n = 1; n < NN; n++) {
+                if (s.st[n] === 'new') bl.push(n);
+            }
+            if (!bl.length && s.show === 0) bl.push(1);
+            bl.forEach(function (bn, j) {
+                var pr = fresh && s.st[bn] === 'new' ? ez(seg(e, 0.2 + j * 0.1, 0.7 + j * 0.1)) : 1;
+                sgBar(x0, barY, L, RNG[bn][0], RNG[bn][1], P.teal, pr);
+            });
+        } else if (fresh && cur > 0) {
+            sgBar(x0, barY, L, RNG[cur][0], RNG[cur][1], sgCol(mode === 'query' ? s.st[cur] : 'upd'), ez(seg(e, 0.5, 1)));
+        }
+
+        var covS = mode === 'query' ? sgCover(s) : null;
+        var covP = mode === 'query' ? sgCover(p) : null;
+        var ayTop = top + L.arrY;
+        for (a = 0; a < N; a++) {
+            var ax = x0 + a * L.leafW + 2;
+            var aw = L.leafW - 4;
+            var inQ = s.arr.indexOf(a) >= 0;
+            var mk = s.mark === a;
+            var hi = inQ || mk;
+            var tint = 'none';
+            var talpha = 1;
+            if (covS && covS[a]) {
+                tint = P.green + '40';
+                if (fresh && !covP[a]) talpha = ez(e);
+            }
+            if (mode === 'update' && cur > 0 && a >= RNG[cur][0] && a <= RNG[cur][1]) tint = P.orange + '2a';
+            ctx.globalAlpha = talpha;
+            rr(ax, ayTop, aw, L.ah, 3, tint, hi ? (mk ? P.orange : P.yellow) + 'ff' : P.sub + '88', hi ? 1.6 : 1.1);
+            ctx.globalAlpha = 1;
+            var nv = sgArrVal(s, a);
+            var ov = sgArrVal(p, a);
+            var acx = ax + aw / 2;
+            var acy = ayTop + L.ah / 2;
+            if (fresh && nv !== ov) {
+                var af = ez(seg(e, 0.5, 1));
+                sgNum(acx, acy - 6 * af, String(ov), L, 1 - af);
+                sgNum(acx, acy + 6 * (1 - af), String(nv), L, af);
+            } else {
+                sgNum(acx, acy, String(nv), L, 1);
+            }
+            tx(String(a), acx, top + L.idxY, L.fs, P.sub + 'ff', 'center', false);
+        }
+
+        if (mode === 'query') {
+            var gx0 = x0 + (w - L.gc * (2 * QUSED + 1)) / 2;
+            var ay = top + L.accY + L.ah / 2;
+            var k;
+            for (k = 0; k <= QUSED; k++) {
+                rr(sgSlotX(gx0, L, 2 * k) - L.cw2 / 2, top + L.accY, L.cw2, L.ah, 4, 'none', P.sub + '44', 1);
+            }
+            for (k = 0; k < s.sum.length; k++) {
+                if (fresh && k === s.sum.length - 1 && p.sum.length < s.sum.length) continue;
+                sgChip(sgSlotX(gx0, L, 2 * k), ay, L, String(s.sum[k]), P.green, 1);
+            }
+            for (k = 0; k + 1 < s.sum.length; k++) {
+                tx('+', sgSlotX(gx0, L, 2 * k + 1), ay, L.fs, P.sub + 'ff', 'center', true);
+            }
+            if (s.sum.length === QUSED) {
+                tx('=', sgSlotX(gx0, L, 2 * QUSED - 1), ay, L.fs, P.sub + 'ff', 'center', true);
+                sgChip(sgSlotX(gx0, L, 2 * QUSED), ay, L, String(QTOTAL), P.yellow, fresh && p.sum.length < QUSED ? ez(seg(e, 0.8, 1)) : 1);
+            }
+            if (fresh && cur > 0 && s.sum.length > p.sum.length && e >= 0.5) {
+                var kf = s.sum.length - 1;
+                var qf = ez(seg(e, 0.5, 1));
+                var tgx = sgSlotX(gx0, L, 2 * kf);
+                sgChip(lerp(pos[cur].x, tgx, qf), lerp(pos[cur].y, ay, qf), L, String(s.sum[kf]), P.green, 1);
+            }
+        }
+
+        ctx.globalAlpha = fresh ? 0.35 + 0.65 * ez(e) : 1;
+        var capY = top + L.capTop;
+        var cx = x0 + w / 2;
+        if (s.cap) lines(s.cap, w - 8, L.fs).forEach(function (row) {
+            tx(row, cx, capY + (L.fs + 5) / 2, L.fs, P.yellow + 'ff', 'center', true);
+            capY += L.fs + 5;
+        });
+        if (s.cap2) lines(s.cap2, w - 8, L.fs).forEach(function (row) {
+            tx(row, cx, capY + (L.fs + 5) / 2, L.fs, P.text + 'ee', 'center', false);
+            capY += L.fs + 5;
+        });
+        ctx.globalAlpha = 1;
     }
 
     /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
     function draw() {
         P = window.CsFlow.getP();
         ctx.clearRect(0, 0, GW(), GH());
         var W = GW(); var mob = W < 600;
-        var padX = mob ? 16 : 26;
-        var fullW = W - padX * 2;
-        var top = mob ? 18 : 26;
-
         var steps = currentSteps();
         var step = stepIdx >= 0 ? steps[stepIdx] : null;
-
-        drawSeg(padX, top, fullW, mob, step, mode);
-
-        if (!step) {
-            var hint = '아래 STEP으로 세그먼트 트리의 동작을 확인하세요.';
-            ctx.font = '500 ' + (mob ? 11 : 12.5) + 'px "JetBrains Mono",monospace';
-            var hs = mob ? 11 : 12.5;
-            var hl = [hint];
-            if (ctx.measureText(hint).width > W - 16) {
-                var cut = hint.indexOf(' ', Math.floor(hint.length / 2));
-                if (cut < 0) cut = hint.lastIndexOf(' ');
-                hl = [hint.slice(0, cut), hint.slice(cut + 1)];
-            }
-            hl.forEach(function (line, li) {
-                tx(line, W / 2, GH() - (mob ? 12 : 14) - (hl.length - 1 - li) * (hs + 4), hs, P.muted + 'aa', 'center', false);
-            });
-        }
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
         var mob = w < 600;
-        var neededH;
-        neededH = mob ? 300 : 320;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
         canvasWrap.style.height    = 'auto';
-        canvasWrap.style.minHeight = neededH + 'px';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
         var actualH = canvasWrap.offsetHeight || neededH;
         if (actualH < neededH) actualH = neededH;
         canvas.width  = w * dpr;
@@ -349,17 +593,22 @@
     /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        draw();
-        rafId = requestAnimationFrame(function () { rafId = null; if (onDone) onDone(); });
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
     function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
-    function defaultLog() {
-        if (mode === 'query') return '구간 합을 구할 때 트리의 어떤 노드를 방문하고 더하는지 봅니다.';
-        if (mode === 'update') return '배열 값을 바꿀 때 트리의 노드가 어떻게 갱신되는지 봅니다.';
-        return '배열에서 구간 합 세그먼트 트리를 아래에서 위로 만드는 과정을 봅니다.';
-    }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -398,7 +647,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);

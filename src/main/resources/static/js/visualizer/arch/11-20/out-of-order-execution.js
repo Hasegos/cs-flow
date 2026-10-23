@@ -1,5 +1,5 @@
 /**
- * 비순차 실행 시각화
+ * 비순차 실행 시각화 시각화
  */
 (function () {
     'use strict';
@@ -22,9 +22,9 @@
 
     var modeWrap = el('div', 'ooo-viz__mode');
     var modeDefs = [
-        { key: 'seq',   label: '순차 vs 비순차' },
+        { key: 'seq', label: '순차 vs 비순차' },
         { key: 'issue', label: '의존성과 발행' },
-        { key: 'rob',   label: '리오더 버퍼' }
+        { key: 'rob', label: '리오더 버퍼' }
     ];
     var modeBtns = {};
     modeDefs.forEach(function (m, i) {
@@ -39,7 +39,7 @@
     var speedWrap = el('div', 'ooo-viz__speed');
     speedWrap.appendChild(el('span', 'ooo-viz__speed-label', 'SPEED'));
     var speedBtns = [];
-    [['1x', 1700], ['2x', 850], ['3x', 480]].forEach(function (pair, i) {
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
         var b = el('button', 'ooo-viz__speed-btn' + (i === 0 ? ' ooo-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
@@ -72,11 +72,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'seq';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 데이터: 명령어 ===================== */
     var INSTR = [
@@ -172,316 +239,353 @@
     ];
 
     /* ===================== 상태 ===================== */
-    var mode    = 'seq';
-    var stepIdx = -1;
-    var running = false;
-    var timer   = null;
-    var rafId   = null;
-    var speed   = 1700;
+    var OO_ST_LBL = { none: '도착 전', wait: '대기', ready: '준비', exec: '실행', done: '완료', commit: '확정' };
+    var ooPos = [[0, 0], [1, 0], [0, 1], [1, 1], [0, 2]];
 
     function currentSteps() {
         if (mode === 'issue') return ISSUE_STEPS;
         if (mode === 'rob') return ROB_STEPS;
         return SEQ_STEPS;
     }
+    function defaultLog() {
+        if (mode === 'issue') return '예약 스테이션에서 명령어마다 피연산자가 준비됐는지 확인하고, 준비된 명령어부터 실행 유닛으로 보냅니다.';
+        if (mode === 'rob') return '실행이 끝난 순서와 상관없이, 리오더 버퍼(ROB)의 맨 앞부터 순서대로 결과를 확정합니다.';
+        return '같은 명령어 5개를 순차 실행과 비순차 실행으로 처리할 때 걸리는 사이클을 비교합니다.';
+    }
 
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        var rad = Math.min(r, w / 2, h / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + rad, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, rad);
-        ctx.arcTo(x + w, y + h, x,     y + h, rad);
-        ctx.arcTo(x,     y + h, x,     y,     rad);
-        ctx.arcTo(x,     y,     x + w, y,     rad);
-        ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    /* ===================== 레이아웃 ===================== */
+    function ez(q) { q = clamp01(q); return q * q * (3 - 2 * q); }
+    function ooStCol(st) {
+        if (st === 'wait') return P.orange;
+        if (st === 'ready') return P.purple;
+        if (st === 'exec') return P.teal;
+        if (st === 'done') return P.yellow;
+        if (st === 'commit') return P.green;
+        return P.sub;
     }
-    function tx(str, x, y, sz, color, align, bold) {
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
-    }
-    function textW(str, sz, bold) {
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        return ctx.measureText(str).width;
-    }
-    function chip(str, x, y, h, sz, col, strong) {
-        var w = textW(str, sz, true) + 12;
-        rr(x, y, w, h, 4, col + (strong ? '33' : '1a'), col + (strong ? 'cc' : '66'), strong ? 1.6 : 1.1);
-        tx(str, x + w / 2, y + h / 2, sz, col + 'ee', 'center', true);
-        return w;
-    }
-    function instrColor(i) {
+    function ooInstrCol(i) {
         if (INSTR[i].op === 'LOAD') return P.orange;
         return INSTR[i].deps.length ? P.purple : P.teal;
     }
+    function ooSeqLayout(w, mob) {
+        var cellH = mob ? 20 : 24;
+        var pitch = cellH + 4;
+        var labW = mob ? 62 : 150;
+        var tlH = 20 + N * pitch;
+        var y1 = 22;
+        var y2 = y1 + tlH + 12;
+        var ly = y2 + tlH + 16;
+        return {
+            fs: mob ? 11 : 12.5, cellH: cellH, pitch: pitch, labW: labW,
+            cw: Math.min(56, (w - labW) / COLS),
+            y1: y1, y2: y2, ly: ly, total: ly + (mob ? 36 : 18)
+        };
+    }
+    function ooIssueLayout(w, mob) {
+        var nodeW = mob ? 92 : 170;
+        var nodeH = mob ? 42 : 48;
+        var pitch = mob ? 52 : 58;
+        var rowY0 = mob ? 30 : 32;
+        var stripLbl = rowY0 + 2 * pitch + nodeH + 16;
+        var slotY = stripLbl + 12;
+        var slotH = mob ? 26 : 30;
+        return {
+            fs: mob ? 11 : 13, nodeW: nodeW, nodeH: nodeH, pitch: pitch, rowY0: rowY0,
+            stripLbl: stripLbl, slotY: slotY, slotH: slotH, slotGap: 6,
+            total: slotY + slotH + 10
+        };
+    }
+    function ooRobLayout(w, mob) {
+        var gap = mob ? 6 : 12;
+        var sy = mob ? 34 : 46;
+        var slotH = mob ? 74 : 80;
+        var ry = sy + slotH + (mob ? 30 : 36);
+        var regY = sy + slotH + (mob ? 30 : 36);
+        var regH = mob ? 40 : 46;
+        return {
+            fs: mob ? 10.5 : 12, gap: gap, sy: sy, slotH: slotH, regY: regY, regH: regH,
+            slotW: Math.min(150, (w - gap * (N - 1)) / N),
+            total: regY + regH + 26
+        };
+    }
+    function layout(w, mob) {
+        if (mode === 'issue') return ooIssueLayout(w, mob);
+        if (mode === 'rob') return ooRobLayout(w, mob);
+        return ooSeqLayout(w, mob);
+    }
+    function sceneH(w, mob) { return layout(w, mob).total; }
 
-    /* ===================== 모드: 순차 vs 비순차 ===================== */
-    function drawTimeline(x0, w, y, title, sched, rev, barX, cellW, cellH, fs, mob) {
-        var active = rev > 0;
-        tx(title, x0, y + 6, fs, active ? P.text + 'ee' : P.muted + '88', 'left', true);
-        if (rev >= sched.total) {
-            tx(sched.total + '사이클', x0 + w, y + 6, fs, (sched === OOO ? P.teal : P.orange) + 'ee', 'right', true);
-        }
+    /* ===================== 순차 vs 비순차 ===================== */
+    function ooSeqTL(x0, w, y, title, sched, rev, barX, L, mob, isOoo) {
+        var fs = L.fs;
+        var on = rev > 0.001;
+        tx(title, x0, y + 6, fs, on ? P.text + 'ee' : P.sub + 'ff', 'left', true);
+        if (rev >= sched.total - 0.001) tx(sched.total + '사이클', x0 + w, y + 6, fs, (isOoo ? P.teal : P.orange) + 'ee', 'right', true);
         var yy = y + 20;
-        var showText = cellW >= 30;
         INSTR.forEach(function (it, i) {
-            var ry = yy + i * (cellH + 4);
-            tx(mob ? it.id + ' ' + it.op : it.id + ' ' + it.asm, x0, ry + cellH / 2, mob ? 10 : 11.5,
-                active ? instrColor(i) + 'ee' : P.muted + '77', 'left', true);
-            if (!active) return;
-            for (var c = it.arrive; c <= Math.min(sched.end[i], rev); c++) {
-                var cx = barX + (c - 1) * cellW;
-                if (c < sched.start[i]) {
-                    rr(cx + 1, ry + 3, cellW - 2, cellH - 6, 3, P.muted + '1a', P.muted + '55', 1);
-                    if (showText) tx('대기', cx + cellW / 2, ry + cellH / 2, mob ? 9 : 10, P.muted + 'cc', 'center', false);
+            var ry = yy + i * L.pitch;
+            tx(mob ? it.id + ' ' + it.op : it.id + ' ' + it.asm, x0, ry + L.cellH / 2, mob ? 10 : 11.5, (on ? ooInstrCol(i) : P.sub) + 'ff', 'left', true);
+            for (var c = it.arrive; c <= sched.end[i]; c++) {
+                var f = clamp01(rev - (c - 1));
+                if (f <= 0) continue;
+                var cx = barX + (c - 1) * L.cw + 1;
+                var cwid = (L.cw - 2) * f;
+                var waiting = c < sched.start[i];
+                if (waiting) {
+                    rr(cx, ry + 3, cwid, L.cellH - 6, 3, P.sub + '1a', P.sub + '66', 1);
                 } else {
-                    var col = instrColor(i);
-                    rr(cx + 1, ry, cellW - 2, cellH, 3, col + '30', col + 'aa', 1.4);
-                    if (showText) tx(it.op === 'LOAD' ? 'MEM' : 'EX', cx + cellW / 2, ry + cellH / 2, mob ? 9.5 : 11, col + 'ee', 'center', true);
+                    var col = ooInstrCol(i);
+                    rr(cx, ry, cwid, L.cellH, 3, col + '30', col + 'aa', 1.4);
                 }
+                if (f >= 1 && L.cw >= 30) tx(waiting ? '대기' : (it.op === 'LOAD' ? 'MEM' : 'EX'), cx + cwid / 2, ry + L.cellH / 2, mob ? 9.5 : 11, (waiting ? P.sub : ooInstrCol(i)) + 'cc', 'center', !waiting);
             }
         });
-        return yy + N * (cellH + 4);
-    }
-
-    function drawSeq(x0, top, w, mob, step) {
-        var fs     = mob ? 11 : 12.5;
-        var labelW = mob ? 62 : 150;
-        var barX   = x0 + labelW;
-        var cellW  = Math.min(56, (w - labelW) / COLS);
-        var cellH  = mob ? 20 : 24;
-
-        tx('사이클', x0, top + 6, mob ? 9.5 : 11, P.muted + 'cc', 'left', false);
-        for (var c = 1; c <= COLS; c++) {
-            tx(String(c), barX + (c - 0.5) * cellW, top + 6, mob ? 9.5 : 11.5, P.muted + 'cc', 'center', false);
+        if (rev > 0.001 && rev < COLS - 0.001) {
+            var px = barX + rev * L.cw;
+            ln(px, y + 16, px, yy + N * L.pitch, P.yellow + 'cc', 1.6, [3, 3]);
         }
-
-        var y = top + 22;
-        y = drawTimeline(x0, w, y, mob ? '순차 실행' : '순차 실행 (in-order)', IO, step ? step.io : 0, barX, cellW, cellH, fs, mob);
-        y += 12;
-        y = drawTimeline(x0, w, y, mob ? '비순차 실행' : '비순차 실행 (out-of-order)', OOO, step ? step.oo : 0, barX, cellW, cellH, fs, mob);
-
-        var ly = y + 16;
-        var lx = x0;
+    }
+    function ooSeqLegend(x0, w, y, mob) {
         var items = [
-            [P.muted,  mob ? '대기' : '대기 (피연산자·차례 기다림)'],
+            [P.sub, mob ? '대기' : '대기 (피연산자·차례 기다림)'],
             [P.orange, mob ? 'LOAD 미스' : 'LOAD (캐시 미스)'],
             [P.purple, mob ? '의존' : '앞 결과에 의존'],
-            [P.teal,   mob ? '독립' : '독립 명령어']
+            [P.teal, mob ? '독립' : '독립 명령어']
         ];
-        items.forEach(function (it) {
+        var dx = [0, 210, 400, 530];
+        items.forEach(function (it, k) {
+            var lx = mob ? x0 + (k % 2) * (w / 2) : x0 + dx[k];
+            var ly = mob ? y + Math.floor(k / 2) * 18 : y;
             rr(lx, ly - 6, 12, 12, 3, it[0] + '30', it[0] + 'aa', 1.2);
-            tx(it[1], lx + 17, ly, mob ? 9.5 : 11, P.muted + 'dd', 'left', false);
-            lx += 17 + textW(it[1], mob ? 9.5 : 11, false) + (mob ? 10 : 18);
+            tx(it[1], lx + 17, ly, mob ? 9.5 : 11, P.sub + 'dd', 'left', false);
         });
     }
-
-    /* ===================== 모드: 의존성과 발행 ===================== */
-    var STATE_TEXT = {
-        none  : ['도착 전', '도착 전'],
-        wait  : ['대기 (피연산자)', '대기'],
-        ready : ['준비 (다음 사이클 발행)', '준비'],
-        exec  : ['실행 중', '실행'],
-        done  : ['완료', '완료'],
-        commit: ['확정', '확정']
-    };
-    function stateColor(s) {
-        if (s === 'wait') return P.orange;
-        if (s === 'ready') return P.purple;
-        if (s === 'exec') return P.teal;
-        if (s === 'done') return P.yellow;
-        if (s === 'commit') return P.green;
-        return P.muted;
+    function ooSeqDraw(x0, top, w, mob, s, p, e) {
+        var L = ooSeqLayout(w, mob);
+        var m = ez(e);
+        var barX = x0 + L.labW;
+        var fs = mob ? 9.5 : 11;
+        var c;
+        tx('사이클', x0, top + 6, fs, P.sub + 'ff', 'left', false);
+        for (c = 1; c <= COLS; c++) tx(String(c), barX + (c - 0.5) * L.cw, top + 6, fs, P.sub + 'ff', 'center', false);
+        ooSeqTL(x0, w, top + L.y1, mob ? '순차 실행' : '순차 실행 (in-order)', IO, lerp(p.io, s.io, m), barX, L, mob, false);
+        ooSeqTL(x0, w, top + L.y2, mob ? '비순차 실행' : '비순차 실행 (out-of-order)', OOO, lerp(p.oo, s.oo, m), barX, L, mob, true);
+        ooSeqLegend(x0, w, top + L.ly, mob);
     }
 
-    function drawArrow(x1, y1, x2, y2, bend, col) {
-        ctx.strokeStyle = col;
-        ctx.lineWidth = 1.6;
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.bezierCurveTo(bend, y1, bend, y2, x2, y2);
-        ctx.stroke();
-        ctx.fillStyle = col;
-        ctx.beginPath();
-        ctx.moveTo(x2, y2);
-        ctx.lineTo(x2 - 7, y2 - 4);
-        ctx.lineTo(x2 - 7, y2 + 4);
-        ctx.closePath();
-        ctx.fill();
-    }
-
-    function drawIssue(x0, top, w, mob, step) {
-        var fs     = mob ? 10.5 : 12;
-        var c      = step ? step.c : 0;
-        var gutter = mob ? 26 : 44;
-        var rowH   = mob ? 40 : 46;
-        var boxH   = rowH - 8;
-        var y0     = top + 30;
+    /* ===================== 의존성과 발행 ===================== */
+    function ooIssueDraw(x0, top, w, mob, s, p, fresh, e) {
+        var L = ooIssueLayout(w, mob);
+        var c = s.c, pc = p.c, fs = L.fs;
+        var newIssue = fresh && pc < c;
         var issued = -1;
-        for (var k = 0; k < N; k++) if (OOO.start[k] === c) issued = k;
+        var k, i;
+        for (k = 0; k < N; k++) if (OOO.start[k] === c) issued = k;
+        var order = [];
+        for (k = 0; k < N; k++) order.push(k);
+        order.sort(function (a, b) { return OOO.start[a] - OOO.start[b]; });
 
-        tx(c ? '사이클 ' + c + ' 종료 시점' : '사이클 0', x0, top + 6, fs + 0.5, P.text + 'ee', 'left', true);
-        if (c) {
-            tx(issued >= 0 ? '이번 사이클 발행: ' + INSTR[issued].id : '이번 사이클 발행 없음', x0 + w, top + 6, fs,
-                (issued >= 0 ? P.purple : P.muted) + 'ee', 'right', true);
-        }
+        tx('사이클 ' + c + (mob ? '' : ' 종료 시점'), x0, top + 6, fs + 0.5, P.text + 'ee', 'left', true);
+        tx(issued >= 0 ? (mob ? '발행 ' + INSTR[issued].id : '이번 사이클 발행: ' + INSTR[issued].id) : (mob ? '발행 없음' : '이번 사이클 발행 없음'),
+            x0 + w, top + 6, fs, (issued >= 0 ? P.purple : P.sub) + 'ee', 'right', true);
 
-        INSTR.forEach(function (it, i) {
-            it.prod.forEach(function (p, pk) {
-                if (p < 0 || !c || it.arrive > c) return;
-                var col = operandReady(i, pk, c) ? P.green : P.orange;
-                var ya = y0 + p * rowH + boxH / 2;
-                var yb = y0 + i * rowH + boxH / 2;
-                drawArrow(x0 + gutter - 2, ya, x0 + gutter - 2, yb, x0 + 2, col + 'cc');
-                if (!mob) tx(it.src[pk], x0 + 12, (ya + yb) / 2, 10.5, col + 'ee', 'center', true);
+        var pos = function (j) {
+            var g = ooPos[j];
+            return { x: x0 + g[0] * (w - L.nodeW), y: top + L.rowY0 + g[1] * L.pitch };
+        };
+
+        INSTR.forEach(function (it, j) {
+            if (it.arrive > c) return;
+            it.prod.forEach(function (pr, kk) {
+                if (pr < 0) return;
+                var a = pos(pr), b = pos(j);
+                var ay = a.y + L.nodeH / 2;
+                var x1 = a.x + L.nodeW + 3, x2 = b.x - 3;
+                var ready = operandReady(j, kk, c);
+                var col = ready ? P.green : P.orange;
+                arrow(x1, ay, x2, ay, col + 'ff', 1.6);
+                tx(it.src[kk], (x1 + x2) / 2, ay - 9, fs - 1, col + 'ff', 'center', true);
+                if (newIssue && OOO.end[pr] === c && e < 1) circ(lerp(x1, x2, e), ay, 4.5, P.green + 'ff');
             });
         });
 
-        INSTR.forEach(function (it, i) {
-            var y   = y0 + i * rowH;
-            var bx  = x0 + gutter;
-            var bw  = w - gutter;
-            var st  = c ? stateAt(i, c, false) : 'none';
-            var col = stateColor(st);
-            var isIssued = i === issued;
-            rr(bx, y, bw, boxH, 6, col + (st === 'none' ? '0d' : '1a'), isIssued ? P.purple + 'ee' : col + (st === 'none' ? '33' : '77'), isIssued ? 2.4 : 1.2);
-
-            var dim = st === 'none';
-            tx(mob ? it.id + ' ' + it.op : it.id + '  ' + it.asm, bx + 10, y + boxH / 2, fs, dim ? P.muted + '88' : P.text + 'ee', 'left', true);
-
-            if (!dim) {
-                var cx = bx + (mob ? 64 : 200);
-                var chH = mob ? 20 : 22;
-                it.src.forEach(function (r, k2) {
-                    var ready = operandReady(i, k2, c);
-                    var label = ready ? r + ' ✓' : r + '←' + INSTR[it.prod[k2]].id;
-                    cx += chip(label, cx, y + (boxH - chH) / 2, chH, mob ? 9.5 : 10.5, ready ? P.green : P.orange, !ready) + 5;
-                });
+        INSTR.forEach(function (it, j) {
+            var n = pos(j);
+            var st = stateAt(j, c, false);
+            var isNone = st === 'none';
+            var col = ooStCol(st);
+            var isIss = j === issued;
+            var fadeIn = fresh && pc < c && it.arrive === c;
+            ctx.globalAlpha = fadeIn ? 0.3 + 0.7 * ez(e) : 1;
+            if (isNone) ctx.setLineDash([4, 4]);
+            rr(n.x, n.y, L.nodeW, L.nodeH, 7, isNone ? 'none' : col + '1f', isIss ? P.purple + 'ff' : (isNone ? P.sub + '66' : col + 'aa'), isIss ? 2.4 : 1.4);
+            ctx.setLineDash([]);
+            tx(mob ? it.id + ' ' + it.op : it.id + '  ' + it.asm, n.x + 9, n.y + L.nodeH * 0.32, fs, (isNone ? P.sub : P.text) + 'ff', 'left', true);
+            var sub = st === 'exec' ? '실행 ' + (c - OOO.start[j] + 1) + '/' + it.lat : OO_ST_LBL[st];
+            tx(sub, n.x + 9, n.y + L.nodeH * 0.74, fs - 1, col + 'ff', 'left', true);
+            if (st === 'exec') {
+                var frac = Math.min(1, (c - OOO.start[j] + 1) / it.lat);
+                rr(n.x + 9, n.y + L.nodeH - 5, L.nodeW - 18, 3, 1.5, P.sub + '33', 'none');
+                rr(n.x + 9, n.y + L.nodeH - 5, (L.nodeW - 18) * frac, 3, 1.5, P.teal + 'cc', 'none');
             }
-
-            var stLabel = STATE_TEXT[st][mob ? 1 : 0];
-            if (st === 'exec') stLabel += ' ' + (c - OOO.start[i] + 1) + '/' + it.lat;
-            tx(stLabel, bx + bw - 10, y + boxH / 2, fs, dim ? P.muted + '88' : col + 'ee', 'right', true);
+            if (newIssue && isIss && e < 1) {
+                ctx.globalAlpha = 1 - e;
+                rr(n.x - 3 - 4 * e, n.y - 3 - 4 * e, L.nodeW + 6 + 8 * e, L.nodeH + 6 + 8 * e, 9, 'none', P.purple + 'ff', 2);
+            }
+            ctx.globalAlpha = 1;
         });
+
+        var sw = (w - L.slotGap * (N - 1)) / N;
+        var sy = top + L.slotY;
+        tx('발행 순서', x0, top + L.stripLbl, fs, P.text + 'cc', 'left', true);
+        for (k = 0; k < N; k++) {
+            var sx = x0 + k * (sw + L.slotGap);
+            var j2 = order[k];
+            var filled = OOO.start[j2] < c || (OOO.start[j2] === c && (!newIssue || e >= 1));
+            rr(sx, sy, sw, L.slotH, 5, filled ? P.purple + '26' : 'none', (filled ? P.purple + 'aa' : P.sub + '55'), 1.2);
+            if (filled) tx(INSTR[j2].id, sx + sw / 2, sy + L.slotH / 2, fs, P.purple + 'ff', 'center', true);
+        }
+        if (newIssue && issued >= 0 && e < 1) {
+            var fk = order.indexOf(issued);
+            var from = pos(issued);
+            var m = ez(e);
+            var fx = lerp(from.x + L.nodeW + 2, x0 + fk * (sw + L.slotGap) + sw / 2, m);
+            var fy = lerp(from.y + L.nodeH / 2, sy + L.slotH / 2, m);
+            rr(fx - 15, fy - 9, 30, 18, 5, P.purple + 'ff', P.purple + 'ff', 1.4);
+            tx(INSTR[issued].id, fx, fy, fs - 1, '#111111', 'center', true);
+        }
     }
 
-    /* ===================== 모드: 리오더 버퍼 ===================== */
-    function drawRob(x0, top, w, mob, step) {
-        var fs    = mob ? 10.5 : 12;
-        var c     = step ? step.c : 0;
-        var exc   = step && step.exc;
-        var gap   = mob ? 6 : 12;
-        var slotW = Math.min(150, (w - gap * (N - 1)) / N);
-        var slotH = mob ? 70 : 80;
-        var sx0   = x0 + (w - (slotW * N + gap * (N - 1))) / 2;
-        var sy    = top + 46;
+    /* ===================== 리오더 버퍼 ===================== */
+    function ooRobHead(stp) {
+        var h;
+        for (h = 0; h < N; h++) {
+            if (stp.exc ? h === 1 : (stateAt(h, stp.c, true) !== 'commit' && INSTR[h].arrive <= stp.c)) return h;
+        }
+        return -1;
+    }
+    function ooRegOn(stp, i) {
+        return stp.c && stateAt(i, stp.c, true) === 'commit' && !(stp.exc && i > 0);
+    }
+    function ooRobDraw(x0, top, w, mob, s, p, fresh, e) {
+        var L = ooRobLayout(w, mob);
+        var c = s.c, pc = p.c, fs = L.fs, exc = !!s.exc;
+        var slotW = L.slotW, gap = L.gap;
+        var sx0 = x0 + (w - (slotW * N + gap * (N - 1))) / 2;
+        var sxOf = function (k) { return sx0 + k * (slotW + gap); };
+        var sy = top + L.sy, regY = top + L.regY;
+        var hs = ooRobHead(s), hp = ooRobHead(p);
+        var i;
 
         tx(mob ? 'ROB (프로그램 순서)' : 'ROB — 들어온 순서대로 자리를 잡는 버퍼', x0, top + 6, fs + 0.5, P.text + 'ee', 'left', true);
-        if (c) tx('사이클 ' + c, x0 + w, top + 6, fs, P.muted + 'dd', 'right', true);
-
-        var head = -1;
-        for (var h = 0; h < N; h++) {
-            if (exc ? h === 1 : (c && stateAt(h, c, true) !== 'commit' && INSTR[h].arrive <= c)) { head = h; break; }
-        }
-
-        INSTR.forEach(function (it, i) {
-            var x  = sx0 + i * (slotW + gap);
-            var st = c ? stateAt(i, c, true) : 'none';
-            var label, col;
-            if (exc && i === 1) { label = '예외'; col = P.red; }
-            else if (exc && i > 1) { label = '폐기'; col = P.red; }
-            else { label = STATE_TEXT[st][1]; col = stateColor(st); }
-
-            if (st === 'none' && !exc) {
-                ctx.save();
-                ctx.setLineDash([4, 4]);
-                rr(x, sy, slotW, slotH, 6, 'none', P.muted + '55', 1.2);
-                ctx.restore();
-                tx('빈 칸', x + slotW / 2, sy + slotH / 2, mob ? 9.5 : 11, P.muted + '88', 'center', false);
-                return;
-            }
-            var discarded = exc && i > 1;
-            rr(x, sy, slotW, slotH, 6, col + (discarded ? '12' : '26'), col + (discarded ? '66' : 'cc'), i === head ? 2.6 : 1.4);
-            tx(it.id, x + slotW / 2, sy + (mob ? 16 : 18), fs + 1.5, (discarded ? P.muted : P.text) + 'ee', 'center', true);
-            tx(it.op + ' ' + it.dst, x + slotW / 2, sy + slotH / 2, mob ? 9.5 : 11, (discarded ? P.muted : P.text) + 'aa', 'center', false);
-            tx(label, x + slotW / 2, sy + slotH - (mob ? 14 : 16), mob ? 10 : 11.5, col + 'ee', 'center', true);
-            if (discarded) {
-                ctx.strokeStyle = P.red + '99';
-                ctx.lineWidth = 1.6;
-                ctx.beginPath();
-                ctx.moveTo(x + 6, sy + 6);
-                ctx.lineTo(x + slotW - 6, sy + slotH - 6);
-                ctx.stroke();
-            }
-        });
-
-        if (head >= 0) {
-            var hx = sx0 + head * (slotW + gap) + slotW / 2;
-            tx('HEAD ▼', hx, sy - 13, mob ? 10 : 11.5, P.purple + 'ee', 'center', true);
-        } else if (c) {
+        tx('사이클 ' + c, x0 + w, top + 6, fs, P.sub + 'ee', 'right', true);
+        if (hs >= 0) {
+            var hi = fresh && hp >= 0 ? lerp(hp, hs, ez(e)) : hs;
+            tx('HEAD ▼', sxOf(hi) + slotW / 2, sy - 13, mob ? 10 : 11.5, P.purple + 'ee', 'center', true);
+        } else {
             tx('모두 확정 ✓', x0 + w / 2, sy - 13, mob ? 10 : 11.5, P.green + 'ee', 'center', true);
         }
 
-        var ry = sy + slotH + (mob ? 28 : 34);
-        tx(mob ? '레지스터 (확정된 값만)' : '레지스터 — 프로그램이 보는 값 (확정된 결과만 반영)', x0, ry, fs, P.text + 'cc', 'left', true);
-        var cx = x0;
-        var cy = ry + 14;
-        INSTR.forEach(function (it, i) {
-            var committed = c && stateAt(i, c, true) === 'commit' && !(exc && i > 0);
-            var lbl = committed ? it.dst + ' = ' + it.id + (mob ? '' : ' 결과') : it.dst + (mob ? ' = old' : ' = 이전 값');
-            if (cx + textW(lbl, mob ? 9.5 : 11, true) + 12 > x0 + w && cx > x0) { cx = x0; cy += mob ? 28 : 34; }
-            cx += chip(lbl, cx, cy, mob ? 22 : 26, mob ? 9.5 : 11, committed ? P.green : P.muted, committed) + (mob ? 5 : 8);
-        });
+        for (i = 0; i < N; i++) {
+            var it = INSTR[i];
+            var st = stateAt(i, c, true);
+            var fadeIn = fresh && pc < c && it.arrive === c;
+            var x = sxOf(i);
+            ctx.globalAlpha = fadeIn ? 0.3 + 0.7 * ez(e) : 1;
+            if (st === 'none' && !exc) {
+                ctx.setLineDash([4, 4]);
+                rr(x, sy, slotW, L.slotH, 6, 'none', P.sub + '66', 1.2);
+                ctx.setLineDash([]);
+                tx('빈 칸', x + slotW / 2, sy + L.slotH / 2, fs - 1, P.sub + 'ff', 'center', false);
+            } else {
+                var disc = exc && i > 1;
+                var label, col;
+                if (exc && i === 1) { label = '예외'; col = P.red; }
+                else if (disc) { label = '폐기'; col = P.red; }
+                else { label = OO_ST_LBL[st]; col = ooStCol(st); }
+                var tc = disc ? P.sub : P.text;
+                rr(x, sy, slotW, L.slotH, 6, col + (disc ? '12' : '26'), col + (disc ? '66' : 'cc'), i === hs ? 2.6 : 1.4);
+                tx(it.id, x + slotW / 2, sy + (mob ? 16 : 18), fs + 1.5, tc + 'ee', 'center', true);
+                tx(it.op, x + slotW / 2, sy + (mob ? 32 : 37), fs - 1, tc + 'aa', 'center', false);
+                tx(it.dst, x + slotW / 2, sy + (mob ? 45 : 52), fs - 1, tc + 'aa', 'center', false);
+                tx(label, x + slotW / 2, sy + L.slotH - (mob ? 13 : 14), fs - 0.5, col + 'ee', 'center', true);
+                if (disc) {
+                    ctx.strokeStyle = P.red + '99';
+                    ctx.lineWidth = 1.6;
+                    ctx.beginPath();
+                    ctx.moveTo(x + 6, sy + 6);
+                    ctx.lineTo(x + slotW - 6, sy + L.slotH - 6);
+                    ctx.stroke();
+                }
+            }
+            ctx.globalAlpha = 1;
+        }
+
+        if (fresh && !exc && pc < c && e < 1) {
+            for (i = 0; i < N; i++) {
+                if (commit[i] !== c) continue;
+                var fy = lerp(sy + L.slotH + 2, regY + L.regH / 2, ez(e));
+                var fxc = sxOf(i) + slotW / 2;
+                rr(fxc - 15, fy - 8, 30, 16, 4, P.green + 'ff', P.green + 'ff', 1.2);
+                tx(INSTR[i].id, fxc, fy, fs - 1, '#111111', 'center', true);
+            }
+        }
+
+        tx(mob ? '레지스터 (확정된 값만)' : '레지스터 — 프로그램이 보는 값 (확정된 결과만 반영)', x0, regY + L.regH + 14, fs, P.text + 'cc', 'left', true);
+        for (i = 0; i < N; i++) {
+            var rx = sxOf(i);
+            var onS = ooRegOn(s, i), onP = ooRegOn(p, i);
+            var ra = 0;
+            if (onS) ra = fresh && !onP ? ez(seg(e, 0.8, 1)) : 1;
+            else if (fresh && onP) ra = 1 - ez(e);
+            rr(rx, regY, slotW, L.regH, 6, 'none', onS ? P.green + 'cc' : P.sub + '66', 1.2);
+            if (ra > 0) {
+                ctx.globalAlpha = ra;
+                rr(rx, regY, slotW, L.regH, 6, P.green + '2a', 'none');
+                ctx.globalAlpha = 1;
+            }
+            tx(INSTR[i].dst, rx + slotW / 2, regY + L.regH * 0.32, fs - 0.5, (onS ? P.text : P.sub) + 'ff', 'center', true);
+            tx(onS ? (mob ? INSTR[i].id : INSTR[i].id + ' 결과') : (mob ? '이전' : '이전 값'), rx + slotW / 2, regY + L.regH * 0.7, fs - 1, (onS ? P.green : P.sub) + 'ff', 'center', onS);
+        }
+        ctx.globalAlpha = 1;
+    }
+
+    /* ===================== 메인 장면 ===================== */
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var s = step || currentSteps()[0];
+        var p = prev || s;
+        var fresh = s !== p;
+        var e = fresh ? clamp01(t) : 1;
+        if (mode === 'issue') ooIssueDraw(x0, top, w, mob, s, p, fresh, e);
+        else if (mode === 'rob') ooRobDraw(x0, top, w, mob, s, p, fresh, e);
+        else ooSeqDraw(x0, top, w, mob, s, p, e);
     }
 
     /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
     function draw() {
         P = window.CsFlow.getP();
         ctx.clearRect(0, 0, GW(), GH());
         var W = GW(); var mob = W < 600;
-        var padX = mob ? 16 : 26;
-        var fullW = W - padX * 2;
-        var top = mob ? 18 : 26;
-
         var steps = currentSteps();
         var step = stepIdx >= 0 ? steps[stepIdx] : null;
-
-        if (mode === 'issue') drawIssue(padX, top, fullW, mob, step);
-        else if (mode === 'rob') drawRob(padX, top, fullW, mob, step);
-        else drawSeq(padX, top, fullW, mob, step);
-
-        if (!step) {
-            var hint = '아래 STEP을 눌러 비순차 실행이 어떻게 동작하는지 확인하세요.';
-            var hs = mob ? 11 : 12.5;
-            var hl = [hint];
-            ctx.font = '500 ' + hs + 'px "JetBrains Mono",monospace';
-            if (ctx.measureText(hint).width > W - 16) {
-                var cut = hint.indexOf(' ', Math.floor(hint.length / 2));
-                if (cut < 0) cut = hint.lastIndexOf(' ');
-                hl = [hint.slice(0, cut), hint.slice(cut + 1)];
-            }
-            hl.forEach(function (line, li) {
-                tx(line, W / 2, GH() - (mob ? 12 : 14) - (hl.length - 1 - li) * (hs + 4), hs, P.muted + 'aa', 'center', false);
-            });
-        }
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
         var mob = w < 600;
-        var neededH;
-        if (mode === 'issue') neededH = mob ? 300 : 350;
-        else if (mode === 'rob') neededH = mob ? 330 : 320;
-        else neededH = mob ? 400 : 450;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
         canvasWrap.style.height    = 'auto';
-        canvasWrap.style.minHeight = neededH + 'px';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
         var actualH = canvasWrap.offsetHeight || neededH;
         if (actualH < neededH) actualH = neededH;
         canvas.width  = w * dpr;
@@ -493,17 +597,22 @@
     /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        draw();
-        rafId = requestAnimationFrame(function () { rafId = null; if (onDone) onDone(); });
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
     function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
-    function defaultLog() {
-        if (mode === 'issue') return '예약 스테이션에서 명령어마다 피연산자가 준비됐는지 확인하고, 준비된 명령어부터 실행 유닛으로 보냅니다.';
-        if (mode === 'rob') return '실행이 끝난 순서와 상관없이, 리오더 버퍼(ROB)의 맨 앞부터 순서대로 결과를 확정합니다.';
-        return '같은 명령어 5개를 순차 실행과 비순차 실행으로 처리할 때 걸리는 사이클을 비교합니다.';
-    }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -542,7 +651,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);

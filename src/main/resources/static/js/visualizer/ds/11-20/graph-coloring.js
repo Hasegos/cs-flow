@@ -1,5 +1,5 @@
 /**
- * 그래프 색칠 문제 시각화
+ * 그래프 색칠 문제 시각화 시각화
  */
 (function () {
     'use strict';
@@ -39,7 +39,7 @@
     var speedWrap = el('div', 'gc-viz__speed');
     speedWrap.appendChild(el('span', 'gc-viz__speed-label', 'SPEED'));
     var speedBtns = [];
-    [['1x', 1700], ['2x', 850], ['3x', 480]].forEach(function (pair, i) {
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
         var b = el('button', 'gc-viz__speed-btn' + (i === 0 ? ' gc-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
@@ -72,11 +72,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'greedy';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 엔진: 그래프 색칠 ===================== */
     function ju(n, a, b) {
@@ -219,143 +286,293 @@
     })();
 
     /* ===================== 상태 ===================== */
-    var mode    = 'greedy';
-    var stepIdx = -1;
-    var running = false;
-    var timer   = null;
-    var rafId   = null;
-    var speed   = 1700;
-
     function currentSteps() {
         if (mode === 'order') return ORDER_STEPS;
         if (mode === 'back') return BACK_STEPS;
         return GREEDY_STEPS;
     }
-
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        var rad = Math.min(r, w / 2, h / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + rad, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, rad);
-        ctx.arcTo(x + w, y + h, x,     y + h, rad);
-        ctx.arcTo(x,     y + h, x,     y,     rad);
-        ctx.arcTo(x,     y,     x + w, y,     rad);
-        ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
-    }
-    function tx(str, x, y, sz, color, align, bold) {
-        if (sz < 11) sz = 11;
-        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
+    function defaultLog() {
+        if (mode === 'order') return '같은 그래프를 정점 순서만 바꿔 칠하면 필요한 색의 수가 어떻게 달라지는지 봅니다.';
+        if (mode === 'back') return '색을 시도하다 막히면 되돌아가 다른 색을 시도하는 백트래킹을 봅니다.';
+        return '이웃이 쓰지 않는 가장 작은 번호의 색을 정점마다 칠하는 그리디 방식을 봅니다.';
     }
 
-    /* ===================== 공통: 그래프와 정점 순서 그리기 ===================== */
-    var COLORS = ['', 'teal', 'orange', 'purple', 'red', 'yellow'];
-    function colorOf(c) {
-        return c > 0 ? P[COLORS[c]] : P.sub;
+    /* ===================== 색과 시간 ===================== */
+    var gcCols = ['', 'teal', 'orange', 'purple', 'red', 'yellow'];
+    function gcCol(c) { return P[gcCols[c]] || P.sub; }
+    function ez(q) { var v = clamp01(q); return v * v * (3 - 2 * v); }
+
+    /* ===================== 레이아웃 ===================== */
+    var gcCapMemo = {};
+    function gcFs(mob) { return mob ? 11.5 : 13; }
+    function gcSub(mob) { return mob ? 11 : 12; }
+    function gcR(mob) { return mob ? 17 : 21; }
+    function gcPalN() {
+        var m = 3;
+        currentSteps().forEach(function (s) { var k = maxColor(s.col); if (k > m) m = k; });
+        return m;
     }
-    function drawGC(x0, top, w, mob, step) {
-        var col = step ? step.col : zeros();
-        var order = step ? step.order : (mode === 'greedy' ? DEG_ORDER : NAT_ORDER);
-        var cur = step ? step.cur : -1;
-        var bad = step ? step.bad : [];
-        var tryC = step ? step.tryC : 0;
-        var fs = mob ? 11.5 : 13;
-        var r = mob ? 17 : 20;
-        var gh = mob ? 200 : 240;
-        var gx = x0 + r + 6;
-        var gw = w - 2 * (r + 6);
-        function px(v) { return gx + POS[v][0] * gw; }
-        function py(v) { return top + r + 8 + POS[v][1] * (gh - 2 * r - 16); }
-        var i;
-        EDGES.forEach(function (e) {
-            var hot = (e[0] === cur && bad.indexOf(e[1]) >= 0) || (e[1] === cur && bad.indexOf(e[0]) >= 0);
+    function gcCapH(s, w, mob) {
+        var fs = gcFs(mob), fsub = gcSub(mob), h = 0;
+        if (s.cap) h += lines(s.cap, w - 8, fs).length * (fs + 5);
+        if (s.cap2) h += lines(s.cap2, w - 8, fsub).length * (fsub + 4);
+        if (s.cap3) h += lines(s.cap3, w - 8, fsub).length * (fsub + 4);
+        return h;
+    }
+    function gcCapMax(w, mob) {
+        var key = Math.round(w) + (mob ? 'm' : 'd');
+        if (gcCapMemo[key] === undefined) {
+            var best = 0;
+            [GREEDY_STEPS, ORDER_STEPS, BACK_STEPS].forEach(function (arr) {
+                arr.forEach(function (s) { var h = gcCapH(s, w, mob); if (h > best) best = h; });
+            });
+            gcCapMemo[key] = best;
+        }
+        return gcCapMemo[key];
+    }
+    function layout(w, mob) {
+        var palH = mob ? 28 : 32;
+        var gh = mob ? 170 : 210;
+        var stripH = mob ? 32 : 36;
+        var gY = palH + 12;
+        var stripY = gY + gh + 12;
+        var capY = stripY + stripH + 12;
+        return {
+            fs: gcFs(mob), fsub: gcSub(mob), r: gcR(mob),
+            palH: palH, gY: gY, gh: gh, stripY: stripY, stripH: stripH, capY: capY,
+            total: capY + gcCapMax(w, mob) + 6
+        };
+    }
+    function sceneH(w, mob) { return layout(w, mob).total; }
+
+    /* ===================== 기하 ===================== */
+    function gcGeom(x0, top, w, mob) {
+        var L = layout(w, mob);
+        var r = L.r;
+        var n = gcPalN();
+        var sw = Math.min(70, (w - 8) / n);
+        return {
+            L: L, x0: x0, w: w, top: top, r: r, mob: mob, fs: L.fs, fsub: L.fsub,
+            n: n, sw: sw, palX0: x0 + (w - sw * n) / 2,
+            gx: x0 + r + 6, gw: w - 2 * (r + 6),
+            gy: top + L.gY + r + 4, gih: L.gh - 2 * r - 8
+        };
+    }
+    function gcPX(g, v) { return g.gx + POS[v][0] * g.gw; }
+    function gcPY(g, v) { return g.gy + POS[v][1] * g.gih; }
+    function gcSwX(g, c) { return g.palX0 + (c - 1) * g.sw + g.sw / 2; }
+
+    /* ===================== 칠해진 색 ===================== */
+    function gcShown(p, s, i, fresh, e) {
+        var a = p.col[i], b = s.col[i];
+        if (!fresh || a === b) return { c: b, k: 1 };
+        if (b === 0) return { c: a, k: 1 - ez(seg(e, 0, 0.5)) };
+        if (a === 0) return { c: b, k: e < 0.6 ? 0 : 1 };
+        return { c: e < 0.5 ? a : b, k: 1 };
+    }
+
+    /* ===================== 색 팔레트 ===================== */
+    function gcPalette(g, s) {
+        var forb = [];
+        s.bad.forEach(function (u) { if (forb.indexOf(s.col[u]) < 0) forb.push(s.col[u]); });
+        var c;
+        for (c = 1; c <= g.n; c++) {
+            var x = g.palX0 + (c - 1) * g.sw + 3;
+            var bw = g.sw - 6;
+            var isF = forb.indexOf(c) >= 0;
+            rr(x, g.top, bw, g.L.palH, 6, gcCol(c) + '22', gcCol(c) + 'aa', 1.4);
+            if (isF) rr(x, g.top, bw, g.L.palH, 6, P.red + '22', P.red + 'ff', 2);
+            if (s.cur >= 0 && s.tryC === c) rr(x - 2, g.top - 2, bw + 4, g.L.palH + 4, 7, 'none', P.yellow + 'ff', 2.4);
+            tx('색 ' + c + (isF ? ' ×' : ''), gcSwX(g, c), g.top + g.L.palH / 2, g.fsub, (isF ? P.red : P.text) + 'ff', 'center', true);
+        }
+    }
+
+    /* ===================== 간선과 정점 ===================== */
+    function gcEdges(g, s, fresh, e) {
+        var k = fresh ? ez(seg(e, 0, 0.3)) : 1;
+        EDGES.forEach(function (ed) {
+            var hot = s.cur >= 0 && ((ed[0] === s.cur && s.bad.indexOf(ed[1]) >= 0) || (ed[1] === s.cur && s.bad.indexOf(ed[0]) >= 0));
+            ctx.globalAlpha = hot ? k : 1;
             ctx.beginPath();
-            ctx.moveTo(px(e[0]), py(e[0]));
-            ctx.lineTo(px(e[1]), py(e[1]));
+            ctx.moveTo(gcPX(g, ed[0]), gcPY(g, ed[0]));
+            ctx.lineTo(gcPX(g, ed[1]), gcPY(g, ed[1]));
             ctx.strokeStyle = hot ? P.red + 'ff' : P.sub + '88';
             ctx.lineWidth = hot ? 3 : 1.6;
             ctx.stroke();
         });
+        ctx.globalAlpha = 1;
+    }
+    function gcNodes(g, s, p, fresh, e, isLast) {
+        var r = g.r, i;
+        var bk = fresh ? ez(seg(e, 0, 0.3)) : 1;
         for (i = 0; i < N; i++) {
-            var c = col[i];
-            var isCur = i === cur;
-            var isBad = bad.indexOf(i) >= 0;
-            var base = c > 0 ? colorOf(c) : P.sub;
-            if (isCur && tryC > 0 && c === 0) base = colorOf(tryC);
+            var px = gcPX(g, i), py = gcPY(g, i);
+            var sh = gcShown(p, s, i, fresh, e);
+            var showC = sh.c > 0 && sh.k > 0;
+            var isCur = i === s.cur;
+            circ(px, py, r, P.surf2, (isCur ? P.yellow : P.sub) + 'ff', isCur ? 3 : 1.8);
+            if (showC) {
+                ctx.globalAlpha = sh.k;
+                circ(px, py, r, gcCol(sh.c) + '55', isCur ? 'none' : gcCol(sh.c) + 'ff', 2.4);
+                ctx.globalAlpha = 1;
+            }
+            if (s.bad.indexOf(i) >= 0) {
+                ctx.globalAlpha = bk;
+                ctx.setLineDash([3, 3]);
+                circ(px, py, r + 4, 'none', P.red + 'ff', 1.8);
+                ctx.setLineDash([]);
+                ctx.globalAlpha = 1;
+            }
+            if (fresh && p.col[i] === 0 && s.col[i] > 0 && e >= 0.6) {
+                var lk = seg(e, 0.6, 1);
+                ctx.globalAlpha = 1 - lk;
+                circ(px, py, r + 2 + 10 * lk, 'none', gcCol(s.col[i]) + 'ff', 2);
+                ctx.globalAlpha = 1;
+            }
+            if (isLast && fresh) {
+                ctx.globalAlpha = Math.sin(Math.PI * seg(e, i * 0.1, i * 0.1 + 0.5));
+                circ(px, py, r + 7, 'none', P.green + 'ff', 2);
+                ctx.globalAlpha = 1;
+            }
+            tx(NAMES[i], px, showC ? py - 6 : py, g.fs + 1, P.text + 'ff', 'center', true);
+            if (showC) {
+                ctx.globalAlpha = sh.k;
+                tx(String(sh.c), px, py + 8, g.fs, P.text + 'ff', 'center', true);
+                ctx.globalAlpha = 1;
+            }
+        }
+    }
+
+    /* ===================== 시도 칩 ===================== */
+    function gcChip(g, s, p, fresh, e) {
+        var cur = s.cur;
+        if (!fresh || cur < 0 || s.tryC <= 0) return;
+        var conflict = s.bad.length > 0 && s.col[cur] === 0;
+        var assign = s.col[cur] === s.tryC && p.col[cur] === 0;
+        var q;
+        if (assign) {
+            if (e >= 0.6) return;
+            q = ez(seg(e, 0.05, 0.6));
+        } else if (conflict) {
+            q = 0.6 * Math.sin(Math.PI * seg(e, 0.1, 0.9));
+        } else {
+            return;
+        }
+        var x = lerp(gcSwX(g, s.tryC), gcPX(g, cur), q);
+        var y = lerp(g.top + g.L.palH / 2, gcPY(g, cur), q);
+        circ(x, y, 8, gcCol(s.tryC) + 'ff', (conflict ? P.red : P.text) + 'ff', 2);
+    }
+
+    /* ===================== 정점 순서 띠 ===================== */
+    function gcStrip(g, s, p, fresh, e) {
+        var lw = g.mob ? 30 : 36;
+        var cw = Math.min(50, (g.w - lw - 4) / N);
+        var bx0 = g.x0 + lw + (g.w - lw - cw * N) / 2;
+        var y = g.top + g.L.stripY;
+        var h = g.L.stripH;
+        var v;
+        tx('순서', g.x0, y + h / 2, g.fsub, P.sub + 'ee', 'left', true);
+        for (v = 0; v < N; v++) {
+            var fk = p.order.indexOf(v);
+            var tk = s.order.indexOf(v);
+            var moved = fresh && fk !== tk;
+            var idx = !moved ? tk : (e < 0.5 ? fk : tk);
+            var al = !moved ? 1 : (e < 0.5 ? 1 - ez(seg(e, 0, 0.5)) : ez(seg(e, 0.5, 1)));
+            var bx = bx0 + idx * cw;
+            var sh = gcShown(p, s, v, fresh, e);
+            var isC = v === s.cur;
+            ctx.globalAlpha = al;
+            rr(bx + 2, y, cw - 4, h, 4, sh.c > 0 ? gcCol(sh.c) + '33' : 'none',
+                (isC ? P.yellow : sh.c > 0 ? gcCol(sh.c) : P.sub) + (isC || sh.c > 0 ? 'ff' : '88'), isC ? 2.4 : 1.3);
+            tx(NAMES[v], bx + cw / 2, y + h * 0.32, g.fs, P.text + 'ff', 'center', true);
+            tx(sh.c > 0 ? '색 ' + sh.c : '·', bx + cw / 2, y + h * 0.74, g.fsub, (sh.c > 0 ? gcCol(sh.c) : P.sub) + 'ff', 'center', true);
+            ctx.globalAlpha = 1;
+        }
+        var curK = s.cur >= 0 ? s.order.indexOf(s.cur) : -1;
+        var prevK = p.cur >= 0 ? p.order.indexOf(p.cur) : -1;
+        var pk = -1, pa = 0;
+        if (!fresh) {
+            if (curK >= 0) { pk = curK; pa = 1; }
+        } else if (curK >= 0 && prevK >= 0) {
+            pk = lerp(prevK, curK, ez(seg(e, 0, 0.6))); pa = 1;
+        } else if (curK >= 0) {
+            pk = curK; pa = ez(seg(e, 0, 0.4));
+        } else if (prevK >= 0) {
+            pk = prevK; pa = 1 - ez(seg(e, 0, 0.4));
+        }
+        if (pa > 0.01) {
+            var ax = bx0 + pk * cw + cw / 2;
+            ctx.globalAlpha = pa;
             ctx.beginPath();
-            ctx.arc(px(i), py(i), r, 0, Math.PI * 2);
-            ctx.fillStyle = (c > 0 || (isCur && tryC > 0) ? base + '55' : P.surf2);
+            ctx.moveTo(ax, y - 2);
+            ctx.lineTo(ax - 5, y - 8);
+            ctx.lineTo(ax + 5, y - 8);
+            ctx.closePath();
+            ctx.fillStyle = P.yellow + 'ff';
             ctx.fill();
-            ctx.strokeStyle = (isCur ? P.yellow : isBad ? P.red : base) + 'ff';
-            ctx.lineWidth = isCur || isBad ? 3 : 1.8;
-            ctx.stroke();
-            tx(NAMES[i], px(i), py(i) - 1, fs + 1, P.text + 'ff', 'center', true);
-            if (c > 0) tx('색 ' + c, px(i), py(i) + r + 11, fs - 1.5, base + 'ff', 'center', true);
+            ctx.globalAlpha = 1;
         }
-        var sy = top + gh + 14;
-        var cw = Math.min(50, (w - 56) / N);
-        var sx0 = x0 + 56 + (w - 56 - cw * N) / 2;
-        tx('순서', x0, sy + 17, fs - 1, P.sub + 'ee', 'left', true);
-        for (i = 0; i < N; i++) {
-            var v = order[i];
-            var cc = col[v];
-            var onCur = v === cur;
-            rr(sx0 + i * cw + 2, sy, cw - 4, 34, 4, cc > 0 ? colorOf(cc) + '33' : 'none', (onCur ? P.yellow : cc > 0 ? colorOf(cc) : P.sub) + (onCur || cc > 0 ? 'ff' : '88'), onCur ? 2.4 : 1.3);
-            tx(NAMES[v], sx0 + i * cw + cw / 2, sy + 11, fs - 0.5, P.text + 'ff', 'center', true);
-            tx(cc > 0 ? String(cc) : '·', sx0 + i * cw + cw / 2, sy + 25, fs - 1, cc > 0 ? colorOf(cc) + 'ff' : P.sub + 'cc', 'center', true);
-        }
-        var at = sy + 52;
-        if (step && step.cap) tx(step.cap, x0 + w / 2, at, fs - 0.5, P.yellow + 'ff', 'center', true);
-        if (step && step.cap2) tx(step.cap2, x0 + w / 2, at + 19, fs - 1, P.text + 'ee', 'center', false);
-        if (step && step.cap3) tx(step.cap3, x0 + w / 2, at + 38, fs - 1, P.green + 'ee', 'center', true);
+    }
+
+    /* ===================== 설명 문구 ===================== */
+    function gcBlock(str, cx, y, w, fs, lh, col, bold) {
+        if (!str) return y;
+        var rows = lines(str, w - 8, fs);
+        rows.forEach(function (row, li) { tx(row, cx, y + li * lh + lh / 2, fs, col, 'center', bold); });
+        return y + rows.length * lh;
+    }
+    function gcCaps(g, s, fresh, e) {
+        var cx = g.x0 + g.w / 2;
+        var y = g.top + g.L.capY;
+        ctx.globalAlpha = fresh ? 0.35 + 0.65 * ez(e) : 1;
+        y = gcBlock(s.cap, cx, y, g.w, g.fs, g.fs + 5, P.yellow + 'ff', true);
+        y = gcBlock(s.cap2, cx, y, g.w, g.fsub, g.fsub + 4, P.text + 'ee', false);
+        gcBlock(s.cap3, cx, y, g.w, g.fsub, g.fsub + 4, P.green + 'ff', true);
+        ctx.globalAlpha = 1;
+    }
+
+    /* ===================== 메인 장면 ===================== */
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var steps = currentSteps();
+        var s = step || steps[0];
+        var p = prev || s;
+        var fresh = s !== p;
+        var e = fresh ? clamp01(t) : 1;
+        var isLast = steps.indexOf(s) === steps.length - 1;
+        var g = gcGeom(x0, top, w, mob);
+        gcPalette(g, s);
+        gcEdges(g, s, fresh, e);
+        gcNodes(g, s, p, fresh, e, isLast);
+        gcChip(g, s, p, fresh, e);
+        gcStrip(g, s, p, fresh, e);
+        gcCaps(g, s, fresh, e);
     }
 
     /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
     function draw() {
         P = window.CsFlow.getP();
         ctx.clearRect(0, 0, GW(), GH());
         var W = GW(); var mob = W < 600;
-        var padX = mob ? 16 : 26;
-        var fullW = W - padX * 2;
-        var top = mob ? 18 : 26;
-
         var steps = currentSteps();
         var step = stepIdx >= 0 ? steps[stepIdx] : null;
-
-        drawGC(padX, top, fullW, mob, step);
-
-        if (!step) {
-            var hint = '아래 STEP으로 그래프 색칠의 동작을 확인하세요.';
-            ctx.font = '500 ' + (mob ? 11 : 12.5) + 'px "JetBrains Mono",monospace';
-            var hs = mob ? 11 : 12.5;
-            var hl = [hint];
-            if (ctx.measureText(hint).width > W - 16) {
-                var cut = hint.indexOf(' ', Math.floor(hint.length / 2));
-                if (cut < 0) cut = hint.lastIndexOf(' ');
-                hl = [hint.slice(0, cut), hint.slice(cut + 1)];
-            }
-            hl.forEach(function (line, li) {
-                tx(line, W / 2, GH() - (mob ? 12 : 14) - (hl.length - 1 - li) * (hs + 4), hs, P.muted + 'aa', 'center', false);
-            });
-        }
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
         var mob = w < 600;
-        var neededH;
-        neededH = mob ? 380 : 410;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
         canvasWrap.style.height    = 'auto';
-        canvasWrap.style.minHeight = neededH + 'px';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
         var actualH = canvasWrap.offsetHeight || neededH;
         if (actualH < neededH) actualH = neededH;
         canvas.width  = w * dpr;
@@ -367,17 +584,22 @@
     /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        draw();
-        rafId = requestAnimationFrame(function () { rafId = null; if (onDone) onDone(); });
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
     function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
-    function defaultLog() {
-        if (mode === 'order') return '같은 그래프를 정점 순서만 바꿔 칠하면 필요한 색의 수가 어떻게 달라지는지 봅니다.';
-        if (mode === 'back') return '색을 시도하다 막히면 되돌아가 다른 색을 시도하는 백트래킹을 봅니다.';
-        return '이웃이 쓰지 않는 가장 작은 번호의 색을 정점마다 칠하는 그리디 방식을 봅니다.';
-    }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -416,7 +638,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);

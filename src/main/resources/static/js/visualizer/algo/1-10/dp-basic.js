@@ -1,5 +1,5 @@
 /**
- * DP 기초 시각화
+ * DP 기초 시각화 시각화
  */
 (function () {
     'use strict';
@@ -22,8 +22,8 @@
 
     var modeWrap = el('div', 'dp-basic-viz__mode');
     var modeDefs = [
-        { key: 'table',     label: '표 채우기' },
-        { key: 'backtrack', label: '선택 아이템 역추적' },
+        { key: 'table', label: '표 채우기' },
+        { key: 'backtrack', label: '선택 아이템 역추적' }
     ];
     var modeBtns = {};
     modeDefs.forEach(function (m, i) {
@@ -38,7 +38,7 @@
     var speedWrap = el('div', 'dp-basic-viz__speed');
     speedWrap.appendChild(el('span', 'dp-basic-viz__speed-label', 'SPEED'));
     var speedBtns = [];
-    [['1x', 1200], ['2x', 600], ['3x', 300]].forEach(function (pair, i) {
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
         var b = el('button', 'dp-basic-viz__speed-btn' + (i === 0 ? ' dp-basic-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
@@ -71,11 +71,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'table';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 문제 데이터 (고정 0/1 배낭 문제 — 이해 부담을 줄이기 위해 작게 유지) ===================== */
     var ITEMS = [
@@ -161,258 +228,301 @@
 
     var BACKTRACK_STEPS = buildBacktrackSteps();
 
-    /* ===================== 상태 변수 ===================== */
-    var mode    = 'table';
-    var stepIdx = -1;
-    var running = false;
-    var timer   = null;
-    var rafId   = null;
-    var speed   = 1200;
-
+    /* ===================== 상태 ===================== */
     function currentSteps() {
-        return mode === 'table' ? TABLE_STEPS : BACKTRACK_STEPS;
+        return mode === 'backtrack' ? BACKTRACK_STEPS : TABLE_STEPS;
+    }
+    function defaultLog() {
+        return currentSteps()[0].log;
+    }
+    function ez(q) { q = clamp01(q); return q * q * (3 - 2 * q); }
+
+    /* ===================== 레이아웃 ===================== */
+    function layout(w, mob) {
+        var headW = mob ? 44 : 76;
+        var span = (w - headW) / (NI + 1);
+        var colH = mob ? 30 : 40;
+        var rh = mob ? 26 : 36;
+        var tabH = colH + (CAP + 1) * rh;
+        var pillH = mob ? 24 : 28;
+        var candH = pillH + (mob ? 20 : 24);
+        var legH = mob ? 36 : 44;
+        var gap = mob ? 8 : 12;
+        var stripH = mob ? 20 : 22;
+        var cw = mob ? span : Math.min(110, span);
+        return {
+            mob: mob, headW: headW, cw: cw, colH: colH, rh: rh, tabH: tabH,
+            tabW: headW + (NI + 1) * cw, legH: legH, gap: gap,
+            pillH: pillH, candH: candH, stripH: stripH,
+            total: legH + gap + tabH + gap + candH + 6 + stripH
+        };
+    }
+    function sceneH(w, mob) { return layout(w, mob).total; }
+
+    /* ===================== 격자 기하 ===================== */
+    function dpGeom(x0, top, w, mob) {
+        var L = layout(w, mob);
+        var tx0 = x0 + (w - L.tabW) / 2;
+        var ty0 = top + L.legH + L.gap;
+        var pillY = ty0 + L.tabH + L.gap;
+        return {
+            L: L, x0: x0, w: w, top: top, tx0: tx0, ty0: ty0, pillY: pillY,
+            resY: pillY + L.pillH + 4 + (L.candH - L.pillH - 4) / 2,
+            cx: function (it) { return tx0 + L.headW + it * L.cw + L.cw / 2; },
+            cy: function (c) { return ty0 + L.colH + c * L.rh + L.rh / 2; }
+        };
+    }
+    function dpInc(it, c) { return it > 0 && DP[it][c] !== DP[it - 1][c]; }
+    function dpWalker(st) {
+        if (st.type === 'intro') return { it: NI, c: CAP };
+        return { it: st.i + 1, c: st.w + (st.included ? ITEMS[st.i].w : 0) };
     }
 
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        var rad = Math.min(r, w / 2, h / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + rad, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, rad);
-        ctx.arcTo(x + w, y + h, x,     y + h, rad);
-        ctx.arcTo(x,     y + h, x,     y,     rad);
-        ctx.arcTo(x,     y,     x + w, y,     rad);
-        ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.5; ctx.stroke(); }
+    /* ===================== 격자 칸 그리기 ===================== */
+    function dpRing(g, it, c, col, lw, a) {
+        ctx.globalAlpha = a;
+        rr(g.cx(it) - g.L.cw / 2 + 1, g.cy(c) - g.L.rh / 2 + 1, g.L.cw - 2, g.L.rh - 2, 3, 'none', col, lw);
+        ctx.globalAlpha = 1;
+    }
+    function dpCell(g, it, c, st) {
+        var L = g.L;
+        rr(g.cx(it) - L.cw / 2 + 1, g.cy(c) - L.rh / 2 + 1, L.cw - 2, L.rh - 2, 3, st.fill, st.stroke, st.lw);
+        if (st.val === null) return;
+        ctx.globalAlpha = st.va;
+        tx(String(st.val), g.cx(it), g.cy(c), L.mob ? 12.5 : 14, st.tc, 'center', st.bold);
+        ctx.globalAlpha = 1;
+    }
+    function dpGrid(g, actIt, actC) {
+        var L = g.L, fs = L.mob ? 11 : 12.5;
+        for (var it = 0; it <= NI; it++) {
+            tx(it === 0 ? '0개' : '아이템' + it, g.cx(it), g.ty0 + L.colH / 2, fs, (it === actIt ? P.orange : P.text) + 'ee', 'center', true);
+        }
+        for (var c = 0; c <= CAP; c++) {
+            tx('무게 ' + c, g.tx0 + L.headW / 2, g.cy(c), fs, (c === actC ? P.orange : P.text) + 'cc', 'center', true);
+        }
+    }
+    function dpTableStyle(s, fresh, e, it, c) {
+        if (it === 0 || c === 0) return { fill: P.muted + '10', stroke: P.muted + '44', lw: 1, val: s.dp[it][c], tc: P.sub + 'ff', va: 1, bold: false };
+        var curOrd = s.cur ? (s.cur.i - 1) * (CAP + 1) + s.cur.w : -1;
+        var ord = (it - 1) * (CAP + 1) + c;
+        if (s.cur && s.cur.i === it && s.cur.w === c) {
+            return { fill: P.orange + '30', stroke: P.orange + 'ee', lw: 2.4, val: s.dp[it][c], tc: P.text + 'ff', va: fresh ? ez(seg(e, 0.85, 1)) : 1, bold: true };
+        }
+        if (ord < curOrd) {
+            var cl = dpInc(it, c) ? P.green : P.teal;
+            return { fill: cl + '18', stroke: cl + '66', lw: 1.2, val: s.dp[it][c], tc: P.text + 'ee', va: 1, bold: false };
+        }
+        return { fill: P.muted + '08', stroke: P.muted + '30', lw: 1, val: null, tc: P.sub, va: 1, bold: false };
     }
 
-    function tx(str, x, y, sz, color, align, bold) {
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
+    /* ===================== 후보 칩과 두 후보 칸 ===================== */
+    function dpChip(x, y, txt, col, a, fs) {
+        ctx.globalAlpha = a;
+        rr(x - 19, y - 9, 38, 18, 4, col + '33', col + 'ff', 1.4);
+        tx(txt, x, y, fs, P.text + 'ff', 'center', true);
+        ctx.globalAlpha = 1;
+    }
+    function dpPath(x1, y1, x2, y2, p, col, lw) {
+        if (p <= 0) return;
+        if (p >= 1) { arrow(x1, y1, x2, y2, col, lw); return; }
+        ln(x1, y1, lerp(x1, x2, p), lerp(y1, y2, p), col, lw);
+    }
+    function dpPill(x, y, bw, bh, txt, win, a, fs) {
+        var col = win ? P.green : P.muted;
+        ctx.globalAlpha = a;
+        rr(x, y, bw, bh, bh / 2, col + (win ? '22' : '10'), col + (win ? 'ee' : '55'), win ? 1.8 : 1);
+        tx(txt, x + bw / 2, y + bh / 2, fs, (win ? P.green : P.sub) + 'ff', 'center', win);
+        ctx.globalAlpha = 1;
+    }
+    function dpPairPills(g, leftTxt, rightTxt, rightWins, pa, la) {
+        var L = g.L, pw = (g.w - L.gap) / 2, fs = L.mob ? 11 : 12.5;
+        dpPill(g.x0, g.pillY, pw, L.pillH, leftTxt, !rightWins, rightWins ? la : pa, fs);
+        dpPill(g.x0 + pw + L.gap, g.pillY, pw, L.pillH, rightTxt, rightWins, rightWins ? pa : la, fs);
     }
 
-    function line(x1, y1, x2, y2, col, lw) {
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
-        ctx.strokeStyle = col; ctx.lineWidth = lw || 1.5;
-        ctx.stroke();
-    }
-
-    function arrow(x1, y1, x2, y2, col, lw) {
-        line(x1, y1, x2, y2, col, lw);
-        var angle = Math.atan2(y2 - y1, x2 - x1);
-        var headLen = (lw || 1.5) * 3.2 + 4;
-        ctx.beginPath();
-        ctx.moveTo(x2, y2);
-        ctx.lineTo(x2 - headLen * Math.cos(angle - Math.PI / 7), y2 - headLen * Math.sin(angle - Math.PI / 7));
-        ctx.lineTo(x2 - headLen * Math.cos(angle + Math.PI / 7), y2 - headLen * Math.sin(angle + Math.PI / 7));
-        ctx.closePath();
-        ctx.fillStyle = col;
-        ctx.fill();
-    }
-
-    /* ===================== 아이템 목록 (표 위 범례) ===================== */
-    function drawItemsLegend(x0, top, mob, W, spec) {
-        var fLbl = mob ? 10.5 : 11.5;
-        var chipH = mob ? 30 : 34, gap = mob ? 6 : 8;
-        var chipW = (W - x0 * 2 - gap * (NI - 1)) / NI;
-        ITEMS.forEach(function (item, idx) {
-            var it = idx + 1;
-            var x = x0 + idx * (chipW + gap);
-            var isSel = spec.selectedSet && spec.selectedSet[idx];
-            var col = isSel ? P.green : P.muted;
-            rr(x, top, chipW, chipH, 4, col + (isSel ? '22' : '10'), col + (isSel ? 'ee' : '55'), isSel ? 2 : 1);
-            tx('아이템' + it + '  무게' + item.w + ' 가치' + item.v, x + chipW / 2, top + chipH / 2, fLbl, isSel ? P.green + 'ee' : P.text + 'bb', 'center', isSel);
+    /* ===================== 아이템 범례 ===================== */
+    function dpLegend(g, s, fresh, e) {
+        var L = g.L, gapX = L.mob ? 6 : 8, fs = L.mob ? 11 : 12.5;
+        var chipW = (g.w - gapX * (NI - 1)) / NI;
+        var bt = mode === 'backtrack';
+        var actK = bt ? s.i : (s.cur ? s.cur.i - 1 : -1);
+        ITEMS.forEach(function (item, k) {
+            var newly = bt && fresh && s.included && k === s.i && e < 0.6;
+            var on = !newly && (s.selected || []).indexOf(k) >= 0;
+            var act = k === actK;
+            var hot = on || act;
+            var col = on ? P.green : (act ? P.orange : P.muted);
+            var x = g.x0 + k * (chipW + gapX);
+            rr(x, g.top, chipW, L.legH, 5, col + (hot ? '22' : '10'), col + (hot ? 'ee' : '55'), hot ? 1.8 : 1);
+            tx('아이템' + (k + 1), x + chipW / 2, g.top + L.legH * 0.32, fs, (hot ? col : P.text) + 'ff', 'center', true);
+            tx('무게' + item.w + ' 가치' + item.v, x + chipW / 2, g.top + L.legH * 0.72, fs, P.text + 'dd', 'center', false);
         });
     }
 
-    /* ===================== DP 테이블 렌더 ===================== */
-    function drawTable(x0, top, mob, spec, step) {
-        var cellW = mob ? 58 : 74, cellH = mob ? 32 : 38;
-        var headerRowH = mob ? 46 : 52;
-        var headW = mob ? 62 : 78;
-        var fHead = mob ? 10 : 11.5, fVal = mob ? 12.5 : 14;
-
-        function cellCenter(i, w) {
-            return { x: x0 + headW + i * cellW + cellW / 2, y: top + headerRowH + w * cellH + cellH / 2 };
+    /* ===================== 표 채우기 장면 ===================== */
+    function dpDrawTable(g, s, fresh, e) {
+        var L = g.L, fs = L.mob ? 11 : 12.5;
+        dpGrid(g, s.cur ? s.cur.i : -1, s.cur ? s.cur.w : -1);
+        for (var it = 0; it <= NI; it++) {
+            for (var c = 0; c <= CAP; c++) dpCell(g, it, c, dpTableStyle(s, fresh, e, it, c));
         }
-
-        tx('무게 \\ 아이템', x0 + headW / 2, top + headerRowH / 2, mob ? 9 : 10, P.muted + 'aa', 'center', true);
-        for (var i = 0; i <= NI; i++) {
-            var hx = x0 + headW + i * cellW + cellW / 2;
-            if (i === 0) {
-                tx('0개', hx, top + headerRowH / 2, fHead, P.text + '99', 'center', true);
-            } else {
-                var hItem = ITEMS[i - 1];
-                tx('아이템' + i, hx, top + headerRowH / 2 - (mob ? 9 : 10), fHead, P.text + 'cc', 'center', true);
-                tx('무게' + hItem.w + ' 가치' + hItem.v, hx, top + headerRowH / 2 + (mob ? 10 : 11), mob ? 9.5 : 10.5, P.muted + 'bb', 'center', false);
-            }
+        if (!s.cur) {
+            tx('칸을 채우면 두 후보를 비교합니다', g.x0 + g.w / 2, g.pillY + L.pillH / 2, fs, P.sub + 'ff', 'center', false);
+            return;
         }
-
-        for (var w = 0; w <= CAP; w++) {
-            var ry = top + headerRowH + w * cellH;
-            tx('무게 ' + w, x0 + headW / 2, ry + cellH / 2, fHead, P.text + '99', 'center', true);
-
-            for (var i2 = 0; i2 <= NI; i2++) {
-                var cx2 = x0 + headW + i2 * cellW;
-                var known = spec.dp[i2] && spec.dp[i2][w] != null;
-                var key = i2 + '-' + w;
-                var isCur = spec.cur && spec.cur.i === i2 && spec.cur.w === w;
-                var isSrc = spec.srcKeys && spec.srcKeys[key];
-                var onBacktrackPath = spec.pathKeys && spec.pathKeys[key];
-
-                var col = P.muted, fillA = '08', strokeA = '30', lw = 1;
-                if (known) { col = spec.includeMap && spec.includeMap[key] ? P.green : P.teal; fillA = '18'; strokeA = '66'; lw = 1.2; }
-                if (isSrc) { col = P.purple; fillA = '20'; strokeA = 'aa'; lw = 1.6; }
-                if (onBacktrackPath) { col = P.orange; fillA = '26'; strokeA = 'ee'; lw = 2; }
-                if (isCur) { col = P.orange; fillA = '30'; strokeA = 'ee'; lw = 2.4; }
-
-                rr(cx2, ry, cellW - 2, cellH - 2, 3, col + fillA, col + strokeA, lw);
-                if (known) tx(String(spec.dp[i2][w]), cx2 + cellW / 2, ry + cellH / 2, fVal, P.text + 'ee', 'center', isCur || onBacktrackPath);
-            }
+        var ci = s.cur.i, cc = s.cur.w, cw = L.cw, rh = L.rh;
+        var cur = { x: g.cx(ci), y: g.cy(cc) };
+        var lf = { x: g.cx(ci - 1), y: g.cy(cc) };
+        var vi = ITEMS[ci - 1].v;
+        var hi = fresh ? ez(seg(e, 0, 0.2)) : 1;
+        var gl = fresh ? ez(seg(e, 0.05, 0.35)) : 1;
+        var fl = fresh ? ez(seg(e, 0.25, 0.6)) : 1;
+        var chipA = fresh ? ez(seg(e, 0.2, 0.3)) * (1 - ez(seg(e, 0.6, 0.7))) : 0;
+        dpRing(g, ci - 1, cc, P.teal + 'ff', 2, hi);
+        dpPath(lf.x + cw * 0.3, lf.y, cur.x - cw * 0.3, cur.y, gl, P.teal + 'dd', 2);
+        if (chipA > 0) dpChip(lerp(lf.x, cur.x, fl), lerp(lf.y, cur.y, fl), String(s.without), P.teal, chipA, fs);
+        if (s.srcDiag) {
+            var dr = s.srcDiag.w;
+            var dg = { x: g.cx(ci - 1), y: g.cy(dr) };
+            dpRing(g, ci - 1, dr, P.purple + 'ff', 2, hi);
+            dpPath(dg.x + cw * 0.25, dg.y + rh * 0.25, cur.x - cw * 0.25, cur.y - rh * 0.25, gl, P.purple + 'dd', 2);
+            if (chipA > 0) dpChip(lerp(dg.x, cur.x, fl), lerp(dg.y, cur.y, fl), s.dp[ci - 1][dr] + '+' + vi, P.purple, chipA, fs);
         }
-
-        if (mode === 'table' && step && step.cur) {
-            var curC = cellCenter(step.cur.i, step.cur.w);
-            if (step.srcAbove) {
-                var a = cellCenter(step.srcAbove.i, step.srcAbove.w);
-                arrow(a.x + cellW * 0.32, a.y, curC.x - cellW * 0.32, curC.y, P.teal + 'dd', 2);
-            }
-            if (step.srcDiag) {
-                var d = cellCenter(step.srcDiag.i, step.srcDiag.w);
-                arrow(d.x + cellW * 0.26, d.y + cellH * 0.26, curC.x - cellW * 0.26, curC.y - cellH * 0.26, P.purple + 'dd', 2);
-            }
-
-            if (step.type !== 'intro') {
-                var boxW = mob ? 104 : 130, lineH = mob ? 17 : 19;
-                var boxH = lineH * 2 + (mob ? 8 : 10);
-                var bx = Math.min(Math.max(curC.x - boxW / 2, x0), x0 + headW + (NI + 1) * cellW - boxW);
-                var by = curC.y - cellH / 2 - boxH - (mob ? 6 : 8);
-                if (by < top + headerRowH) by = curC.y + cellH / 2 + (mob ? 6 : 8);
-                rr(bx, by, boxW, boxH, 5, '#1a1a2eee', P.orange + '88', 1.3);
-                var wo = step.without, wv = step.withVal;
-                var LOSE_COL = '#9a9aad';
-                var woCol = (!step.include) ? P.green : LOSE_COL;
-                var wvCol = step.include ? P.green : LOSE_COL;
-                tx('제외: ' + wo, bx + boxW / 2, by + lineH * 0.5 + (mob ? 3 : 4), mob ? 10.5 : 11.5, woCol + 'ee', 'center', !step.include);
-                tx('포함: ' + (step.possible ? wv : '불가'), bx + boxW / 2, by + lineH * 1.5 + (mob ? 4 : 5), mob ? 10.5 : 11.5, wvCol + 'ee', 'center', step.include);
-            }
-        }
+        dpRing(g, ci, cc, P.yellow + 'ff', 2.4, fresh ? ez(seg(e, 0.72, 0.8)) : 1);
+        var pa = fresh ? ez(seg(e, 0.6, 0.7)) : 1;
+        var la = fresh ? pa * (1 - 0.6 * ez(seg(e, 0.75, 0.85))) : 0.6;
+        dpPairPills(g, '제외: ' + s.without, s.possible ? '포함: ' + s.withVal : '포함: 불가', s.include, pa, la);
+        ctx.globalAlpha = fresh ? ez(seg(e, 0.85, 0.95)) : 1;
+        tx('더 큰 값 ' + s.dp[ci][cc] + ' 선택 (' + (s.include ? '포함' : '제외') + ')', g.x0 + g.w / 2, g.resY, fs, (s.include ? P.green : P.sub) + 'ff', 'center', true);
+        ctx.globalAlpha = 1;
     }
 
-    /* ===================== 스텝 → 렌더 스펙 ===================== */
-    function computeSpec(step) {
-        var spec = { dp: step.dp, cur: step.cur || null, srcKeys: {}, includeMap: {}, pathKeys: {}, selectedSet: {} };
-
-        if (mode === 'table') {
-            var idx = TABLE_STEPS.indexOf(step);
-            for (var s = 1; s <= idx; s++) {
-                var st = TABLE_STEPS[s];
-                if (st.cur) spec.includeMap[st.cur.i + '-' + st.cur.w] = st.include;
+    /* ===================== 역추적 장면 ===================== */
+    function dpDrawBacktrack(g, s, pv, fresh, e) {
+        var L = g.L, fs = L.mob ? 11 : 12.5;
+        var k = BACKTRACK_STEPS.indexOf(s);
+        var cur = dpWalker(s);
+        var intro = s.type === 'intro';
+        dpGrid(g, intro ? -1 : cur.it, cur.c);
+        for (var it = 0; it <= NI; it++) {
+            for (var c = 0; c <= CAP; c++) {
+                var cl = (it === 0 || c === 0) ? P.muted : (dpInc(it, c) ? P.green : P.teal);
+                dpCell(g, it, c, { fill: cl + '18', stroke: cl + '66', lw: 1.2, val: DP[it][c], tc: P.text + 'ee', va: 1, bold: false });
             }
-            if (step.srcAbove) spec.srcKeys[step.srcAbove.i + '-' + step.srcAbove.w] = true;
-            if (step.srcDiag) spec.srcKeys[step.srcDiag.i + '-' + step.srcDiag.w] = true;
-        } else {
-            spec.dp = DP;
-            for (var i = 0; i <= NI; i++) {
-                for (var w = 0; w <= CAP; w++) {
-                    var key = i + '-' + w;
-                    if (i > 0) spec.includeMap[key] = DP[i][w] !== DP[i - 1][w];
-                }
-            }
-            spec.pathKeys[NI + '-' + CAP] = true;
-            var curI = NI, curW = CAP;
-            var idx2 = BACKTRACK_STEPS.indexOf(step);
-            for (var s2 = 1; s2 <= idx2; s2++) {
-                var st2 = BACKTRACK_STEPS[s2];
-                var prevW = curW;
-                if (st2.included) curW -= ITEMS[curI - 1].w;
-                curI -= 1;
-                spec.pathKeys[curI + '-' + curW] = true;
-            }
-            (step.selected || []).forEach(function (i2) { spec.selectedSet[i2] = true; });
         }
-        return spec;
+        for (var j = 1; j <= k; j++) {
+            var bs = BACKTRACK_STEPS[j], from = dpWalker(bs);
+            var ga = (fresh && j === k) ? ez(seg(e, 0.6, 1)) : 1;
+            dpPath(g.cx(from.it) - L.cw * 0.3, g.cy(from.c), g.cx(bs.i) + L.cw * 0.3, g.cy(bs.w), ga, P.purple + 'dd', 2);
+        }
+        var pw = dpWalker(pv);
+        if (fresh && (pw.it !== cur.it || pw.c !== cur.c)) {
+            var ap = ez(seg(e, 0, 0.4));
+            ctx.globalAlpha = 1 - ez(seg(e, 0.4, 0.5));
+            circ(lerp(g.cx(pw.it), g.cx(cur.it), ap), lerp(g.cy(pw.c), g.cy(cur.c), ap), 6, P.orange + 'ff', 'none');
+            ctx.globalAlpha = 1;
+        }
+        dpRing(g, cur.it, cur.c, P.orange + 'ff', 2.6, 1);
+        if (intro) {
+            tx('시작: 오른쪽 아래 칸 (최적값 ' + DP[NI][CAP] + ')', g.x0 + g.w / 2, g.pillY + L.pillH / 2, fs, P.sub + 'ff', 'center', true);
+            return;
+        }
+        var wi = ITEMS[cur.it - 1].w, vi = ITEMS[cur.it - 1].v;
+        var lf = { x: g.cx(cur.it - 1), y: g.cy(cur.c) }, rp = { x: g.cx(cur.it), y: g.cy(cur.c) };
+        var ca = fresh ? ez(seg(e, 0.2, 0.45)) : 1;
+        dpRing(g, cur.it - 1, cur.c, P.sub + 'ff', 1.6, ca);
+        ctx.globalAlpha = ca;
+        ln(lf.x + L.cw * 0.3, lf.y, rp.x - L.cw * 0.3, rp.y, P.sub + 'aa', 1.6, [4, 3]);
+        ctx.globalAlpha = 1;
+        var pa = fresh ? ez(seg(e, 0.45, 0.6)) : 1;
+        var la = fresh ? pa * (1 - 0.6 * ez(seg(e, 0.7, 0.8))) : 0.6;
+        var possible = wi <= cur.c;
+        dpPairPills(g, '제외: ' + DP[cur.it - 1][cur.c], possible ? '포함: ' + (DP[cur.it - 1][cur.c - wi] + vi) : '포함: 불가', s.included, pa, la);
+        ctx.globalAlpha = fresh ? ez(seg(e, 0.8, 0.95)) : 1;
+        tx(s.included ? '포함: 용량 ' + cur.c + ' → ' + (cur.c - wi) : '제외: 왼쪽 칸과 같은 값', g.x0 + g.w / 2, g.resY, fs, (s.included ? P.green : P.sub) + 'ff', 'center', true);
+        ctx.globalAlpha = 1;
     }
 
-    /* ===================== 레이아웃 ===================== */
-    function getLayout(mob) {
-        var headerRowH = mob ? 46 : 52;
-        var cellH = mob ? 32 : 38;
-        return {
-            top:      mob ? 14 : 20,
-            legendH:  mob ? 38 : 42,
-            gapMid:   mob ? 10 : 12,
-            tableH:   headerRowH + (CAP + 1) * cellH,
-        };
+    /* ===================== 하단 상태 띠 ===================== */
+    function dpStrip(g, s) {
+        var L = g.L, fs = L.mob ? 11 : 12.5, y = g.top + L.total - L.stripH / 2, cx = g.x0 + g.w / 2;
+        if (mode === 'backtrack') {
+            var sel = (s.selected || []).map(function (x) { return x + 1; }).join(', ');
+            if (s.type === 'done') tx('최종 선택: 아이템 ' + sel, cx, y, fs, P.green + 'ff', 'center', true);
+            else tx('선택 아이템: ' + (s.type === 'intro' ? '확인 전' : (sel || '없음')), cx, y, fs, P.sub + 'ff', 'center', true);
+            return;
+        }
+        var last = TABLE_STEPS.length - 1, idx = TABLE_STEPS.indexOf(s);
+        if (idx === last) tx('완성: 최적값 ' + DP[NI][CAP], cx, y, fs, P.green + 'ff', 'center', true);
+        else tx('채운 칸 ' + idx + ' / ' + last, cx, y, fs, P.sub + 'ff', 'center', true);
+    }
+
+    /* ===================== 메인 장면 ===================== */
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var steps = currentSteps();
+        var s = step || steps[0];
+        var pv = prev || s;
+        var fresh = s !== pv;
+        var e = fresh ? clamp01(t) : 1;
+        var g = dpGeom(x0, top, w, mob);
+        dpLegend(g, s, fresh, e);
+        if (mode === 'backtrack') dpDrawBacktrack(g, s, pv, fresh, e);
+        else dpDrawTable(g, s, fresh, e);
+        dpStrip(g, s);
+    }
+
+    /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
+    function draw() {
+        P = window.CsFlow.getP();
+        ctx.clearRect(0, 0, GW(), GH());
+        var W = GW(); var mob = W < 600;
+        var steps = currentSteps();
+        var step = stepIdx >= 0 ? steps[stepIdx] : null;
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
-    function calcH(W) {
-        var mob = W < 600;
-        var L = getLayout(mob);
-        return L.top + L.legendH + L.gapMid + L.tableH + L.top;
-    }
-
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
-        var neededH = calcH(w);
+        var mob = w < 600;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
         canvasWrap.style.height    = 'auto';
-        canvasWrap.style.minHeight = neededH + 'px';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
         var actualH = canvasWrap.offsetHeight || neededH;
         if (actualH < neededH) actualH = neededH;
-
         canvas.width  = w * dpr;
         canvas.height = actualH * dpr;
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         draw();
     }
 
-    /* ===================== 메인 드로우 ===================== */
-    function draw() {
-        P = window.CsFlow.getP();
-        ctx.clearRect(0, 0, GW(), GH());
-        var W   = GW();
-        var mob = W < 600;
-        var L   = getLayout(mob);
-
-        var neededH = calcH(W);
-        var extra = Math.max(0, GH() - neededH);
-        L.top = L.top + extra / 2;
-
-        var steps = currentSteps();
-        var step  = stepIdx >= 0 ? steps[stepIdx] : steps[0];
-        var spec  = computeSpec(step);
-
-        var padX = mob ? 12 : 20;
-        drawItemsLegend(padX, L.top, mob, W, spec);
-        drawTable(padX, L.top + L.legendH + L.gapMid, mob, spec, step);
-    }
-
-    /* ===================== 애니메이션(스텝 전환 타이밍) ===================== */
+    /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        draw();
-        rafId = requestAnimationFrame(function () {
-            rafId = null;
-            if (onDone) onDone();
-        });
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
-    function setSpeedDisabled(v) {
-        speedBtns.forEach(function (b) { b.disabled = v; });
-    }
-
-    function defaultLog() {
-        return currentSteps()[0].log;
-    }
+    function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -432,7 +542,7 @@
                 if (next === steps.length - 1) {
                     running = false; btnStep.disabled = true; setSpeedDisabled(false);
                 } else {
-                    timer = setTimeout(tick, speed * 0.35);
+                    timer = setTimeout(tick, speed * 0.6);
                 }
             });
         }
@@ -442,7 +552,7 @@
     function vizStep() {
         if (running) return;
         var steps = currentSteps();
-        var next  = stepIdx + 1;
+        var next = stepIdx + 1;
         if (next >= steps.length) return;
         applyStep(next, null);
         if (next === steps.length - 1) { btnPlay.disabled = true; btnStep.disabled = true; }
@@ -451,7 +561,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);
@@ -467,9 +577,7 @@
     function switchMode(m) {
         if (mode === m) return;
         mode = m;
-        modeDefs.forEach(function (d) {
-            modeBtns[d.key].classList.toggle('dp-basic-viz__mode-btn--active', d.key === m);
-        });
+        modeDefs.forEach(function (d) { modeBtns[d.key].classList.toggle('dp-basic-viz__mode-btn--active', d.key === m); });
         vizReset();
     }
 
@@ -488,9 +596,9 @@
                 tooltipHits: [],
                 hoveredKey: function () { return null; },
                 setHoveredKey: function () {},
-                draw: draw,
+                draw: draw
             };
-        },
+        }
     });
 
     setTimeout(resize, 60);

@@ -1,5 +1,5 @@
 /**
- * 정렬 알고리즘 비교 시각화
+ * 정렬 알고리즘 비교 시각화 시각화
  */
 (function () {
     'use strict';
@@ -24,7 +24,7 @@
     var modeDefs = [
         { key: 'merge', label: '병합 정렬' },
         { key: 'quick', label: '퀵 정렬' },
-        { key: 'heap',  label: '힙 정렬' },
+        { key: 'heap', label: '힙 정렬' }
     ];
     var modeBtns = {};
     modeDefs.forEach(function (m, i) {
@@ -39,7 +39,7 @@
     var speedWrap = el('div', 'sort-compare-viz__speed');
     speedWrap.appendChild(el('span', 'sort-compare-viz__speed-label', 'SPEED'));
     var speedBtns = [];
-    [['1x', 1600], ['2x', 800], ['3x', 500]].forEach(function (pair, i) {
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
         var b = el('button', 'sort-compare-viz__speed-btn' + (i === 0 ? ' sort-compare-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
@@ -72,11 +72,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'merge';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 데이터 (고정 배열, 세 알고리즘 모두 동일하게 사용) ===================== */
     var ARR     = [8, 3, 5, 4, 7, 6, 1, 2];
@@ -245,265 +312,278 @@
         return 2;
     }
 
-    /* ===================== 상태 변수 ===================== */
-    var mode    = 'merge';
-    var stepIdx = -1;
-    var running = false;
-    var timer   = null;
-    var rafId   = null;
-    var speed   = 1600;
-
+    /* ===================== 상태 ===================== */
     function currentSteps() {
         if (mode === 'merge') return MERGE_STEPS;
         if (mode === 'quick') return QUICK_STEPS;
         return HEAP_STEPS;
     }
-
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        var rad = Math.min(r, w / 2, h / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + rad, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, rad);
-        ctx.arcTo(x + w, y + h, x,     y + h, rad);
-        ctx.arcTo(x,     y + h, x,     y,     rad);
-        ctx.arcTo(x,     y,     x + w, y,     rad);
-        ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.5; ctx.stroke(); }
+    function defaultLog() {
+        return currentSteps()[0].log;
     }
-
-    function tx(str, x, y, sz, color, align, bold) {
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
-    }
-
-    function line(x1, y1, x2, y2, col, lw) {
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
-        ctx.strokeStyle = col; ctx.lineWidth = lw || 1.5;
-        ctx.stroke();
-    }
-
-    /* ===================== 막대 좌표 계산 ===================== */
-    function boxLayout(W, mob) {
-        var n = ARR.length;
-        var padX = mob ? 14 : 28;
-        var gap  = mob ? 6 : 10;
-        var plotW = W - 2 * padX;
-        var boxW = Math.floor((plotW - (n - 1) * gap) / n);
-        boxW = Math.max(mob ? 24 : 34, Math.min(mob ? 40 : 58, boxW));
-        var totalW = n * boxW + (n - 1) * gap;
-        var x0 = padX + Math.max(0, (plotW - totalW) / 2);
-        return { n: n, boxW: boxW, gap: gap, x0: x0, totalW: totalW };
-    }
-
-    function idxX(BL, i) { return BL.x0 + i * (BL.boxW + BL.gap); }
-    function idxCenterX(BL, i) { return idxX(BL, i) + BL.boxW / 2; }
-
-    /* ===================== 스텝 → 렌더 스펙 변환 ===================== */
-    function computeRenderSpec(step) {
-        var spec = { highlights: {}, band: null, divider: null, pointers: [], sortedFrom: null, confirmedSet: null, allGreen: step.type === 'done' };
-
-        if (mode === 'merge') {
-            if (step.left != null) {
-                spec.band = { start: step.left, end: step.right, colorKey: 'teal' };
-                spec.divider = step.mid;
-            }
-            if (step.k != null) {
-                spec.highlights[step.k] = 'orange';
-                spec.pointers.push({ idx: step.k, label: 'k' });
-            }
-        } else if (mode === 'quick') {
-            if (step.lo != null) spec.band = { start: step.lo, end: step.hi + 1, colorKey: 'teal' };
-            if (step.confirmed) spec.confirmedSet = step.confirmed;
-            if (step.hi != null && (step.type === 'pivot' || step.type === 'compare' || step.type === 'swap-or-compare')) {
-                spec.highlights[step.hi] = 'purple';
-                spec.pointers.push({ idx: step.hi, label: 'pivot' });
-            }
-            if (step.j != null) {
-                spec.highlights[step.j] = 'orange';
-                spec.pointers.push({ idx: step.j, label: 'j' });
-            }
-            if (step.i != null && step.lo != null && step.i >= step.lo) {
-                spec.pointers.push({ idx: step.i, label: 'i' });
-            }
-            if (step.type === 'place-pivot') {
-                spec.highlights[step.pivotFinal] = 'green';
-            }
-        } else {
-            if (step.heapEnd != null) {
-                spec.sortedFrom = step.heapEnd;
-                spec.band = { start: 0, end: step.heapEnd, colorKey: 'teal' };
-            }
-            if (step.root != null) { spec.highlights[step.root] = 'orange'; spec.pointers.push({ idx: step.root, label: 'root' }); }
-            if (step.child != null) { spec.highlights[step.child] = 'purple'; spec.pointers.push({ idx: step.child, label: 'child' }); }
-        }
-        return spec;
-    }
-
-    /* ===================== 막대 + 포인터 렌더 ===================== */
-    function drawBars(BL, top, h, mob, step, spec) {
-        if (spec.band) {
-            var col1 = P[spec.band.colorKey];
-            var bx0 = idxX(BL, spec.band.start) - BL.gap / 2;
-            var bx1 = idxX(BL, spec.band.end)   - BL.gap / 2;
-            rr(bx0, top - 6, Math.max(0, bx1 - bx0), h + 12, 5, col1 + '0c', col1 + '3a', 1);
-        }
-        if (spec.divider != null) {
-            var dx = idxX(BL, spec.divider) - BL.gap / 2;
-            ctx.save();
-            ctx.setLineDash([4, 4]);
-            line(dx, top - 8, dx, top + h + 8, P.text + '55', 1.4);
-            ctx.restore();
-        }
-
-        var valueTopPad = mob ? 20 : 22;
-        for (var i = 0; i < step.arr.length; i++) {
-            var val = step.arr[i];
-            var bh = Math.max(4, (val / ARR_MAX) * (h - valueTopPad));
-            var bx = idxX(BL, i);
-            var by = top + h - bh;
-
-            var col = P.muted;
-            if (spec.confirmedSet && spec.confirmedSet.indexOf(i) >= 0) col = P.green;
-            if (spec.sortedFrom != null && i >= spec.sortedFrom) col = P.green;
-            if (spec.highlights[i]) col = P[spec.highlights[i]];
-            if (spec.allGreen) col = P.green;
-
-            rr(bx, by, BL.boxW, bh, 3, col + '33', col + 'ee', 1.6);
-            tx(String(val), bx + BL.boxW / 2, by - (mob ? 9 : 10), mob ? 9 : 10.5, P.text + 'cc', 'center', true);
-            tx(String(i), bx + BL.boxW / 2, top + h + (mob ? 11 : 13), mob ? 8 : 9, P.text + '66', 'center', false);
-        }
-
-        var laneH = mob ? 22 : 26;
-        var laneMap = LANE_MAP[mode];
-        spec.pointers.forEach(function (p) {
-            var lane = laneMap[p.label];
-            if (lane == null) return;
-            var cx = idxCenterX(BL, p.idx);
-            var ly = top - (lane + 1) * laneH + laneH / 2 - 2;
-            var col = P[POINTER_COLOR[p.label]];
-            tx(p.label, cx, ly, mob ? 12 : 14, col + 'ee', 'center', true);
-            line(cx, ly + (mob ? 9 : 10), cx, top - 2, col + '88', 1.2);
-        });
-    }
-
-    /* ===================== 비교 횟수 비교 (마지막 모드 — 힙 정렬 화면에서 상시 표시) ===================== */
-    function drawCallComparison(x0, top, w, mob) {
-        var mergeTotal = MERGE_STEPS[MERGE_STEPS.length - 1].comparisons;
-        var quickTotal = QUICK_STEPS[QUICK_STEPS.length - 1].comparisons;
-        var heapTotal  = HEAP_STEPS[HEAP_STEPS.length - 1].comparisons;
-        var maxVal = Math.max(mergeTotal, quickTotal, heapTotal);
-
-        var rows = [
-            { label: '병합 정렬', value: mergeTotal, col: P.teal },
-            { label: '퀵 정렬',   value: quickTotal, col: P.orange },
-            { label: '힙 정렬',   value: heapTotal,  col: P.purple },
-        ];
-
-        var fLbl = mob ? 10 : 11;
-        var labelW = mob ? 66 : 84;
-        var barMaxW = Math.max(60, w - labelW - (mob ? 50 : 70));
-        var rowH = mob ? 24 : 28;
-
-        tx('비교 횟수 비교 (원소 8개 배열 기준)', x0, top, fLbl, P.muted + 'aa', 'left', true);
-        var rowsTop = top + (mob ? 18 : 22);
-        rows.forEach(function (r, i) {
-            var ry = rowsTop + i * rowH;
-            tx(r.label, x0, ry, fLbl, P.text + 'dd', 'left', true);
-            var barX = x0 + labelW;
-            var barW = Math.max(4, (r.value / maxVal) * barMaxW);
-            rr(barX, ry - (mob ? 7 : 8), barW, mob ? 14 : 16, 3, r.col + '55', r.col + 'ee', 1.4);
-            tx(r.value + '회', barX + barMaxW + 10, ry, mob ? 9 : 10, P.text + '99', 'left', false);
-        });
-    }
+    function ez(q) { q = clamp01(q); return q * q * (3 - 2 * q); }
 
     /* ===================== 레이아웃 ===================== */
-    function getLayout(mob) {
+    function scHeadText() {
+        return '비교 횟수 (원소 ' + ARR.length + '개 배열 기준)';
+    }
+    function layout(w, mob) {
+        var n = ARR.length;
+        var gap = mob ? 4 : 10;
+        var mPad = mob ? 16 : 20;
+        var bw = Math.max(12, Math.min(mob ? 36 : 58, Math.floor((w - 2 * mPad - (n - 1) * gap) / n)));
+        var gridW = n * bw + (n - 1) * gap;
+        var fs = mob ? 11 : 12;
+        var laneH = mob ? 16 : 20;
+        var nLanes = laneCountFor(mode);
+        var barH = mob ? 100 : 150;
+        var head = lines(scHeadText(), gridW, fs);
+        var headStep = fs + 5;
+        var rowH = mob ? 22 : 26;
+        var regionOff = nLanes * laneH + 18;
+        var rowsOff = barH + 28 + head.length * headStep + 4;
         return {
-            top:      mob ? 18 : 24,
-            laneH:    mob ? 22 : 26,
-            gapAfterPointers: mob ? 6 : 8,
-            barH:     mob ? 130 : 170,
-            labelH:   mob ? 16 : 18,
-            gapAfterBars: mob ? 14 : 16,
-            compareH: mode === 'heap' ? (mob ? 100 : 112) : 0,
+            w: w, gx: (w - gridW) / 2, gridW: gridW, bw: bw, gap: gap, fs: fs, laneH: laneH,
+            regionOff: regionOff, barH: barH, valPad: mob ? 16 : 20, lift: mob ? 10 : 14,
+            head: head, headStep: headStep, rowH: rowH, rowsOff: rowsOff,
+            labelW: mob ? 64 : 84, valW: mob ? 40 : 54,
+            total: regionOff + rowsOff + 3 * rowH + 6
         };
+    }
+    function sceneH(w, mob) { return layout(w, mob).total; }
+
+    /* ===================== 장면 헬퍼 ===================== */
+    function scX(L, x0, i) { return x0 + L.gx + i * (L.bw + L.gap); }
+    function scCx(L, x0, i) { return scX(L, x0, i) + L.bw / 2; }
+    function scEdge(L, x0, b) { return x0 + L.gx + b * (L.bw + L.gap) - L.gap / 2; }
+    function scTextW(str, fs, bold) {
+        ctx.font = (bold ? '700' : '500') + ' ' + fs + 'px "JetBrains Mono",monospace';
+        return ctx.measureText(str).width;
+    }
+    function scBandOf(st) {
+        if (mode === 'merge') return st.left != null ? [st.left, st.right] : null;
+        if (mode === 'quick') return st.lo != null ? [st.lo, st.hi + 1] : null;
+        return st.heapEnd > 0 ? [0, st.heapEnd] : null;
+    }
+    function scMidOf(st) { return st.left != null ? st.mid : null; }
+    function scSwapOf(a0, a1) {
+        var diff = [];
+        for (var i = 0; i < a0.length; i++) { if (a0[i] !== a1[i]) diff.push(i); }
+        if (diff.length === 2 && a0[diff[0]] === a1[diff[1]] && a0[diff[1]] === a1[diff[0]]) return diff;
+        return null;
+    }
+    function scRole(st, i) {
+        if (st.type === 'done') return 'green';
+        if (mode === 'merge') return st.k === i ? 'k' : 'idle';
+        if (mode === 'quick') {
+            if (st.type === 'place-pivot' && i === st.pivotFinal) return 'green';
+            if (st.hi != null && i === st.hi && (st.type === 'pivot' || st.type === 'compare' || st.type === 'swap-or-compare')) return 'pivot';
+            if (st.j != null && i === st.j) return 'j';
+            if (st.confirmed && st.confirmed.indexOf(i) >= 0) return 'green';
+            return 'idle';
+        }
+        if (st.root === i) return 'root';
+        if (st.child === i) return 'child';
+        if (st.heapEnd != null && i >= st.heapEnd) return 'green';
+        return 'idle';
+    }
+    function scRoleCol(r) {
+        if (r === 'green') return P.green;
+        if (r === 'idle') return P.muted;
+        return P[POINTER_COLOR[r]];
+    }
+    function scPtrIdx(st, label) {
+        if (label === 'k') return st.k != null ? st.k : null;
+        if (label === 'pivot') {
+            if (st.type === 'place-pivot') return st.pivotFinal;
+            return (st.hi != null && (st.type === 'pivot' || st.type === 'compare' || st.type === 'swap-or-compare')) ? st.hi : null;
+        }
+        if (label === 'j') return st.j != null ? st.j : null;
+        if (label === 'i') return (st.i != null && st.lo != null && st.i >= st.lo) ? st.i : null;
+        if (label === 'root') return st.root != null ? st.root : null;
+        if (label === 'child') return st.child != null ? st.child : null;
+        return null;
+    }
+    function scBar(x, y, bw, bh, col, a) {
+        if (a <= 0) return;
+        ctx.globalAlpha = a;
+        rr(x, y, bw, bh, 3, col + '33', col + 'ee', 1.6);
+        ctx.globalAlpha = 1;
+    }
+
+    /* ===================== 구간 · 분할선 ===================== */
+    function scDrawBand(L, x0, regionTop, p, s, k) {
+        var pb = scBandOf(p), cb = scBandOf(s);
+        var a0 = null, a1 = null, al = 1;
+        if (pb && cb) { a0 = lerp(pb[0], cb[0], k); a1 = lerp(pb[1], cb[1], k); }
+        else if (cb) { a0 = cb[0]; a1 = cb[1]; al = k; }
+        else if (pb) { a0 = pb[0]; a1 = pb[1]; al = 1 - k; }
+        if (a0 === null || al <= 0) return;
+        var x1 = scEdge(L, x0, a0), x2 = scEdge(L, x0, a1);
+        ctx.globalAlpha = al;
+        rr(x1, regionTop - 4, x2 - x1, L.barH + 7, 5, P.teal + '0c', P.teal + '3a', 1);
+        ctx.globalAlpha = 1;
+    }
+    function scDrawDivider(L, x0, regionTop, p, s, k) {
+        var pm = scMidOf(p), cm = scMidOf(s);
+        var m = null, al = 1;
+        if (pm !== null && cm !== null) { m = lerp(pm, cm, k); }
+        else if (cm !== null) { m = cm; al = k; }
+        else if (pm !== null) { m = pm; al = 1 - k; }
+        if (m === null || al <= 0) return;
+        ctx.globalAlpha = al;
+        ln(scEdge(L, x0, m), regionTop - 4, scEdge(L, x0, m), regionTop + L.barH + 3, P.text + '66', 1.4, [4, 4]);
+        ctx.globalAlpha = 1;
+    }
+
+    /* ===================== 막대 (교환은 호를 그리며, 병합 배치는 올라오며 값이 바뀜) ===================== */
+    function scDrawBars(L, x0, regionTop, p, s, sw, e, k) {
+        var base = regionTop + L.barH;
+        var n = ARR.length;
+        for (var i = 0; i < n; i++) {
+            var src = i;
+            if (sw) { if (i === sw[0]) src = sw[1]; else if (i === sw[1]) src = sw[0]; }
+            var pv = p.arr[src], cv = s.arr[i];
+            var morph = pv !== cv;
+            var x = lerp(scX(L, x0, src), scX(L, x0, i), k);
+            var lift = (src !== i || morph) ? Math.sin(Math.PI * k) * L.lift : 0;
+            var hv = morph ? lerp(pv, cv, k) : cv;
+            var bh = Math.max(4, (hv / ARR_MAX) * (L.barH - L.valPad));
+            var by = regionTop + L.barH - bh - lift;
+            var rp = scRole(p, src), rc = scRole(s, i);
+            if (rp !== rc) {
+                scBar(x, by, L.bw, bh, scRoleCol(rp), 1 - e);
+                scBar(x, by, L.bw, bh, scRoleCol(rc), e);
+            } else {
+                scBar(x, by, L.bw, bh, scRoleCol(rc), 1);
+            }
+            var vv = (morph && k < 0.5) ? pv : cv;
+            tx(String(vv), x + L.bw / 2, by - 9, L.fs, P.text + 'cc', 'center', true);
+            tx(String(i), scCx(L, x0, i), base + 12, L.fs, P.sub + 'ff', 'center', false);
+        }
+    }
+
+    /* ===================== 포인터 (레인 고정, 위치는 이동) ===================== */
+    function scDrawPointers(L, x0, regionTop, p, s, e, k) {
+        var labels = Object.keys(LANE_MAP[mode]);
+        labels.forEach(function (label) {
+            var pIdx = scPtrIdx(p, label), cIdx = scPtrIdx(s, label);
+            var x = null, al = 1;
+            if (pIdx !== null && cIdx !== null) { x = lerp(scCx(L, x0, pIdx), scCx(L, x0, cIdx), k); }
+            else if (cIdx !== null) { x = scCx(L, x0, cIdx); al = ez(seg(e, 0.3, 1)); }
+            else if (pIdx !== null) { x = scCx(L, x0, pIdx); al = 1 - ez(seg(e, 0, 0.6)); }
+            if (x === null || al <= 0) return;
+            var col = P[POINTER_COLOR[label]];
+            var hw = scTextW(label, L.fs, true) / 2 + 2;
+            var px = Math.min(Math.max(x, x0 + hw), x0 + L.w - hw);
+            var ly = regionTop - 14 - LANE_MAP[mode][label] * L.laneH;
+            ctx.globalAlpha = al;
+            ln(px, ly + 6, px, regionTop - 1, col + '88', 1.2);
+            tx(label, px, ly, L.fs, col + 'ff', 'center', true);
+            ctx.globalAlpha = 1;
+        });
+    }
+
+    /* ===================== 비교 횟수 막대 (현재 모드는 자라고, 나머지는 전체 값을 흐리게) ===================== */
+    function scDrawCompare(L, x0, top, p, s, k) {
+        var headY = top + L.regionOff + L.barH + 28;
+        var rowsTop = top + L.regionOff + L.rowsOff;
+        L.head.forEach(function (hl, li) {
+            tx(hl, x0 + L.gx, headY + li * L.headStep, L.fs, P.sub + 'ff', 'left', true);
+        });
+        var rows = [
+            { key: 'merge', name: '병합 정렬', total: MERGE_STEPS[MERGE_STEPS.length - 1].comparisons, col: P.teal },
+            { key: 'quick', name: '퀵 정렬',   total: QUICK_STEPS[QUICK_STEPS.length - 1].comparisons, col: P.orange },
+            { key: 'heap',  name: '힙 정렬',   total: HEAP_STEPS[HEAP_STEPS.length - 1].comparisons,  col: P.purple }
+        ];
+        var maxVal = Math.max(rows[0].total, rows[1].total, rows[2].total);
+        var barMaxW = L.gridW - L.labelW - L.valW;
+        var bh = L.rowH - 10;
+        rows.forEach(function (r, ri) {
+            var cur = r.key === mode;
+            var v = cur ? lerp(p.comparisons, s.comparisons, k) : r.total;
+            var ry = rowsTop + ri * L.rowH + L.rowH / 2;
+            var bx = x0 + L.gx + L.labelW;
+            var bwid = maxVal > 0 ? (v / maxVal) * barMaxW : 0;
+            tx(r.name, x0 + L.gx, ry, L.fs, (cur ? P.text : P.sub) + 'ff', 'left', true);
+            if (bwid > 0) {
+                ctx.globalAlpha = cur ? 1 : 0.45;
+                rr(bx, ry - bh / 2, Math.max(3, bwid), bh, 3, r.col + '55', r.col + 'ee', 1.4);
+                ctx.globalAlpha = 1;
+            }
+            tx(Math.round(v) + '회', bx + barMaxW + 6, ry, L.fs, (cur ? P.text : P.sub) + 'dd', 'left', cur);
+        });
+    }
+
+    /* ===================== 메인 장면 ===================== */
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var L = layout(w, mob);
+        var s = step || currentSteps()[0];
+        var p = prev || s;
+        var tt = clamp01(t);
+        var e = s !== p ? tt : 1;
+        var k = s !== p ? ez(tt) : 1;
+        var sw = scSwapOf(p.arr, s.arr);
+        var regionTop = top + L.regionOff;
+        scDrawBand(L, x0, regionTop, p, s, k);
+        scDrawDivider(L, x0, regionTop, p, s, k);
+        scDrawBars(L, x0, regionTop, p, s, sw, e, k);
+        scDrawPointers(L, x0, regionTop, p, s, e, k);
+        scDrawCompare(L, x0, top, p, s, k);
+    }
+
+    /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
+    function draw() {
+        P = window.CsFlow.getP();
+        ctx.clearRect(0, 0, GW(), GH());
+        var W = GW(); var mob = W < 600;
+        var steps = currentSteps();
+        var step = stepIdx >= 0 ? steps[stepIdx] : null;
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
-    function calcH(W) {
-        var mob = W < 600;
-        var L = getLayout(mob);
-        var pointerBlockH = laneCountFor(mode) * L.laneH;
-        return L.top + pointerBlockH + L.gapAfterPointers + L.barH + L.labelH + L.gapAfterBars + L.compareH + L.top;
-    }
-
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
-        var neededH = calcH(w);
+        var mob = w < 600;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
         canvasWrap.style.height    = 'auto';
-        canvasWrap.style.minHeight = neededH + 'px';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
         var actualH = canvasWrap.offsetHeight || neededH;
         if (actualH < neededH) actualH = neededH;
-
         canvas.width  = w * dpr;
         canvas.height = actualH * dpr;
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         draw();
     }
 
-    /* ===================== 메인 드로우 ===================== */
-    function draw() {
-        P = window.CsFlow.getP();
-        ctx.clearRect(0, 0, GW(), GH());
-        var W   = GW();
-        var mob = W < 600;
-        var L   = getLayout(mob);
-
-        var neededH = calcH(W);
-        var extra = Math.max(0, GH() - neededH);
-        L.top = L.top + extra / 2;
-
-        var steps = currentSteps();
-        var step  = stepIdx >= 0 ? steps[stepIdx] : steps[0];
-        var BL = boxLayout(W, mob);
-        var spec = computeRenderSpec(step);
-
-        var pointerBlockH = laneCountFor(mode) * L.laneH;
-        var barTop = L.top + pointerBlockH + L.gapAfterPointers;
-        drawBars(BL, barTop, L.barH, mob, step, spec);
-
-        if (mode === 'heap') {
-            var compareTop = barTop + L.barH + L.labelH + L.gapAfterBars;
-            drawCallComparison(BL.x0, compareTop, BL.totalW, mob);
-        }
-    }
-
-    /* ===================== 애니메이션(스텝 전환 타이밍) ===================== */
+    /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        draw();
-        rafId = requestAnimationFrame(function () {
-            rafId = null;
-            if (onDone) onDone();
-        });
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
-    function setSpeedDisabled(v) {
-        speedBtns.forEach(function (b) { b.disabled = v; });
-    }
-
-    function defaultLog() {
-        return currentSteps()[0].log;
-    }
+    function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -523,7 +603,7 @@
                 if (next === steps.length - 1) {
                     running = false; btnStep.disabled = true; setSpeedDisabled(false);
                 } else {
-                    timer = setTimeout(tick, speed * 0.32);
+                    timer = setTimeout(tick, speed * 0.6);
                 }
             });
         }
@@ -533,7 +613,7 @@
     function vizStep() {
         if (running) return;
         var steps = currentSteps();
-        var next  = stepIdx + 1;
+        var next = stepIdx + 1;
         if (next >= steps.length) return;
         applyStep(next, null);
         if (next === steps.length - 1) { btnPlay.disabled = true; btnStep.disabled = true; }
@@ -542,7 +622,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);
@@ -558,9 +638,7 @@
     function switchMode(m) {
         if (mode === m) return;
         mode = m;
-        modeDefs.forEach(function (d) {
-            modeBtns[d.key].classList.toggle('sort-compare-viz__mode-btn--active', d.key === m);
-        });
+        modeDefs.forEach(function (d) { modeBtns[d.key].classList.toggle('sort-compare-viz__mode-btn--active', d.key === m); });
         vizReset();
     }
 
@@ -579,9 +657,9 @@
                 tooltipHits: [],
                 hoveredKey: function () { return null; },
                 setHoveredKey: function () {},
-                draw: draw,
+                draw: draw
             };
-        },
+        }
     });
 
     setTimeout(resize, 60);

@@ -1,5 +1,5 @@
 /**
- * SQL JOIN 시각화
+ * SQL JOIN 시각화 시각화
  */
 (function () {
     'use strict';
@@ -23,9 +23,9 @@
     var modeWrap = el('div', 'sql-join-viz__mode');
     var modeDefs = [
         { key: 'inner', label: 'INNER' },
-        { key: 'left',  label: 'LEFT' },
+        { key: 'left', label: 'LEFT' },
         { key: 'right', label: 'RIGHT' },
-        { key: 'full',  label: 'FULL' }
+        { key: 'full', label: 'FULL' }
     ];
     var modeBtns = {};
     modeDefs.forEach(function (m, i) {
@@ -40,7 +40,7 @@
     var speedWrap = el('div', 'sql-join-viz__speed');
     speedWrap.appendChild(el('span', 'sql-join-viz__speed-label', 'SPEED'));
     var speedBtns = [];
-    [['1x', 1600], ['2x', 800], ['3x', 450]].forEach(function (pair, i) {
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
         var b = el('button', 'sql-join-viz__speed-btn' + (i === 0 ? ' sql-join-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
@@ -73,11 +73,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'inner';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 기준 데이터 ===================== */
     var A_COLS = ['id', 'name'];
@@ -180,178 +247,346 @@
     };
 
     /* ===================== 상태 ===================== */
-    var mode    = 'inner';
-    var stepIdx = -1;
-    var running = false;
-    var timer   = null;
-    var rafId   = null;
-    var speed   = 1600;
-
     function currentSteps() { return STEPS_BY_MODE[mode]; }
-
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw, dash) {
-        if (w <= 0 || h <= 0) return;
-        var rad = Math.min(r, w / 2, h / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + rad, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, rad);
-        ctx.arcTo(x + w, y + h, x,     y + h, rad);
-        ctx.arcTo(x,     y + h, x,     y,     rad);
-        ctx.arcTo(x,     y,     x + w, y,     rad);
-        ctx.closePath();
-        if (dash) ctx.setLineDash(dash); else ctx.setLineDash([]);
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
-        ctx.setLineDash([]);
-    }
-
-    function tx(str, x, y, sz, color, align, bold) {
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
-    }
-
-    /* ===================== 작은 테이블(A/B 원본) 렌더 ===================== */
-    function drawSmallTable(x0, y0, cols, colW, rows, headerH, rowH, mob, opts) {
-        opts = opts || {};
-        var colX = {}; var totalW = 0;
-        cols.forEach(function (c) { colX[c] = totalW; totalW += colW[c]; });
-        if (opts.title) tx(opts.title, x0, y0 - (mob ? 10 : 12), mob ? 10.5 : 12, P.muted + 'aa', 'left', true);
-        rr(x0, y0, totalW, headerH + rows.length * rowH, 6, 'none', P.muted + '55', 1.3);
-        cols.forEach(function (c) {
-            var cx = x0 + colX[c];
-            rr(cx, y0, colW[c], headerH, 0, P.muted + '12', 'none');
-            tx(c, cx + colW[c] / 2, y0 + headerH / 2, mob ? 9.5 : 10.5, P.text + 'cc', 'center', true);
-        });
-        seg(x0, y0 + headerH, x0 + totalW, y0 + headerH, P.muted + '55', 1.3);
-        var centers = {};
-        rows.forEach(function (row, ri) {
-            var ry = y0 + headerH + ri * rowH;
-            var hi = opts.highlightRow === ri;
-            var dim = opts.dimRow === ri;
-            centers[ri] = {};
-            cols.forEach(function (c) {
-                var cx = x0 + colX[c];
-                if (hi) rr(cx, ry, colW[c], rowH, 0, (opts.highlightColor || P.teal) + '2a', 'none');
-                var col = dim ? P.muted + '77' : (P.text + 'dd');
-                tx(String(row[c]), cx + colW[c] / 2, ry + rowH / 2, mob ? 9.5 : 11, col, 'center', hi);
-                centers[ri][c] = { x: cx + colW[c] / 2, y: ry + rowH / 2 };
-            });
-            if (ri > 0) seg(x0, ry, x0 + totalW, ry, P.muted + '2a', 1);
-        });
-        var vx = x0;
-        cols.forEach(function (c) { if (vx > x0) seg(vx, y0, vx, y0 + headerH + rows.length * rowH, P.muted + '2a', 1); vx += colW[c]; });
-        return { width: totalW, height: headerH + rows.length * rowH, centers: centers };
-    }
-
-    function seg(x1, y1, x2, y2, col, lw) {
-        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
-        ctx.strokeStyle = col; ctx.lineWidth = lw || 1; ctx.stroke();
-    }
-
-    /* ===================== 벤 다이어그램 ===================== */
-    function drawVenn(leftCx, rightCx, cy, r, joinType, mob) {
-        if (joinType === 'inner') {
-            ctx.save();
-            ctx.beginPath(); ctx.arc(leftCx, cy, r, 0, Math.PI * 2); ctx.clip();
-            ctx.beginPath(); ctx.arc(rightCx, cy, r, 0, Math.PI * 2);
-            ctx.fillStyle = P.green + '55'; ctx.fill();
-            ctx.restore();
-        } else if (joinType === 'left') {
-            ctx.beginPath(); ctx.arc(leftCx, cy, r, 0, Math.PI * 2); ctx.fillStyle = P.green + '40'; ctx.fill();
-        } else if (joinType === 'right') {
-            ctx.beginPath(); ctx.arc(rightCx, cy, r, 0, Math.PI * 2); ctx.fillStyle = P.green + '40'; ctx.fill();
-        } else {
-            ctx.beginPath(); ctx.arc(leftCx, cy, r, 0, Math.PI * 2); ctx.fillStyle = P.green + '40'; ctx.fill();
-            ctx.beginPath(); ctx.arc(rightCx, cy, r, 0, Math.PI * 2); ctx.fillStyle = P.green + '40'; ctx.fill();
-        }
-        ctx.beginPath(); ctx.arc(leftCx, cy, r, 0, Math.PI * 2);
-        ctx.strokeStyle = P.purple + 'dd'; ctx.lineWidth = 2; ctx.stroke();
-        ctx.beginPath(); ctx.arc(rightCx, cy, r, 0, Math.PI * 2);
-        ctx.strokeStyle = P.teal + 'dd'; ctx.lineWidth = 2; ctx.stroke();
-        tx('A', leftCx - r * 0.55, cy, mob ? 12 : 14, P.purple + 'ee', 'center', true);
-        tx('B', rightCx + r * 0.55, cy, mob ? 12 : 14, P.teal + 'ee', 'center', true);
-        tx('USERS', leftCx - r * 0.55, cy + (mob ? 16 : 19), mob ? 8.5 : 9.5, P.purple + 'aa', 'center', false);
-        tx('ORDERS', rightCx + r * 0.55, cy + (mob ? 16 : 19), mob ? 8.5 : 9.5, P.teal + 'aa', 'center', false);
-    }
-
-    /* ===================== 결과 테이블 ===================== */
-    var RESULT_COLS = ['a_id', 'a_name', 'b_id', 'b_product'];
-    var RESULT_LABELS = { a_id: 'id', a_name: 'name', b_id: 'id', b_product: 'product' };
-
-    function drawResultTable(x0, y0, colW, revealed, activeRow, headerH, rowH, mob) {
-        var colX = {}; var totalW = 0;
-        RESULT_COLS.forEach(function (c) { colX[c] = totalW; totalW += colW[c]; });
-        tx('결과 (JOIN 결과)', x0, y0 - (mob ? 24 : 27), mob ? 10.5 : 12, P.muted + 'aa', 'left', true);
-
-        var aGroupW = colW.a_id + colW.a_name;
-        var bGroupW = colW.b_id + colW.b_product;
-        tx('A(USERS)', x0 + aGroupW / 2, y0 - (mob ? 9 : 10), mob ? 8.5 : 9.5, P.purple + '99', 'center', false);
-        tx('B(ORDERS)', x0 + aGroupW + bGroupW / 2, y0 - (mob ? 9 : 10), mob ? 8.5 : 9.5, P.teal + '99', 'center', false);
-
-        var maxRows = 4;
-        rr(x0, y0, totalW, headerH + maxRows * rowH, 6, 'none', P.muted + '55', 1.3);
-        RESULT_COLS.forEach(function (c) {
-            var cx = x0 + colX[c];
-            rr(cx, y0, colW[c], headerH, 0, P.muted + '12', 'none');
-            tx(RESULT_LABELS[c], cx + colW[c] / 2, y0 + headerH / 2, mob ? 9.5 : 10.5, P.text + 'cc', 'center', true);
-        });
-        seg(x0, y0 + headerH, x0 + totalW, y0 + headerH, P.muted + '55', 1.3);
-        var midX = x0 + colW.a_id + colW.a_name;
-        seg(midX, y0, midX, y0 + headerH + maxRows * rowH, P.muted + '66', 1.6);
-
-        revealed.forEach(function (r, ri) {
-            var ry = y0 + headerH + ri * rowH;
-            var isActive = activeRow && r === activeRow;
-            if (isActive) rr(x0, ry, totalW, rowH, 0, P.orange + '20', 'none');
-            RESULT_COLS.forEach(function (c) {
-                var cx = x0 + colX[c];
-                var v = r[c];
-                var display = (v === null || v === undefined) ? 'NULL' : String(v);
-                var isNull = (v === null || v === undefined);
-                var color = isNull ? (P.muted + '88') : (isActive ? P.orange + 'ee' : P.text + 'dd');
-                tx(display, cx + colW[c] / 2, ry + rowH / 2, mob ? 9.5 : 11, color, 'center', isActive && !isNull);
-            });
-            if (ri > 0) seg(x0, ry, x0 + totalW, ry, P.muted + '2a', 1);
-        });
-        var vx = x0;
-        RESULT_COLS.forEach(function (c) { if (vx > x0) seg(vx, y0, vx, y0 + headerH + maxRows * rowH, P.muted + '2a', 1); vx += colW[c]; });
-
-        return { height: headerH + maxRows * rowH };
-    }
+    function defaultLog() { return currentSteps()[0].log; }
 
     /* ===================== 레이아웃 ===================== */
-    function getGeom(mob) {
-        return {
-            headerH: mob ? 28 : 32,
-            rowH:    mob ? 26 : 30,
-            padX:    mob ? 14 : 24,
-            titleGap: mob ? 16 : 18,
-            sectionGap: mob ? 18 : 22
+    function ez(q) { q = clamp01(q); return q * q * (3 - 2 * q); }
+
+    function layout(w, mob) {
+        var aCols = A_COL_W[mob ? 'm' : 'd'];
+        var bCols = B_COL_W[mob ? 'm' : 'd'];
+        var aW = aCols.id + aCols.name;
+        var bW = bCols.id + bCols.user_id + bCols.product;
+        var rW = aW + bCols.id + bCols.product;
+        var hh = mob ? 24 : 30;
+        var rh = mob ? 24 : 28;
+        var g = {
+            fs: mob ? 11 : 12, hh: hh, rh: rh, aCols: aCols, bCols: bCols,
+            aW: aW, bW: bW, rW: rW, resH: hh + 4 * rh,
+            aTop: 22, aH: hh + A_ROWS.length * rh, bH: hh + B_ROWS.length * rh,
+            rCols: { a_id: aCols.id, a_name: aCols.name, b_id: bCols.id, b_product: bCols.product }
         };
+        if (mob) {
+            g.bX = 0;
+            g.bTop = g.aTop + g.aH + 30;
+            g.lx = (w - 108) / 2 + 36;
+            g.rx = g.lx + 36;
+            g.vr = 36;
+            g.vtitleY = g.bTop + g.bH + 22;
+            g.vcy = g.bTop + g.bH + 66;
+            g.rX = 0;
+            g.rtitleY = g.vcy + 54;
+            g.resTop = g.rtitleY + 22;
+        } else {
+            g.bX = aW + 150;
+            g.bTop = g.aTop;
+            g.lx = 58;
+            g.rx = 112;
+            g.vr = 54;
+            g.vtitleY = g.aTop + g.aH + 44;
+            g.vcy = g.vtitleY + 124;
+            g.rX = 240;
+            g.rtitleY = g.vtitleY;
+            g.resTop = g.vtitleY + 38;
+        }
+        g.H = g.resTop + g.resH + 12;
+        return g;
     }
 
-    function calcH(w) {
-        var mob = w < 600;
-        var G = getGeom(mob);
-        var aColW = A_COL_W[mob ? 'm' : 'd'];
-        var sourceH = G.headerH + A_ROWS.length * G.rowH;
-        var vennR = mob ? 42 : 56;
-        var vennH = vennR * 2 + (mob ? 26 : 30);
-        var resultH = G.headerH + 4 * G.rowH + (mob ? 14 : 16);
-        var top = mob ? 14 : 18, bottom = mob ? 16 : 20;
-        return top + G.titleGap + sourceH + G.sectionGap + vennH + G.sectionGap + G.titleGap + resultH + bottom;
+    function sceneH(w, mob) { return Math.ceil(layout(w, mob).H); }
+
+    /* ===================== 장면 보조 ===================== */
+    function sjKindOf(r) {
+        if (r.aIdx >= 0 && r.bIdx >= 0) return 'both';
+        return r.aIdx >= 0 ? 'lonly' : 'ronly';
+    }
+
+    function sjKinds(st) {
+        var out = [];
+        st.revealed.forEach(function (r) {
+            var k = sjKindOf(r);
+            if (out.indexOf(k) < 0) out.push(k);
+        });
+        return out;
+    }
+
+    function sjKindCol(k) { return k === 'both' ? P.green : (k === 'lonly' ? P.purple : P.teal); }
+
+    function sjChipText(r) {
+        return (r.aIdx >= 0 ? r.a_name : 'NULL') + ' · ' + (r.bIdx >= 0 ? r.b_product : 'NULL');
+    }
+
+    function sjTextW(str, fs) {
+        var n = 0;
+        for (var i = 0; i < str.length; i++) n += str.charCodeAt(i) > 255 ? fs : fs * 0.6;
+        return n;
+    }
+
+    function sjMid(a, b) { return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; }
+
+    function sjPairPts(g, x0, top, r, mob) {
+        var ay = top + g.aTop + g.hh + r.aIdx * g.rh + g.rh / 2;
+        var by = top + g.bTop + g.hh + r.bIdx * g.rh + g.rh / 2;
+        if (!mob) return [{ x: x0 + g.aW + 3, y: ay }, { x: x0 + g.bX - 3, y: by }];
+        var lane = x0 + g.bW + 8 + (r.aIdx === 0 ? 7 : 0);
+        return [{ x: x0 + g.aW + 3, y: ay }, { x: lane, y: ay }, { x: lane, y: by }, { x: x0 + g.bW + 3, y: by }];
+    }
+
+    function sjHead(x1, y1, x2, y2, col) {
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 8 * Math.cos(a - 0.45), y2 - 8 * Math.sin(a - 0.45));
+        ctx.lineTo(x2 - 8 * Math.cos(a + 0.45), y2 - 8 * Math.sin(a + 0.45));
+        ctx.closePath();
+        ctx.fillStyle = col;
+        ctx.fill();
+    }
+
+    function sjPoly(pts, pr, col, lw) {
+        var segs = [], tot = 0, i;
+        for (i = 1; i < pts.length; i++) {
+            var l = Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
+            segs.push(l);
+            tot += l;
+        }
+        var want = tot * pr;
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+        for (i = 1; i < pts.length; i++) {
+            var sl = segs[i - 1];
+            if (want >= sl) {
+                ctx.lineTo(pts[i].x, pts[i].y);
+                want -= sl;
+            } else {
+                var f = sl > 0 ? want / sl : 0;
+                ctx.lineTo(lerp(pts[i - 1].x, pts[i].x, f), lerp(pts[i - 1].y, pts[i].y, f));
+                break;
+            }
+        }
+        ctx.strokeStyle = col;
+        ctx.lineWidth = lw;
+        ctx.stroke();
+        if (pr >= 1) {
+            var n = pts.length;
+            sjHead(pts[n - 2].x, pts[n - 2].y, pts[n - 1].x, pts[n - 1].y, col);
+        }
+    }
+
+    function sjSource(x, y, cols, colW, rows, hh, rh, fs) {
+        var colX = {}, tw = 0;
+        cols.forEach(function (c) { colX[c] = tw; tw += colW[c]; });
+        var H = hh + rows.length * rh;
+        rr(x, y, tw, H, 6, 'none', P.muted + '55', 1.3);
+        cols.forEach(function (c) {
+            rr(x + colX[c], y, colW[c], hh, 0, P.muted + '12', 'none');
+            tx(c, x + colX[c] + colW[c] / 2, y + hh / 2, fs, P.text + 'cc', 'center', true);
+            if (colX[c] > 0) ln(x + colX[c], y, x + colX[c], y + H, P.muted + '2a', 1);
+        });
+        ln(x, y + hh, x + tw, y + hh, P.muted + '55', 1.3);
+        rows.forEach(function (row, ri) {
+            var ry = y + hh + ri * rh;
+            if (ri > 0) ln(x, ry, x + tw, ry, P.muted + '2a', 1);
+            cols.forEach(function (c) {
+                tx(String(row[c]), x + colX[c] + colW[c] / 2, ry + rh / 2, fs, P.text + 'dd', 'center', false);
+            });
+        });
+    }
+
+    function sjHi(x, y, tw, ri, hh, rh, a) {
+        if (a <= 0) return;
+        ctx.globalAlpha = a;
+        rr(x, y + hh + ri * rh, tw, rh, 0, P.orange + '2e', P.orange + 'ff', 1.4);
+        ctx.globalAlpha = 1;
+    }
+
+    function sjVenn(g, x0, top, e, s, p, mob) {
+        var lx = x0 + g.lx, rx = x0 + g.rx, cy = top + g.vcy, r = g.vr;
+        var ks = sjKinds(s), kp = sjKinds(p);
+        var all = currentSteps();
+        var targets = sjKinds(all[all.length - 1]);
+        var lvl = function (k) {
+            if (ks.indexOf(k) < 0) return 0;
+            return kp.indexOf(k) >= 0 ? 1 : ez(seg(e, 0.75, 0.95));
+        };
+        var fillK = function (k, a) {
+            if (a <= 0) return;
+            var ownX = k === 'ronly' ? rx : lx;
+            var othX = k === 'ronly' ? lx : rx;
+            ctx.save();
+            ctx.globalAlpha = a;
+            ctx.fillStyle = sjKindCol(k) + 'aa';
+            ctx.beginPath();
+            ctx.arc(ownX, cy, r, 0, Math.PI * 2);
+            ctx.clip();
+            ctx.beginPath();
+            if (k !== 'both') ctx.rect(lx - 4 * r, cy - 3 * r, 10 * r, 6 * r);
+            ctx.moveTo(othX + r, cy);
+            ctx.arc(othX, cy, r, 0, Math.PI * 2);
+            ctx.fill(k === 'both' ? 'nonzero' : 'evenodd');
+            ctx.restore();
+        };
+        targets.forEach(function (k) { fillK(k, 0.14); });
+        ['lonly', 'both', 'ronly'].forEach(function (k) { fillK(k, lvl(k)); });
+        ctx.globalAlpha = 1;
+        ctx.beginPath();
+        ctx.arc(lx, cy, r, 0, Math.PI * 2);
+        ctx.strokeStyle = P.purple + 'dd';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(rx, cy, r, 0, Math.PI * 2);
+        ctx.strokeStyle = P.teal + 'dd';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        tx('A', lx - r * 0.5, cy - 6, mob ? 13 : 15, P.text + 'ff', 'center', true);
+        tx('B', rx + r * 0.5, cy - 6, mob ? 13 : 15, P.text + 'ff', 'center', true);
+        tx('USERS', lx - r * 0.5, cy + (mob ? 10 : 14), mob ? 11 : 12, P.text + 'ff', 'center', false);
+        tx('ORDERS', rx + r * 0.5, cy + (mob ? 10 : 14), mob ? 11 : 12, P.text + 'ff', 'center', false);
+    }
+
+    /* ===================== 장면 그리기 ===================== */
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var g = layout(w, mob);
+        var steps = currentSteps();
+        var s = step || steps[0];
+        var p = prev || s;
+        var e = clamp01(t);
+        var fresh = p !== s;
+        var fs = g.fs, hh = g.hh, rh = g.rh;
+        var act = s.active || null;
+        var pAct = fresh && p.active ? p.active : null;
+        var ax = x0, bx = x0 + g.bX, ay0 = top + g.aTop, by0 = top + g.bTop;
+        var hiA = act && fresh ? ez(seg(e, 0, 0.25)) : 1;
+        var pFade = pAct ? 1 - ez(seg(e, 0, 0.3)) : 0;
+
+        if (pAct && pAct !== act) {
+            if (pAct.aIdx >= 0) sjHi(ax, ay0, g.aW, pAct.aIdx, hh, rh, pFade);
+            if (pAct.bIdx >= 0) sjHi(bx, by0, g.bW, pAct.bIdx, hh, rh, pFade);
+        }
+        if (act) {
+            if (act.aIdx >= 0) sjHi(ax, ay0, g.aW, act.aIdx, hh, rh, hiA);
+            if (act.bIdx >= 0) sjHi(bx, by0, g.bW, act.bIdx, hh, rh, hiA);
+        }
+        tx('A = USERS', ax, ay0 - 12, fs, P.sub + 'ff', 'left', true);
+        tx('B = ORDERS', bx, by0 - 12, fs, P.sub + 'ff', 'left', true);
+        sjSource(ax, ay0, A_COLS, g.aCols, A_ROWS, hh, rh, fs);
+        sjSource(bx, by0, B_COLS, g.bCols, B_ROWS, hh, rh, fs);
+
+        s.revealed.forEach(function (r) {
+            if (sjKindOf(r) !== 'both') return;
+            var pts = sjPairPts(g, x0, top, r, mob);
+            if (r === act) sjPoly(pts, fresh ? ez(seg(e, 0, 0.35)) : 1, P.orange + 'ff', 2.2);
+            else sjPoly(pts, 1, P.green + '88', 1.4);
+        });
+
+        tx('벤 다이어그램', x0, top + g.vtitleY, fs, P.sub + 'ff', 'left', true);
+        sjVenn(g, x0, top, e, s, p, mob);
+
+        var rc = ['a_id', 'a_name', 'b_id', 'b_product'];
+        var rl = { a_id: 'id', a_name: 'name', b_id: 'id', b_product: 'product' };
+        var rx0 = x0 + g.rX, ry0 = top + g.resTop;
+        var aGW = g.rCols.a_id + g.rCols.a_name, bGW = g.rCols.b_id + g.rCols.b_product;
+        tx('결과 (JOIN 결과)', rx0, top + g.rtitleY, fs, P.sub + 'ff', 'left', true);
+        tx(s.revealed.length + '행', rx0 + g.rW, top + g.rtitleY, fs, P.sub + 'ff', 'right', true);
+        tx('A(USERS)', rx0 + aGW / 2, ry0 - 9, fs, P.purple + 'cc', 'center', false);
+        tx('B(ORDERS)', rx0 + aGW + bGW / 2, ry0 - 9, fs, P.teal + 'cc', 'center', false);
+        rr(rx0, ry0, g.rW, g.resH, 6, 'none', P.muted + '55', 1.3);
+        var cxr = rx0;
+        rc.forEach(function (c) {
+            var cwr = g.rCols[c];
+            rr(cxr, ry0, cwr, hh, 0, P.muted + '12', 'none');
+            tx(rl[c], cxr + cwr / 2, ry0 + hh / 2, fs, P.text + 'cc', 'center', true);
+            cxr += cwr;
+        });
+        ln(rx0, ry0 + hh, rx0 + g.rW, ry0 + hh, P.muted + '55', 1.3);
+        var vx = rx0;
+        rc.forEach(function (c, i) {
+            if (i > 0 && i !== 2) ln(vx, ry0, vx, ry0 + g.resH, P.muted + '2a', 1);
+            vx += g.rCols[c];
+        });
+        ln(rx0 + aGW, ry0, rx0 + aGW, ry0 + g.resH, P.muted + '66', 1.6);
+
+        s.revealed.forEach(function (r, ri) {
+            var ry = ry0 + hh + ri * rh;
+            var isNew = p.revealed.indexOf(r) < 0;
+            var a = isNew ? seg(e, 0.8, 0.95) : 1;
+            if (ri > 0) ln(rx0, ry, rx0 + g.rW, ry, P.muted + '2a', 1);
+            ctx.globalAlpha = a;
+            if (r === act) rr(rx0, ry, g.rW, rh, 0, P.orange + '2a', 'none');
+            var shift = isNew ? (1 - a) * 10 : 0;
+            var cx = rx0;
+            rc.forEach(function (c) {
+                var v = r[c];
+                var isNull = v === null || v === undefined;
+                var colr = isNull ? P.sub + 'ff' : (r === act ? P.orange + 'ff' : P.text + 'dd');
+                tx(isNull ? 'NULL' : String(v), cx + g.rCols[c] / 2 + shift, ry + rh / 2, fs, colr, 'center', r === act && !isNull);
+                cx += g.rCols[c];
+            });
+            ctx.globalAlpha = 1;
+        });
+
+        if (fresh && s.kind === 'done') {
+            ctx.globalAlpha = ez(seg(e, 0, 0.5)) * (1 - ez(seg(e, 0.5, 1)));
+            rr(rx0 - 3, ry0 - 3, g.rW + 6, g.resH + 6, 7, 'none', P.green + 'ff', 2);
+            ctx.globalAlpha = 1;
+        }
+
+        if (act && fresh) {
+            var kind = sjKindOf(act);
+            var txt = sjChipText(act);
+            var cw = sjTextW(txt, fs) + 14, ch = rh - 6;
+            var from;
+            if (kind === 'both') {
+                var pts2 = sjPairPts(g, x0, top, act, mob);
+                from = mob ? sjMid(pts2[1], pts2[2]) : sjMid(pts2[0], pts2[1]);
+            } else if (kind === 'lonly') {
+                from = { x: ax + g.aW / 2, y: ay0 + hh + act.aIdx * rh + rh / 2 };
+            } else {
+                from = { x: bx + g.bW / 2, y: by0 + hh + act.bIdx * rh + rh / 2 };
+            }
+            var slot = s.revealed.indexOf(act);
+            var to = { x: rx0 + g.rW / 2, y: ry0 + hh + slot * rh + rh / 2 };
+            var q = ez(seg(e, 0.2, 0.8));
+            var px = lerp(from.x, to.x, q), py = lerp(from.y, to.y, q);
+            px = Math.min(Math.max(px, x0 + cw / 2), x0 + w - cw / 2);
+            var ca = ez(seg(e, 0, 0.12)) * (1 - seg(e, 0.82, 0.95));
+            if (ca > 0) {
+                var col = sjKindCol(kind);
+                ctx.globalAlpha = ca;
+                rr(px - cw / 2, py - ch / 2, cw, ch, 5, col + 'ff', col + 'ff', 1.2);
+                tx(txt, px, py, fs, '#111111', 'center', true);
+                ctx.globalAlpha = 1;
+            }
+        }
+    }
+
+    /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
+    function draw() {
+        P = window.CsFlow.getP();
+        ctx.clearRect(0, 0, GW(), GH());
+        var W = GW(); var mob = W < 600;
+        var steps = currentSteps();
+        var step = stepIdx >= 0 ? steps[stepIdx] : null;
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
-        var neededH = calcH(w);
+        var mob = w < 600;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
         canvasWrap.style.height    = 'auto';
-        canvasWrap.style.minHeight = neededH + 'px';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
         var actualH = canvasWrap.offsetHeight || neededH;
         if (actualH < neededH) actualH = neededH;
         canvas.width  = w * dpr;
@@ -360,65 +595,25 @@
         draw();
     }
 
-    /* ===================== 메인 드로우 ===================== */
-    function draw() {
-        P = window.CsFlow.getP();
-        ctx.clearRect(0, 0, GW(), GH());
-        var W = GW(); var mob = W < 600;
-        var G = getGeom(mob);
-        var neededH = calcH(W);
-        var extra = Math.max(0, GH() - neededH);
-        var top = (mob ? 14 : 18) + extra / 2;
-
-        var steps = currentSteps();
-        var step = stepIdx >= 0 ? steps[stepIdx] : steps[0];
-        var x0 = G.padX;
-
-        var aColW = A_COL_W[mob ? 'm' : 'd'];
-        var bColW = B_COL_W[mob ? 'm' : 'd'];
-
-        var highlightA = -1, highlightB = -1, dimA = -1, dimB = -1, hiColor = P.orange;
-        if (step.active) {
-            highlightA = step.active.aIdx >= 0 ? step.active.aIdx : -1;
-            highlightB = step.active.bIdx >= 0 ? step.active.bIdx : -1;
-            hiColor = P.orange;
-        }
-
-        var aRes = drawSmallTable(x0, top + G.titleGap, A_COLS, aColW, A_ROWS, G.headerH, G.rowH, mob, {
-            title: 'A = USERS', highlightRow: highlightA, highlightColor: hiColor
-        });
-        var bX = x0 + aRes.width + (mob ? 30 : 44);
-        var bRes = drawSmallTable(bX, top + G.titleGap, B_COLS, bColW, B_ROWS, G.headerH, G.rowH, mob, {
-            title: 'B = ORDERS', highlightRow: highlightB, highlightColor: hiColor
-        });
-
-        var vennR = mob ? 42 : 56;
-        var vennTop = top + G.titleGap + aRes.height + G.sectionGap;
-        var vennCy = vennTop + vennR + (mob ? 10 : 12);
-        var combinedW = bX + bRes.width - x0;
-        var vennCenterX = x0 + combinedW / 2;
-        var vennOverlap = vennR * 0.7;
-        var leftCx = vennCenterX - vennOverlap / 2;
-        var rightCx = vennCenterX + vennOverlap / 2;
-        drawVenn(leftCx, rightCx, vennCy, vennR, step.joinType, mob);
-
-        var resultY = vennTop + vennR * 2 + (mob ? 24 : 28) + G.sectionGap + G.titleGap + (mob ? 14 : 16);
-        var resultColW = {
-            a_id: aColW.id, a_name: aColW.name, b_id: bColW.id, b_product: bColW.product
-        };
-        drawResultTable(x0, resultY, resultColW, step.revealed || [], step.active, G.headerH, G.rowH, mob);
-    }
-
     /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        draw();
-        rafId = requestAnimationFrame(function () { rafId = null; if (onDone) onDone(); });
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
     function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
-    function defaultLog() { return currentSteps()[0].log; }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -457,7 +652,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);
