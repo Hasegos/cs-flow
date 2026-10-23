@@ -302,7 +302,7 @@
             var isNew = prev && i >= (prev.q || 0) && i < s.q;
             var cc = i === 0 ? P.yellow : qcol;
             circ(chipX + i * 22 + 9, top + 28, 9, cc + (isNew ? Math.round(e * 255).toString(16).padStart(2, '0') : 'ff'), 'none');
-            tx(String(i + 1), chipX + i * 22 + 9, top + 28, 10.5, P.bg + 'ff', 'center', true);
+            tx(String(i + 1), chipX + i * 22 + 9, top + 28, 10.5, '#111111', 'center', true);
         }
 
         /* 앱: 팀 카드 */

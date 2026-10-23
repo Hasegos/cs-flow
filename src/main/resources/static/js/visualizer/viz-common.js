@@ -54,6 +54,57 @@
     });
 })();
 
+/* ===================== 라이트 모드 글씨 색 보정 ===================== */
+(function () {
+    const origFillText = CanvasRenderingContext2D.prototype.fillText;
+    const DARKER = {
+        '42,184,158': '15,118,110', '62,207,178': '15,118,110',
+        '217,119,6': '180,83,9', '247,161,74': '180,83,9',
+        '202,138,4': '161,98,7', '251,191,36': '161,98,7',
+        '22,163,74': '21,128,61', '74,222,128': '21,128,61',
+        '108,99,255': '91,82,232',
+        '220,38,38': '204,32,32', '248,113,113': '204,32,32',
+        '56,189,248': '3,105,161', '232,121,249': '162,28,175',
+        '167,139,250': '109,40,217', '96,165,250': '29,78,216', '244,114,182': '190,24,93'
+    };
+    const cache = new Map();
+
+    /**
+     * 밝은 배경에서 대비가 낮은 팔레트 색을 같은 계열의 진한 색으로 바꾼다. 알파는 유지한다.
+     *
+     * @param style 캔버스가 돌려준 fillStyle 문자열
+     * @returns 바꿀 색 문자열, 대상이 아니면 null
+     */
+    function darken(style) {
+        if (cache.has(style)) return cache.get(style);
+        let out = null;
+        let m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(style);
+        if (m) {
+            const key = parseInt(m[1], 16) + ',' + parseInt(m[2], 16) + ',' + parseInt(m[3], 16);
+            if (DARKER[key]) out = 'rgb(' + DARKER[key] + ')';
+        } else {
+            m = /^rgba\((\d+), (\d+), (\d+), ([\d.]+)\)$/.exec(style);
+            if (m && DARKER[m[1] + ',' + m[2] + ',' + m[3]]) out = 'rgba(' + DARKER[m[1] + ',' + m[2] + ',' + m[3]] + ', ' + m[4] + ')';
+        }
+        cache.set(style, out);
+        return out;
+    }
+
+    CanvasRenderingContext2D.prototype.fillText = function () {
+        if (document.documentElement.getAttribute('data-theme') === 'light' && typeof this.fillStyle === 'string') {
+            const prev = this.fillStyle;
+            const dark = darken(prev);
+            if (dark) {
+                this.fillStyle = dark;
+                origFillText.apply(this, arguments);
+                this.fillStyle = prev;
+                return;
+            }
+        }
+        origFillText.apply(this, arguments);
+    };
+})();
+
 /* ===================== 캔버스 줄바꿈 ===================== */
 window.CsFlow.wrapText = function (ctx, str, maxW) {
     const lines = [];
