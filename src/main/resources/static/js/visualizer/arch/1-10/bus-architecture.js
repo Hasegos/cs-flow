@@ -4,84 +4,177 @@
 (function () {
     'use strict';
 
-    if (!window.CsFlow || typeof window.CsFlow.createVizLifecycle !== 'function') {
-        console.error('[CSFlow] viz-common.js 로드 필요');
-        return;
-    }
-
-    const container = document.getElementById('visualizer-container');
+    var container = document.getElementById('visualizer-container');
     if (!container) return;
 
-    /* ===================== UI 구성 ===================== */
-    function el(tag, cls, text) {
-        const e = document.createElement(tag);
-        if (cls)  e.className = cls;
-        if (text) e.textContent = text;
+    function el(tag, cls, txt) {
+        var e = document.createElement(tag);
+        if (cls) e.className = cls;
+        if (txt !== undefined && txt !== null) e.textContent = txt;
         return e;
     }
 
-    const root    = el('div', 'bus-viz');
-    const toolbar = el('div', 'bus-viz__toolbar');
-    const tbLeft  = el('div', 'bus-viz__toolbar-left');
+    /* ===================== DOM ===================== */
+    var root    = el('div', 'bus-viz');
+    var toolbar = el('div', 'bus-viz__toolbar');
+    var tbLeft  = el('div', 'bus-viz__toolbar-left');
     tbLeft.appendChild(el('span', 'bus-viz__title', 'Bus Architecture'));
-    const badge = el('span', 'bus-viz__step-badge', 'IDLE');
-    tbLeft.appendChild(badge);
+
+    var modeWrap = el('div', 'bus-viz__mode');
+    var modeDefs = [
+
+    ];
+    var modeBtns = {};
+    modeDefs.forEach(function (m, i) {
+        var b = el('button', 'bus-viz__mode-btn' + (i === 0 ? ' bus-viz__mode-btn--active' : ''), m.label);
+        b.addEventListener('click', function () { if (!running) switchMode(m.key); });
+        modeWrap.appendChild(b);
+        modeBtns[m.key] = b;
+    });
+    if (modeDefs.length) tbLeft.appendChild(modeWrap);
     toolbar.appendChild(tbLeft);
 
-    const speedWrap = el('div', 'bus-viz__speed');
+    var speedWrap = el('div', 'bus-viz__speed');
     speedWrap.appendChild(el('span', 'bus-viz__speed-label', 'SPEED'));
-    [['1x', 1100], ['2x', 550], ['3x', 220]].forEach(([label, ms], i) => {
-        const btn = el('button', 'bus-viz__speed-btn' + (i === 0 ? ' bus-viz__speed-btn--active' : ''), label);
-        btn.dataset.ms = ms;
-        btn.addEventListener('click', () => { if (!running) setSpeed(ms, btn); });
-        speedWrap.appendChild(btn);
+    var speedBtns = [];
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
+        var b = el('button', 'bus-viz__speed-btn' + (i === 0 ? ' bus-viz__speed-btn--active' : ''), pair[0]);
+        b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
+        speedWrap.appendChild(b);
+        speedBtns.push(b);
     });
     toolbar.appendChild(speedWrap);
     root.appendChild(toolbar);
 
-    const canvasWrap = el('div', 'bus-viz__canvas-wrap');
-    const canvas     = document.createElement('canvas');
+    var canvasWrap = el('div', 'bus-viz__canvas-wrap');
+    var canvas     = document.createElement('canvas');
     canvas.className = 'bus-viz__canvas';
     canvasWrap.appendChild(canvas);
     root.appendChild(canvasWrap);
 
-    const logEl = el('div', 'bus-viz__log', '▶ PLAY를 눌러 버스 동작을 확인하세요.');
+    var logEl = el('div', 'bus-viz__log', '');
     root.appendChild(logEl);
 
-    const controls = el('div', 'bus-viz__controls');
-    const btnPlay  = el('button', 'bus-viz__btn bus-viz__btn--primary', '▶ PLAY');
-    const btnStep  = el('button', 'bus-viz__btn', '▶| STEP');
-    const btnReset = el('button', 'bus-viz__btn', '↺ RESET');
-    btnPlay.addEventListener('click',  bvStart);
-    btnStep.addEventListener('click',  bvStep);
-    btnReset.addEventListener('click', bvReset);
+    var controls = el('div', 'bus-viz__controls');
+    var btnPlay  = el('button', 'bus-viz__btn bus-viz__btn--primary', '▶ PLAY');
+    var btnStep  = el('button', 'bus-viz__btn', '▶| STEP');
+    var btnReset = el('button', 'bus-viz__btn', '↺ RESET');
+    btnPlay.addEventListener('click',  vizStart);
+    btnStep.addEventListener('click',  vizStep);
+    btnReset.addEventListener('click', vizReset);
     controls.appendChild(btnPlay);
     controls.appendChild(btnStep);
     controls.appendChild(btnReset);
     root.appendChild(controls);
     container.appendChild(root);
 
-    /* ===================== 캔버스 ===================== */
-    const ctx = canvas.getContext('2d');
-    const dpr = window.devicePixelRatio || 1;
-    const GW  = () => canvas.width  / dpr;
-    const GH  = () => canvas.height / dpr;
+    var ctx = canvas.getContext('2d');
+    var dpr = window.devicePixelRatio || 1;
+    function GW() { return canvas.width / dpr; }
+    function GH() { return canvas.height / dpr; }
 
-    function resize() {
-        const w   = canvasWrap.offsetWidth;
-        const mob = w < 520;
-        const minH = mob ? 420 : 520;
-        canvasWrap.style.minHeight = minH + 'px';
-        const h    = Math.max(canvasWrap.offsetHeight, minH);
-        canvas.width  = w * dpr;
-        canvas.height = h * dpr;
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        draw();
+    var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = '';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
     }
-
-    /* ===================== 팔레트 ===================== */
-    const PALETTE = window.CsFlow.PALETTE;
-    let P = window.CsFlow.getP();
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    var tipHits = [];
+    var mousePos = { x: -1, y: -1 };
+    var hoveredKey = null;
+    function tipHit(x, y, w, h, key) { tipHits.push({ x: x, y: y, w: w, h: h, key: key }); }
+    function tipBadge(cx, cy, key) {
+        var on = hoveredKey === key;
+        circ(cx, cy, 7, on ? P.purple + '44' : 'none', P.purple + (on ? 'ff' : '99'), 1.2);
+        tx('?', cx, cy, 9.5, on ? P.text + 'ff' : P.sub + 'ff', 'center', true);
+        tipHit(cx - 10, cy - 10, 20, 20, key);
+    }
+    function drawTip(mx, my, text) {
+        var parts = text.split(String.fromCharCode(10));
+        var title = parts[0], desc = parts[1] || '';
+        var W = GW(), H = GH();
+        var pad = 14;
+        var maxIn = W - 16 - pad * 2;
+        ctx.font = '700 14px "JetBrains Mono",monospace';
+        var titleW = Math.min(maxIn, ctx.measureText(title).width);
+        ctx.font = '400 13px "JetBrains Mono",monospace';
+        var dl = desc ? window.CsFlow.wrapText(ctx, desc, maxIn) : [];
+        var descW = 0;
+        dl.forEach(function (l) { descW = Math.max(descW, ctx.measureText(l).width); });
+        var tw = Math.min(W - 16, Math.max(titleW, descW) + pad * 2);
+        var th = desc ? 42 + dl.length * 18 : 36;
+        var bx = mx + 14, by = my - th - 8;
+        if (bx + tw > W - 8) bx = mx - tw - 14;
+        if (bx < 8) bx = 8;
+        if (by < 8) by = my + 14;
+        if (by + th > H - 8) by = H - th - 8;
+        rr(bx, by, tw, th, 6, P.surf2, P.purple + 'cc', 2);
+        tx(title, bx + pad, by + (desc ? 18 : th / 2), 14, P.text + 'ff', 'left', true);
+        dl.forEach(function (l, i) { tx(l, bx + pad, by + 42 + i * 18, 13, P.sub + 'ff', 'left', false); });
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 툴팁 정의 ===================== */
     const TOOLTIPS = {
@@ -150,591 +243,335 @@
     ];
 
     /* ===================== 상태 ===================== */
-    let stepIdx    = -1;
-    let running    = false;
-    let timer      = null;
-    let speed      = 1100;
-    let rafId      = null;
+    var TIPS = TOOLTIPS;
+    var BS_CHIPS = [['0x00FF'], ['READ'], ['DATA'], ['0x03F8'], ['WRITE'], ['DATA'], ['REQ'], ['GRANT', 'DMA']];
+    var BS_COL = { addr: 'purple', data: 'green', ctrl: 'teal' };
 
-    let pktQueue   = [];
-    let pktCurrent = null;
-    let pktProg    = 0;
-    let pktDone    = null;
+    /* ===================== 단계 ===================== */
+    function currentSteps() { return STEPS; }
+    function defaultLog() { return '▶ PLAY를 눌러 버스 동작을 확인하세요.'; }
+    function ez(q) { var c = clamp01(q); return c * c * (3 - 2 * c); }
 
-    let tooltipHits = [];
-    let mousePos    = { x: -1, y: -1 };
-    let hoveredKey  = null;
+    /* ===================== 레이아웃 ===================== */
+    function layout(w, mob) {
+        var nw = mob ? 56 : 110, nh = mob ? 60 : 80;
+        var busH = mob ? 28 : 44, gap = mob ? 20 : 30, tap = mob ? 8 : 16;
+        var pillH = mob ? 20 : 24, labZ = mob ? 18 : 24;
+        var aT = pillH + 10 + labZ;
+        var dT = aT + busH + gap;
+        var cT = dT + busH + gap;
+        var arbW = mob ? 84 : 120, arbH = mob ? 26 : 34;
+        var arbT = cT + busH + (mob ? 22 : 30);
+        var busL = nw + tap, rX = w - nw - tap;
+        return {
+            mob: mob, w: w, nw: nw, nh: nh, busH: busH, gap: gap, pillH: pillH, labZ: labZ,
+            fsL: mob ? 11 : 12, fsN: mob ? 11 : 14, fsS: mob ? 11 : 12, fsC: mob ? 11 : 12,
+            aT: aT, dT: dT, cT: cT, cB: cT + busH,
+            aM: aT + busH / 2, dM: dT + busH / 2, cM: cT + busH / 2,
+            cpuR: nw, cpuH: cT + busH - aT,
+            busL: busL, rX: rX, memX: w - nw, ioX: w - nw,
+            ax: (busL + rX) / 2, arbW: arbW, arbH: arbH, arbT: arbT,
+            ox: 0, oy: 0,
+            h: arbT + arbH + (mob ? 22 : 28)
+        };
+    }
+    function sceneH(w, mob) { return layout(w, mob).h; }
 
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        ctx.beginPath();
-        ctx.moveTo(x + r, y);
-        ctx.arcTo(x + w, y, x + w, y + h, r);
-        ctx.arcTo(x + w, y + h, x, y + h, r);
-        ctx.arcTo(x, y + h, x, y, r);
-        ctx.arcTo(x, y, x + w, y, r);
-        ctx.closePath();
-        if (fill)   { ctx.fillStyle = fill;   ctx.fill(); }
-        if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.5; ctx.stroke(); }
+    /* ===================== 상태 계산 ===================== */
+    function bsWin(n, ai) { return n === 1 ? [0, 0.88] : [ai * 0.5, ai * 0.5 + 0.46]; }
+    function bsGrants(st) { return st.arrows.some(function (a) { return a.from === 'arb'; }); }
+    function bsOwner(idx, tt) {
+        var steps = currentSteps();
+        var own = 'CPU';
+        for (var i = 0; i < idx; i++) { if (bsGrants(steps[i])) own = 'IO'; }
+        if (idx >= 0 && bsGrants(steps[idx]) && tt >= 0.46) own = 'IO';
+        return own;
+    }
+    function bsLit(st, tt) {
+        var lit = {};
+        if (!st) return lit;
+        st.arrows.forEach(function (arr, ai) {
+            if (tt >= bsWin(st.arrows.length, ai)[0]) {
+                lit[arr.from.toUpperCase()] = true;
+                lit[arr.to.toUpperCase()] = true;
+            }
+        });
+        return lit;
     }
 
-    function tx(str, x, y, sz, color, align, bold) {
-        ctx.font = `${bold ? 700 : 400} ${sz}px "JetBrains Mono",monospace`;
-        ctx.fillStyle    = color;
-        ctx.textAlign    = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
+    /* ===================== 경로 ===================== */
+    function bsRoute(L, arr) {
+        var key = arr.from + '>' + arr.to + ':' + arr.via;
+        var cR = L.cpuR, rX = L.rX, mX = L.memX, iX = L.ioX;
+        var a = L.aM, d = L.dM, c = L.cM;
+        if (key === 'cpu>mem:addr') return [[cR, a], [rX, a], [mX, a]];
+        if (key === 'cpu>mem:ctrl') return [[cR, c], [rX, c], [rX, a], [mX, a]];
+        if (key === 'mem>cpu:data') return [[mX, a], [rX, a], [rX, d], [cR, d]];
+        if (key === 'cpu>io:addr') return [[cR, a], [rX, a], [rX, c], [iX, c]];
+        if (key === 'cpu>io:ctrl') return [[cR, c], [rX, c], [iX, c]];
+        if (key === 'cpu>io:data') return [[cR, d], [rX, d], [rX, c], [iX, c]];
+        if (key === 'io>arb:ctrl') return [[iX, c], [rX, c], [L.ax, c], [L.ax, L.arbT]];
+        if (key === 'arb>io:ctrl') return [[L.ax, L.arbT], [L.ax, c], [rX, c], [iX, c]];
+        return [[iX, c], [rX, c], [rX, d], [rX, a], [mX, a]];
+    }
+    function bsAt(pts, f) {
+        var lens = [], total = 0, i;
+        for (i = 1; i < pts.length; i++) {
+            lens[i - 1] = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+            total += lens[i - 1];
+        }
+        var want = total * f;
+        for (i = 0; i < lens.length; i++) {
+            if (want <= lens[i] || i === lens.length - 1) {
+                var r = lens[i] > 0 ? clamp01(want / lens[i]) : 1;
+                return [pts[i][0] + (pts[i + 1][0] - pts[i][0]) * r, pts[i][1] + (pts[i + 1][1] - pts[i][1]) * r];
+            }
+            want -= lens[i];
+        }
+        return pts[pts.length - 1];
     }
 
-    function drawArrow(x1, y1, x2, y2, col, active) {
-        const dx = x2 - x1, dy = y2 - y1;
-        const len = Math.sqrt(dx * dx + dy * dy);
-        if (len < 2) return;
-        const ux = dx / len, uy = dy / len;
-        const ex = x2 - ux * 10, ey = y2 - uy * 10;
-
+    /* ===================== 그리기 헬퍼 ===================== */
+    function bsW(str, fs, bold) {
+        ctx.font = (bold ? '700 ' : '400 ') + fs + 'px "JetBrains Mono",monospace';
+        return ctx.measureText(str).width;
+    }
+    function bsBadge(L, cx, cy, key) {
+        var on = hoveredKey === key;
+        circ(cx, cy, 7, on ? P.purple + '44' : 'none', P.purple + (on ? 'ff' : '99'), 1.2);
+        tx('?', cx, cy, 9.5, on ? P.text + 'ff' : P.sub + 'ff', 'center', true);
+        tipHit(cx + L.ox - 10, cy + L.oy - 10, 20, 20, key);
+    }
+    function bsPill(L, str, col) {
+        var pw = bsW(str, L.fsL, true) + 22;
+        rr(L.w / 2 - pw / 2, 0, pw, L.pillH, L.pillH / 2, col + '22', col + 'ff', 1.5);
+        tx(str, L.w / 2, L.pillH / 2, L.fsL, P.text + 'ff', 'center', true);
+    }
+    function bsLanes(L, act) {
+        var defs = [
+            { k: 'addr', top: L.aT, lab: 'ADDRESS BUS', mlab: 'ADDR BUS', tip: 'ADDR', ly: L.aT - L.labZ / 2 },
+            { k: 'data', top: L.dT, lab: 'DATA BUS', mlab: 'DATA BUS', tip: 'DATA', ly: L.dT - L.gap / 2 },
+            { k: 'ctrl', top: L.cT, lab: 'CONTROL BUS', mlab: 'CTRL BUS', tip: 'CTRL', ly: L.cT - L.gap / 2 }
+        ];
+        defs.forEach(function (d) {
+            var col = P[BS_COL[d.k]], on = act === d.k;
+            var lb = L.mob ? d.mlab : d.lab;
+            rr(L.busL, d.top, L.rX - L.busL, L.busH, 3, on ? col + '22' : col + '0a', on ? col + 'ff' : col + '55', on ? 2 : 1);
+            tx(lb, L.busL, d.ly, L.fsL, on ? col + 'ff' : P.sub + 'ff', 'left', true);
+            bsBadge(L, L.busL + bsW(lb, L.fsL, true) + 14, d.ly, d.tip);
+        });
+    }
+    function bsWires(L, act, arbOn) {
+        var mids = [['addr', L.aM, P.purple], ['data', L.dM, P.green], ['ctrl', L.cM, P.teal]];
+        mids.forEach(function (m) {
+            var on = act === m[0];
+            ln(L.cpuR, m[1], L.busL, m[1], on ? m[2] + 'ff' : P.muted + '88', on ? 2.5 : 1, on ? [] : [4, 5]);
+        });
+        ln(L.rX, L.aM, L.rX, L.cM, P.muted + '99', 2);
+        ln(L.rX, L.aM, L.memX, L.aM, P.muted + '99', 1.5);
+        ln(L.rX, L.cM, L.ioX, L.cM, P.muted + '99', 1.5);
+        ln(L.ax, L.cB, L.ax, L.arbT, arbOn ? P.teal + 'ff' : P.muted + '88', arbOn ? 2.5 : 1, arbOn ? [] : [4, 5]);
+    }
+    function bsNode(L, x, y, w, h, key, col, lbl, sub, lit, ly, sy) {
+        var hov = hoveredKey === key;
+        rr(x, y, w, h, 8, (hov || lit) ? col + '28' : P.surf, col, hov ? 2.5 : 1.5);
+        tx(lbl, x + w / 2, ly, L.fsN, col + 'ff', 'center', true);
+        tx(sub, x + w / 2, sy, L.fsS, P.sub + 'ff', 'center', false);
+        bsBadge(L, x + w - 8, y, key);
+    }
+    function bsArbiter(L, on) {
+        var x = L.ax - L.arbW / 2;
+        var hov = hoveredKey === 'ARB';
+        rr(x, L.arbT, L.arbW, L.arbH, 6, (hov || on) ? P.teal + '28' : P.surf, P.teal, (hov || on) ? 2 : 1.5);
+        tx('ARBITER', L.ax, L.arbT + L.arbH / 2, L.fsN, P.teal + 'ff', 'center', true);
+        bsBadge(L, x + L.arbW - 8, L.arbT, 'ARB');
+    }
+    function bsTrace(pts, col) {
         ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(ex, ey);
-        ctx.strokeStyle = active ? col : P.border;
-        ctx.lineWidth   = active ? 2.5 : 1;
-        ctx.setLineDash(active ? [] : [4, 5]);
+        ctx.moveTo(pts[0][0], pts[0][1]);
+        for (var i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+        ctx.strokeStyle = col + '77';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 4]);
         ctx.stroke();
         ctx.setLineDash([]);
-
-        if (!active) return;
-        const p = 5;
-        ctx.beginPath();
-        ctx.moveTo(x2, y2);
-        ctx.lineTo(ex - uy * p, ey + ux * p);
-        ctx.lineTo(ex + uy * p, ey - ux * p);
-        ctx.closePath();
-        ctx.fillStyle = col;
-        ctx.fill();
     }
-
-    /* ===================== 레이아웃 계산 ===================== */
-    function buildLayout() {
-        const W = GW(), H = GH();
-        const mob = W < 520;
-        const nw = mob ? 72  : 100;
-        const nh = mob ? 52  : 68;
-        const busH   = mob ? 36 : 48;
-        const busGap = mob ? 18 : 26;
-        const padX = mob ? 10 : 24;
-        const busTotalH = 3 * busH + 2 * busGap;
-        const topPad   = mob ? 20 : 30;
-        const arbH2    = mob ? 28 : 36;
-        const arbGap   = mob ? 14 : 20;
-        const availH   = H - topPad - arbH2 - arbGap - (mob ? 16 : 20);
-        const busMidY  = topPad + availH / 2;
-
-        const addrTop  = busMidY - busTotalH / 2;
-        const dataTop  = addrTop + busH + busGap;
-        const ctrlTop  = dataTop + busH + busGap;
-
-        const busLeft  = padX + nw + (mob ? 6 : 10);
-        const busRight = W - padX - nw - (mob ? 6 : 10);
-
-        const cpuX  = padX;
-        const rightX = W - padX - nw;
-
-        const memY = addrTop + (busH - nh) / 2;
-        const ioY  = ctrlTop + (busH - nh) / 2;
-        const cpuY = busMidY - nh / 2;
-
-        const arbW = mob ? 80 : 100;
-        const arbH = arbH2;
-        const arbX = (busLeft + busRight) / 2 - arbW / 2;
-        const arbY = ctrlTop + busH + arbGap;
-
-        return {
-            W, H, mob,
-            nw, nh,
-            busH, busGap, busLeft, busRight,
-            addrTop, dataTop, ctrlTop,
-            cpuX, cpuY,
-            memX: rightX, memY,
-            ioX:  rightX, ioY,
-            arbX, arbY, arbW, arbH,
-        };
+    function bsChip(L, x, y, str, col) {
+        var cw = bsW(str, L.fsC, true) + 12, ch = L.mob ? 18 : 22;
+        rr(x - cw / 2, y - ch / 2, cw, ch, 5, col + 'ff', null, 0);
+        tx(str, x, y, L.fsC, '#111111', 'center', true);
     }
-
-    /* ===================== 연결선 — 점선(비활성) / 실선(활성) ===================== */
-    function drawConnectors(L) {
-        const buses = [
-            { key: 'addr', top: L.addrTop, col: P.purple },
-            { key: 'data', top: L.dataTop, col: P.green  },
-            { key: 'ctrl', top: L.ctrlTop, col: P.teal   },
-        ];
-        const step = stepIdx >= 0 ? STEPS[stepIdx] : null;
-
-        buses.forEach(bc => {
-            const midY = bc.top + L.busH / 2;
-            const isHL = step && step.activeBus === bc.key;
-            const col  = isHL ? bc.col : P.border;
-            const lw   = isHL ? 2 : 1;
-            const dash = isHL ? [] : [4, 5];
-
-            ctx.beginPath();
-            ctx.moveTo(L.cpuX + L.nw, midY);
-            ctx.lineTo(L.busLeft, midY);
-            ctx.strokeStyle = col; ctx.lineWidth = lw;
-            ctx.setLineDash(dash); ctx.stroke(); ctx.setLineDash([]);
-
-            ctx.beginPath();
-            ctx.moveTo(L.busRight, midY);
-            ctx.lineTo(L.memX, L.memY + L.nh / 2);
-            ctx.strokeStyle = col; ctx.lineWidth = lw;
-            ctx.setLineDash(dash); ctx.stroke(); ctx.setLineDash([]);
-
-            ctx.beginPath();
-            ctx.moveTo(L.busRight, midY);
-            ctx.lineTo(L.ioX, L.ioY + L.nh / 2);
-            ctx.strokeStyle = col; ctx.lineWidth = lw;
-            ctx.setLineDash(dash); ctx.stroke(); ctx.setLineDash([]);
-        });
-
-        const ctrlBot  = L.ctrlTop + L.busH;
-        const arbMidX  = L.arbX + L.arbW / 2;
-        const isHLCtrl = step && step.activeBus === 'ctrl';
-        ctx.beginPath();
-        ctx.moveTo(arbMidX, ctrlBot);
-        ctx.lineTo(arbMidX, L.arbY);
-        ctx.strokeStyle = isHLCtrl ? P.teal : P.border;
-        ctx.lineWidth   = isHLCtrl ? 2 : 1;
-        ctx.setLineDash(isHLCtrl ? [] : [4, 5]);
-        ctx.stroke(); ctx.setLineDash([]);
-    }
-
-    function drawActiveArrows(L) {
-        if (stepIdx < 0) return;
-        const step = STEPS[stepIdx];
-        const busColMap = { addr: P.purple, data: P.green, ctrl: P.teal };
-
-        step.arrows.forEach(arr => {
-            const col  = busColMap[arr.via] || P.purple;
-            const midY = { addr: L.addrTop, data: L.dataTop, ctrl: L.ctrlTop }[arr.via] + L.busH / 2;
-
-            if (arr.from === 'arb' && arr.to === 'io') {
-                drawArrow(L.arbX + L.arbW / 2, L.arbY, L.arbX + L.arbW / 2, L.ioY + L.nh, col, true);
-                return;
-            }
-            if (arr.from === 'io' && arr.to === 'arb') {
-                drawArrow(L.arbX + L.arbW / 2, L.ioY + L.nh, L.arbX + L.arbW / 2, L.arbY + L.arbH, col, true);
-                return;
-            }
-
-            const margin = 16;
-            if (arr.from === 'cpu') {
-                drawArrow(L.busLeft + margin, midY, L.busRight - margin, midY, col, true);
-            } else if (arr.to === 'cpu') {
-                drawArrow(L.busRight - margin, midY, L.busLeft + margin, midY, col, true);
-            } else {
-                drawArrow(L.busLeft + margin, midY, L.busRight - margin, midY, col, true);
-            }
+    function bsFlow(L, st, idx, tt) {
+        var n = st.arrows.length;
+        st.arrows.forEach(function (arr, ai) {
+            var win = bsWin(n, ai);
+            var pts = bsRoute(L, arr);
+            var col = P[BS_COL[arr.via]];
+            bsTrace(pts, col);
+            if (tt < win[0]) return;
+            if (ai < n - 1 && tt >= win[1]) return;
+            var p = bsAt(pts, ez(seg(tt, win[0], win[1])));
+            bsChip(L, p[0], p[1], BS_CHIPS[idx][ai], col);
         });
     }
-
-    /* ===================== 버스 레인 그리기 ===================== */
-    function drawBuses(L) {
-        const step = stepIdx >= 0 ? STEPS[stepIdx] : null;
-        const busConfigs = [
-            { key: 'addr', top: L.addrTop, col: P.purple, label: 'ADDRESS BUS', tipKey: 'ADDR' },
-            { key: 'data', top: L.dataTop, col: P.green,  label: 'DATA BUS',    tipKey: 'DATA' },
-            { key: 'ctrl', top: L.ctrlTop, col: P.teal,   label: 'CONTROL BUS', tipKey: 'CTRL' },
-        ];
-
-        busConfigs.forEach(bc => {
-            const isHL  = step && step.activeBus === bc.key;
-            const alpha = isHL ? 'ff' : '55';
-            const bgAlp = isHL ? '22' : '0a';
-            const lw    = isHL ? 2    : 1;
-            const midY  = bc.top + L.busH / 2;
-
-            ctx.fillStyle = bc.col + bgAlp;
-            ctx.fillRect(L.busLeft, bc.top, L.busRight - L.busLeft, L.busH);
-
-            ctx.beginPath();
-            ctx.rect(L.busLeft, bc.top, L.busRight - L.busLeft, L.busH);
-            ctx.strokeStyle = bc.col + alpha;
-            ctx.lineWidth   = lw;
-            ctx.stroke();
-
-            tx(bc.label, (L.busLeft + L.busRight) / 2, midY,
-                L.mob ? 9 : 13, bc.col + (isHL ? 'ff' : 'bb'), 'center', true);
-
-            const qx = L.busLeft + 16, qy = midY;
-            drawBadge(qx, qy, bc.tipKey);
-            tooltipHits.push({ x: qx - 8, y: qy - 8, w: 16, h: 16, key: bc.tipKey });
-        });
-    }
-
-    /* ===================== 노드 그리기 ===================== */
-    function drawNodes(L) {
-        const fMd = L.mob ? 11 : 14;
-        const fSm = L.mob ? 9  : 11;
-
-        const nodeList = [
-            { key: 'CPU', x: L.cpuX, y: L.cpuY, w: L.nw, h: L.nh, col: P.purple, lbl: 'CPU',    sub: 'Master' },
-            { key: 'MEM', x: L.memX, y: L.memY, w: L.nw, h: L.nh, col: P.orange, lbl: 'MEMORY', sub: 'Slave'  },
-            { key: 'IO',  x: L.ioX,  y: L.ioY,  w: L.nw, h: L.nh, col: P.yellow, lbl: 'I/O',    sub: 'Device' },
-        ];
-
-        nodeList.forEach(n => {
-            const isHov = hoveredKey === n.key;
-            rr(n.x, n.y, n.w, n.h, 8,
-                isHov ? n.col + '28' : P.surf,
-                n.col, isHov ? 2.5 : 1.5);
-            tx(n.lbl, n.x + n.w / 2, n.y + n.h / 2 - (L.mob ? 7 : 9),  fMd, n.col,  'center', true);
-            tx(n.sub, n.x + n.w / 2, n.y + n.h / 2 + (L.mob ? 8 : 10), fSm, P.muted,'center', false);
-            const qx = n.x + n.w - 9, qy = n.y + 9;
-            drawBadge(qx, qy, n.key);
-            tooltipHits.push({ x: qx - 7, y: qy - 7, w: 14, h: 14, key: n.key });
-        });
-    }
-
-    /* ===================== Arbiter 그리기 ===================== */
-    function drawArbiter(L) {
-        const isHov = hoveredKey === 'ARB';
-        const step  = stepIdx >= 0 ? STEPS[stepIdx] : null;
-        const isHL  = step && step.activeBus === 'ctrl' &&
-                      step.arrows.some(a => a.from === 'arb' || a.to === 'arb');
-        rr(L.arbX, L.arbY, L.arbW, L.arbH, 6,
-            isHov || isHL ? P.teal + '28' : P.surf,
-            P.teal, isHov || isHL ? 2 : 1.5);
-        tx('ARBITER', L.arbX + L.arbW / 2, L.arbY + L.arbH / 2,
-            L.mob ? 9 : 11, P.teal, 'center', true);
-        const qx = L.arbX + L.arbW - 9, qy = L.arbY + 9;
-        drawBadge(qx, qy, 'ARB');
-        tooltipHits.push({ x: qx - 7, y: qy - 7, w: 14, h: 14, key: 'ARB' });
-    }
-
-    /* ===================== ? 뱃지 ===================== */
-    function drawBadge(qx, qy, key) {
-        const isHov = hoveredKey === key;
-        ctx.beginPath();
-        ctx.arc(qx, qy, 7, 0, Math.PI * 2);
-        ctx.fillStyle   = isHov ? P.purple : P.surf2;
-        ctx.fill();
-        ctx.strokeStyle = isHov ? P.purple : P.muted;
-        ctx.lineWidth = 1; ctx.stroke();
-        tx('?', qx, qy, 9, isHov ? '#fff' : P.muted, 'center', true);
-    }
-
-    /* ===================== 툴팁 ===================== */
-    function drawTooltip(mx, my, key) {
-        const lines = TOOLTIPS[key].split('\n');
-        const title = lines[0], desc = lines[1] || '';
-        const W = GW(), H = GH();
-        const mob = W < 520;
-        const pad = 16;
-        const maxDescW = mob ? Math.min(W - 32, 220) : 300;
-
-        ctx.font = '400 13px "JetBrains Mono",monospace';
-        const descLines = [];
-        if (desc) {
-            const words = desc.split(' ');
-            let line = '';
-            words.forEach(word => {
-                const test = line + (line ? ' ' : '') + word;
-                if (ctx.measureText(test).width > maxDescW - pad * 2 && line) {
-                    descLines.push(line);
-                    line = word;
-                } else {
-                    line = test;
-                }
-            });
-            if (line) descLines.push(line);
-        }
-
-        const lineH  = 20;
-        const titleH = 28;
-        const th = titleH + (descLines.length > 0 ? descLines.length * lineH + 10 : 0);
-
-        ctx.font = '700 14px "JetBrains Mono",monospace';
-        const tw1 = ctx.measureText(title).width;
-        ctx.font = '400 13px "JetBrains Mono",monospace';
-        const tw2 = descLines.reduce((m, l) => Math.max(m, ctx.measureText(l).width), 0);
-        const tw = Math.min(Math.max(tw1, tw2) + pad * 2, maxDescW);
-
-        let tx_ = mx + 14, ty_ = my - th - 8;
-        if (tx_ + tw > W - 8) tx_ = mx - tw - 14;
-        if (tx_ < 8)          tx_ = 8;
-        if (ty_ < 8)          ty_ = my + 14;
-        if (ty_ + th > H - 8) ty_ = H - th - 8;
-
-        rr(tx_, ty_, tw, th, 6, P.surf2, P.purple + 'cc', 2);
-
-        ctx.font = '700 14px "JetBrains Mono",monospace';
-        ctx.fillStyle = P.text; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-        ctx.fillText(title, tx_ + pad, ty_ + titleH / 2);
-
-        if (descLines.length > 0) {
-            ctx.font = '400 13px "JetBrains Mono",monospace';
-            ctx.fillStyle = P.sub;
-            descLines.forEach((l, i) => {
-                ctx.fillText(l, tx_ + pad, ty_ + titleH + 5 + i * lineH + lineH / 2);
-            });
-        }
-    }
-
-    /* ===================== 패킷 경로 구성 ===================== */
-    function buildPath(arr, L) {
-        const busYMap = {
-            addr: L.addrTop + L.busH / 2,
-            data: L.dataTop + L.busH / 2,
-            ctrl: L.ctrlTop + L.busH / 2,
-        };
-        const by = busYMap[arr.via];
-
-        if (arr.from === 'io' && arr.to === 'arb') {
-            const ax   = L.arbX + L.arbW / 2;
-            const ctrlMidY = L.ctrlTop + L.busH / 2;
-            return [
-                { x: L.ioX,  y: L.ioY + L.nh / 2 },
-                { x: ax,     y: L.ioY + L.nh / 2 },
-                { x: ax,     y: ctrlMidY           },
-                { x: ax,     y: L.arbY             },
-            ];
-        }
-        if (arr.from === 'arb' && arr.to === 'io') {
-            const ax   = L.arbX + L.arbW / 2;
-            const ctrlMidY = L.ctrlTop + L.busH / 2;
-            return [
-                { x: ax,     y: L.arbY + L.arbH    },
-                { x: ax,     y: ctrlMidY            },
-                { x: ax,     y: L.ioY + L.nh / 2   },
-                { x: L.ioX,  y: L.ioY + L.nh / 2  },
-            ];
-        }
-
-        const fromLeft = arr.from === 'cpu';
-        const toLeft   = arr.to   === 'cpu';
-
-        let sx, sy, ex2, ey2;
-        if (arr.from === 'cpu')      { sx = L.cpuX + L.nw; sy = L.cpuY + L.nh / 2; }
-        else if (arr.from === 'mem') { sx = L.memX;         sy = L.memY + L.nh / 2; }
-        else                         { sx = L.ioX;          sy = L.ioY  + L.nh / 2; }
-
-        if (arr.to === 'cpu')        { ex2 = L.cpuX + L.nw; ey2 = L.cpuY + L.nh / 2; }
-        else if (arr.to === 'mem')   { ex2 = L.memX;         ey2 = L.memY + L.nh / 2; }
-        else                         { ex2 = L.ioX;          ey2 = L.ioY  + L.nh / 2; }
-
-        const entX = fromLeft ? L.busLeft  : L.busRight;
-        const extX = toLeft   ? L.busLeft  : L.busRight;
-
-        return [
-            { x: sx,   y: sy  },
-            { x: entX, y: sy  },
-            { x: entX, y: by  },
-            { x: extX, y: by  },
-            { x: extX, y: ey2 },
-            { x: ex2,  y: ey2 },
-        ];
-    }
-
-    function pathTotalLen(path) {
-        let len = 0;
-        for (let i = 1; i < path.length; i++) {
-            const dx = path[i].x - path[i-1].x;
-            const dy = path[i].y - path[i-1].y;
-            len += Math.sqrt(dx * dx + dy * dy);
-        }
-        return len;
-    }
-
-    function pathPoint(path, t) {
-        const total = pathTotalLen(path);
-        let target  = total * t;
-        for (let i = 1; i < path.length; i++) {
-            const dx  = path[i].x - path[i-1].x;
-            const dy  = path[i].y - path[i-1].y;
-            const seg = Math.sqrt(dx * dx + dy * dy);
-            if (target <= seg || i === path.length - 1) {
-                const r = seg > 0 ? target / seg : 0;
-                return { x: path[i-1].x + dx * r, y: path[i-1].y + dy * r };
-            }
-            target -= seg;
-        }
-        return path[path.length - 1];
-    }
-
-    function drawPacketOnPath() {
-        if (!pktCurrent) return;
-        const pt = pathPoint(pktCurrent.path, pktProg);
-        ctx.beginPath();
-        ctx.arc(pt.x, pt.y, 11, 0, Math.PI * 2);
-        ctx.fillStyle = pktCurrent.col;
-        ctx.fill();
-        tx(pktCurrent.lbl, pt.x, pt.y, GW() < 520 ? 7 : 8, '#0f0f1a', 'center', true);
-    }
-
-    function spawnPkt(arr, col, lbl, L) {
-        pktQueue.push({ path: buildPath(arr, L), col, lbl });
-    }
-
-    function pktNext() {
-        if (!pktQueue.length) {
-            pktCurrent = null;
-            draw();
-            if (pktDone) { const cb = pktDone; pktDone = null; cb(); }
-            return;
-        }
-        pktCurrent = pktQueue.shift();
-        pktProg = 0;
-        if (rafId) cancelAnimationFrame(rafId);
-        const BASE_SPEED  = 1100;
-        const baseStep    = 0.0035;
-        const step        = baseStep * (BASE_SPEED / speed);
-        (function tick() {
-            pktProg = Math.min(1, pktProg + step);
-            draw();
-            if (pktProg < 1) rafId = requestAnimationFrame(tick);
-            else pktNext();
-        })();
-    }
-
-    function animPkts(cb) { pktDone = cb || null; pktNext(); }
 
     /* ===================== 메인 드로우 ===================== */
-    function draw() {
-        P = window.CsFlow.getP();
-        const W = GW(), H = GH();
-        ctx.clearRect(0, 0, W, H);
-        ctx.fillStyle = P.bg;
-        ctx.fillRect(0, 0, W, H);
-        tooltipHits = [];
-
-        const L = buildLayout();
-        drawConnectors(L);
-        drawBuses(L);
-        drawActiveArrows(L);
-        drawNodes(L);
-        drawArbiter(L);
-        drawPacketOnPath();
-
-        if (hoveredKey && TOOLTIPS[hoveredKey]) drawTooltip(mousePos.x, mousePos.y, hoveredKey);
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var L = layout(w, mob);
+        var steps = currentSteps();
+        var idx = step ? steps.indexOf(step) : -1;
+        var st = idx < 0 ? null : step;
+        var tt = st && step !== prev ? t : 1;
+        var lit = bsLit(st, tt);
+        var own = bsOwner(idx, tt);
+        var act = st ? st.activeBus : '';
+        L.ox = x0;
+        L.oy = top;
+        ctx.save();
+        ctx.translate(x0, top);
+        bsPill(L, st ? (idx + 1) + '/' + steps.length + ' ' + st.badge : 'IDLE', st ? P[BS_COL[st.activeBus]] : P.sub);
+        bsLanes(L, act);
+        bsWires(L, act, !!lit.ARB);
+        bsNode(L, 0, L.aT, L.nw, L.cpuH, 'CPU', P.purple, 'CPU', 'Master', lit.CPU, (L.aM + L.dM) / 2, (L.dM + L.cM) / 2);
+        bsNode(L, L.memX, L.aM - L.nh / 2, L.nw, L.nh, 'MEM', P.orange, 'MEMORY', 'Slave', lit.MEM, L.aM - L.nh * 0.25, L.aM + L.nh * 0.27);
+        bsNode(L, L.ioX, L.cM - L.nh / 2, L.nw, L.nh, 'IO', P.yellow, 'I/O', 'Device', lit.IO, L.cM - L.nh * 0.25, L.cM + L.nh * 0.27);
+        bsArbiter(L, lit.ARB);
+        if (st) bsFlow(L, st, idx, tt);
+        tx('버스 사용권: ' + (own === 'CPU' ? 'CPU' : 'I/O (DMA)'), L.ax, L.arbT + L.arbH + (mob ? 14 : 17), L.fsL, P.text + 'ff', 'center', true);
+        ctx.restore();
     }
 
-    /* ===================== 스텝 적용 ===================== */
-    function applyStep(idx, onDone) {
-        stepIdx = idx;
-        const step = STEPS[idx];
-        setBadge(step.badge);
-        setLog(step.log);
-        pktQueue = [];
+    /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
 
-        const busColMap = { addr: P.purple, data: P.green, ctrl: P.teal };
-        const lblMap    = { addr: 'ADDR', data: 'DATA', ctrl: 'CTRL' };
-        const multiCols = [P.teal, P.green];
-        const multiLbls = ['BG', 'DMA'];
+    function draw() {
+        P = window.CsFlow.getP();
+        ctx.clearRect(0, 0, GW(), GH());
+        var W = GW(); var mob = W < 600;
+        var steps = currentSteps();
+        var step = stepIdx >= 0 ? steps[stepIdx] : null;
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        tipHits.length = 0;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
+        if (hoveredKey && typeof TIPS !== 'undefined' && TIPS[hoveredKey]) drawTip(mousePos.x, mousePos.y, TIPS[hoveredKey]);
+    }
 
-        const L = buildLayout();
-        step.arrows.forEach((arr, i) => {
-            const col = step.arrows.length > 1 ? multiCols[i] : busColMap[arr.via];
-            const lbl = step.arrows.length > 1 ? multiLbls[i] : lblMap[arr.via];
-            spawnPkt(arr, col, lbl, L);
+    /* ===================== resize ===================== */
+    function resize() {
+        var w = canvasWrap.offsetWidth || 320;
+        var mob = w < 600;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
         });
+        canvasWrap.style.height    = 'auto';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
+        var actualH = canvasWrap.offsetHeight || neededH;
+        if (actualH < neededH) actualH = neededH;
+        canvas.width  = w * dpr;
+        canvas.height = actualH * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        draw();
+    }
 
-        animPkts(() => {
+    /* ===================== 애니메이션(스텝 전환) ===================== */
+    function animateStep(onDone) {
+        if (rafId) cancelAnimationFrame(rafId);
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
             draw();
-            if (onDone) setTimeout(onDone, 0);
-        });
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
-    function bvStart() {
+    function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
+
+    function applyStep(idx, onDone) {
+        stepIdx = idx;
+        logEl.textContent = currentSteps()[idx].log;
+        animateStep(function () { if (onDone) setTimeout(onDone, 0); });
+    }
+
+    function vizStart() {
         if (running) return;
-        running = true;
-        btnPlay.disabled = true;
-        btnStep.disabled = true;
+        running = true; btnPlay.disabled = true; btnStep.disabled = true;
         setSpeedDisabled(true);
+        var steps = currentSteps();
         function tick() {
-            const next = stepIdx + 1;
-            if (next >= STEPS.length) {
-                running = false;
-                setSpeedDisabled(false);
-                return;
-            }
-            applyStep(next, () => {
-                if (next === STEPS.length - 1) {
-                    running = false;
-                    btnPlay.disabled = true;
-                    btnStep.disabled = true;
-                    setSpeedDisabled(false);
+            var next = stepIdx + 1;
+            if (next >= steps.length) { running = false; setSpeedDisabled(false); return; }
+            applyStep(next, function () {
+                if (next === steps.length - 1) {
+                    running = false; btnStep.disabled = true; setSpeedDisabled(false);
                 } else {
-                    timer = setTimeout(tick, speed);
+                    timer = setTimeout(tick, speed * 0.6);
                 }
             });
         }
         tick();
     }
 
-    function bvStep() {
+    function vizStep() {
         if (running) return;
-        const next = stepIdx + 1;
-        if (next >= STEPS.length) return;
+        var steps = currentSteps();
+        var next = stepIdx + 1;
+        if (next >= steps.length) return;
         applyStep(next, null);
-        if (next === STEPS.length - 1) {
-            btnPlay.disabled = true;
-            btnStep.disabled = true;
-        }
+        if (next === steps.length - 1) { btnPlay.disabled = true; btnStep.disabled = true; }
     }
 
-    function bvReset() {
+    function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running    = false;
-        stepIdx    = -1;
-        pktQueue   = [];
-        pktCurrent = null;
-        pktProg    = 0;
-        pktDone    = null;
-        setLog('▶ PLAY를 눌러 버스 동작을 확인하세요.');
-        setBadge('IDLE');
-        btnPlay.disabled = false;
-        btnStep.disabled = false;
+        running = false; stepIdx = -1; anim = 1;
+        btnPlay.disabled = false; btnStep.disabled = false;
+        logEl.textContent = defaultLog();
         setSpeedDisabled(false);
-        draw();
+        resize();
     }
 
     function setSpeed(ms, btn) {
         speed = ms;
-        root.querySelectorAll('.bus-viz__speed-btn').forEach(b => b.classList.remove('bus-viz__speed-btn--active'));
+        speedBtns.forEach(function (b) { b.classList.remove('bus-viz__speed-btn--active'); });
         btn.classList.add('bus-viz__speed-btn--active');
     }
 
-    /* ===================== 상태 텍스트 ===================== */
-    function setLog(str)   { logEl.textContent = str; }
-    function setBadge(str) {
-        badge.textContent = str;
-        badge.className = 'bus-viz__step-badge' + (str !== 'IDLE' ? ' bus-viz__step-badge--active' : '');
+    function switchMode(m) {
+        if (mode === m) return;
+        mode = m;
+        modeDefs.forEach(function (d) { modeBtns[d.key].classList.toggle('bus-viz__mode-btn--active', d.key === m); });
+        vizReset();
     }
-    function setSpeedDisabled(v) {
-        root.querySelectorAll('.bus-viz__speed-btn').forEach(b => { b.disabled = v; });
-    }
+
+    logEl.textContent = defaultLog();
 
     /* ===================== 라이프사이클 ===================== */
     window.CsFlow.createVizLifecycle({
-        canvas    : canvas,
-        canvasWrap: canvasWrap,
-        resize    : resize,
-        draw      : draw,
-        getState  : () => ({ rafId, timer, running }),
-        setState  : s  => { rafId = s.rafId; timer = s.timer; running = s.running; },
-        onPause   : () => setSpeedDisabled(false),
-        getMouseCtx: () => ({
-            GW,
-            GH,
-            mousePos,
-            tooltipHits,
-            hoveredKey   : () => hoveredKey,
-            setHoveredKey: k  => { hoveredKey = k; },
-            draw,
-        }),
+        canvas: canvas, canvasWrap: canvasWrap, resize: resize, draw: draw,
+        getState : function () { return { rafId: rafId, timer: timer, running: running }; },
+        setState : function (s) { rafId = s.rafId; timer = s.timer; running = s.running; },
+        onPause  : function () { setSpeedDisabled(false); },
+        getMouseCtx: function () {
+            return {
+                GW: GW, GH: GH,
+                mousePos: mousePos,
+                tooltipHits: tipHits,
+                hoveredKey: function () { return hoveredKey; },
+                setHoveredKey: function (k) { hoveredKey = k; },
+                draw: draw
+            };
+        }
     });
 
-    /* ===================== 초기화 ===================== */
     setTimeout(resize, 60);
 })();

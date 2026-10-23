@@ -1,5 +1,5 @@
 /**
- * 캐시 메모리 인터랙티브 시각화 시각화
+ * 캐시 메모리 인터랙티브 시각화
  */
 (function () {
     'use strict';
@@ -145,16 +145,19 @@
         tipHit(cx - 10, cy - 10, 20, 20, key);
     }
     function drawTip(mx, my, text) {
-        var parts = text.split('\n');
+        var parts = text.split(String.fromCharCode(10));
         var title = parts[0], desc = parts[1] || '';
-        ctx.font = '700 14px "JetBrains Mono",monospace';
-        var titleW = ctx.measureText(title).width;
-        ctx.font = '400 13px "JetBrains Mono",monospace';
-        var descW = ctx.measureText(desc).width;
         var W = GW(), H = GH();
         var pad = 14;
+        var maxIn = W - 16 - pad * 2;
+        ctx.font = '700 14px "JetBrains Mono",monospace';
+        var titleW = Math.min(maxIn, ctx.measureText(title).width);
+        ctx.font = '400 13px "JetBrains Mono",monospace';
+        var dl = desc ? window.CsFlow.wrapText(ctx, desc, maxIn) : [];
+        var descW = 0;
+        dl.forEach(function (l) { descW = Math.max(descW, ctx.measureText(l).width); });
         var tw = Math.min(W - 16, Math.max(titleW, descW) + pad * 2);
-        var th = desc ? 60 : 36;
+        var th = desc ? 42 + dl.length * 18 : 36;
         var bx = mx + 14, by = my - th - 8;
         if (bx + tw > W - 8) bx = mx - tw - 14;
         if (bx < 8) bx = 8;
@@ -162,7 +165,7 @@
         if (by + th > H - 8) by = H - th - 8;
         rr(bx, by, tw, th, 6, P.surf2, P.purple + 'cc', 2);
         tx(title, bx + pad, by + (desc ? 18 : th / 2), 14, P.text + 'ff', 'left', true);
-        if (desc) tx(desc, bx + pad, by + 42, 13, P.sub + 'ff', 'left', false);
+        dl.forEach(function (l, i) { tx(l, bx + pad, by + 42 + i * 18, 13, P.sub + 'ff', 'left', false); });
     }
     function colorOf(key) { return P[key] || P.muted; }
     function lerp(a, b, t) { return a + (b - a) * t; }

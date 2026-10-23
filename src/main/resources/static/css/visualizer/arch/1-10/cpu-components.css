@@ -37,24 +37,6 @@
   color: var(--color-purple);
 }
 
-/* === 현재 단계 표시 === */
-.cpu__step-badge {
-  font-family: var(--font-mono);
-  font-size: 0.62rem;
-  padding: 4px 12px;
-  border-radius: 20px;
-  border: 1px solid rgba(108,99,255,0.3);
-  color: var(--color-text-muted);
-  letter-spacing: 0.08em;
-  transition: all 0.25s ease;
-}
-
-.cpu__step-badge--active {
-  border-color: var(--color-purple);
-  color: var(--color-purple);
-  background: rgba(108,99,255,0.1);
-}
-
 .cpu__speed {
   display: flex;
   align-items: center;

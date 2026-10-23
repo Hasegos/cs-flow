@@ -1,6 +1,6 @@
 /* 라우팅 시각화 전용 */
 
-.rt-viz {
+.routing-viz {
   display: flex;
   flex-direction: column;
   background: var(--color-bg);
@@ -9,7 +9,7 @@
   min-height: 540px;
 }
 
-.rt-viz__toolbar {
+.routing-viz__toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -20,14 +20,14 @@
   gap: 8px;
 }
 
-.rt-viz__toolbar-left {
+.routing-viz__toolbar-left {
   display: flex;
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
 }
 
-.rt-viz__title {
+.routing-viz__title {
   font-family: var(--font-mono);
   font-size: 0.62rem;
   letter-spacing: 0.18em;
@@ -35,7 +35,13 @@
   color: var(--color-purple);
 }
 
-.rt-viz__mode-btn {
+.routing-viz__mode {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.routing-viz__mode-btn {
   font-family: var(--font-mono);
   font-size: 0.62rem;
   padding: 4px 12px;
@@ -48,32 +54,32 @@
   letter-spacing: 0.06em;
 }
 
-.rt-viz__mode-btn:hover,
-.rt-viz__mode-btn--active {
+.routing-viz__mode-btn:hover,
+.routing-viz__mode-btn--active {
   border-color: var(--color-purple);
   color: var(--color-purple);
 }
 
-.rt-viz__mode-btn:disabled {
+.routing-viz__mode-btn:disabled {
   opacity: 0.3;
   cursor: not-allowed;
   pointer-events: none;
 }
 
-.rt-viz__speed {
+.routing-viz__speed {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.rt-viz__speed-label {
+.routing-viz__speed-label {
   font-family: var(--font-mono);
   font-size: 0.6rem;
   color: var(--color-text-muted);
   letter-spacing: 0.08em;
 }
 
-.rt-viz__speed-btn {
+.routing-viz__speed-btn {
   font-family: var(--font-mono);
   font-size: 0.6rem;
   padding: 4px 10px;
@@ -85,25 +91,25 @@
   transition: all 0.2s ease;
 }
 
-.rt-viz__speed-btn:hover,
-.rt-viz__speed-btn--active {
+.routing-viz__speed-btn:hover,
+.routing-viz__speed-btn--active {
   border-color: var(--color-purple);
   color: var(--color-purple);
 }
 
-.rt-viz__speed-btn:disabled {
+.routing-viz__speed-btn:disabled {
   opacity: 0.3;
   cursor: not-allowed;
   pointer-events: none;
 }
 
-.rt-viz__canvas-wrap {
+.routing-viz__canvas-wrap {
   flex: 1;
   position: relative;
   min-height: 460px;
 }
 
-.rt-viz__canvas {
+.routing-viz__canvas {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -111,7 +117,7 @@
   display: block;
 }
 
-.rt-viz__log {
+.routing-viz__log {
   padding: 10px 24px;
   border-top: 1px solid var(--color-border);
   font-family: var(--font-mono);
@@ -125,7 +131,7 @@
   line-height: 1.6;
 }
 
-.rt-viz__controls {
+.routing-viz__controls {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -134,7 +140,7 @@
   flex-shrink: 0;
 }
 
-.rt-viz__btn {
+.routing-viz__btn {
   font-family: var(--font-mono);
   font-size: 0.72rem;
   padding: 8px 20px;
@@ -147,22 +153,22 @@
   letter-spacing: 0.06em;
 }
 
-.rt-viz__btn:hover {
+.routing-viz__btn:hover {
   border-color: var(--color-purple);
   color: var(--color-purple);
 }
 
-.rt-viz__btn--primary {
+.routing-viz__btn--primary {
   border-color: var(--color-purple);
   color: var(--color-purple);
 }
 
-.rt-viz__btn--primary:hover {
+.routing-viz__btn--primary:hover {
   background: var(--color-purple);
   color: #0f0f1a;
 }
 
-.rt-viz__btn:disabled {
+.routing-viz__btn:disabled {
   opacity: 0.35;
   cursor: not-allowed;
 }

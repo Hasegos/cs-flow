@@ -4,74 +4,177 @@
 (function () {
     'use strict';
 
-    const container = document.getElementById('visualizer-container');
+    var container = document.getElementById('visualizer-container');
     if (!container) return;
 
     function el(tag, cls, txt) {
-        const e = document.createElement(tag);
+        var e = document.createElement(tag);
         if (cls) e.className = cls;
-        if (txt) e.textContent = txt;
+        if (txt !== undefined && txt !== null) e.textContent = txt;
         return e;
     }
 
-    /* ===================== DOM 구성 ===================== */
-    const root    = el('div', 'ws-viz');
-    const toolbar = el('div', 'ws-viz__toolbar');
-    const tbLeft  = el('div', 'ws-viz__toolbar-left');
+    /* ===================== DOM ===================== */
+    var root    = el('div', 'ws-viz');
+    var toolbar = el('div', 'ws-viz__toolbar');
+    var tbLeft  = el('div', 'ws-viz__toolbar-left');
     tbLeft.appendChild(el('span', 'ws-viz__title', 'WebSocket Protocol'));
+
+    var modeWrap = el('div', 'ws-viz__mode');
+    var modeDefs = [
+
+    ];
+    var modeBtns = {};
+    modeDefs.forEach(function (m, i) {
+        var b = el('button', 'ws-viz__mode-btn' + (i === 0 ? ' ws-viz__mode-btn--active' : ''), m.label);
+        b.addEventListener('click', function () { if (!running) switchMode(m.key); });
+        modeWrap.appendChild(b);
+        modeBtns[m.key] = b;
+    });
+    if (modeDefs.length) tbLeft.appendChild(modeWrap);
     toolbar.appendChild(tbLeft);
 
-    const speedWrap = el('div', 'ws-viz__speed');
+    var speedWrap = el('div', 'ws-viz__speed');
     speedWrap.appendChild(el('span', 'ws-viz__speed-label', 'SPEED'));
-    [['1x', 1800], ['2x', 900], ['3x', 600]].forEach(function (pair, i) {
-        const b = el('button', 'ws-viz__speed-btn' + (i === 0 ? ' ws-viz__speed-btn--active' : ''), pair[0]);
+    var speedBtns = [];
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
+        var b = el('button', 'ws-viz__speed-btn' + (i === 0 ? ' ws-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
+        speedBtns.push(b);
     });
     toolbar.appendChild(speedWrap);
     root.appendChild(toolbar);
 
-    const canvasWrap = el('div', 'ws-viz__canvas-wrap');
-    const canvas     = document.createElement('canvas');
+    var canvasWrap = el('div', 'ws-viz__canvas-wrap');
+    var canvas     = document.createElement('canvas');
     canvas.className = 'ws-viz__canvas';
     canvasWrap.appendChild(canvas);
     root.appendChild(canvasWrap);
 
-    const logEl = el('div', 'ws-viz__log', '▶ PLAY를 눌러 WebSocket 연결 과정을 확인하세요.');
+    var logEl = el('div', 'ws-viz__log', '');
     root.appendChild(logEl);
 
-    const controls = el('div', 'ws-viz__controls');
-    const btnPlay  = el('button', 'ws-viz__btn ws-viz__btn--primary', '▶ PLAY');
-    const btnStep  = el('button', 'ws-viz__btn', '▶| STEP');
-    const btnReset = el('button', 'ws-viz__btn', '↺ RESET');
-    btnPlay.addEventListener('click',  wsStart);
-    btnStep.addEventListener('click',  wsStep);
-    btnReset.addEventListener('click', wsReset);
+    var controls = el('div', 'ws-viz__controls');
+    var btnPlay  = el('button', 'ws-viz__btn ws-viz__btn--primary', '▶ PLAY');
+    var btnStep  = el('button', 'ws-viz__btn', '▶| STEP');
+    var btnReset = el('button', 'ws-viz__btn', '↺ RESET');
+    btnPlay.addEventListener('click',  vizStart);
+    btnStep.addEventListener('click',  vizStep);
+    btnReset.addEventListener('click', vizReset);
     controls.appendChild(btnPlay);
     controls.appendChild(btnStep);
     controls.appendChild(btnReset);
     root.appendChild(controls);
     container.appendChild(root);
 
-    const ctx = canvas.getContext('2d');
-    const dpr = window.devicePixelRatio || 1;
-    const GW  = function () { return canvas.width  / dpr; };
-    const GH  = function () { return canvas.height / dpr; };
+    var ctx = canvas.getContext('2d');
+    var dpr = window.devicePixelRatio || 1;
+    function GW() { return canvas.width / dpr; }
+    function GH() { return canvas.height / dpr; }
 
-    function resize() {
-        var w   = canvasWrap.offsetWidth || 320;
-        var mob = w < 520;
-        var rowH = mob ? 44 : 52;
-        var minH = rowH * 10 + (mob ? 44 : 52) + (mob ? 20 : 26) + 8 + 20;
-        canvasWrap.style.minHeight = minH + 'px';
-        var h = Math.max(canvasWrap.offsetHeight || 0, minH);
-        canvas.width  = w * dpr;
-        canvas.height = h * dpr;
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        draw();
+    var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = '';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
     }
-
-    let P = window.CsFlow.getP();
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    var tipHits = [];
+    var mousePos = { x: -1, y: -1 };
+    var hoveredKey = null;
+    function tipHit(x, y, w, h, key) { tipHits.push({ x: x, y: y, w: w, h: h, key: key }); }
+    function tipBadge(cx, cy, key) {
+        var on = hoveredKey === key;
+        circ(cx, cy, 7, on ? P.purple + '44' : 'none', P.purple + (on ? 'ff' : '99'), 1.2);
+        tx('?', cx, cy, 9.5, on ? P.text + 'ff' : P.sub + 'ff', 'center', true);
+        tipHit(cx - 10, cy - 10, 20, 20, key);
+    }
+    function drawTip(mx, my, text) {
+        var parts = text.split(String.fromCharCode(10));
+        var title = parts[0], desc = parts[1] || '';
+        var W = GW(), H = GH();
+        var pad = 14;
+        var maxIn = W - 16 - pad * 2;
+        ctx.font = '700 14px "JetBrains Mono",monospace';
+        var titleW = Math.min(maxIn, ctx.measureText(title).width);
+        ctx.font = '400 13px "JetBrains Mono",monospace';
+        var dl = desc ? window.CsFlow.wrapText(ctx, desc, maxIn) : [];
+        var descW = 0;
+        dl.forEach(function (l) { descW = Math.max(descW, ctx.measureText(l).width); });
+        var tw = Math.min(W - 16, Math.max(titleW, descW) + pad * 2);
+        var th = desc ? 42 + dl.length * 18 : 36;
+        var bx = mx + 14, by = my - th - 8;
+        if (bx + tw > W - 8) bx = mx - tw - 14;
+        if (bx < 8) bx = 8;
+        if (by < 8) by = my + 14;
+        if (by + th > H - 8) by = H - th - 8;
+        rr(bx, by, tw, th, 6, P.surf2, P.purple + 'cc', 2);
+        tx(title, bx + pad, by + (desc ? 18 : th / 2), 14, P.text + 'ff', 'left', true);
+        dl.forEach(function (l, i) { tx(l, bx + pad, by + 42 + i * 18, 13, P.sub + 'ff', 'left', false); });
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 시나리오 ===================== */
     var STEPS = [
@@ -134,35 +237,27 @@
         },
     ];
 
-    let stepIdx   = -1;
-    let running   = false;
-    let timer     = null;
-    let rafId     = null;
-    let speed     = 1800;
-    let pktMoving = false;
-    let pktProg   = 1;
-    let history   = [];
-
-    /* ===================== 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        ctx.beginPath();
-        ctx.moveTo(x + r, y);
-        ctx.arcTo(x+w, y, x+w, y+h, r); ctx.arcTo(x+w, y+h, x, y+h, r);
-        ctx.arcTo(x, y+h, x, y, r);     ctx.arcTo(x, y, x+w, y, r);
-        ctx.closePath();
-        if (fill)   { ctx.fillStyle = fill; ctx.fill(); }
-        if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.5; ctx.stroke(); }
+    /* ===================== 상태 ===================== */
+    function currentSteps() {
+        return STEPS;
     }
-
-    function tx(str, x, y, sz, color, align, bold) {
-        ctx.font = (bold ? '700' : '400') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color; ctx.textAlign = align || 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
+    function defaultLog() {
+        return '▶ PLAY를 눌러 WebSocket 연결 과정을 확인하세요.';
     }
-
-    function pColor(name) {
-        if (name === 'purple') return P.purple;
+    function ez(q) {
+        q = clamp01(q);
+        return q * q * (3 - 2 * q);
+    }
+    function wsIdx(step) {
+        return step ? STEPS.indexOf(step) : -1;
+    }
+    function wsPhase(i) {
+        if (i >= 9) return 2;
+        if (i >= 3) return 1;
+        if (i >= 1) return 0;
+        return -1;
+    }
+    function wsCol(name) {
         if (name === 'teal')   return P.teal;
         if (name === 'green')  return P.green;
         if (name === 'yellow') return P.yellow;
@@ -170,311 +265,322 @@
         if (name === 'muted')  return P.muted;
         return P.purple;
     }
+    function wsHostCol(side, st) {
+        if (st === 'OPEN') return P.green;
+        if (side === 'c') return st === 'CONNECTING' ? P.yellow : P.purple;
+        return P.teal;
+    }
 
     /* ===================== 레이아웃 ===================== */
-    function buildLayout() {
-        var W   = GW(), H = GH();
-        var mob = W < 520;
-        var pad = mob ? 10 : 24;
-
-        var F_HOST  = mob ? 13 : 15;
-        var F_STATE = mob ? 10 : 11;
-        var F_LABEL = mob ? 13 : 15;
-        var F_SUB   = mob ? 11 : 13;
-
-        var hostW = mob ?  80 : 110;
-        var hostH = mob ?  42 :  52;
-        var hostY = mob ?  16 :  22;
-
-        var cLineX = pad + hostW / 2;
-        var sLineX = W - pad - hostW / 2;
-
-        var areaTop  = hostY + hostH + 8;
-        var areaBot  = H - 10;
-        var rowCount = STEPS.filter(function (s) { return s.pkt || s.divider; }).length;
-        var pktCount = STEPS.filter(function (s) { return s.pkt; }).length;
-        var ROW_H    = Math.floor((areaBot - areaTop) / rowCount);
-
-        return { W, H, mob, pad,
-                 F_HOST, F_STATE, F_LABEL, F_SUB,
-                 hostW, hostH, hostY,
-                 cLineX, sLineX,
-                 areaTop, areaBot, ROW_H, pktCount, rowCount };
+    function layout(w, mob) {
+        var fsL = mob ? 11 : 13;
+        var fsS = mob ? 11 : 12;
+        var lblH = fsL + 5;
+        var subLH = fsS + 3;
+        var barH = mob ? 18 : 22;
+        var hostW = mob ? 84 : 124;
+        var hostH = mob ? 42 : 52;
+        var y = barH + 10 + hostH + 10;
+        var rows = [];
+        STEPS.forEach(function (s, i) {
+            if (!s.divider && !s.pkt) return;
+            var h = mob ? 24 : 28;
+            if (s.pkt) {
+                h = lines(s.pkt.label, w - 12, fsL).length * lblH + 3
+                    + lines(s.pkt.sub, w - 12, fsS).length * subLH + 12;
+            }
+            rows[i] = { top: y, h: h };
+            y += h;
+        });
+        return {
+            fsL: fsL, fsS: fsS, lblH: lblH, subLH: subLH,
+            barH: barH, hostW: hostW, hostH: hostH,
+            rows: rows, total: y + 8
+        };
+    }
+    function sceneH(w, mob) {
+        return layout(w, mob).total;
     }
 
-    function pktRowIdx(sIdx) {
-        var n = 0;
-        for (var k = 0; k < sIdx; k++) {
-            if (STEPS[k] && (STEPS[k].pkt || STEPS[k].divider)) n++;
-        }
-        return n;
+    /* ===================== 그리기 보조 ===================== */
+    function wsArrow(fx, tgX, y, col, a, solid) {
+        ctx.globalAlpha = a;
+        ln(fx, y, tgX, y, col + (solid ? 'ff' : '77'), solid ? 2.2 : 1.4, solid ? [] : [4, 3]);
+        var ad = tgX > fx ? 1 : -1;
+        ctx.beginPath();
+        ctx.moveTo(tgX, y);
+        ctx.lineTo(tgX - ad * 9, y - 5);
+        ctx.lineTo(tgX - ad * 9, y + 5);
+        ctx.closePath();
+        ctx.fillStyle = col + (solid ? 'ff' : '77');
+        ctx.fill();
+        ctx.globalAlpha = 1;
+    }
+    function wsChip(px, y, pkt, mob) {
+        var tag = pkt.phase === 'http' ? 'HTTP' : (pkt.phase === 'close' ? 'CLOSE' : 'WS');
+        var cw = mob ? 42 : 50;
+        rr(px - cw / 2, y - 9, cw, 18, 4, wsCol(pkt.color) + 'ff', null);
+        tx(tag, px, y, 11, '#111111', 'center', true);
+    }
+    function wsText(pkt, L, x, blockTop, a, w) {
+        var col = wsCol(pkt.color);
+        ctx.globalAlpha = a;
+        var y = blockTop;
+        lines(pkt.label, w - 12, L.fsL).forEach(function (l) {
+            tx(l, x, y + L.lblH / 2, L.fsL, col + 'ff', 'center', true);
+            y += L.lblH;
+        });
+        y += 3;
+        lines(pkt.sub, w - 12, L.fsS).forEach(function (l) {
+            tx(l, x, y + L.subLH / 2, L.fsS, P.sub + 'ff', 'center', false);
+            y += L.subLH;
+        });
+        ctx.globalAlpha = 1;
+    }
+    function wsHost(cx, y, L, name, side, st, pst, e) {
+        var items = st !== pst ? [[pst, 1 - e], [st, e]] : [[st, 1]];
+        items.forEach(function (it) {
+            var col = wsHostCol(side, it[0]);
+            ctx.globalAlpha = it[1];
+            rr(cx - L.hostW / 2, y, L.hostW, L.hostH, 6, col + '22', col + 'ff', 2);
+            tx(name, cx, y + L.hostH * 0.33, L.fsS + 1, col + 'ff', 'center', true);
+            tx(it[0], cx, y + L.hostH * 0.72, L.fsS, col + 'ff', 'center', false);
+        });
+        ctx.globalAlpha = 1;
     }
 
-    function dividerRowIdx(divName) {
-        var n = 0;
-        for (var k = 0; k < STEPS.length; k++) {
-            if (STEPS[k].divider === divName) return n;
-            if (STEPS[k].pkt || STEPS[k].divider) n++;
-        }
-        return -1;
-    }
+    /* ===================== 그리기 ===================== */
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var L = layout(w, mob);
+        var idx = wsIdx(step);
+        var fresh = !!step && !!prev && prev !== step;
+        var s = step || STEPS[0];
+        var p = fresh ? prev : s;
+        var pIdx = fresh ? wsIdx(prev) : idx;
+        var e = fresh ? ez(t) : 1;
+        var hE = fresh ? (s.pkt ? ez(seg(t, 0.7, 1)) : e) : 1;
+        var cX = x0 + L.hostW / 2;
+        var sX = x0 + w - L.hostW / 2;
+        var mid = x0 + w / 2;
+        var yHost = top + L.barH + 10;
 
-    function rowY(L, rowIdx) {
-        return L.areaTop + rowIdx * L.ROW_H + L.ROW_H / 2;
+        var ph = wsPhase(idx), phP = wsPhase(pIdx);
+        var starts = [1, 3, 9];
+        var names = ['HTTP', 'WebSocket', 'Close'];
+        var cols = [P.teal, P.green, P.orange];
+        var segW = (w - 4) / 3;
+        names.forEach(function (nm, q) {
+            var bx = x0 + q * (segW + 2);
+            var on = ph === q;
+            var reached = idx >= starts[q];
+            ctx.globalAlpha = on ? 0.4 * (fresh && phP !== ph ? e : 1) : (reached ? 0.16 : 0.06);
+            rr(bx, top, segW, L.barH, 4, cols[q] + 'ff', null);
+            ctx.globalAlpha = 1;
+            var bc = (on || reached) ? cols[q] + 'ff' : P.sub + '66';
+            rr(bx, top, segW, L.barH, 4, null, bc, 1.2);
+            tx(nm, bx + segW / 2, top + L.barH / 2, L.fsS, P.text + 'ff', 'center', true);
+        });
+
+        var cs = s.clientState || 'CLOSED';
+        var ss = s.serverState || 'LISTEN';
+        var pcs = fresh ? (p.clientState || 'CLOSED') : cs;
+        var pss = fresh ? (p.serverState || 'LISTEN') : ss;
+        wsHost(cX, yHost, L, 'CLIENT', 'c', cs, pcs, hE);
+        wsHost(sX, yHost, L, 'SERVER', 's', ss, pss, hE);
+
+        var yBot = top + L.total - 6;
+        ln(cX, yHost + L.hostH, cX, yBot, P.border + 'cc', 1.5, [5, 4]);
+        ln(sX, yHost + L.hostH, sX, yBot, P.border + 'cc', 1.5, [5, 4]);
+
+        var DIV = 'WebSocket 연결 수립';
+        STEPS.forEach(function (st, i) {
+            var r = L.rows[i];
+            if (!r) return;
+            var y0 = top + r.top;
+            if (st.divider) {
+                var dy = y0 + r.h / 2;
+                ctx.globalAlpha = idx < i ? 0.5 : (idx === i && fresh ? e : 1);
+                ln(cX, dy, sX, dy, P.green + '66', 1, [4, 4]);
+                ctx.font = '700 ' + L.fsS + 'px "JetBrains Mono",monospace';
+                var dw = ctx.measureText(DIV).width + 16;
+                rr(mid - dw / 2, dy - 9, dw, 18, 9, P.green + '22', P.green + '88', 1.2);
+                tx(DIV, mid, dy, L.fsS, P.green + 'ff', 'center', true);
+                ctx.globalAlpha = 1;
+                return;
+            }
+            var pkt = st.pkt;
+            if (!pkt) return;
+            var c2s = pkt.dir === 'c2s';
+            var fx = c2s ? cX : sX;
+            var tgX = c2s ? sX : cX;
+            var lineY = c2s ? y0 + r.h - 8 : y0 + 8;
+            var blockTop = c2s ? y0 : y0 + 16;
+            var col = wsCol(pkt.color);
+
+            if (i > idx) {
+                wsArrow(fx, tgX, lineY, col, 0.7, false);
+                return;
+            }
+            if (i < idx) {
+                wsArrow(fx, tgX, lineY, col, 0.75, true);
+                wsText(pkt, L, mid, blockTop, 0.75, w);
+                return;
+            }
+            if (!fresh) {
+                wsArrow(fx, tgX, lineY, col, 1, true);
+                wsText(pkt, L, mid, blockTop, 1, w);
+                return;
+            }
+
+            var u = ez(seg(t, 0, 0.7));
+            var px = lerp(fx, tgX, u);
+            wsArrow(fx, tgX, lineY, col, 0.7, false);
+            if (u < 1) {
+                ln(fx, lineY, px, lineY, col + 'ee', 2.2);
+                wsChip(px, lineY, pkt, mob);
+            } else {
+                wsArrow(fx, tgX, lineY, col, 1, true);
+            }
+            wsText(pkt, L, mid, blockTop, ez(seg(t, 0.6, 1)), w);
+            var ring = seg(t, 0.7, 0.8) * (1 - seg(t, 0.8, 1));
+            if (ring > 0) {
+                ctx.globalAlpha = ring;
+                rr(tgX - L.hostW / 2 - 3, yHost - 3, L.hostW + 6, L.hostH + 6, 8, null, col + 'ff', 2.5);
+                ctx.globalAlpha = 1;
+            }
+        });
     }
 
     /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
     function draw() {
         P = window.CsFlow.getP();
         ctx.clearRect(0, 0, GW(), GH());
-        var L    = buildLayout();
-        var step = stepIdx >= 0 ? STEPS[stepIdx] : STEPS[0];
-
-        drawHosts(L, step);
-        drawTimelines(L);
-        drawDividers(L);
-        drawHistory(L);
-
-        if (stepIdx >= 0 && step.pkt) {
-            var ri = pktRowIdx(stepIdx);
-            if (pktMoving) {
-                drawMovingPkt(L, step, pktProg, ri);
-            } else {
-                var inHist = history.some(function (h) { return h.rowIdx === ri; });
-                if (!inHist) drawStaticPkt(L, step, ri);
-            }
-        }
+        var W = GW(); var mob = W < 600;
+        var steps = currentSteps();
+        var step = stepIdx >= 0 ? steps[stepIdx] : null;
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        tipHits.length = 0;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
+        if (hoveredKey && typeof TIPS !== 'undefined' && TIPS[hoveredKey]) drawTip(mousePos.x, mousePos.y, TIPS[hoveredKey]);
     }
 
-    /* ===================== 호스트 박스 ===================== */
-    function drawHosts(L, step) {
-        var cs = step.clientState || 'CLOSED';
-        var ss = step.serverState || 'LISTEN';
-        var cCol = cs === 'OPEN' ? P.green : cs === 'CONNECTING' ? P.yellow : P.purple;
-        var sCol = ss === 'OPEN' ? P.green : P.teal;
-
-        rr(L.cLineX - L.hostW/2, L.hostY, L.hostW, L.hostH, 6, cCol+'22', cCol, 2);
-        tx('CLIENT',  L.cLineX, L.hostY + L.hostH * 0.35, L.F_HOST,  cCol,        'center', true);
-        tx(cs,        L.cLineX, L.hostY + L.hostH * 0.70, L.F_STATE, cCol + 'cc', 'center', false);
-
-        rr(L.sLineX - L.hostW/2, L.hostY, L.hostW, L.hostH, 6, sCol+'22', sCol, 2);
-        tx('SERVER',  L.sLineX, L.hostY + L.hostH * 0.35, L.F_HOST,  sCol,        'center', true);
-        tx(ss,        L.sLineX, L.hostY + L.hostH * 0.70, L.F_STATE, sCol + 'cc', 'center', false);
-    }
-
-    /* ===================== 타임라인 ===================== */
-    function drawTimelines(L) {
-        ctx.setLineDash([5, 4]);
-        ctx.strokeStyle = P.border + 'cc';
-        ctx.lineWidth   = 1.5;
-        ctx.beginPath(); ctx.moveTo(L.cLineX, L.areaTop); ctx.lineTo(L.cLineX, L.areaBot); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(L.sLineX, L.areaTop); ctx.lineTo(L.sLineX, L.areaBot); ctx.stroke();
-        ctx.setLineDash([]);
-    }
-
-    /* ===================== 구간 구분선 ===================== */
-    function drawDividers(L) {
-        if (stepIdx < 0) return;
-        var di = dividerRowIdx('ws');
-        if (di < 0 || stepIdx < 3) return;
-
-        var divY = rowY(L, di);
-        ctx.beginPath();
-        ctx.moveTo(L.cLineX, divY);
-        ctx.lineTo(L.sLineX, divY);
-        ctx.strokeStyle = P.green + '66';
-        ctx.lineWidth   = 1;
-        ctx.setLineDash([4, 4]);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        tx('── WebSocket 연결 수립 ──', (L.cLineX + L.sLineX) / 2, divY,
-           L.mob ? 9 : 11, P.green + 'cc', 'center', false);
-    }
-
-    /* ===================== 히스토리 ===================== */
-    function drawHistory(L) {
-        history.forEach(function (item) {
-            drawStaticPkt(L, item.step, item.rowIdx);
+    /* ===================== resize ===================== */
+    function resize() {
+        var w = canvasWrap.offsetWidth || 320;
+        var mob = w < 600;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
         });
+        canvasWrap.style.height    = 'auto';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
+        var actualH = canvasWrap.offsetHeight || neededH;
+        if (actualH < neededH) actualH = neededH;
+        canvas.width  = w * dpr;
+        canvas.height = actualH * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        draw();
     }
 
-    /* ===================== 정적 패킷 ===================== */
-    function drawStaticPkt(L, step, rowIdx) {
-        if (!step.pkt) return;
-        var pkt   = step.pkt;
-        var col   = pColor(pkt.color);
-        var fromX = pkt.dir === 'c2s' ? L.cLineX : L.sLineX;
-        var toX   = pkt.dir === 'c2s' ? L.sLineX : L.cLineX;
-        var midX  = (fromX + toX) / 2;
-        var ry    = rowY(L, rowIdx);
-        var fL    = L.F_LABEL;
-        var fS    = L.F_SUB;
-        var fL    = L.F_LABEL;
-        var fS    = L.F_SUB;
-        var G     = 3;
-        var lineY, lblY, subY;
-        var rowTop = ry - L.ROW_H / 2;
-        var rowBot = ry + L.ROW_H / 2;
-        if (pkt.dir === 'c2s') {
-            lineY = ry + 2;
-            lblY  = lineY - G - fL * 0.5;
-            subY  = lblY  - fL * 0.5 - G - fS * 0.5;
-            if (subY - fS * 0.5 < rowTop + 2) {
-                subY  = rowTop + 2 + fS * 0.5;
-                lblY  = subY + fS * 0.5 + G + fL * 0.5;
-                lineY = lblY + fL * 0.5 + G;
-            }
-        } else {
-            lineY = ry - 2;
-            lblY  = lineY + G + fL * 0.5;
-            subY  = lblY  + fL * 0.5 + G + fS * 0.5;
-            /* 행 하단을 넘지 않도록 클리핑 */
-            if (subY + fS * 0.5 > rowBot - 2) {
-                subY  = rowBot - 2 - fS * 0.5;
-                lblY  = subY - fS * 0.5 - G - fL * 0.5;
-                lineY = lblY - fL * 0.5 - G;
-            }
-        }
-
-        var isWs = pkt.phase === 'ws' || pkt.phase === 'close';
-        ctx.beginPath();
-        ctx.moveTo(fromX, lineY); ctx.lineTo(toX, lineY);
-        ctx.strokeStyle = col + (isWs ? 'ee' : '88');
-        ctx.lineWidth   = isWs ? 2 : 1.5;
-        if (!isWs) ctx.setLineDash([4, 3]);
-        ctx.stroke(); ctx.setLineDash([]);
-
-        var ad = toX > fromX ? 1 : -1;
-        ctx.beginPath();
-        ctx.moveTo(toX, lineY);
-        ctx.lineTo(toX - ad*10, lineY - 5);
-        ctx.lineTo(toX - ad*10, lineY + 5);
-        ctx.closePath();
-        ctx.fillStyle = col + (isWs ? 'ee' : '88');
-        ctx.fill();
-
-        tx(pkt.label, midX, lblY, fL, col, 'center', true);
-        tx(pkt.sub,   midX, subY, fS, col + 'aa', 'center', false);
-    }
-
-    /* ===================== 이동 중 패킷 ===================== */
-    function drawMovingPkt(L, step, prog, rowIdx) {
-        if (!step.pkt) return;
-        var pkt   = step.pkt;
-        var col   = pColor(pkt.color);
-        var fromX = pkt.dir === 'c2s' ? L.cLineX : L.sLineX;
-        var toX   = pkt.dir === 'c2s' ? L.sLineX : L.cLineX;
-        var ry    = rowY(L, rowIdx);
-        var lineY = pkt.dir === 'c2s' ? ry + 2 : ry - 2;
-        var cx    = fromX + (toX - fromX) * prog;
-        var r     = L.mob ? 14 : 18;
-
-        ctx.beginPath(); ctx.moveTo(fromX, lineY); ctx.lineTo(cx, lineY);
-        ctx.strokeStyle = col + '55'; ctx.lineWidth = 1.5; ctx.stroke();
-
-        ctx.beginPath(); ctx.arc(cx, lineY, r, 0, Math.PI * 2);
-        ctx.fillStyle = col + '22'; ctx.fill();
-        ctx.strokeStyle = col;
-        ctx.lineWidth = (pkt.phase === 'ws' || pkt.phase === 'close') ? 3 : 2;
-        ctx.stroke();
-
-        tx(pkt.phase === 'http' ? 'HTTP' : 'WS', cx, lineY, L.F_SUB, col, 'center', true);
-
-        var lblY = pkt.dir === 'c2s' ? lineY - r - 6 : lineY + r + 6;
-        tx(pkt.label, cx, lblY, L.F_SUB, col + 'cc', 'center', false);
-    }
-
-    /* ===================== 애니메이션 ===================== */
-    function animateStep(step, cb) {
-        if (!step.pkt) { pktProg = 1; draw(); if (cb) cb(); return; }
-        pktProg   = 0;
-        pktMoving = true;
+    /* ===================== 애니메이션(스텝 전환) ===================== */
+    function animateStep(onDone) {
         if (rafId) cancelAnimationFrame(rafId);
-        var s = 0.007 * (1800 / speed);
-        (function tick() {
-            pktProg = Math.min(1, pktProg + s);
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
             draw();
-            if (pktProg < 1) {
-                rafId = requestAnimationFrame(tick);
-            } else {
-                pktMoving = false;
-                draw();
-                if (cb) cb();
-            }
-        })();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
-    function setSpeedDisabled(v) {
-        root.querySelectorAll('.ws-viz__speed-btn').forEach(function (b) { b.disabled = v; });
-    }
+    function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
-        var step = STEPS[idx];
-        logEl.textContent = step.log;
-        animateStep(step, function () {
-            if (step.pkt) {
-                history.push({ step: step, rowIdx: pktRowIdx(idx) });
-                draw();
-            }
-            if (onDone) setTimeout(onDone, 0);
-        });
+        logEl.textContent = currentSteps()[idx].log;
+        animateStep(function () { if (onDone) setTimeout(onDone, 0); });
     }
 
-    function wsStart() {
+    function vizStart() {
         if (running) return;
         running = true; btnPlay.disabled = true; btnStep.disabled = true;
         setSpeedDisabled(true);
+        var steps = currentSteps();
         function tick() {
             var next = stepIdx + 1;
-            if (next >= STEPS.length) { running = false; setSpeedDisabled(false); return; }
+            if (next >= steps.length) { running = false; setSpeedDisabled(false); return; }
             applyStep(next, function () {
-                if (next === STEPS.length - 1) {
+                if (next === steps.length - 1) {
                     running = false; btnStep.disabled = true; setSpeedDisabled(false);
                 } else {
-                    timer = setTimeout(tick, speed);
+                    timer = setTimeout(tick, speed * 0.6);
                 }
             });
         }
         tick();
     }
 
-    function wsStep() {
-        if (running || pktMoving) return;
+    function vizStep() {
+        if (running) return;
+        var steps = currentSteps();
         var next = stepIdx + 1;
-        if (next >= STEPS.length) return;
+        if (next >= steps.length) return;
         applyStep(next, null);
-        if (next === STEPS.length - 1) { btnPlay.disabled = true; btnStep.disabled = true; }
+        if (next === steps.length - 1) { btnPlay.disabled = true; btnStep.disabled = true; }
     }
 
-    function wsReset() {
+    function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1; pktProg = 1; pktMoving = false; history = [];
-        logEl.textContent = '▶ PLAY를 눌러 WebSocket 연결 과정을 확인하세요.';
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
+        logEl.textContent = defaultLog();
         setSpeedDisabled(false);
-        draw();
+        resize();
     }
 
     function setSpeed(ms, btn) {
         speed = ms;
-        root.querySelectorAll('.ws-viz__speed-btn').forEach(function (b) {
-            b.classList.remove('ws-viz__speed-btn--active');
-        });
+        speedBtns.forEach(function (b) { b.classList.remove('ws-viz__speed-btn--active'); });
         btn.classList.add('ws-viz__speed-btn--active');
     }
 
+    function switchMode(m) {
+        if (mode === m) return;
+        mode = m;
+        modeDefs.forEach(function (d) { modeBtns[d.key].classList.toggle('ws-viz__mode-btn--active', d.key === m); });
+        vizReset();
+    }
+
+    logEl.textContent = defaultLog();
+
+    /* ===================== 라이프사이클 ===================== */
     window.CsFlow.createVizLifecycle({
-        canvas, canvasWrap, resize, draw,
+        canvas: canvas, canvasWrap: canvasWrap, resize: resize, draw: draw,
         getState : function () { return { rafId: rafId, timer: timer, running: running }; },
         setState : function (s) { rafId = s.rafId; timer = s.timer; running = s.running; },
         onPause  : function () { setSpeedDisabled(false); },
         getMouseCtx: function () {
-            return { GW, GH, mousePos:{x:-1,y:-1}, tooltipHits:[],
-                     hoveredKey:function(){return null;}, setHoveredKey:function(){}, draw };
-        },
+            return {
+                GW: GW, GH: GH,
+                mousePos: mousePos,
+                tooltipHits: tipHits,
+                hoveredKey: function () { return hoveredKey; },
+                setHoveredKey: function (k) { hoveredKey = k; },
+                draw: draw
+            };
+        }
     });
 
     setTimeout(resize, 60);

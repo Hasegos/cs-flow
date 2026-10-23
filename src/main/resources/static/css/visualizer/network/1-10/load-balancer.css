@@ -35,6 +35,13 @@
   color: var(--color-purple);
 }
 
+.lb-viz__mode {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .lb-viz__mode-btn {
   font-family: var(--font-mono);
   font-size: 0.62rem;
