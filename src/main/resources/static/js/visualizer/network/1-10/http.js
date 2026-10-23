@@ -211,7 +211,7 @@
                 phase: 'req3',
             },
             {
-                log: 'Step 6 — 200 OK 응답 ✓  3개 리소스를 모두 받았습니다. HTTP/1.1은 요청→응답→요청→응답 순서로 처리해 총 6번의 왕복이 필요했습니다.',
+                log: 'Step 6 — 200 OK 응답 ✓  3개 리소스를 모두 받았습니다. HTTP/1.1은 요청→응답을 리소스마다 차례로 처리해 왕복이 총 3번 필요했습니다.',
                 pkts: [{ dir: 's2c', label: '200 OK', sub: 'Content-Type: application/javascript', color: 'orange', slot: 2 }],
                 phase: 'res3',
                 done: true,
@@ -233,7 +233,7 @@
                 phase: 'req_all',
             },
             {
-                log: 'Step 2 — 3개 응답 동시 수신 ✓  서버가 준비된 순서대로 응답합니다. 스트림별로 독립 처리되어 한 응답이 느려도 다른 응답에 영향 없습니다. HTTP/1.1 대비 왕복 횟수가 절반으로 줄었습니다.',
+                log: 'Step 2 — 3개 응답 동시 수신 ✓  서버가 준비된 순서대로 응답합니다. 스트림별로 독립 처리되어 한 응답이 느려도 다른 응답에 영향 없습니다. HTTP/1.1이 3번 왕복한 것을 1번의 왕복으로 처리했습니다.',
                 pkts: [
                     { dir: 's2c', label: '200 OK (HTML)', sub: 'Stream ID: 1', color: 'purple', slot: 0 },
                     { dir: 's2c', label: '200 OK (CSS)',  sub: 'Stream ID: 3', color: 'teal',   slot: 1 },

@@ -210,7 +210,7 @@
           log: 'RTT 14 — cwnd=13. 안정적으로 증가 중.' },
 
         { rtt: 15, cwnd: 14, ssthresh: 10, phase: 'CA', event: 'timeout',
-          log: 'RTT 15 — ⚠ 타임아웃 발생! 더 심각한 혼잡 신호. ssthresh = cwnd/2 = 7, cwnd = 1로 리셋. Slow Start부터 재시작합니다. 3-Dup ACK보다 훨씬 큰 패널티입니다.' },
+          log: 'RTT 15 — ⚠ 타임아웃 발생! 더 심각한 혼잡 신호. 다음 RTT에 ssthresh = cwnd/2 = 7, cwnd = 1로 리셋하고 Slow Start부터 재시작합니다. 3-Dup ACK보다 훨씬 큰 패널티입니다.' },
         { rtt: 16, cwnd:  1, ssthresh:  7, phase: 'SS', event: null,
           log: 'RTT 16 — Slow Start 재시작. cwnd=1, ssthresh=7. 타임아웃 후에는 항상 cwnd=1부터 시작합니다.' },
         { rtt: 17, cwnd:  2, ssthresh:  7, phase: 'SS', event: null,
@@ -270,7 +270,7 @@
         var s = STEPS[i];
         var p = i > 0 ? STEPS[i - 1] : s;
         if (s.event === '3dup') return ['3-Dup ACK → 빠른 재전송', P.red];
-        if (s.event === 'timeout') return ['Timeout → cwnd 1로 리셋', P.red];
+        if (s.event === 'timeout') return ['Timeout → 다음 RTT에 cwnd 1로 리셋', P.red];
         if (p.ssthresh !== s.ssthresh) return ['ssthresh ' + p.ssthresh + ' → ' + s.ssthresh, P.orange];
         if (p.phase === 'SS' && s.phase === 'CA') return ['cwnd ≥ ssthresh → CA 진입', P.teal];
         if (s.phase === 'SS') return ['Slow Start: ACK마다 +1', P.purple];
