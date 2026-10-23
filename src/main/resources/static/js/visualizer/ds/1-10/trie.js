@@ -1,5 +1,5 @@
 /**
- * 트라이 시각화
+ * 트라이 시각화 시각화
  */
 (function () {
     'use strict';
@@ -23,9 +23,9 @@
     var modeWrap = el('div', 'trie-viz__mode');
     var modeDefs = [
         { key: 'structure', label: '구조' },
-        { key: 'insert',    label: '삽입' },
-        { key: 'search',    label: '검색' },
-        { key: 'prefix',    label: '접두사' },
+        { key: 'insert', label: '삽입' },
+        { key: 'search', label: '검색' },
+        { key: 'prefix', label: '접두사' }
     ];
     var modeBtns = {};
     modeDefs.forEach(function (m, i) {
@@ -40,7 +40,7 @@
     var speedWrap = el('div', 'trie-viz__speed');
     speedWrap.appendChild(el('span', 'trie-viz__speed-label', 'SPEED'));
     var speedBtns = [];
-    [['1x', 1800], ['2x', 900], ['3x', 600]].forEach(function (pair, i) {
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
         var b = el('button', 'trie-viz__speed-btn' + (i === 0 ? ' trie-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
@@ -55,7 +55,7 @@
     canvasWrap.appendChild(canvas);
     root.appendChild(canvasWrap);
 
-    var logEl = el('div', 'trie-viz__log', '▶ PLAY를 눌러 트라이 구조를 확인하세요.');
+    var logEl = el('div', 'trie-viz__log', '');
     root.appendChild(logEl);
 
     var controls = el('div', 'trie-viz__controls');
@@ -73,11 +73,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'structure';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 트라이 정의 ===================== */
     var NODES = {
@@ -263,60 +330,22 @@
     var SEARCH_STEPS = buildSearchSteps();
     var PREFIX_STEPS = buildPrefixSteps();
 
-    /* ===================== 상태 변수 ===================== */
-    var mode     = 'structure';
-    var stepIdx  = -1;
-    var running  = false;
-    var timer    = null;
-    var rafId    = null;
-    var speed    = 1800;
-    var animProg = 1;
-
+    /* ===================== 상태 ===================== */
     function currentSteps() {
         if (mode === 'structure') return STRUCTURE_STEPS;
         if (mode === 'insert')    return INSERT_STEPS;
         if (mode === 'search')    return SEARCH_STEPS;
         return PREFIX_STEPS;
     }
-
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        ctx.beginPath();
-        ctx.moveTo(x + r, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, r);
-        ctx.arcTo(x + w, y + h, x,     y + h, r);
-        ctx.arcTo(x,     y + h, x,     y,     r);
-        ctx.arcTo(x,     y,     x + w, y,     r);
-        ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.5; ctx.stroke(); }
+    function defaultLog() {
+        if (mode === 'structure') return '▶ PLAY를 눌러 트라이 구조를 확인하세요.';
+        if (mode === 'insert')    return '▶ PLAY를 눌러 단어 삽입 과정을 확인하세요.';
+        if (mode === 'search')    return '▶ PLAY를 눌러 검색(contains) 과정을 확인하세요.';
+        return '▶ PLAY를 눌러 접두사 검색(startsWith) 과정을 확인하세요.';
     }
+    function ez(q) { var v = clamp01(q); return v * v * (3 - 2 * v); }
 
-    function tx(str, x, y, sz, color, align, bold) {
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
-    }
-
-    function circle(cx, cy, r, fill, stroke, lw) {
-        ctx.beginPath();
-        ctx.arc(cx, cy, r, 0, Math.PI * 2);
-        if (fill)   { ctx.fillStyle = fill; ctx.fill(); }
-        if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.5; ctx.stroke(); }
-    }
-
-    function line(x1, y1, x2, y2, col, lw, dash) {
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
-        ctx.strokeStyle = col; ctx.lineWidth = lw || 1.5;
-        ctx.setLineDash(dash || []); ctx.stroke(); ctx.setLineDash([]);
-    }
-
-    /* ===================== 노드 좌표 계산 ===================== */
+    /* ===================== 레이아웃 ===================== */
     function computeBounds(ids) {
         var minX = 1, maxX = 0, minY = 1, maxY = 0;
         ids.forEach(function (id) {
@@ -326,314 +355,517 @@
             if (n.y < minY) minY = n.y;
             if (n.y > maxY) maxY = n.y;
         });
-        if (maxX - minX < 0.001) { minX = Math.max(0, minX - 0.16); maxX = Math.min(1, maxX + 0.16); }
-        if (maxY - minY < 0.001) { minY = Math.max(0, minY - 0.05); maxY = Math.min(1, maxY + 0.35); }
         return { minX: minX, maxX: maxX, minY: minY, maxY: maxY };
     }
+    var TR_DEPTH = { root: 0, C: 1, D0: 1, A: 2, O: 2, R: 3, T: 3, G: 3, D4: 4, E4: 4 };
+    var TR_COL   = { root: 2.125, C: 1.25, D0: 3, A: 1.25, O: 3, R: 0.5, T: 2, G: 3, D4: 0, E4: 1 };
+    var trMemo   = {};
 
-    function nodePos(id, W, top, h, mob, r, bounds) {
-        var n = NODES[id];
-        var marginX = mob ? r + 12 : r + 20;
-        var marginY = mob ? r + 10 : r + 14;
-        var nx = (bounds.maxX > bounds.minX) ? (n.x - bounds.minX) / (bounds.maxX - bounds.minX) : 0.5;
-        var ny = (bounds.maxY > bounds.minY) ? (n.y - bounds.minY) / (bounds.maxY - bounds.minY) : 0.5;
-        var x = marginX + nx * (W - 2 * marginX);
-        var y = top + marginY + ny * (h - 2 * marginY);
-        return { x: x, y: y };
+    function trGeo(w, mob) {
+        var r = mob ? 13 : 19;
+        var span = Math.min(w - (mob ? 36 : 60), 3 * (mob ? 80 : 130));
+        return {
+            r: r, span: span, left: (w - span) / 2, pad: r + 8,
+            dy: mob ? 46 : 62, fs: mob ? 12 : 14, fsub: mob ? 11 : 12
+        };
     }
-
-    /* ===================== 가시 노드/간선 (삽입 탭은 점진적 생성) ===================== */
-    function visibleNodeIds(step) {
-        if (mode === 'insert') return step.createdSoFar || ['root'];
-        return NODE_IDS_ALL;
+    function trPt(g, x0, top, id) {
+        return { x: x0 + g.left + TR_COL[id] / 3 * g.span, y: top + g.pad + TR_DEPTH[id] * g.dy };
     }
-    function visibleEdges(step) {
-        var vis = visibleNodeIds(step);
-        return EDGES_ALL.filter(function (e) { return vis.indexOf(e[0]) >= 0 && vis.indexOf(e[1]) >= 0; });
+    function trWalk(word, n) {
+        var out = ['root'];
+        var cur = 'root';
+        for (var i = 0; i < n; i++) {
+            cur = CHILDREN[cur][word[i]];
+            out.push(cur);
+        }
+        return out;
     }
-
-    function edgeInList(edge, list) {
-        if (list === 'all') return true;
-        if (!list) return false;
-        return list.some(function (e) {
-            return (e[0] === edge[0] && e[1] === edge[1]) || (e[0] === edge[1] && e[1] === edge[0]);
+    function trSubtree(id) {
+        return NODE_IDS_ALL.filter(function (k) {
+            var c = k;
+            while (c) {
+                if (c === id) return true;
+                c = NODES[c].parent;
+            }
+            return false;
         });
     }
+    function trSubWords(id) {
+        return trSubtree(id).filter(function (k) { return NODES[k].isEnd; })
+            .map(function (k) { return NODES[k].word; }).sort().join(', ');
+    }
 
-    /* ===================== 상태 색상 ===================== */
-    function nodeColor(id, step) {
+    /* ===================== 캡션과 범례 ===================== */
+    function trCapText(s) {
         if (mode === 'structure') {
-            var hi = step.highlight;
-            if (hi && hi.nodes.indexOf(id) >= 0) {
-                if (step.label === 'end')    return P.orange;
-                if (step.label === 'shared') return P.teal;
-                return P.purple;
-            }
-            return P.muted;
+            if (s.label === 'root')   return 'ROOT: 빈 문자열에서 시작하는 출발점';
+            if (s.label === 'end')    return '이중 테두리 = isEnd, 여기서 끝나면 단어';
+            if (s.label === 'shared') return 'CAR, CARD, CARE가 root→C→A→R 경로 공유';
+            return '간선 하나 = 문자 하나, 같은 접두사는 공유';
         }
         if (mode === 'insert') {
-            if (step.node === id) {
-                if (step.type === 'result') return P.green;
-                if (step.action === 'create') return P.purple;
-                return P.orange;
+            if (s.type === 'intro') return '루트만 있는 빈 트라이에서 시작';
+            if (s.type === 'start') return "'" + s.word + "'는 루트에서 출발";
+            if (s.type === 'match') {
+                var ch = s.word[s.matched - 1];
+                return s.action === 'create'
+                    ? "'" + ch + "' 간선이 없어 새 노드를 만듦"
+                    : "'" + ch + "' 노드가 이미 있어 재사용";
             }
-            return P.teal;
+            if (s.type === 'result') return 'isEnd 표시 → 단어 저장 완료';
+            return INSERT_WORDS.length + '개 단어 삽입 완료';
         }
-        if (!step.path || step.path.indexOf(id) < 0) return P.muted;
-        if (step.node === id) {
-            if (step.type === 'result') return step.outcome ? P.green : P.orange;
-            return P.orange;
+        if (s.type === 'intro') return mode === 'search' ? '루트에서 글자를 하나씩 따라 내려감' : '루트에서 접두사 경로를 따라감';
+        if (s.type === 'start') return "'" + s.word + "' 탐색을 루트에서 시작";
+        if (s.type === 'match') {
+            return s.matched < s.word.length
+                ? "다음 글자 '" + s.word[s.matched] + "'를 자식에서 찾음"
+                : '마지막 글자, 도착 노드를 확인';
         }
-        return P.teal;
+        if (s.outcome && mode === 'prefix') return '접두사 아래 단어: ' + trSubWords(s.node);
+        if (s.outcome) return 'isEnd = true → 단어 끝 표시가 있음';
+        if (s.matched < s.word.length) return "'" + s.word[s.matched] + "' 자식이 없어 탐색 중단";
+        return 'isEnd = false → 경로만 있고 단어는 아님';
     }
-
-    function edgeColor(e, step) {
+    function trCapCol(s) {
         if (mode === 'structure') {
-            var isHi = edgeInList(e, step.highlight ? step.highlight.edges : []);
-            return isHi ? (P.purple + 'aa') : (P.muted + '33');
+            if (s.label === 'end') return P.orange;
+            if (s.label === 'shared') return P.teal;
+            if (s.label === 'root') return P.purple;
+            return P.sub;
         }
         if (mode === 'insert') {
-            if (step.node === e[1]) {
-                if (step.type === 'result') return P.green + 'cc';
-                if (step.action === 'create') return P.purple + 'cc';
-                return P.orange + 'cc';
-            }
-            return P.teal + '77';
+            if (s.type === 'match') return s.action === 'create' ? P.purple : P.orange;
+            if (s.type === 'result') return P.green;
+            return P.sub;
         }
-        var path = step.path || [];
-        if (path.indexOf(e[0]) >= 0 && path.indexOf(e[1]) >= 0) {
-            if (step.node === e[1]) return (step.type === 'result' ? (step.outcome ? P.green : P.orange) : P.orange) + 'cc';
-            return P.teal + '77';
-        }
-        return P.muted + '25';
+        if (s.type === 'result') return s.outcome ? P.green : P.orange;
+        return P.sub;
     }
-
-    /* ===================== 트라이 다이어그램 드로우 ===================== */
-    function drawTrie(W, top, h, mob, step) {
-        var r     = mob ? 22 : 28;
-        var fVal  = mob ? 14 : 16;
-        var fLbl  = mob ? 9  : 11;
-        var fEdge = mob ? 10 : 11;
-        var labelCol = P.text + 'ee';
-
-        var nodes  = visibleNodeIds(step);
-        var edges  = visibleEdges(step);
-        var bounds = FULL_BOUNDS;
-
-        edges.forEach(function (e) {
-            var p1 = nodePos(e[0], W, top, h, mob, r, bounds);
-            var p2 = nodePos(e[1], W, top, h, mob, r, bounds);
-            var col = edgeColor(e, step);
-            var isBright = col.indexOf(P.purple) === 0 || col.indexOf(P.orange) === 0 || col.indexOf(P.green) === 0;
-            line(p1.x, p1.y, p2.x, p2.y, col, isBright ? 2.4 : 1.5);
-
-            var mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
-            rr(mx - fEdge * 0.7, my - (mob ? 15 : 17), fEdge * 1.4, fEdge * 1.3, 3, 'rgba(10,10,20,0.55)', null, 0);
-            tx(NODES[e[1]].char, mx, my - (mob ? 8 : 10), fEdge, labelCol, 'center', true);
+    function trCapHeight(w, mob) {
+        var fsub = mob ? 11 : 12;
+        var rows = 0;
+        currentSteps().forEach(function (s) {
+            var t = trCapText(s);
+            var n = t ? lines(t, w - 8, fsub).length : 0;
+            if (n > rows) rows = n;
         });
-
-        nodes.forEach(function (id) {
-            var pos = nodePos(id, W, top, h, mob, r, bounds);
-            var col = nodeColor(id, step);
-            var isEmph = col !== P.muted;
-            circle(pos.x, pos.y, r, col + (isEmph ? '2a' : '14'), col + (isEmph ? 'ee' : '66'), isEmph ? 2.4 : 1.5);
-            tx(NODES[id].char, pos.x, pos.y, fVal, labelCol, 'center', true);
-
-            var isEndVisible = (mode === 'insert')
-                ? (step.markedEndSoFar && step.markedEndSoFar.indexOf(id) >= 0)
-                : NODES[id].isEnd;
-            if (isEndVisible) {
-                circle(pos.x, pos.y, r * 0.72, null, P.text + 'bb', 1.4);
-            }
-
-            if (mode === 'structure' && step.label === 'root' && id === 'root') {
-                tx('ROOT', pos.x, pos.y - r - (mob ? 14 : 18), fLbl, P.purple, 'center', true);
-            }
-            if (mode === 'structure' && step.label === 'end' && id === 'R') {
-                tx('END (이중 테두리 = isEnd)', pos.x, pos.y - r - (mob ? 14 : 18), fLbl, P.orange, 'center', true);
-            }
-        });
-
-        if (mode === 'structure' && step.label === 'shared') {
-            var rp = nodePos('R', W, top, h, mob, r, bounds);
-            tx('공유 접두사: CAR', rp.x, rp.y - r - (mob ? 16 : 20), fLbl, P.teal, 'center', true);
-        }
-
-        if (mode !== 'structure') drawLegend(W, top, mob);
+        return rows * (fsub + 5);
     }
-
-    /* ===================== 범례 (초심자를 위한 색상 설명) ===================== */
-    function textWidth(str, sz, bold) {
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        return ctx.measureText(str).width;
+    function trLegendItems() {
+        if (mode === 'insert') return [
+            { key: 'new', label: '신규 생성' }, { key: 'reuse', label: '재사용' },
+            { key: 'path', label: '지나온 경로' }, { key: 'done', label: '삽입 완료' },
+            { key: 'cursor', label: '현재 위치' }
+        ];
+        return [
+            { key: 'path', label: '지나온 경로' }, { key: 'cur', label: '현재·실패' },
+            { key: 'ok', label: '성공' }, { key: 'rest', label: '아직' },
+            { key: 'cursor', label: '현재 위치' }
+        ];
     }
-
-    function drawLegend(W, top, mob) {
-        var items = (mode === 'insert')
-            ? [
-                { col: P.purple, label: '신규 생성' },
-                { col: P.orange, label: '재사용' },
-                { col: P.teal,   label: '지나온 경로' },
-                { col: P.green,  label: '삽입 완료' },
-            ]
-            : [
-                { col: P.teal,   label: '방문 완료' },
-                { col: P.orange, label: '현재/실패' },
-                { col: P.green,  label: '성공' },
-                { col: P.muted,  label: '아직' },
-            ];
-        var fLbl = mob ? 10 : 11;
-        var sw   = mob ? 9  : 10;
-        var x0   = mob ? 16 : 28;
-        var y    = top + (mob ? 7 : 9);
-        var gapAfterLabel = mob ? 16 : 20;
-
-        var x = x0;
-        items.forEach(function (it) {
-            circle(x, y, sw / 2, it.col + 'dd', it.col + 'ee', 1);
-            x += sw + 5;
-            tx(it.label, x, y, fLbl, P.text + 'cc', 'left', false);
-            x += textWidth(it.label, fLbl, false) + gapAfterLabel;
-        });
-    }
-
-    /* ===================== 단어 진행 패널 (삽입/검색/접두사 공용) ===================== */
-    function boxColor(i, step) {
-        var word = step.word;
-        if (!word) return P.muted;
-        if (step.type === 'result' && step.outcome) return P.green;
-        if (step.type === 'result' && !step.outcome && step.matched === word.length) {
-            return (i === word.length - 1) ? P.orange : P.teal;
-        }
-        if (step.type === 'result' && !step.outcome) {
-            if (i < step.matched) return P.teal;
-            if (i === step.matched) return P.orange;
-            return P.muted;
-        }
-        if (mode === 'insert' && step.type === 'match') {
-            if (i < step.matched - 1) return P.teal;
-            if (i === step.matched - 1) return step.action === 'create' ? P.purple : P.orange;
-            return P.muted;
-        }
-        if (i < step.matched) return P.teal;
-        if (i === step.matched) return P.orange;
+    function trLegendCol(key) {
+        if (key === 'new') return P.purple;
+        if (key === 'reuse' || key === 'cur') return P.orange;
+        if (key === 'path') return P.teal;
+        if (key === 'done' || key === 'ok') return P.green;
+        if (key === 'cursor') return P.yellow;
         return P.muted;
     }
+    function trLegendRows(items, w, fs) {
+        var rows = [[]];
+        var x = 0;
+        ctx.font = '500 ' + fs + 'px "JetBrains Mono",monospace';
+        items.forEach(function (it) {
+            var iw = 12 + ctx.measureText(it.label).width + 14;
+            if (x + iw > w && rows[rows.length - 1].length > 0) { rows.push([]); x = 0; }
+            rows[rows.length - 1].push({ key: it.key, label: it.label, x: x });
+            x += iw;
+        });
+        return rows;
+    }
+    function layout(w, mob) {
+        var key = mode + '|' + Math.round(w) + '|' + (mob ? 'm' : 'd');
+        if (trMemo[key]) return trMemo[key];
+        var g = trGeo(w, mob);
+        var L = { g: g, treeH: 2 * g.pad + 4 * g.dy };
+        L.capY = L.treeH + 6;
+        L.capH = trCapHeight(w, mob);
+        L.wpY = L.capY + L.capH + 10;
+        L.total = L.capY + L.capH + 4;
+        if (mode !== 'structure') {
+            L.fsm = mob ? 11 : 12;
+            L.fval = mob ? 13 : 16;
+            L.bw = mob ? 26 : 34;
+            L.bh = mob ? 26 : 34;
+            L.bg = mob ? 4 : 7;
+            L.boxY = L.wpY + g.fsub + 10;
+            L.resY = L.boxY + L.bh + 14;
+            L.legY = L.resY + 14;
+            L.legRows = trLegendRows(trLegendItems(), w, L.fsm);
+            L.total = L.legY + L.legRows.length * (L.fsm + 8) + 2;
+        }
+        trMemo[key] = L;
+        return L;
+    }
+    function sceneH(w, mob) { return layout(w, mob).total; }
 
-    function drawWordPanel(W, top, mob, step) {
-        var fLbl  = mob ? 9  : 11;
-        var fVal  = mob ? 14 : 16;
-        var boxW  = mob ? 28 : 34;
-        var boxH  = mob ? 30 : 36;
-        var gap   = mob ? 5  : 7;
-        var x0    = mob ? 16 : 28;
-
-        var heading = mode === 'insert' ? 'INSERT'
-            : (step.kind === 'exact' ? 'SEARCH (contains)' : 'STARTSWITH (prefix)');
-        tx(heading + (step.word ? " : '" + step.word + "'" : ''), x0, top, fLbl, P.muted + 'aa', 'left', true);
-
-        var by = top + (mob ? 18 : 22);
-        if (!step.word) {
-            tx('(대기 중)', x0, by + boxH / 2, mob ? 11 : 13, P.muted + '77', 'left', false);
+    /* ===================== 그리기 헬퍼 ===================== */
+    function trDrawNode(x, y, r, col, strong, ch, fs, a) {
+        if (a <= 0) return;
+        ctx.globalAlpha = a;
+        circ(x, y, r, col + (strong ? '2a' : '14'), col + (strong ? 'ee' : '66'), strong ? 2.4 : 1.6);
+        tx(ch, x, y, fs, P.text + 'ff', 'center', true);
+        ctx.globalAlpha = 1;
+    }
+    function trEndRing(x, y, r, a) {
+        if (a <= 0) return;
+        ctx.globalAlpha = a;
+        circ(x, y, r * 0.72, null, P.text + 'bb', 1.4);
+        ctx.globalAlpha = 1;
+    }
+    function trCrossNode(pos, r, id, cp, cc, k, fs) {
+        var ch = NODES[id].char;
+        var c1 = cp || P.muted;
+        var c2 = cc || P.muted;
+        if (c1 === c2) {
+            trDrawNode(pos.x, pos.y, r, c2, cc !== null, ch, fs, 1);
             return;
         }
-
-        for (var i = 0; i < step.word.length; i++) {
-            var bx = x0 + i * (boxW + gap);
-            var col = boxColor(i, step);
-            var isPending = col === P.muted;
-            rr(bx, by, boxW, boxH, 5, col + (isPending ? '14' : '33'), col + (isPending ? '77' : 'ee'), isPending ? 1.4 : 2.2);
-            tx(step.word[i], bx + boxW / 2, by + boxH / 2, fVal, P.text + (isPending ? 'bb' : 'f5'), 'center', true);
+        trDrawNode(pos.x, pos.y, r, c1, cp !== null, ch, fs, 1 - k);
+        trDrawNode(pos.x, pos.y, r, c2, cc !== null, ch, fs, k);
+    }
+    function trCrossEdge(a, b, cp, cc, k) {
+        var base = P.muted + '44';
+        var c1 = cp || base;
+        var c2 = cc || base;
+        if (c1 === c2) {
+            ln(a.x, a.y, b.x, b.y, c2, cc ? 2.4 : 1.6);
+            return;
         }
+        ctx.globalAlpha = 1 - k;
+        ln(a.x, a.y, b.x, b.y, c1, cp ? 2.4 : 1.6);
+        ctx.globalAlpha = k;
+        ln(a.x, a.y, b.x, b.y, c2, cc ? 2.4 : 1.6);
+        ctx.globalAlpha = 1;
+    }
+    function trEdgeTag(a, b, ch, fs, al) {
+        var mx = (a.x + b.x) / 2 + 13;
+        var my = (a.y + b.y) / 2;
+        ctx.globalAlpha = al;
+        rr(mx - 7, my - 7, 14, 14, 3, P.bg + 'cc', null, 0);
+        tx(ch, mx, my, fs, P.text + 'ff', 'center', true);
+        ctx.globalAlpha = 1;
+    }
+    function trCursor(x, y, r) {
+        circ(x, y, r + 5, null, P.yellow + 'ff', 2.2);
+    }
 
-        if (step.type === 'result') {
-            var resY = by + boxH + (mob ? 22 : 26);
-            var resTxt = 'RESULT : ' + (step.outcome ? 'true' : 'false');
-            tx(resTxt, x0, resY, mob ? 12 : 14, step.outcome ? P.green : P.orange, 'left', true);
+    /* ===================== 구조 장면 ===================== */
+    function trStructCol(st, id) {
+        if (st.highlight.nodes.indexOf(id) < 0) return null;
+        if (st.label === 'end') return P.orange;
+        if (st.label === 'shared') return P.teal;
+        return P.purple;
+    }
+    function trStructEdgeCol(st, ed) {
+        var list = st.highlight.edges;
+        var hit = list === 'all' || list.some(function (x) {
+            return (x[0] === ed[0] && x[1] === ed[1]) || (x[0] === ed[1] && x[1] === ed[0]);
+        });
+        if (!hit) return null;
+        return st.label === 'shared' ? P.teal + 'cc' : P.purple + 'cc';
+    }
+    function trDrawStructure(x0, top, s, p, fresh, e, L) {
+        var g = L.g;
+        var k = fresh ? ez(e) : 1;
+        EDGES_ALL.forEach(function (ed) {
+            var a = trPt(g, x0, top, ed[0]);
+            var b = trPt(g, x0, top, ed[1]);
+            var cc = trStructEdgeCol(s, ed);
+            var cp = fresh ? trStructEdgeCol(p, ed) : cc;
+            trCrossEdge(a, b, cp, cc, k);
+            trEdgeTag(a, b, NODES[ed[1]].char, g.fsub, cc ? 1 : 0.55);
+        });
+        NODE_IDS_ALL.forEach(function (id) {
+            var pos = trPt(g, x0, top, id);
+            var cc = trStructCol(s, id);
+            var cp = fresh ? trStructCol(p, id) : cc;
+            trCrossNode(pos, g.r, id, cp, cc, k, g.fs);
+        });
+        NODE_IDS_ALL.forEach(function (id) {
+            if (!NODES[id].isEnd) return;
+            var pos = trPt(g, x0, top, id);
+            trEndRing(pos.x, pos.y, g.r, 1);
+        });
+        var rp = trPt(g, x0, top, 'root');
+        if (s.label === 'root') {
+            ctx.globalAlpha = k;
+            tx('ROOT', rp.x + g.r + 8, rp.y, g.fsub, P.purple + 'ff', 'left', true);
+            ctx.globalAlpha = 1;
+        }
+        if (s.label === 'end') {
+            ctx.globalAlpha = k;
+            tx('END', x0 + g.left + 1.25 / 3 * g.span, top + g.pad + 3 * g.dy, g.fsub, P.orange + 'ff', 'center', true);
+            ctx.globalAlpha = 1;
         }
     }
 
-    /* ===================== 레이아웃 상수 (calcH / draw 공용) ===================== */
-    function getLayout(mob) {
-        return {
-            top:      mob ? 22  : 30,
-            r:        mob ? 22  : 28,
-            ghFull:   mob ? 250 : 320,
-            ghPanel:  mob ? 235 : 305,
-            panelGap: mob ? 26  : 32,
-        };
+    /* ===================== 삽입 장면 ===================== */
+    function trDrawInsert(x0, top, s, p, fresh, e, L) {
+        var g = L.g;
+        var r = g.r;
+        var mvC = fresh ? ez(seg(e, 0, 0.6)) : 1;
+        var apC = fresh ? ez(seg(e, 0.6, 1)) : 1;
+        var vis = s.createdSoFar;
+        var pvis = fresh ? p.createdSoFar : vis;
+        var path = s.word ? trWalk(s.word, s.matched) : [];
+        var cur = s.node;
+        var from = (fresh && s.type !== 'start' && s.type !== 'intro') ? p.node : cur;
+        function isNew(id) { return fresh && vis.indexOf(id) >= 0 && pvis.indexOf(id) < 0; }
+        EDGES_ALL.forEach(function (ed) {
+            if (vis.indexOf(ed[1]) < 0) return;
+            var a = trPt(g, x0, top, ed[0]);
+            var b = trPt(g, x0, top, ed[1]);
+            var nw = isNew(ed[1]);
+            var onP = path.indexOf(ed[0]) >= 0 && path.indexOf(ed[1]) >= 0;
+            if (nw) ln(a.x, a.y, lerp(a.x, b.x, mvC), lerp(a.y, b.y, mvC), P.purple + 'ff', 2.4);
+            else ln(a.x, a.y, b.x, b.y, onP ? P.teal + 'ff' : P.sub + '88', onP ? 2.4 : 1.6);
+            trEdgeTag(a, b, NODES[ed[1]].char, g.fsub, nw ? ez(seg(e, 0.5, 1)) : 1);
+        });
+        vis.forEach(function (id) {
+            var pos = trPt(g, x0, top, id);
+            var nw = isNew(id);
+            var sc = nw ? 0.4 + 0.6 * apC : 1;
+            var col = P.sub;
+            if (id === cur && s.type === 'result') col = P.green;
+            else if (id === cur && s.type === 'match') col = s.action === 'create' ? P.purple : P.orange;
+            else if (path.indexOf(id) >= 0) col = P.teal;
+            trDrawNode(pos.x, pos.y, r * sc, col, col !== P.sub, NODES[id].char, g.fs, nw ? apC : 1);
+            if (s.markedEndSoFar.indexOf(id) >= 0) {
+                var mk = fresh && p.markedEndSoFar.indexOf(id) < 0 ? ez(seg(e, 0.5, 1)) : 1;
+                trEndRing(pos.x, pos.y, r * sc, mk);
+            }
+        });
+        if (s.word && (s.type === 'start' || s.type === 'match')) {
+            var cp = trPt(g, x0, top, from);
+            var cc = trPt(g, x0, top, cur);
+            trCursor(lerp(cp.x, cc.x, mvC), lerp(cp.y, cc.y, mvC), r);
+        }
+    }
+
+    /* ===================== 검색 · 접두사 장면 ===================== */
+    function trDrawQuery(x0, top, s, p, fresh, e, L) {
+        var g = L.g;
+        var r = g.r;
+        var path = s.path || [];
+        var pp = fresh ? (p.path || []) : path;
+        var mvC = fresh ? ez(seg(e, 0, 0.7)) : 1;
+        var from = (fresh && s.type !== 'start' && s.type !== 'intro') ? p.node : s.node;
+        var last = s.node;
+        var okRes = s.type === 'result' && s.outcome;
+        var failRes = s.type === 'result' && !s.outcome && s.matched < s.word.length;
+        var grow = fresh && path.length > pp.length;
+        var sub = (mode === 'prefix' && okRes) ? trSubtree(last) : [];
+        function subAct(id) {
+            if (!fresh) return 1;
+            var rel = TR_DEPTH[id] - TR_DEPTH[last];
+            return ez(seg(e, 0.2 + 0.25 * rel, 0.6 + 0.25 * rel));
+        }
+        EDGES_ALL.forEach(function (ed) {
+            var a = trPt(g, x0, top, ed[0]);
+            var b = trPt(g, x0, top, ed[1]);
+            var onP = path.indexOf(ed[0]) >= 0 && path.indexOf(ed[1]) >= 0;
+            var isLast = onP && ed[1] === last;
+            if (!onP) {
+                ln(a.x, a.y, b.x, b.y, P.muted + '55', 1.4);
+                trEdgeTag(a, b, NODES[ed[1]].char, g.fsub, 0.6);
+                return;
+            }
+            var col = isLast ? (okRes ? P.green : P.orange) : P.teal;
+            var tip = (isLast && grow) ? { x: lerp(a.x, b.x, mvC), y: lerp(a.y, b.y, mvC) } : b;
+            ln(a.x, a.y, tip.x, tip.y, col + 'ff', 2.4);
+            trEdgeTag(a, b, NODES[ed[1]].char, g.fsub, isLast && grow ? ez(seg(e, 0.5, 1)) : 1);
+        });
+        if (failRes) {
+            var cPos = trPt(g, x0, top, last);
+            var gx = cPos.x + 0.75 * g.span / 3;
+            var gy = cPos.y + g.dy;
+            var ga = fresh ? ez(seg(e, 0.3, 0.8)) : 1;
+            ctx.globalAlpha = ga;
+            ln(cPos.x, cPos.y, gx, gy, P.orange + 'aa', 1.6, [4, 3]);
+            ctx.setLineDash([3, 3]);
+            circ(gx, gy, r, P.orange + '22', P.orange + 'ff', 1.6);
+            ctx.setLineDash([]);
+            tx(s.word[s.matched], gx, gy, g.fs, P.orange + 'ff', 'center', true);
+            ctx.globalAlpha = 1;
+        }
+        NODE_IDS_ALL.forEach(function (id) {
+            var pos = trPt(g, x0, top, id);
+            var onP = path.indexOf(id) >= 0;
+            var isCur = id === last;
+            var col = P.muted;
+            if (isCur && s.type === 'intro') col = P.sub;
+            else if (isCur) col = okRes ? P.green : P.orange;
+            else if (onP) col = P.teal;
+            var strong = col !== P.muted && col !== P.sub;
+            trDrawNode(pos.x, pos.y, r, col, strong, NODES[id].char, g.fs, 1);
+            if (sub.indexOf(id) >= 0 && !onP) {
+                trDrawNode(pos.x, pos.y, r, P.green, true, NODES[id].char, g.fs, subAct(id));
+            }
+        });
+        NODE_IDS_ALL.forEach(function (id) {
+            if (!NODES[id].isEnd) return;
+            var pos = trPt(g, x0, top, id);
+            trEndRing(pos.x, pos.y, r, 1);
+        });
+        if (s.type === 'result') {
+            var lp = trPt(g, x0, top, last);
+            ctx.globalAlpha = fresh ? ez(seg(e, 0.4, 1)) : 1;
+            circ(lp.x, lp.y, r + 4, null, (okRes ? P.green : P.orange) + 'ff', 2.2);
+            ctx.globalAlpha = 1;
+        }
+        if (s.type === 'start' || s.type === 'match') {
+            var cp = trPt(g, x0, top, from);
+            var cc = trPt(g, x0, top, last);
+            trCursor(lerp(cp.x, cc.x, mvC), lerp(cp.y, cc.y, mvC), r);
+        }
+    }
+
+    /* ===================== 단어 패널 ===================== */
+    function trBoxCol(i, s) {
+        var n = s.word.length;
+        if (s.type === 'result' && s.outcome) return P.green;
+        if (s.type === 'result' && s.matched === n) return i === n - 1 ? P.orange : P.teal;
+        if (s.type === 'result') {
+            if (i < s.matched) return P.teal;
+            if (i === s.matched) return P.orange;
+            return P.muted;
+        }
+        if (mode === 'insert' && s.type === 'match') {
+            if (i < s.matched - 1) return P.teal;
+            if (i === s.matched - 1) return s.action === 'create' ? P.purple : P.orange;
+            return P.muted;
+        }
+        if (i < s.matched) return P.teal;
+        if (i === s.matched) return P.orange;
+        return P.muted;
+    }
+    function trDrawWordPanel(x0, top, s, L) {
+        var fsub = L.g.fsub;
+        var head = mode === 'insert' ? 'INSERT' : (mode === 'search' ? 'SEARCH (contains)' : 'STARTSWITH (prefix)');
+        tx(head + (s.word ? " : '" + s.word + "'" : ''), x0, top + L.wpY + (fsub + 4) / 2, fsub, P.sub + 'ff', 'left', true);
+        var by = top + L.boxY;
+        if (!s.word) {
+            var done = s.type === 'done';
+            tx(done ? INSERT_WORDS.length + '개 단어 삽입 완료' : '(대기 중)', x0, by + L.bh / 2, fsub + 1,
+                (done ? P.green : P.sub) + 'ff', 'left', true);
+            return;
+        }
+        for (var i = 0; i < s.word.length; i++) {
+            var bx = x0 + i * (L.bw + L.bg);
+            var col = trBoxCol(i, s);
+            var pend = col === P.muted;
+            rr(bx, by, L.bw, L.bh, 5, col + (pend ? '14' : '33'), col + (pend ? '77' : 'ee'), pend ? 1.4 : 2.2);
+            tx(s.word[i], bx + L.bw / 2, by + L.bh / 2, L.fval, P.text + (pend ? 'bb' : 'f5'), 'center', true);
+        }
+        if (s.type === 'result') {
+            tx('RESULT : ' + (s.outcome ? 'true' : 'false'), x0, top + L.resY, fsub + 2,
+                (s.outcome ? P.green : P.orange) + 'ff', 'left', true);
+        }
+    }
+
+    /* ===================== 메인 장면 ===================== */
+    function trDrawCaption(x0, top, w, L, s, fresh, e) {
+        var txt = trCapText(s);
+        if (!txt) return;
+        var fsub = L.g.fsub;
+        ctx.globalAlpha = fresh ? 0.35 + 0.65 * ez(e) : 1;
+        lines(txt, w - 8, fsub).forEach(function (row, i) {
+            tx(row, x0 + w / 2, top + L.capY + i * (fsub + 5) + (fsub + 5) / 2, fsub, trCapCol(s) + 'ff', 'center', true);
+        });
+        ctx.globalAlpha = 1;
+    }
+    function trDrawLegend(x0, top, L) {
+        L.legRows.forEach(function (row, ri) {
+            var y = top + L.legY + ri * (L.fsm + 8) + (L.fsm + 8) / 2;
+            row.forEach(function (it) {
+                var lc = trLegendCol(it.key);
+                circ(x0 + it.x + 4, y, 4, lc + 'dd', lc + 'ee', 1);
+                tx(it.label, x0 + it.x + 12, y, L.fsm, P.sub + 'ff', 'left', false);
+            });
+        });
+    }
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var steps = currentSteps();
+        var s = step || steps[0];
+        var p = prev || s;
+        var fresh = s !== p;
+        var e = fresh ? clamp01(t) : 1;
+        var L = layout(w, mob);
+        if (mode === 'structure') trDrawStructure(x0, top, s, p, fresh, e, L);
+        else if (mode === 'insert') trDrawInsert(x0, top, s, p, fresh, e, L);
+        else trDrawQuery(x0, top, s, p, fresh, e, L);
+        trDrawCaption(x0, top, w, L, s, fresh, e);
+        if (mode !== 'structure') {
+            trDrawWordPanel(x0, top, s, L);
+            trDrawLegend(x0, top, L);
+        }
+    }
+
+    /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
+    function draw() {
+        P = window.CsFlow.getP();
+        ctx.clearRect(0, 0, GW(), GH());
+        var W = GW(); var mob = W < 600;
+        var steps = currentSteps();
+        var step = stepIdx >= 0 ? steps[stepIdx] : null;
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
-    function calcH(W) {
-        var mob = W < 600;
-        var L = getLayout(mob);
-        if (mode === 'structure') {
-            return L.top + L.ghFull + L.r + (mob ? 30 : 40);
-        }
-        var wordPanelH = (mob ? 18 : 22) + (mob ? 30 : 36) + (mob ? 22 : 26) + (mob ? 20 : 24);
-        return L.top + L.ghPanel + L.panelGap + wordPanelH;
-    }
-
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
-        var h = calcH(w);
-        canvasWrap.style.height    = h + 'px';
-        canvasWrap.style.minHeight = h + 'px';
+        var mob = w < 600;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
+        canvasWrap.style.height    = 'auto';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
+        var actualH = canvasWrap.offsetHeight || neededH;
+        if (actualH < neededH) actualH = neededH;
         canvas.width  = w * dpr;
-        canvas.height = h * dpr;
+        canvas.height = actualH * dpr;
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         draw();
     }
 
-    /* ===================== 메인 드로우 ===================== */
-    function draw() {
-        P = window.CsFlow.getP();
-        ctx.clearRect(0, 0, GW(), GH());
-        var W   = GW();
-        var mob = W < 600;
-        var L   = getLayout(mob);
-
-        var steps = currentSteps();
-        var step  = stepIdx >= 0 ? steps[stepIdx] : steps[0];
-
-        if (mode === 'structure') {
-            drawTrie(W, L.top, L.ghFull, mob, step);
-            return;
-        }
-
-        drawTrie(W, L.top, L.ghPanel, mob, step);
-        drawWordPanel(W, L.top + L.ghPanel + L.panelGap, mob, step);
-    }
-
-    /* ===================== 애니메이션 ===================== */
+    /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
-        animProg = 0;
         if (rafId) cancelAnimationFrame(rafId);
-        var s = 0.007 * (1800 / speed);
-        (function tick() {
-            animProg = Math.min(1, animProg + s);
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
             draw();
-            if (animProg < 1) {
-                rafId = requestAnimationFrame(tick);
-            } else {
-                draw();
-                if (onDone) onDone();
-            }
-        })();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
-    function setSpeedDisabled(v) {
-        speedBtns.forEach(function (b) { b.disabled = v; });
-    }
-
-    function defaultLog() {
-        if (mode === 'structure') return '▶ PLAY를 눌러 트라이 구조를 확인하세요.';
-        if (mode === 'insert')    return '▶ PLAY를 눌러 단어 삽입 과정을 확인하세요.';
-        if (mode === 'search')    return '▶ PLAY를 눌러 검색(contains) 과정을 확인하세요.';
-        return '▶ PLAY를 눌러 접두사 검색(startsWith) 과정을 확인하세요.';
-    }
+    function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -653,7 +885,7 @@
                 if (next === steps.length - 1) {
                     running = false; btnStep.disabled = true; setSpeedDisabled(false);
                 } else {
-                    timer = setTimeout(tick, speed * 0.55);
+                    timer = setTimeout(tick, speed * 0.6);
                 }
             });
         }
@@ -661,9 +893,9 @@
     }
 
     function vizStep() {
-        if (running || animProg < 1) return;
+        if (running) return;
         var steps = currentSteps();
-        var next  = stepIdx + 1;
+        var next = stepIdx + 1;
         if (next >= steps.length) return;
         applyStep(next, null);
         if (next === steps.length - 1) { btnPlay.disabled = true; btnStep.disabled = true; }
@@ -672,7 +904,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1; animProg = 1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);
@@ -688,11 +920,11 @@
     function switchMode(m) {
         if (mode === m) return;
         mode = m;
-        modeDefs.forEach(function (d) {
-            modeBtns[d.key].classList.toggle('trie-viz__mode-btn--active', d.key === m);
-        });
+        modeDefs.forEach(function (d) { modeBtns[d.key].classList.toggle('trie-viz__mode-btn--active', d.key === m); });
         vizReset();
     }
+
+    logEl.textContent = defaultLog();
 
     /* ===================== 라이프사이클 ===================== */
     window.CsFlow.createVizLifecycle({
@@ -707,9 +939,9 @@
                 tooltipHits: [],
                 hoveredKey: function () { return null; },
                 setHoveredKey: function () {},
-                draw: draw,
+                draw: draw
             };
-        },
+        }
     });
 
     setTimeout(resize, 60);
