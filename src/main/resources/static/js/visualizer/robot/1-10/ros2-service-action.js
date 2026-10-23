@@ -368,7 +368,7 @@
             if (a.k === 'err' && a.slot === 0 && a.dir === 'cs') tx('✕', x2 + 12, y2 - 8, fs + 4, P.red + 'ff', 'center', true);
             var num = String(i + 1);
             circ(x1 - 10, (y1 + y2) / 2, 8, c + (isNew ? Math.round(p * 255).toString(16).padStart(2, '0') : 'ff'), 'none');
-            tx(num, x1 - 10, (y1 + y2) / 2, 10.5, P.bg + 'ff', 'center', true);
+            tx(num, x1 - 10, (y1 + y2) / 2, 10.5, '#111111', 'center', true);
         });
 
         var y = top + L.laneH + 14;
@@ -424,7 +424,7 @@
             var isNew = i >= prevCnt && !!step;
             ctx.globalAlpha = isNew ? e : 1;
             circ(x0 + 12, y + 28 + i * (fs + 8), 8, c + 'ff', 'none');
-            tx(String(i + 1), x0 + 12, y + 28 + i * (fs + 8), 10.5, P.bg + 'ff', 'center', true);
+            tx(String(i + 1), x0 + 12, y + 28 + i * (fs + 8), 10.5, '#111111', 'center', true);
             tx(a.lg.replace(/^[①-⑩]\s*/, ''), x0 + 28, y + 28 + i * (fs + 8), fs - 0.5, c + 'ff', 'left', true);
             ctx.globalAlpha = 1;
         });

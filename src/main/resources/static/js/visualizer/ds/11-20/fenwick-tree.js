@@ -351,7 +351,7 @@
         if (a <= 0.01) return;
         ctx.globalAlpha = a;
         rr(cx - bw / 2, cy - 8, bw, 16, 5, col + 'ff', null, 0);
-        tx(txt, cx, cy, fs, P.bg + 'ff', 'center', true);
+        tx(txt, cx, cy, fs, '#111111', 'center', true);
         ctx.globalAlpha = 1;
     }
 
