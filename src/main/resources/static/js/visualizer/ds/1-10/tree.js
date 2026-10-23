@@ -1,5 +1,5 @@
 /**
- * 이진 트리 시각화
+ * 이진 트리 시각화 시각화
  */
 (function () {
     'use strict';
@@ -20,12 +20,12 @@
     var tbLeft  = el('div', 'tree-viz__toolbar-left');
     tbLeft.appendChild(el('span', 'tree-viz__title', 'Binary Tree'));
 
-    var modeWrap   = el('div', 'tree-viz__mode');
-    var modeDefs   = [
+    var modeWrap = el('div', 'tree-viz__mode');
+    var modeDefs = [
         { key: 'structure', label: '구조' },
-        { key: 'pre',       label: '전위순회' },
-        { key: 'in',        label: '중위순회' },
-        { key: 'post',      label: '후위순회' },
+        { key: 'pre', label: '전위순회' },
+        { key: 'in', label: '중위순회' },
+        { key: 'post', label: '후위순회' }
     ];
     var modeBtns = {};
     modeDefs.forEach(function (m, i) {
@@ -40,7 +40,7 @@
     var speedWrap = el('div', 'tree-viz__speed');
     speedWrap.appendChild(el('span', 'tree-viz__speed-label', 'SPEED'));
     var speedBtns = [];
-    [['1x', 1800], ['2x', 900], ['3x', 600]].forEach(function (pair, i) {
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
         var b = el('button', 'tree-viz__speed-btn' + (i === 0 ? ' tree-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
@@ -55,7 +55,7 @@
     canvasWrap.appendChild(canvas);
     root.appendChild(canvasWrap);
 
-    var logEl = el('div', 'tree-viz__log', '▶ PLAY를 눌러 트리 구조를 확인하세요.');
+    var logEl = el('div', 'tree-viz__log', '');
     root.appendChild(logEl);
 
     var controls = el('div', 'tree-viz__controls');
@@ -73,11 +73,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'structure';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 트리 정의 ===================== */
     var NODES = {
@@ -198,325 +265,429 @@
         return stack;
     }
 
-    /* ===================== 상태 변수 ===================== */
-    var mode     = 'structure';
-    var stepIdx  = -1;
-    var running  = false;
-    var timer    = null;
-    var rafId    = null;
-    var speed    = 1800;
-    var animProg = 1;
-
+    /* ===================== 상태 ===================== */
     function currentSteps() {
         if (mode === 'structure') return STRUCTURE_STEPS;
-        if (mode === 'pre')  return PRE_STEPS;
-        if (mode === 'in')   return IN_STEPS;
+        if (mode === 'pre') return PRE_STEPS;
+        if (mode === 'in') return IN_STEPS;
         return POST_STEPS;
     }
-
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        ctx.beginPath();
-        ctx.moveTo(x + r, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, r);
-        ctx.arcTo(x + w, y + h, x,     y + h, r);
-        ctx.arcTo(x,     y + h, x,     y,     r);
-        ctx.arcTo(x,     y,     x + w, y,     r);
-        ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.5; ctx.stroke(); }
-    }
-
-    function tx(str, x, y, sz, color, align, bold) {
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
-    }
-
-    function circle(cx, cy, r, fill, stroke, lw) {
-        ctx.beginPath();
-        ctx.arc(cx, cy, r, 0, Math.PI * 2);
-        if (fill)   { ctx.fillStyle = fill; ctx.fill(); }
-        if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.5; ctx.stroke(); }
-    }
-
-    function line(x1, y1, x2, y2, col, lw, dash) {
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
-        ctx.strokeStyle = col; ctx.lineWidth = lw || 1.5;
-        ctx.setLineDash(dash || []); ctx.stroke(); ctx.setLineDash([]);
-    }
-
-    /* ===================== 노드 좌표 계산 ===================== */
-    function nodePos(id, W, topY, levelGap) {
-        var n = NODES[id];
-        var cx;
-        if (n.level === 0) cx = W / 2;
-        else if (n.level === 1) cx = (n.id === 2) ? W / 2 - W * 0.22 : W / 2 + W * 0.22;
-        else {
-            var offsets = { 4: -0.34, 5: -0.10, 6: 0.10, 7: 0.34 };
-            cx = W / 2 + W * offsets[id];
-        }
-        var cy = topY + n.level * levelGap;
-        return { x: cx, y: cy };
-    }
-
-    /* ===================== 상태 색상 ===================== */
-    function nodeColor(id, step, mode) {
-        if (mode === 'structure') {
-            var hi = step.highlight;
-            if (hi && hi.nodes && hi.nodes.indexOf(id) >= 0) {
-                if (step.label === 'root') return P.purple;
-                if (step.label === 'leaf') return P.green;
-                if (step.label === 'parent-child') return P.teal;
-                if (step.label === 'subtree') return P.orange;
-                return P.purple;
-            }
-            return P.muted;
-        }
-        if (step.visit === id) {
-            if (step.action === 'visit') return P.green;
-            if (step.action === 'enter') return P.orange;
-            if (step.action === 'return') return P.teal;
-        }
-        if (step.visited && step.visitedIds && step.visitedIds.indexOf(id) >= 0) return P.teal;
-        return P.muted;
-    }
-
-    function visitedIdSet(steps, idx) {
-        var ids = [];
-        for (var i = 0; i <= idx; i++) {
-            if (steps[i].action === 'visit') ids.push(steps[i].visit);
-        }
-        return ids;
-    }
-
-    /* ===================== 구조 탭 드로우 ===================== */
-    function drawStructure(W, H, mob, step) {
-        var topY     = mob ? 50 : 64;
-        var levelGap = mob ? 78 : 104;
-        var r        = mob ? 22 : 28;
-        var fVal     = mob ? 13 : 16;
-        var fLbl     = mob ? 9  : 11;
-
-        var hi = step.highlight || { nodes: [], edges: [] };
-
-        Object.keys(NODES).forEach(function (key) {
-            var n = NODES[key];
-            if (!n.parent) return;
-            var p1 = nodePos(n.parent, W, topY, levelGap);
-            var p2 = nodePos(n.id, W, topY, levelGap);
-            var isHi = hi.edges === 'all' ||
-                (Array.isArray(hi.edges) && hi.edges.some(function (e) { return e[0] === n.parent && e[1] === n.id; }));
-            var col = isHi ? P.purple + 'aa' : P.muted + '44';
-            line(p1.x, p1.y + r, p2.x, p2.y - r, col, isHi ? 2 : 1.5);
-        });
-
-        if (hi.showLevels) {
-            [0, 1, 2].forEach(function (lv) {
-                var y = topY + lv * levelGap;
-                line(mob ? 10 : 20, y, W - (mob ? 10 : 20), y, P.muted + '22', 1, [3, 4]);
-                tx('L' + lv, mob ? 22 : 36, y, fLbl, P.muted + 'aa', 'left', false);
-            });
-        }
-
-        Object.keys(NODES).forEach(function (key) {
-            var n = NODES[key];
-            var pos = nodePos(n.id, W, topY, levelGap);
-            var col = nodeColor(n.id, step, 'structure');
-            var isHi = hi.nodes.indexOf(n.id) >= 0;
-
-            circle(pos.x, pos.y, r, col + (isHi ? '22' : '12'), col + (isHi ? 'ee' : '55'), isHi ? 2.5 : 1.5);
-            tx(String(n.val), pos.x, pos.y, fVal, isHi ? col : P.text + 'cc', 'center', isHi);
-
-            if (isHi && step.label) {
-                var labelText = '';
-                if (step.label === 'root' && n.id === ROOT_ID) labelText = 'ROOT';
-                if (step.label === 'leaf' && LEAF_IDS.indexOf(n.id) >= 0) labelText = 'LEAF';
-                if (labelText) {
-                    tx(labelText, pos.x, pos.y - r - (mob ? 12 : 16), fLbl, col, 'center', true);
-                }
-            }
-        });
-
-        if (step.label === 'parent-child') {
-            var p1 = nodePos(1, W, topY, levelGap);
-            tx('PARENT', p1.x, p1.y - r - (mob ? 12 : 16), fLbl, P.teal, 'center', true);
-        }
-        if (step.label === 'subtree') {
-            var sp = nodePos(2, W, topY, levelGap);
-            var boxX = sp.x - (mob ? 60 : 80);
-            var boxY = sp.y - r - (mob ? 14 : 18);
-            var boxW = (mob ? 120 : 160);
-            var boxH = levelGap + r * 2 + (mob ? 20 : 26);
-            rr(boxX, boxY, boxW, boxH, 10, 'none', P.orange + '88', 1.5);
-            tx('SUBTREE', sp.x, boxY - (mob ? 8 : 10), fLbl, P.orange, 'center', true);
-        }
-    }
-
-    /* ===================== 순회 탭 드로우 ===================== */
-    function drawTraversal(W, H, mob, steps, step, stepIdx) {
-        var topY     = mob ? 50 : 64;
-        var levelGap = mob ? 78 : 104;
-        var r        = mob ? 22 : 28;
-        var fVal     = mob ? 13 : 16;
-        var fOrd     = mob ? 10 : 12;
-
-        var visitedIds = visitedIdSet(steps, stepIdx);
-        var stack      = computeStack(steps, stepIdx);
-
-        Object.keys(NODES).forEach(function (key) {
-            var n = NODES[key];
-            if (!n.parent) return;
-            var p1 = nodePos(n.parent, W, topY, levelGap);
-            var p2 = nodePos(n.id, W, topY, levelGap);
-            var onPath = stack.indexOf(n.parent) >= 0 && stack.indexOf(n.id) >= 0;
-            var col = onPath ? P.orange + 'cc' : P.muted + '44';
-            line(p1.x, p1.y + r, p2.x, p2.y - r, col, onPath ? 2.5 : 1.5);
-        });
-
-        Object.keys(NODES).forEach(function (key) {
-            var n = NODES[key];
-            var pos = nodePos(n.id, W, topY, levelGap);
-            var col = nodeColor(n.id, step, 'traversal');
-            var isCurrent = step.visit === n.id;
-            var isVisited = visitedIds.indexOf(n.id) >= 0;
-            var isOnStack = stack.indexOf(n.id) >= 0;
-
-            var fillA = isCurrent ? '28' : (isVisited ? '18' : '0f');
-            var strokeA = isCurrent ? 'ee' : (isOnStack ? 'bb' : (isVisited ? '99' : '44'));
-            circle(pos.x, pos.y, r, col + fillA, col + strokeA, isCurrent ? 2.5 : (isOnStack ? 2 : 1.5));
-            tx(String(n.val), pos.x, pos.y, fVal, (isCurrent || isVisited) ? col : P.text + 'aa', 'center', isCurrent);
-
-            var ord = -1;
-            for (var i = 0; i <= stepIdx; i++) {
-                if (steps[i].action === 'visit' && steps[i].visit === n.id) {
-                    ord = visitedIdSet(steps, i).length;
-                    break;
-                }
-            }
-            if (ord > 0) {
-                var badgeR = mob ? 9 : 11;
-                var bcx = pos.x;
-                var bcy = pos.y - r - badgeR - (mob ? 3 : 4);
-                circle(bcx, bcy, badgeR, P.green + 'ee', null, 0);
-                tx(String(ord), bcx, bcy, fOrd, '#0f0f1a', 'center', true);
-            }
-        });
-
-        var stackAreaY = topY + 2 * levelGap + r + (mob ? 36 : 46);
-        var stackLabelFsz = mob ? 10 : 12;
-        tx('CALL STACK', mob ? 16 : 28, stackAreaY, stackLabelFsz, P.muted + 'aa', 'left', true);
-
-        var stackBoxY = stackAreaY + (mob ? 16 : 20);
-        var stackBoxH = mob ? 30 : 38;
-        var stackBoxW = mob ? 46 : 58;
-        var stackGap  = mob ? 6 : 8;
-        var stackStartX = mob ? 16 : 28;
-        if (stack.length === 0) {
-            tx('(empty)', stackStartX, stackBoxY + stackBoxH / 2, mob ? 10 : 12, P.muted + '77', 'left', false);
-        } else {
-            for (var si = 0; si < stack.length; si++) {
-                var sid = stack[si];
-                var sx  = stackStartX + si * (stackBoxW + stackGap);
-                var sCol = (si === stack.length - 1) ? P.orange : P.muted;
-                rr(sx, stackBoxY, stackBoxW, stackBoxH, 5, sCol + '18', sCol + 'cc', si === stack.length - 1 ? 2 : 1.5);
-                tx(String(NODES[sid].val), sx + stackBoxW / 2, stackBoxY + stackBoxH / 2, mob ? 12 : 14, sCol, 'center', true);
-            }
-        }
-
-        var resultY = stackAreaY;
-        var resultLabel = '결과 (' + (mode === 'pre' ? 'Preorder' : mode === 'in' ? 'Inorder' : 'Postorder') + ')';
-        var resultAlign = mob ? 'left' : 'right';
-        var resultX = mob ? stackStartX : W - (mob ? 16 : 28);
-        if (mob) {
-            var resY2 = stackBoxY + stackBoxH + 22;
-            tx(resultLabel, stackStartX, resY2, stackLabelFsz, P.muted + 'aa', 'left', true);
-            tx(step.visited.length ? step.visited.join(', ') : '(empty)', stackStartX, resY2 + 18, 12, P.green, 'left', false);
-        } else {
-            tx(resultLabel, resultX, resultY, stackLabelFsz, P.muted + 'aa', resultAlign, true);
-            tx(step.visited.length ? step.visited.join(', ') : '(empty)', resultX, resultY + 20, 13, P.green, resultAlign, false);
-        }
-    }
-
-    /* ===================== resize ===================== */
-    function calcH(W) {
-        var mob = W < 600;
-        var topY     = mob ? 50 : 64;
-        var levelGap = mob ? 78 : 104;
-        var r        = mob ? 22 : 28;
-
-        var treeBottom = topY + 2 * levelGap + r;
-
-        if (mode === 'structure') {
-            return treeBottom + (mob ? 30 : 40);
-        } else {
-            if (mob) {
-                return treeBottom + 36 + 16 + 30 + 22 + 18 + 24;
-            }
-            return treeBottom + 46 + 20 + 38 + 30;
-        }
-    }
-
-    function resize() {
-        var w = canvasWrap.offsetWidth || 320;
-        var h = calcH(w);
-        canvasWrap.style.height    = h + 'px';
-        canvasWrap.style.minHeight = h + 'px';
-        canvas.width  = w * dpr;
-        canvas.height = h * dpr;
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        draw();
-    }
-
-    /* ===================== 메인 드로우 ===================== */
-    function draw() {
-        P = window.CsFlow.getP();
-        ctx.clearRect(0, 0, GW(), GH());
-        var W   = GW();
-        var H   = GH();
-        var mob = W < 600;
-
-        var steps = currentSteps();
-        var step  = stepIdx >= 0 ? steps[stepIdx] : steps[0];
-
-        if (mode === 'structure') {
-            drawStructure(W, H, mob, step);
-        } else {
-            drawTraversal(W, H, mob, steps, step, stepIdx >= 0 ? stepIdx : 0);
-        }
-    }
-
-    /* ===================== 애니메이션 ===================== */
-    function animateStep(onDone) {
-        animProg = 0;
-        if (rafId) cancelAnimationFrame(rafId);
-        var s = 0.007 * (1800 / speed);
-        (function tick() {
-            animProg = Math.min(1, animProg + s);
-            draw();
-            if (animProg < 1) {
-                rafId = requestAnimationFrame(tick);
-            } else {
-                draw();
-                if (onDone) onDone();
-            }
-        })();
-    }
-
-    /* ===================== 컨트롤 ===================== */
-    function setSpeedDisabled(v) {
-        speedBtns.forEach(function (b) { b.disabled = v; });
-    }
-
     function defaultLog() {
         if (mode === 'structure') return '▶ PLAY를 눌러 트리 구조를 확인하세요.';
         return '▶ PLAY를 눌러 순회 과정을 확인하세요.';
     }
+    function ez(q) { var v = clamp01(q); return v * v * (3 - 2 * v); }
+
+    /* ===================== 레이아웃 ===================== */
+    var DT_FX = { 1: 0.5, 2: 0.245, 3: 0.755, 4: 0.12, 5: 0.37, 6: 0.63, 7: 0.88 };
+    function dtHeight() {
+        var h = 0;
+        Object.keys(NODES).forEach(function (k) { if (NODES[k].level > h) h = NODES[k].level; });
+        return h;
+    }
+    function dtCapText() { return '높이 = ' + dtHeight() + ' (루트에서 가장 깊은 리프까지 간선 수)'; }
+    function layout(w, mob) {
+        var r = mob ? 18 : 26;
+        var gl = mob ? 66 : 92;
+        var pad = mob ? 30 : 36;
+        var L = {
+            r: r, gl: gl,
+            g: mode === 'structure' ? (mob ? 40 : 64) : 0,
+            fsub: mob ? 11 : 12.5,
+            fv: mob ? 13 : 16,
+            rootY: pad + r,
+            leafY: pad + r + 2 * gl
+        };
+        L.tw = w - L.g;
+        var bottom = L.leafY + r;
+        if (mode === 'structure') {
+            L.capL = lines(dtCapText(), w - 8, L.fsub);
+            L.capY = bottom + (mob ? 26 : 30);
+            L.total = L.capY + L.capL.length * (L.fsub + 5) + 6;
+        } else {
+            L.stackLabelY = bottom + (mob ? 20 : 26);
+            L.stackY = L.stackLabelY + (mob ? 12 : 16);
+            L.stackH = mob ? 24 : 30;
+            L.resLabelY = L.stackY + L.stackH + (mob ? 12 : 18);
+            L.chipY = L.resLabelY + (mob ? 12 : 16);
+            L.chipH = mob ? 22 : 28;
+            L.total = L.chipY + L.chipH + 6;
+        }
+        return L;
+    }
+    function sceneH(w, mob) { return layout(w, mob).total; }
+
+    /* ===================== 트리 헬퍼 ===================== */
+    function dtPos(id, x0, top, L) {
+        return { x: x0 + L.g + DT_FX[id] * L.tw, y: top + L.rootY + NODES[id].level * L.gl };
+    }
+    function dtIdOf(val) {
+        var out = null;
+        Object.keys(NODES).forEach(function (k) { if (NODES[k].val === val) out = NODES[k].id; });
+        return out;
+    }
+    function dtAnc(id) {
+        var out = [];
+        while (id !== null) { out.push(id); id = NODES[id].parent; }
+        return out;
+    }
+    function dtPath(a, b) {
+        var A = dtAnc(a), B = dtAnc(b), lca = null, i, path = [], down = [];
+        for (i = 0; i < A.length && lca === null; i++) { if (B.indexOf(A[i]) >= 0) lca = A[i]; }
+        for (i = 0; i < A.length; i++) { path.push(A[i]); if (A[i] === lca) break; }
+        for (i = 0; i < B.length && B[i] !== lca; i++) down.push(B[i]);
+        for (i = down.length - 1; i >= 0; i--) path.push(down[i]);
+        return path;
+    }
+    function dtAlong(pts, q) {
+        var segs = [], tot = 0, i;
+        for (i = 1; i < pts.length; i++) {
+            var d = Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
+            segs.push(d);
+            tot += d;
+        }
+        if (!segs.length) return pts[0];
+        var want = q * tot, acc = 0;
+        for (i = 0; i < segs.length; i++) {
+            if (acc + segs[i] >= want || i === segs.length - 1) {
+                var u = segs[i] > 0 ? clamp01((want - acc) / segs[i]) : 1;
+                return { x: lerp(pts[i].x, pts[i + 1].x, u), y: lerp(pts[i].y, pts[i + 1].y, u) };
+            }
+            acc += segs[i];
+        }
+        return pts[0];
+    }
+    function dtStructCol(st) {
+        if (st.label === 'parent-child') return P.teal;
+        if (st.label === 'leaf') return P.green;
+        if (st.label === 'subtree') return P.orange;
+        return P.purple;
+    }
+    function dtStructEdge(st, par, id) {
+        var ed = st.highlight.edges;
+        if (ed === 'all') return true;
+        for (var i = 0; i < ed.length; i++) {
+            if (ed[i][0] === par && ed[i][1] === id) return true;
+        }
+        return false;
+    }
+    function dtStructStyle(st, id) {
+        if (st.highlight.nodes.indexOf(id) < 0) {
+            return { kind: 'dim', col: P.muted, fill: P.muted + '14', stroke: P.muted + '77', lw: 1.4, text: P.text + 'aa' };
+        }
+        var c = dtStructCol(st);
+        return { kind: 'hi', col: c, fill: c + '26', stroke: c + 'ff', lw: 2.4, text: c + 'ff' };
+    }
+    function dtTravInfo(stp, steps) {
+        return {
+            cur: stp.visit,
+            act: stp.action,
+            vis: stp.visited.map(dtIdOf),
+            stk: computeStack(steps, steps.indexOf(stp))
+        };
+    }
+    function dtTravStyle(id, inf) {
+        if (inf.cur === id) {
+            var c = inf.act === 'visit' ? P.green : (inf.act === 'enter' ? P.orange : P.teal);
+            return { kind: 'cur', col: c, fill: c + 'ff', stroke: c + 'ff', lw: 2.6, text: '#111111' };
+        }
+        if (inf.vis.indexOf(id) >= 0) {
+            return { kind: 'done', col: P.teal, fill: P.teal + '30', stroke: P.teal + 'ff', lw: 1.8, text: P.text + 'ff' };
+        }
+        if (inf.stk.indexOf(id) >= 0) {
+            return { kind: 'stack', col: P.orange, fill: P.orange + '26', stroke: P.orange + 'cc', lw: 2, text: P.orange + 'ff' };
+        }
+        return { kind: 'idle', col: P.muted, fill: P.muted + '14', stroke: P.muted + '77', lw: 1.4, text: P.text + 'aa' };
+    }
+    function dtPaint(x, y, rad, sty, a, val, fv) {
+        ctx.globalAlpha = a;
+        circ(x, y, rad, sty.fill, sty.stroke, sty.lw);
+        tx(val, x, y, fv, sty.text, 'center', true);
+        ctx.globalAlpha = 1;
+    }
+    function dtXfEdge(a, b, r, cN, lwN, cP, lwP, cf) {
+        if (cN === cP && lwN === lwP) {
+            ln(a.x, a.y + r, b.x, b.y - r, cN, lwN);
+            return;
+        }
+        ctx.globalAlpha = 1 - cf;
+        ln(a.x, a.y + r, b.x, b.y - r, cP, lwP);
+        ctx.globalAlpha = cf;
+        ln(a.x, a.y + r, b.x, b.y - r, cN, lwN);
+        ctx.globalAlpha = 1;
+    }
+
+    /* ===================== 구조 드로우 ===================== */
+    function dtDrawStruct(x0, top, w, mob, L, s, p, fresh, e) {
+        var r = L.r;
+        var cf = fresh ? ez(seg(e, 0, 0.6)) : 1;
+        var la = fresh ? ez(seg(e, 0.4, 1)) : 1;
+        var keys = Object.keys(NODES);
+
+        keys.forEach(function (k) {
+            var n = NODES[k];
+            if (n.parent === null) return;
+            var a = dtPos(n.parent, x0, top, L), b = dtPos(n.id, x0, top, L);
+            var hN = dtStructEdge(s, n.parent, n.id), hP = dtStructEdge(p, n.parent, n.id);
+            dtXfEdge(a, b, r,
+                hN ? dtStructCol(s) + 'cc' : P.muted + '44', hN ? 2.4 : 1.4,
+                hP ? dtStructCol(p) + 'cc' : P.muted + '44', hP ? 2.4 : 1.4, cf);
+        });
+
+        var lvl = s.label === 'level';
+        var ga = lvl ? (fresh ? ez(seg(e, 0, 0.5)) : 1) : 0;
+        if (ga > 0) {
+            var gx2 = x0 + L.g + L.tw * (fresh ? ez(seg(e, 0, 0.6)) : 1);
+            var H = dtHeight(), lv, gy;
+            ctx.globalAlpha = ga;
+            for (lv = 0; lv <= H; lv++) {
+                gy = top + L.rootY + lv * L.gl;
+                ln(x0 + L.g, gy, gx2, gy, P.sub + '88', 1, [4, 4]);
+                tx(String(lv), x0 + 2, gy, L.fsub, P.sub + 'ff', 'left', true);
+            }
+            tx('깊이', x0 + 2, top + L.rootY - r - 16, L.fsub, P.sub + 'ff', 'left', true);
+            var yR = top + L.rootY, yL = top + L.leafY;
+            var yE = yR + (yL - yR) * (fresh ? ez(seg(e, 0.2, 0.9)) : 1);
+            var bx = x0 + L.g - 10;
+            ln(bx, yR, bx, yE, P.teal + 'cc', 1.6);
+            ln(bx, yR, bx + 5, yR, P.teal + 'cc', 1.6);
+            ln(bx, yE, bx + 5, yE, P.teal + 'cc', 1.6);
+            ctx.globalAlpha = 1;
+        }
+
+        var rp = dtPos(1, x0, top, L);
+        if (s.label === 'root') {
+            ctx.globalAlpha = 0.4;
+            circ(rp.x, rp.y, r + 7, 'none', P.purple + 'ff', 2);
+            if (fresh) {
+                ctx.globalAlpha = 0.9 * (1 - e);
+                circ(rp.x, rp.y, r + 7 + 24 * ez(e), 'none', P.purple + 'ff', 2.2);
+            }
+            ctx.globalAlpha = 1;
+        }
+
+        keys.forEach(function (k) {
+            var n = NODES[k];
+            var pt = dtPos(n.id, x0, top, L);
+            var sN = dtStructStyle(s, n.id), sP = dtStructStyle(p, n.id);
+            var rad = r;
+            if (fresh && sN.kind === 'hi' && sP.kind !== 'hi') {
+                rad = r * (0.6 + 0.4 * ez(seg(e, (n.id - 1) * 0.06, (n.id - 1) * 0.06 + 0.5)));
+            }
+            var val = String(n.val);
+            if (fresh && (sN.kind !== sP.kind || sN.col !== sP.col)) {
+                dtPaint(pt.x, pt.y, rad, sP, 1 - cf, val, L.fv);
+                dtPaint(pt.x, pt.y, rad, sN, cf, val, L.fv);
+            } else {
+                dtPaint(pt.x, pt.y, rad, sN, 1, val, L.fv);
+            }
+        });
+
+        if (s.label === 'parent-child') {
+            ctx.globalAlpha = 1;
+            if (fresh && e < 1) {
+                [2, 3].forEach(function (cid) {
+                    var cp = dtPos(cid, x0, top, L);
+                    var q = ez(seg(e, 0.05, 0.95));
+                    circ(lerp(rp.x, cp.x, q), lerp(rp.y + r, cp.y - r, q), 4.5, P.teal + 'ff', null, 0);
+                });
+            }
+        }
+
+        ctx.globalAlpha = la;
+        if (s.label === 'root') {
+            tx('ROOT', rp.x, rp.y - r - 16, L.fsub, P.purple + 'ff', 'center', true);
+            tx('부모 없음', rp.x - r - 14, rp.y, L.fsub, P.sub + 'ff', 'right', false);
+        }
+        if (s.label === 'parent-child') {
+            tx('PARENT', rp.x, rp.y - r - 16, L.fsub, P.teal + 'ff', 'center', true);
+            [2, 3].forEach(function (cid) {
+                var cp = dtPos(cid, x0, top, L);
+                var mx = (rp.x + cp.x) / 2, my = (rp.y + cp.y) / 2;
+                if (cid === 2) tx('CHILD', mx - 8, my, L.fsub, P.teal + 'ff', 'right', true);
+                else tx('CHILD', mx + 8, my, L.fsub, P.teal + 'ff', 'left', true);
+            });
+        }
+        if (s.label === 'leaf') {
+            [4, 5, 6, 7].forEach(function (lid) {
+                var lp = dtPos(lid, x0, top, L);
+                tx('LEAF', lp.x, lp.y + r + 12, L.fsub, P.green + 'ff', 'center', true);
+            });
+        }
+        if (s.label === 'subtree') {
+            var sp2 = dtPos(2, x0, top, L), sp4 = dtPos(4, x0, top, L), sp5 = dtPos(5, x0, top, L);
+            var bx1 = sp4.x - r - 10, bx2 = sp5.x + r + 10;
+            var by1 = sp2.y - r - 12, by2 = sp4.y + r + 10;
+            ctx.setLineDash([5, 4]);
+            rr(bx1, by1, bx2 - bx1, by2 - by1, 10, 'none', P.orange + 'cc', 1.6);
+            ctx.setLineDash([]);
+            tx('SUBTREE', (bx1 + bx2) / 2, by2 + 12, L.fsub, P.orange + 'ff', 'center', true);
+        }
+        if (lvl) {
+            L.capL.forEach(function (txt, i) {
+                tx(txt, x0 + w / 2, top + L.capY + i * (L.fsub + 5) + (L.fsub + 5) / 2, L.fsub, P.text + 'ff', 'center', true);
+            });
+        }
+        ctx.globalAlpha = 1;
+    }
+
+    /* ===================== 순회 드로우 ===================== */
+    function dtDrawTrav(x0, top, w, mob, L, s, p, fresh, e) {
+        var steps = currentSteps();
+        var r = L.r;
+        var cf = fresh ? ez(seg(e, 0, 0.5)) : 1;
+        var iN = dtTravInfo(s, steps);
+        var iP = fresh ? dtTravInfo(p, steps) : iN;
+
+        Object.keys(NODES).forEach(function (k) {
+            var n = NODES[k];
+            if (n.parent === null) return;
+            var a = dtPos(n.parent, x0, top, L), b = dtPos(n.id, x0, top, L);
+            var onN = iN.stk.indexOf(n.parent) >= 0 && iN.stk.indexOf(n.id) >= 0;
+            var onP = iP.stk.indexOf(n.parent) >= 0 && iP.stk.indexOf(n.id) >= 0;
+            dtXfEdge(a, b, r,
+                onN ? P.orange + 'cc' : P.muted + '44', onN ? 2.4 : 1.4,
+                onP ? P.orange + 'cc' : P.muted + '44', onP ? 2.4 : 1.4, cf);
+        });
+
+        Object.keys(NODES).forEach(function (k) {
+            var n = NODES[k];
+            var pt = dtPos(n.id, x0, top, L);
+            var sN = dtTravStyle(n.id, iN), sP = dtTravStyle(n.id, iP);
+            var val = String(n.val);
+            if (fresh && (sN.kind !== sP.kind || sN.col !== sP.col)) {
+                dtPaint(pt.x, pt.y, r, sP, 1 - cf, val, L.fv);
+                dtPaint(pt.x, pt.y, r, sN, cf, val, L.fv);
+            } else {
+                dtPaint(pt.x, pt.y, r, sN, 1, val, L.fv);
+            }
+        });
+
+        if (s.visit !== null) {
+            var from = (fresh && p.visit !== null) ? p.visit : s.visit;
+            var mp, ma = 1;
+            if (from === s.visit) {
+                mp = dtPos(s.visit, x0, top, L);
+                if (fresh && p.visit === null) ma = ez(seg(e, 0, 0.4));
+            } else {
+                var pts = dtPath(from, s.visit).map(function (id) { return dtPos(id, x0, top, L); });
+                mp = dtAlong(pts, ez(seg(e, 0, 0.85)));
+            }
+            ctx.globalAlpha = ma;
+            circ(mp.x, mp.y, r + 7, 'none', P.yellow + 'ff', 2.4);
+            ctx.globalAlpha = 1;
+        }
+
+        var stk = iN.stk, stkP = iP.stk;
+        var bw = mob ? 34 : 46, bh = L.stackH, gap = mob ? 6 : 8, fv = mob ? 12 : 14;
+        var by = top + L.stackY;
+        var i, bxx, byy, c, isTop, ap;
+        tx('호출 스택', x0, top + L.stackLabelY, L.fsub, P.sub + 'ff', 'left', true);
+        if (!stk.length && !stkP.length) tx('(비어 있음)', x0, by + bh / 2, L.fsub, P.sub + 'ff', 'left', false);
+        for (i = 0; i < stk.length; i++) {
+            isTop = i === stk.length - 1;
+            ap = (fresh && isTop && stk.length > stkP.length) ? ez(e) : 1;
+            bxx = x0 + i * (bw + gap);
+            byy = by + (1 - ap) * -8;
+            c = isTop ? P.orange : P.muted;
+            ctx.globalAlpha = ap;
+            rr(bxx, byy, bw, bh, 5, c + '26', c + 'cc', isTop ? 2 : 1.4);
+            tx(String(NODES[stk[i]].val), bxx + bw / 2, byy + bh / 2, fv, isTop ? P.orange + 'ff' : P.text + 'cc', 'center', true);
+        }
+        if (fresh && stkP.length > stk.length) {
+            ap = 1 - ez(e);
+            for (i = stk.length; i < stkP.length; i++) {
+                bxx = x0 + i * (bw + gap);
+                byy = by - 10 * (1 - ap);
+                ctx.globalAlpha = ap;
+                rr(bxx, byy, bw, bh, 5, P.orange + '26', P.orange + 'cc', 2);
+                tx(String(NODES[stkP[i]].val), bxx + bw / 2, byy + bh / 2, fv, P.orange + 'ff', 'center', true);
+            }
+        }
+        ctx.globalAlpha = 1;
+
+        var nm = mode === 'pre' ? 'Preorder' : (mode === 'in' ? 'Inorder' : 'Postorder');
+        var vis = s.visited, nV = vis.length, prevN = p.visited.length;
+        var cw = mob ? 26 : 32, ch = L.chipH, cg = mob ? 4 : 6, fc = mob ? 12 : 14;
+        tx('결과 (' + nm + ')', x0, top + L.resLabelY, L.fsub, P.sub + 'ff', 'left', true);
+        if (nV === 0) tx('(비어 있음)', x0, top + L.chipY + ch / 2, L.fsub, P.sub + 'ff', 'left', false);
+        for (i = 0; i < nV; i++) {
+            var newest = fresh && i === nV - 1 && nV > prevN;
+            var a2 = newest ? ez(e) : 1;
+            var cx = x0 + i * (cw + cg);
+            var cy = top + L.chipY + (newest ? (1 - a2) * 8 : 0);
+            var cc = newest ? P.green : P.teal;
+            ctx.globalAlpha = a2;
+            rr(cx, cy, cw, ch, 5, cc + '30', cc + 'ff', 1.4);
+            tx(String(vis[i]), cx + cw / 2, cy + ch / 2, fc, P.text + 'ff', 'center', true);
+        }
+        ctx.globalAlpha = 1;
+    }
+
+    /* ===================== 메인 장면 ===================== */
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var steps = currentSteps();
+        var s = step || steps[0];
+        var p = prev || s;
+        var fresh = s !== p;
+        var e = fresh ? clamp01(t) : 1;
+        var L = layout(w, mob);
+        if (mode === 'structure') dtDrawStruct(x0, top, w, mob, L, s, p, fresh, e);
+        else dtDrawTrav(x0, top, w, mob, L, s, p, fresh, e);
+    }
+
+    /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
+    function draw() {
+        P = window.CsFlow.getP();
+        ctx.clearRect(0, 0, GW(), GH());
+        var W = GW(); var mob = W < 600;
+        var steps = currentSteps();
+        var step = stepIdx >= 0 ? steps[stepIdx] : null;
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
+    }
+
+    /* ===================== resize ===================== */
+    function resize() {
+        var w = canvasWrap.offsetWidth || 320;
+        var mob = w < 600;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
+        canvasWrap.style.height    = 'auto';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
+        var actualH = canvasWrap.offsetHeight || neededH;
+        if (actualH < neededH) actualH = neededH;
+        canvas.width  = w * dpr;
+        canvas.height = actualH * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        draw();
+    }
+
+    /* ===================== 애니메이션(스텝 전환) ===================== */
+    function animateStep(onDone) {
+        if (rafId) cancelAnimationFrame(rafId);
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
+    }
+
+    /* ===================== 컨트롤 ===================== */
+    function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -536,7 +707,7 @@
                 if (next === steps.length - 1) {
                     running = false; btnStep.disabled = true; setSpeedDisabled(false);
                 } else {
-                    timer = setTimeout(tick, speed * 0.55);
+                    timer = setTimeout(tick, speed * 0.6);
                 }
             });
         }
@@ -544,9 +715,9 @@
     }
 
     function vizStep() {
-        if (running || animProg < 1) return;
+        if (running) return;
         var steps = currentSteps();
-        var next  = stepIdx + 1;
+        var next = stepIdx + 1;
         if (next >= steps.length) return;
         applyStep(next, null);
         if (next === steps.length - 1) { btnPlay.disabled = true; btnStep.disabled = true; }
@@ -555,7 +726,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1; animProg = 1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);
@@ -571,11 +742,11 @@
     function switchMode(m) {
         if (mode === m) return;
         mode = m;
-        modeDefs.forEach(function (d) {
-            modeBtns[d.key].classList.toggle('tree-viz__mode-btn--active', d.key === m);
-        });
+        modeDefs.forEach(function (d) { modeBtns[d.key].classList.toggle('tree-viz__mode-btn--active', d.key === m); });
         vizReset();
     }
+
+    logEl.textContent = defaultLog();
 
     /* ===================== 라이프사이클 ===================== */
     window.CsFlow.createVizLifecycle({
@@ -590,9 +761,9 @@
                 tooltipHits: [],
                 hoveredKey: function () { return null; },
                 setHoveredKey: function () {},
-                draw: draw,
+                draw: draw
             };
-        },
+        }
     });
 
     setTimeout(resize, 60);

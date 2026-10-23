@@ -1,5 +1,5 @@
 /**
- * 힙(Max-Heap) 시각화
+ * 힙(Max-Heap) 시각화 시각화
  */
 (function () {
     'use strict';
@@ -24,7 +24,7 @@
     var modeDefs = [
         { key: 'insert', label: '삽입' },
         { key: 'delete', label: '삭제' },
-        { key: 'sort',   label: '힙정렬' },
+        { key: 'sort', label: '힙정렬' }
     ];
     var modeBtns = {};
     modeDefs.forEach(function (m, i) {
@@ -39,7 +39,7 @@
     var speedWrap = el('div', 'heap-viz__speed');
     speedWrap.appendChild(el('span', 'heap-viz__speed-label', 'SPEED'));
     var speedBtns = [];
-    [['1x', 1800], ['2x', 900], ['3x', 600]].forEach(function (pair, i) {
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
         var b = el('button', 'heap-viz__speed-btn' + (i === 0 ? ' heap-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
@@ -54,7 +54,7 @@
     canvasWrap.appendChild(canvas);
     root.appendChild(canvasWrap);
 
-    var logEl = el('div', 'heap-viz__log', '▶ PLAY를 눌러 힙 동작을 확인하세요.');
+    var logEl = el('div', 'heap-viz__log', '');
     root.appendChild(logEl);
 
     var controls = el('div', 'heap-viz__controls');
@@ -72,10 +72,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'insert';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 스텝 정의 ===================== */
     var INSERT_STEPS = [
@@ -116,242 +184,314 @@
         { arr:[4,8,15,16,23,42],  heapSize:0, swapA:null, swapB:null, phase:'done',      log:'힙 정렬 완료! 오름차순 정렬: [4, 8, 15, 16, 23, 42]. 시간복잡도 O(n log n), 추가 메모리 O(1).' },
     ];
 
-    /* ===================== 레이아웃 상수 계산 ===================== */
-    var TREE_LAYOUT = [
-        { level:0, xr:0.50 },
-        { level:1, xr:0.27 },
-        { level:1, xr:0.73 },
-        { level:2, xr:0.15 },
-        { level:2, xr:0.39 },
-        { level:2, xr:0.61 },
-    ];
-    var TREE_EDGES = [[0,1],[0,2],[1,3],[1,4],[2,5]];
-
-    /* ===================== 드로우 헬퍼 ===================== */
-    function tx(str, x, y, sz, color, align, bold) {
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
+    /* ===================== 상태 ===================== */
+    function currentSteps() {
+        if (mode === 'delete') return DELETE_STEPS;
+        if (mode === 'sort') return SORT_STEPS;
+        return INSERT_STEPS;
+    }
+    function defaultLog() {
+        return '▶ PLAY를 눌러 힙 동작을 확인하세요.';
     }
 
-    function circle(cx, cy, r, fill, stroke, lw) {
-        ctx.beginPath();
-        ctx.arc(cx, cy, r, 0, Math.PI * 2);
-        if (fill)   { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.5; ctx.stroke(); }
+    /* ===================== 공용 계산 ===================== */
+    var HP_X = [0.5, 0.25, 0.75, 0.125, 0.375, 0.625];
+    var HP_LV = [0, 1, 1, 2, 2, 2];
+    var HP_EDGE = [[0, 1], [0, 2], [1, 3], [1, 4], [2, 5]];
+    var HP_SLOTS = 6;
+    function ez(q) {
+        q = clamp01(q);
+        return q * q * (3 - 2 * q);
+    }
+    function hpFont(mob) {
+        return mob ? { body: 11.5, small: 11, val: 12 } : { body: 13, small: 12, val: 14 };
+    }
+    function hpCaption() {
+        if (mode === 'delete') return 'Extract-Max 후 Heapify-Down: 자식보다 작으면 아래로';
+        if (mode === 'sort') return '힙 정렬: Extract-Max 반복 → 오름차순 정렬';
+        return '삽입 후 Heapify-Up: 부모보다 크면 위로';
+    }
+    function hpDoneText() {
+        var last = SORT_STEPS[SORT_STEPS.length - 1];
+        return '오름차순 정렬 완료: [' + last.arr.join(', ') + ']';
+    }
+    function hpStyleOf(st, i) {
+        var sorted = i >= st.heapSize;
+        var hot = i === st.swapA || i === st.swapB;
+        var col = P.teal;
+        if (sorted) col = P.green;
+        else if (st.phase === 'add' && i === st.swapA) col = P.yellow;
+        else if (i === st.swapA) col = P.orange;
+        else if (i === st.swapB) col = P.purple;
+        var lit = sorted || hot;
+        return { col: col, fa: lit ? '28' : '15', sa: lit ? 'ee' : '77', lw: hot ? 2.5 : 1.5, bold: lit };
+    }
+    function hpKey(st) {
+        return st.col + st.fa + st.sa + st.lw;
     }
 
-    function line(x1, y1, x2, y2, col, lw, dash) {
-        ctx.beginPath();
-        ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
-        ctx.strokeStyle = col; ctx.lineWidth = lw || 1.5;
-        ctx.setLineDash(dash || []); ctx.stroke(); ctx.setLineDash([]);
+    /* ===================== 레이아웃 ===================== */
+    function layout(w, mob) {
+        var S = hpFont(mob);
+        var lhS = S.small + 5;
+        var r = mob ? 17 : 23;
+        var levelGap = mob ? 60 : 80;
+        var cap = lines(hpCaption(), w, S.small);
+        var capH = cap.length * lhS;
+        var y0 = capH + (mob ? 30 : 36) + r;
+        var treeBot = y0 + 2 * levelGap + r;
+        var gap = mob ? 4 : 6;
+        var cellH = mob ? 34 : 42;
+        var cellW = Math.min(mob ? 46 : 54, (w - gap * (HP_SLOTS - 1)) / HP_SLOTS);
+        var labelCY = treeBot + (mob ? 14 : 18);
+        var arrTop = labelCY + lhS / 2 + (mob ? 6 : 8);
+        var doneLines = mode === 'sort' ? lines(hpDoneText(), w, S.body) : [];
+        var total = arrTop + cellH + (mob ? 46 : 54);
+        if (doneLines.length > 0) {
+            total = arrTop + cellH + (mob ? 50 : 60) + doneLines.length * (S.body + 5) + 4;
+        }
+        return {
+            S: S, lhS: lhS, r: r, levelGap: levelGap, y0: y0, cap: cap, gap: gap,
+            cellH: cellH, cellW: cellW, labelCY: labelCY, arrTop: arrTop,
+            doneLines: doneLines, lhD: S.body + 5, total: total
+        };
+    }
+    function sceneH(w, mob) { return layout(w, mob).total; }
+
+    /* ===================== 그리기 헬퍼 ===================== */
+    function hpText(str, x, y, fs, col, bold, a, align) {
+        if (a <= 0) return;
+        ctx.globalAlpha = a;
+        tx(str, x, y, fs, col, align || 'center', bold);
+        ctx.globalAlpha = 1;
+    }
+    function hpCircle(x, y, r, st, a) {
+        if (a <= 0) return;
+        ctx.globalAlpha = a;
+        circ(x, y, r, st.col + st.fa, st.col + st.sa, st.lw);
+        ctx.globalAlpha = 1;
+    }
+    function hpRect(x, y, w, h, st, a) {
+        if (a <= 0) return;
+        ctx.globalAlpha = a;
+        rr(x, y, w, h, 4, st.col + st.fa, st.col + st.sa, st.lw);
+        ctx.globalAlpha = 1;
+    }
+    function hpChipCircle(x, y, rad, val, fs, a) {
+        if (a <= 0) return;
+        ctx.globalAlpha = a;
+        circ(x, y, rad, P.yellow + 'ff', 'none');
+        tx(String(val), x, y, fs, '#111111', 'center', true);
+        ctx.globalAlpha = 1;
+    }
+    function hpChipRect(x, y, w, h, val, fs, a) {
+        if (a <= 0) return;
+        ctx.globalAlpha = a;
+        rr(x - w / 2, y - h / 2, w, h, 4, P.yellow + 'ff', 'none');
+        tx(String(val), x, y, fs, '#111111', 'center', true);
+        ctx.globalAlpha = 1;
     }
 
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        ctx.beginPath();
-        ctx.moveTo(x+r, y);
-        ctx.arcTo(x+w,y, x+w,y+h, r); ctx.arcTo(x+w,y+h, x,y+h, r);
-        ctx.arcTo(x,y+h, x,y, r);     ctx.arcTo(x,y, x+w,y, r);
-        ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw||1.5; ctx.stroke(); }
-    }
-
-    /* ===================== 트리 드로우 ===================== */
-    function drawTree(step, W, treeTopY, levelGap, r) {
-        var arr      = step.arr;
-        var heapSize = step.heapSize;
-        var swapA    = step.swapA;
-        var swapB    = step.swapB;
-        var fVal     = W < 600 ? 11 : 14;
-
-        function pos(i) {
-            var L = TREE_LAYOUT[i];
-            return { x: L.xr * W, y: treeTopY + L.level * levelGap };
+    /* ===================== 장면 진입점 ===================== */
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var now = step || currentSteps()[0];
+        var pv = prev || now;
+        var L = layout(w, mob);
+        var S = L.S;
+        var r = L.r;
+        var fv = S.val;
+        var cellW = L.cellW;
+        var cellH = L.cellH;
+        var gap = L.gap;
+        var isAn = pv !== now;
+        var addK = isAn && now.arr.length > pv.arr.length ? now.arr.length - 1 : -1;
+        var sw = isAn && addK < 0 && now.swapA !== null && now.swapB !== null && pv.arr.length === now.arr.length;
+        var sA = sw ? now.swapA : -1;
+        var sB = sw ? now.swapB : -1;
+        var cx0 = x0 + (w - (HP_SLOTS * cellW + (HP_SLOTS - 1) * gap)) / 2;
+        var cellY = top + L.arrTop;
+        var cy = cellY + cellH / 2;
+        function nX(i) { return x0 + HP_X[i] * w; }
+        function nY(i) { return top + L.y0 + HP_LV[i] * L.levelGap; }
+        function cX(i) { return cx0 + i * (cellW + gap) + cellW / 2; }
+        function treeA(i) {
+            if (i >= now.arr.length) return 0;
+            return i === addK ? ez(seg(t, 0.6, 0.9)) : 1;
+        }
+        function arrA(i) {
+            if (i >= now.arr.length) return 0;
+            return i === addK ? ez(seg(t, 0, 0.2)) : 1;
+        }
+        function valA(i, base) {
+            if (sw && (i === sA || i === sB)) return ez(seg(t, 0.92, 1));
+            return base;
         }
 
-        TREE_EDGES.forEach(function (e) {
-            var p1 = e[0], p2 = e[1];
-            if (p1 >= arr.length || p2 >= arr.length) return;
-            var a = pos(p1), b = pos(p2);
-            var dx = b.x-a.x, dy = b.y-a.y, d = Math.sqrt(dx*dx+dy*dy);
-            var ux = dx/d, uy = dy/d;
-            var inHeap = p1 < heapSize && p2 < heapSize;
-            var onSwap = (swapA !== null) && ((p1===swapA&&p2===swapB)||(p1===swapB&&p2===swapA));
-            var col = onSwap ? P.orange + 'cc' : (inHeap ? P.muted + '55' : P.muted + '22');
-            line(a.x+ux*r, a.y+uy*r, b.x-ux*r, b.y-uy*r, col, onSwap ? 2 : 1.5);
+        var i, j;
+        for (i = 0; i < L.cap.length; i++) {
+            hpText(L.cap[i], x0 + w / 2, top + i * L.lhS + L.lhS / 2, S.small, P.sub + 'ff', false, 1);
+        }
+
+        HP_EDGE.forEach(function (e) {
+            var p = e[0], c = e[1];
+            if (c >= now.arr.length) return;
+            var ax = nX(p), ay = nY(p), bx = nX(c), by = nY(c);
+            var dx = bx - ax, dy = by - ay, dl = Math.sqrt(dx * dx + dy * dy);
+            var ux = dx / dl, uy = dy / dl;
+            var hot = sw && ((p === sA && c === sB) || (p === sB && c === sA));
+            var col = hot ? P.orange + 'cc' : (c < now.heapSize ? P.sub + '77' : P.sub + '33');
+            ctx.globalAlpha = addK === c ? ez(seg(t, 0.6, 0.9)) : 1;
+            ln(ax + ux * r, ay + uy * r, bx - ux * r, by - uy * r, col, hot ? 2.5 : 1.5);
+            ctx.globalAlpha = 1;
         });
 
-        arr.forEach(function (val, i) {
-            if (i >= TREE_LAYOUT.length) return;
-            var p   = pos(i);
-            var inHeap = i < heapSize;
-            var isSwapA = (i === swapA);
-            var isSwapB = (i === swapB);
-            var isSorted = !inHeap;
-
-            var col = isSorted  ? P.green
-                    : isSwapA   ? P.orange
-                    : isSwapB   ? P.purple
-                    : step.phase === 'add' && i === arr.length - 1 ? P.yellow || P.green
-                    : P.teal;
-
-            var fillA   = (isSwapA || isSwapB || isSorted) ? '28' : '15';
-            var strokeA = (isSwapA || isSwapB || isSorted) ? 'ee' : '77';
-            var lw      = (isSwapA || isSwapB) ? 2.5 : (isSorted ? 2 : 1.5);
-
-            circle(p.x, p.y, r, col+fillA, col+strokeA, lw);
-            tx(String(val), p.x, p.y, fVal, col, 'center', isSwapA || isSwapB || isSorted);
-
-            tx('['+i+']', p.x, p.y - r - (W<600 ? 9 : 12), W<600 ? 8 : 10,
-               (isSwapA||isSwapB) ? col : P.muted + '88', 'center', false);
-        });
-    }
-
-    /* ===================== 배열 표현 드로우 ===================== */
-    function drawArray(step, W, arrayY, mob) {
-        var arr      = step.arr;
-        var heapSize = step.heapSize;
-        var swapA    = step.swapA;
-        var swapB    = step.swapB;
-
-        if (arr.length === 0) return;
-
-        var cellW  = mob ? 40 : 54;
-        var cellH  = mob ? 34 : 42;
-        var gapX   = mob ? 4  : 6;
-        var totalW = arr.length * cellW + (arr.length - 1) * gapX;
-        var startX = (W - totalW) / 2;
-        var fVal   = mob ? 11 : 14;
-        var fIdx   = mob ? 8  : 10;
-
-        tx('배열 표현', mob ? 16 : 28, arrayY - (mob ? 14 : 18), mob ? 9 : 11, P.muted + 'aa', 'left', true);
-
-        arr.forEach(function (val, i) {
-            var cx   = startX + i * (cellW + gapX);
-            var inHeap  = i < heapSize;
-            var isSwapA = (i === swapA);
-            var isSwapB = (i === swapB);
-            var isSorted = !inHeap;
-
-            var col = isSorted  ? P.green
-                    : isSwapA   ? P.orange
-                    : isSwapB   ? P.purple
-                    : step.phase === 'add' && i === arr.length - 1 ? P.green
-                    : inHeap    ? P.teal
-                    : P.muted;
-
-            var fillA   = (isSwapA || isSwapB || isSorted) ? '28' : '15';
-            var strokeA = (isSwapA || isSwapB || isSorted) ? 'ee' : '55';
-
-            rr(cx, arrayY, cellW, cellH, 4, col+fillA, col+strokeA, (isSwapA||isSwapB) ? 2 : 1.5);
-            tx(String(val), cx + cellW/2, arrayY + cellH/2, fVal, col, 'center', isSwapA || isSwapB || isSorted);
-
-            tx('['+i+']', cx + cellW/2, arrayY + cellH + (mob ? 10 : 13), mob ? 10 : 12, P.muted + 'cc', 'center', false);
-
-            if (i > 0) {
-                var par = Math.floor((i-1)/2);
-                tx('p='+ par, cx + cellW/2, arrayY + cellH + (mob ? 23 : 30), mob ? 10 : 12,
-                   (isSwapA||isSwapB) ? col + 'dd' : P.muted + 'bb', 'center', false);
+        for (i = 0; i < HP_SLOTS; i++) {
+            var px = nX(i), py = nY(i);
+            var na = treeA(i);
+            var nowSt = hpStyleOf(now, i);
+            var pvSt = isAn && i < pv.arr.length ? hpStyleOf(pv, i) : null;
+            var f = pvSt && hpKey(pvSt) !== hpKey(nowSt) ? ez(seg(t, 0, 0.5)) : 1;
+            if (na < 1) {
+                ctx.globalAlpha = 1 - na;
+                circ(px, py, r, 'none', P.sub + '66', 1.2);
+                ctx.globalAlpha = 1;
             }
-        });
-
-        if (heapSize > 0 && heapSize < arr.length) {
-            var bx = startX + heapSize * (cellW + gapX) - gapX/2;
-            line(bx, arrayY - (mob?4:6), bx, arrayY + cellH + (mob?38:48), P.orange + 'cc', 1.5, [4,3]);
-            tx('heap | sorted', bx, arrayY + cellH + (mob?48:60), mob?10:12, P.orange + 'dd', 'center', true);
+            if (pvSt && f < 1) hpCircle(px, py, r, pvSt, 1 - f);
+            if (na > 0) hpCircle(px, py, r, nowSt, na * f);
+            if (na > 0) hpText(String(now.arr[i]), px, py, fv, P.text + 'ff', nowSt.bold, valA(i, na));
+            hpText('[' + i + ']', px, py - r - (mob ? 9 : 12), mob ? 10 : 12,
+                (i === sA || i === sB) ? nowSt.col + 'ff' : P.sub + 'cc', false, 1);
         }
+
+        if (sw) {
+            var chipA = 1 - ez(seg(t, 0.92, 1));
+            var lane = ez(seg(t, 0, 0.08)) * (1 - ez(seg(t, 0.9, 1)));
+            var pmS = ez(seg(t, 0.05, 0.92));
+            var tax = nX(sA), tay = nY(sA), tbx = nX(sB), tby = nY(sB);
+            var tdx = tbx - tax, tdy = tby - tay, tdl = Math.sqrt(tdx * tdx + tdy * tdy);
+            var nxT = -tdy / tdl * r * 0.95 * lane;
+            var nyT = tdx / tdl * r * 0.95 * lane;
+            hpChipCircle(lerp(tax, tbx, pmS) + nxT, lerp(tay, tby, pmS) + nyT, r * 0.9, pv.arr[sA], fv, chipA);
+            hpChipCircle(lerp(tbx, tax, pmS) - nxT, lerp(tby, tay, pmS) - nyT, r * 0.9, pv.arr[sB], fv, chipA);
+        }
+
+        var arrLabelX = cx0;
+        hpText('배열 표현', arrLabelX, top + L.labelCY, S.small, P.sub + 'ff', true, 1, 'left');
+        for (j = 0; j < HP_SLOTS; j++) {
+            var cxj = cX(j);
+            var ax2 = cxj - cellW / 2;
+            var aa = arrA(j);
+            var nowA = hpStyleOf(now, j);
+            var pvA = isAn && j < pv.arr.length ? hpStyleOf(pv, j) : null;
+            var g = pvA && hpKey(pvA) !== hpKey(nowA) ? ez(seg(t, 0, 0.5)) : 1;
+            if (aa < 1) {
+                ctx.globalAlpha = 1 - aa;
+                rr(ax2, cellY, cellW, cellH, 4, 'none', P.sub + '44', 1.2);
+                ctx.globalAlpha = 1;
+            }
+            if (pvA && g < 1) hpRect(ax2, cellY, cellW, cellH, pvA, 1 - g);
+            if (aa > 0) hpRect(ax2, cellY, cellW, cellH, nowA, aa * g);
+            if (aa > 0) hpText(String(now.arr[j]), cxj, cy, fv, P.text + 'ff', nowA.bold, valA(j, aa));
+            hpText('[' + j + ']', cxj, cellY + cellH + (mob ? 11 : 13), mob ? 10 : 12, P.sub + 'cc', false, 1);
+            if (j > 0) {
+                hpText('p=' + Math.floor((j - 1) / 2), cxj, cellY + cellH + (mob ? 24 : 30), mob ? 10 : 12, P.sub + 'bb', false, 1);
+            }
+        }
+
+        if (sw) {
+            var chipB = 1 - ez(seg(t, 0.92, 1));
+            var laneE = ez(seg(t, 0, 0.08)) * (1 - ez(seg(t, 0.9, 1)));
+            var pmA = ez(seg(t, 0.05, 0.92));
+            var cxA = cX(sA), cxB = cX(sB);
+            var chW = cellW - 6;
+            var chH = lerp(cellH - 6, cellH * 0.46, laneE);
+            var laneY = cellH * 0.25 * laneE;
+            hpChipRect(lerp(cxA, cxB, pmA), cy + laneY, chW, chH, pv.arr[sA], fv, chipB);
+            hpChipRect(lerp(cxB, cxA, pmA), cy - laneY, chW, chH, pv.arr[sB], fv, chipB);
+        }
+
+        if (addK >= 0) {
+            var pmK = ez(seg(t, 0.2, 0.6));
+            var kA = ez(seg(t, 0.12, 0.25)) * (1 - ez(seg(t, 0.6, 0.7)));
+            hpChipCircle(lerp(cX(addK), nX(addK), pmK), lerp(cy, nY(addK), pmK), r * 0.9, now.arr[addK], fv, kA);
+        }
+
+        if (mode !== 'insert') {
+            var hs = isAn ? lerp(pv.heapSize, now.heapSize, ez(seg(t, 0.1, 0.9))) : now.heapSize;
+            var bA = clamp01((now.arr.length - hs) / 0.5);
+            if (bA > 0) {
+                var bx = cx0 + hs * (cellW + gap) - gap / 2;
+                ctx.globalAlpha = bA;
+                ln(bx, cellY - 4, bx, cellY + cellH + (mob ? 36 : 44), P.orange + 'cc', 1.5, [4, 3]);
+                ctx.globalAlpha = 1;
+                var bl = mob ? 46 : 52;
+                var lblX = Math.min(Math.max(bx, x0 + bl), x0 + w - bl);
+                hpText('heap | sorted', lblX, cellY + cellH + (mob ? 38 : 47), S.small, P.orange + 'ff', true, bA);
+            }
+        }
+
+        if (mode === 'sort') {
+            var da = now.phase === 'done' ? (isAn ? ez(seg(t, 0.4, 1)) : 1) : 0;
+            var dTop = cellY + cellH + (mob ? 50 : 60);
+            L.doneLines.forEach(function (ds, di) {
+                hpText(ds, x0 + w / 2, dTop + di * L.lhD + L.lhD / 2, S.body, P.green + 'ff', true, da);
+            });
+        }
+        ctx.globalAlpha = 1;
+    }
+
+    /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
+    function draw() {
+        P = window.CsFlow.getP();
+        ctx.clearRect(0, 0, GW(), GH());
+        var W = GW(); var mob = W < 600;
+        var steps = currentSteps();
+        var step = stepIdx >= 0 ? steps[stepIdx] : null;
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
-    function calcH(W) {
-        var mob      = W < 600;
-        var labelH   = mob ? 24 : 30;
-        var treeTopY = labelH + (mob ? 32 : 40);
-        var levelGap = mob ? 64 : 84;
-        var r        = mob ? 18 : 23;
-        var treeBot  = treeTopY + 2 * levelGap + r;
-        var arrayGap = mob ? 32 : 40;
-        var cellH    = mob ? 34 : 42;
-        var arrayBot = treeBot + arrayGap + cellH + (mob ? 58 : 72);
-        return arrayBot + (mob ? 16 : 20);
-    }
-
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
-        var h = calcH(w);
-        canvasWrap.style.height    = h + 'px';
-        canvasWrap.style.minHeight = h + 'px';
+        var mob = w < 600;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
+        canvasWrap.style.height    = 'auto';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
+        var actualH = canvasWrap.offsetHeight || neededH;
+        if (actualH < neededH) actualH = neededH;
         canvas.width  = w * dpr;
-        canvas.height = h * dpr;
+        canvas.height = actualH * dpr;
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         draw();
     }
 
-    /* ===================== 메인 드로우 ===================== */
-    function draw() {
-        P = window.CsFlow.getP();
-        ctx.clearRect(0, 0, GW(), GH());
-        var W   = GW();
-        var mob = W < 600;
-
-        var labelH   = mob ? 24 : 30;
-        var treeTopY = labelH + (mob ? 32 : 40);
-        var levelGap = mob ? 64 : 84;
-        var r        = mob ? 18 : 23;
-        var treeBot  = treeTopY + 2 * levelGap + r;
-        var arrayY   = treeBot + (mob ? 32 : 40);
-
-        var steps = currentSteps();
-        var step  = steps[stepIdx >= 0 ? stepIdx : 0];
-
-        var modeLabel = mode === 'insert' ? '삽입 후 Heapify-Up: 부모보다 크면 위로'
-                      : mode === 'delete' ? 'Extract-Max 후 Heapify-Down: 자식보다 작으면 아래로'
-                      : '힙 정렬: Extract-Max 반복 → 오름차순 정렬';
-        tx(modeLabel, W/2, mob ? 14 : 17, mob ? 10 : 12, P.muted + 'cc', 'center', false);
-
-        drawTree(step, W, treeTopY, levelGap, r);
-        drawArray(step, W, arrayY, mob);
-
-        if (step.phase === 'done') {
-            var doneY = arrayY + (mob ? 34 : 42) + (mob ? 50 : 62) - 10;
-            tx('오름차순 정렬 완료: [4, 8, 15, 16, 23, 42]', W/2, doneY, mob ? 11 : 14, P.green, 'center', true);
-        }
-    }
-
-    /* ===================== 상태 ===================== */
-    var mode     = 'insert';
-    var stepIdx  = -1;
-    var running  = false;
-    var timer    = null;
-    var rafId    = null;
-    var speed    = 1800;
-    var animProg = 1;
-
-    function currentSteps() {
-        if (mode === 'insert') return INSERT_STEPS;
-        if (mode === 'delete') return DELETE_STEPS;
-        return SORT_STEPS;
-    }
-
-    /* ===================== 애니메이션 ===================== */
+    /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
-        animProg = 0;
         if (rafId) cancelAnimationFrame(rafId);
-        var s = 0.007 * (1800 / speed);
-        (function tick() {
-            animProg = Math.min(1, animProg + s);
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
             draw();
-            if (animProg < 1) { rafId = requestAnimationFrame(tick); }
-            else { draw(); if (onDone) onDone(); }
-        })();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
-    function setSpeedDisabled(v) { speedBtns.forEach(function(b){ b.disabled=v; }); }
+    function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -368,54 +508,66 @@
             var next = stepIdx + 1;
             if (next >= steps.length) { running = false; setSpeedDisabled(false); return; }
             applyStep(next, function () {
-                if (next === steps.length - 1) { running = false; btnStep.disabled = true; setSpeedDisabled(false); }
-                else { timer = setTimeout(tick, speed * 0.65); }
+                if (next === steps.length - 1) {
+                    running = false; btnStep.disabled = true; setSpeedDisabled(false);
+                } else {
+                    timer = setTimeout(tick, speed * 0.6);
+                }
             });
         }
         tick();
     }
 
     function vizStep() {
-        if (running || animProg < 1) return;
+        if (running) return;
+        var steps = currentSteps();
         var next = stepIdx + 1;
-        if (next >= currentSteps().length) return;
+        if (next >= steps.length) return;
         applyStep(next, null);
-        if (next === currentSteps().length - 1) { btnPlay.disabled = true; btnStep.disabled = true; }
+        if (next === steps.length - 1) { btnPlay.disabled = true; btnStep.disabled = true; }
     }
 
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1; animProg = 1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
-        logEl.textContent = '▶ PLAY를 눌러 힙 동작을 확인하세요.';
+        logEl.textContent = defaultLog();
         setSpeedDisabled(false);
         resize();
     }
 
     function setSpeed(ms, btn) {
         speed = ms;
-        speedBtns.forEach(function(b){ b.classList.remove('heap-viz__speed-btn--active'); });
+        speedBtns.forEach(function (b) { b.classList.remove('heap-viz__speed-btn--active'); });
         btn.classList.add('heap-viz__speed-btn--active');
     }
 
     function switchMode(m) {
         if (mode === m) return;
         mode = m;
-        modeDefs.forEach(function(d){ modeBtns[d.key].classList.toggle('heap-viz__mode-btn--active', d.key===m); });
+        modeDefs.forEach(function (d) { modeBtns[d.key].classList.toggle('heap-viz__mode-btn--active', d.key === m); });
         vizReset();
     }
+
+    logEl.textContent = defaultLog();
 
     /* ===================== 라이프사이클 ===================== */
     window.CsFlow.createVizLifecycle({
         canvas: canvas, canvasWrap: canvasWrap, resize: resize, draw: draw,
-        getState : function () { return { rafId:rafId, timer:timer, running:running }; },
-        setState : function (s) { rafId=s.rafId; timer=s.timer; running=s.running; },
+        getState : function () { return { rafId: rafId, timer: timer, running: running }; },
+        setState : function (s) { rafId = s.rafId; timer = s.timer; running = s.running; },
         onPause  : function () { setSpeedDisabled(false); },
         getMouseCtx: function () {
-            return { GW:GW, GH:GH, mousePos:{x:-1,y:-1}, tooltipHits:[],
-                     hoveredKey:function(){ return null; }, setHoveredKey:function(){}, draw:draw };
-        },
+            return {
+                GW: GW, GH: GH,
+                mousePos: { x: -1, y: -1 },
+                tooltipHits: [],
+                hoveredKey: function () { return null; },
+                setHoveredKey: function () {},
+                draw: draw
+            };
+        }
     });
 
     setTimeout(resize, 60);

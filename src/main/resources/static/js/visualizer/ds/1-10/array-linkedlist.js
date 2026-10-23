@@ -1,5 +1,5 @@
 /**
- * 배열 vs 연결 리스트 시각화
+ * 배열 vs 연결 리스트 시각화 시각화
  */
 (function () {
     'use strict';
@@ -10,32 +10,39 @@
     function el(tag, cls, txt) {
         var e = document.createElement(tag);
         if (cls) e.className = cls;
-        if (txt) e.textContent = txt;
+        if (txt !== undefined && txt !== null) e.textContent = txt;
         return e;
     }
 
-    /* ===================== DOM 구성 ===================== */
+    /* ===================== DOM ===================== */
     var root    = el('div', 'al-viz');
     var toolbar = el('div', 'al-viz__toolbar');
     var tbLeft  = el('div', 'al-viz__toolbar-left');
     tbLeft.appendChild(el('span', 'al-viz__title', 'Array vs Linked List'));
 
-    var modeWrap   = el('div', 'al-viz__mode');
-    var modeArray  = el('button', 'al-viz__mode-btn al-viz__mode-btn--active', 'Array');
-    var modeLinked = el('button', 'al-viz__mode-btn', 'Linked List');
-    modeArray.addEventListener('click',  function () { if (!running) switchMode('array'); });
-    modeLinked.addEventListener('click', function () { if (!running) switchMode('linked'); });
-    modeWrap.appendChild(modeArray);
-    modeWrap.appendChild(modeLinked);
+    var modeWrap = el('div', 'al-viz__mode');
+    var modeDefs = [
+        { key: 'array', label: 'Array' },
+        { key: 'linked', label: 'Linked List' }
+    ];
+    var modeBtns = {};
+    modeDefs.forEach(function (m, i) {
+        var b = el('button', 'al-viz__mode-btn' + (i === 0 ? ' al-viz__mode-btn--active' : ''), m.label);
+        b.addEventListener('click', function () { if (!running) switchMode(m.key); });
+        modeWrap.appendChild(b);
+        modeBtns[m.key] = b;
+    });
     tbLeft.appendChild(modeWrap);
     toolbar.appendChild(tbLeft);
 
     var speedWrap = el('div', 'al-viz__speed');
     speedWrap.appendChild(el('span', 'al-viz__speed-label', 'SPEED'));
-    [['1x', 1800], ['2x', 900], ['3x', 600]].forEach(function (pair, i) {
+    var speedBtns = [];
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
         var b = el('button', 'al-viz__speed-btn' + (i === 0 ? ' al-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
+        speedBtns.push(b);
     });
     toolbar.appendChild(speedWrap);
     root.appendChild(toolbar);
@@ -46,7 +53,7 @@
     canvasWrap.appendChild(canvas);
     root.appendChild(canvasWrap);
 
-    var logEl = el('div', 'al-viz__log', '▶ PLAY를 눌러 삽입 동작을 확인하세요.');
+    var logEl = el('div', 'al-viz__log', '');
     root.appendChild(logEl);
 
     var controls = el('div', 'al-viz__controls');
@@ -64,46 +71,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== resize: FIX 4 콘텐츠 높이 계산 ===================== */
-    function calcContentHeight(W) {
-        var mob = W < 600;
-        if (mode === 'array') {
-            var cellH = mob ? 72 : 88;
-            var tblH  = mob ? 28 * 4 + 4 : 34 * 4 + 4;
-            return (mob ? 20 : 28)
-                 + (mob ? 44 : 54)
-                 + cellH
-                 + (mob ? 28 : 32)
-                 + (mob ? 16 : 24)
-                 + tblH
-                 + (mob ? 16 : 24);
-        } else {
-            var nodeH = mob ? 64 : 80;
-            var tblH  = mob ? 28 * 4 + 4 : 34 * 4 + 4;
-            return (mob ? 20 : 28)
-                 + (mob ? 36 : 44)
-                 + nodeH
-                 + nodeH + (mob ? 52 : 62)
-                 + tblH
-                 + (mob ? 20 : 28);
-        }
-    }
-
-    function resize() {
-        var w   = canvasWrap.offsetWidth || 320;
-        var h   = calcContentHeight(w);
-        canvasWrap.style.minHeight = h + 'px';
-        canvasWrap.style.height    = h + 'px';
-        canvas.width  = w * dpr;
-        canvas.height = h * dpr;
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        draw();
-    }
-
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'array';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 시나리오 ===================== */
     var ARRAY_STEPS = [
@@ -219,359 +258,418 @@
         },
     ];
 
-    /* ===================== 상태 변수 ===================== */
-    var mode     = 'array';
-    var stepIdx  = -1;
-    var running  = false;
-    var timer    = null;
-    var rafId    = null;
-    var speed    = 1800;
-    var animProg = 1;
-    var animDir  = 'none';
-
-    function currentSteps() { return mode === 'array' ? ARRAY_STEPS : LINKED_STEPS; }
-
-    /* ===================== 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        ctx.beginPath();
-        ctx.moveTo(x + r, y);
-        ctx.arcTo(x+w, y, x+w, y+h, r); ctx.arcTo(x+w, y+h, x, y+h, r);
-        ctx.arcTo(x, y+h, x, y, r);     ctx.arcTo(x, y, x+w, y, r);
-        ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.5; ctx.stroke(); }
+    /* ===================== 상태 ===================== */
+    function currentSteps() { return mode === 'linked' ? LINKED_STEPS : ARRAY_STEPS; }
+    function defaultLog() {
+        return mode === 'linked' ? '▶ PLAY를 눌러 연결 리스트 삽입 과정을 확인하세요.' : '▶ PLAY를 눌러 배열 삽입 과정을 확인하세요.';
     }
-
-    function tx(str, x, y, sz, color, align, bold) {
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color; ctx.textAlign = align || 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
-    }
-
-    function arrowLine(x1, y1, x2, y2, col, lw) {
-        ctx.beginPath();
-        ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
-        ctx.strokeStyle = col; ctx.lineWidth = lw || 2;
-        ctx.setLineDash([]); ctx.stroke();
-        var angle = Math.atan2(y2 - y1, x2 - x1);
-        var hs = 8;
-        ctx.beginPath();
-        ctx.moveTo(x2, y2);
-        ctx.lineTo(x2 - hs * Math.cos(angle - 0.4), y2 - hs * Math.sin(angle - 0.4));
-        ctx.lineTo(x2 - hs * Math.cos(angle + 0.4), y2 - hs * Math.sin(angle + 0.4));
-        ctx.closePath();
-        ctx.fillStyle = col; ctx.fill();
-    }
-
-    function isLight() {
-        return document.documentElement.getAttribute('data-theme') === 'light';
-    }
-
-    function stateColor(state) {
-        if (state === 'target')   return P.yellow;
-        if (state === 'moving')   return P.orange;
-        if (state === 'shifted')  return P.teal;
-        if (state === 'inserted') return P.green;
-        if (state === 'new')      return P.green;
-        if (state === 'visited')  return P.purple;
-        if (state === 'empty')    return P.muted;
-        return P.text;
-    }
+    function ez(q) { var v = clamp01(q); return v * v * (3 - 2 * v); }
 
     /* ===================== 레이아웃 ===================== */
-    function buildLayout() {
-        var W   = GW(), H = GH();
-        var mob = W < 600;
-        var pad = mob ? 16 : 40;
-        return { W: W, H: H, mob: mob, pad: pad };
+    function layout(w, mob) {
+        var fl = mob ? 11 : 13;
+        var fa = mob ? 11 : 12;
+        var capH = fl + 6;
+        var nh = mob ? 34 : 44;
+        var aCellH = mob ? 58 : 74;
+        var aCellTop = capH + (mob ? 40 : 46);
+        var aIdxCY = aCellTop + aCellH + 6 + fl / 2;
+        var aMarkCY = aIdxCY + fl + 6;
+        var aBottom = aMarkCY + fl / 2 + 2;
+        var lCurCY = capH + fl / 2 + 8;
+        var lAddrCY = lCurCY + fl / 2 + fa / 2 + 6;
+        var lNodeTop = lAddrCY + fa / 2 + 5;
+        var lNodeBot = lNodeTop + nh;
+        var lHeapTop = lNodeBot + 44;
+        var lBottom = lHeapTop + nh + 4 + fa;
+        var tr = mob ? 22 : 30;
+        var tblTop = Math.max(aBottom, lBottom) + 12;
+        var tblH = tr * 4 + 4;
+        var footTop = tblTop + tblH + 6;
+        var footH = 2 * (fl + 5);
+        return {
+            fl: fl, fa: fa, nh: nh, capH: capH, aCellH: aCellH, aCellTop: aCellTop,
+            aIdxCY: aIdxCY, aMarkCY: aMarkCY,
+            lCurCY: lCurCY, lNodeCY: lNodeTop + nh / 2, lHeadCY: lNodeBot + 26,
+            lHeapCY: lHeapTop + nh / 2,
+            tblTop: tblTop, tblH: tblH, tr: tr, footTop: footTop,
+            total: footTop + footH + 2
+        };
+    }
+    function sceneH(w, mob) { return layout(w, mob).total; }
+
+    /* ===================== 공통 스타일과 데이터 ===================== */
+    function dsalSty(st) {
+        if (st === 'target') return { f: P.yellow + '44', s: P.yellow + 'ff', t: P.yellow + 'ff' };
+        if (st === 'moving') return { f: P.orange + '44', s: P.orange + 'ff', t: P.orange + 'ff' };
+        if (st === 'shifted') return { f: P.teal + '33', s: P.teal + 'ff', t: P.teal + 'ff' };
+        if (st === 'inserted' || st === 'new') return { f: P.green + '44', s: P.green + 'ff', t: P.green + 'ff' };
+        if (st === 'visited') return { f: P.purple + '33', s: P.purple + 'ff', t: P.purple + 'ff' };
+        if (st === 'empty') return { f: 'none', s: P.sub + '99', t: P.sub + 'ff' };
+        return { f: P.surf2 + 'ff', s: P.sub + '88', t: P.text + 'ff' };
+    }
+    function dsalCursor(st) {
+        var found = -1;
+        var lab = '';
+        var i;
+        for (i = 0; i < st.nodes.length; i++) {
+            if (st.nodes[i].state === 'visited') { found = i; lab = '확인'; }
+        }
+        for (i = 0; i < st.nodes.length; i++) {
+            if (st.nodes[i].state === 'target') { found = i; lab = '발견'; }
+        }
+        return found < 0 ? null : { i: found, lab: lab };
+    }
+    function dsalRecs(st) {
+        var out = [];
+        st.nodes.forEach(function (nd, i) {
+            out.push({ addr: nd.addr, val: nd.val, next: nd.next, state: nd.state, col: i, row: 0 });
+        });
+        if (st.newNode) {
+            out.push({ addr: st.newNode.addr, val: st.newNode.val, next: st.newNode.next, state: st.newNode.state, col: 2, row: 1 });
+        }
+        return out;
     }
 
-    /* ===================== 배열 드로우 ===================== */
-    function drawArray(L, step) {
-        if (!step || !step.cells) return;
-        var cells = step.cells;
-        var n     = cells.length;
-        var W     = L.W;
-        var mob   = L.mob;
-        var pad   = L.pad;
-
-        var fVal  = mob ? 18 : 24;
-        var fAddr = mob ? 10 : 12;
-        var fLbl  = mob ? 11 : 13;
-
-        var gap   = mob ? 5 : 10;
-        var avail = W - pad * 2 - gap * (n - 1);
-        var cellW = Math.floor(avail / n);
-        var cellH = mob ? 72 : 88;
-        var totalW = n * cellW + (n - 1) * gap;
-        var startX = (W - totalW) / 2;
-
-        var arrowAreaH = mob ? 40 : 50;
-        var topPad     = mob ? 20 : 28;
-        var memLblY    = topPad;
-        var idxLblY    = memLblY + (mob ? 18 : 22);
-        var cellTopY   = idxLblY + arrowAreaH;
-        var baseY      = cellTopY + cellH / 2;
-
-        tx('MEMORY  (연속 주소)', W / 2, memLblY, fLbl, P.muted, 'center', false);
-
-        rr(startX - 6, cellTopY - 2, totalW + 12, cellH + 4, 8,
-           'none', P.border + '55', 1);
-
-        for (var i = 0; i < n; i++) {
-            var cx = startX + i * (cellW + gap) + cellW / 2;
-            tx('[' + i + ']', cx, idxLblY, fLbl, P.muted, 'center', false);
+    /* ===================== 배열 장면 ===================== */
+    function dsalArrDraw(x0, top, w, mob, L, s, p, fresh, e) {
+        var n = s.cells.length;
+        var pitch = Math.min(w / n, 120);
+        var sx = x0 + (w - pitch * n) / 2;
+        var bw = pitch - (mob ? 6 : 12);
+        var cellH = L.aCellH;
+        var cellTop = top + L.aCellTop;
+        var cyc = cellTop + cellH / 2;
+        var chH = mob ? 24 : 30;
+        var chW = bw * 0.8;
+        var apexY = cellTop - 8 - chH / 2;
+        var fv = mob ? 16 : 22;
+        var fl = L.fl;
+        var fa = L.fa;
+        var m = s.arrowIdx;
+        var shift = m >= 0;
+        var ins = -1;
+        var jump = -1;
+        var i, k;
+        for (i = 0; i < n; i++) {
+            if (s.cells[i].state === 'inserted') ins = i;
+            if (!shift && s.cells[i].state === 'target') jump = i;
         }
-
-        if (step.arrowIdx >= 0) {
-            var ai   = step.arrowIdx;
-            var ax   = startX + ai * (cellW + gap) + cellW / 2;
-            var arTxtY = idxLblY + (mob ? 14 : 16);
-            var arBotY = cellTopY - 4;
-            var arTopY = arTxtY + (mob ? 12 : 14);
-            tx('이동', ax, arTxtY, fLbl, P.orange, 'center', true);
-            arrowLine(ax, arTopY, ax, arBotY, P.orange, 2.5);
-        }
-
-        for (var i = 0; i < n; i++) {
-            var cell  = cells[i];
-            var col   = stateColor(cell.state);
-            var cellX = startX + i * (cellW + gap);
-
-            var offX = 0;
-            if (animDir === 'shift' && animProg < 1 && cell.state === 'moving') {
-                offX = (cellW + gap) * animProg;
+        function cxOf(j) { return sx + (j + 0.5) * pitch; }
+        function drawCell(j, val, st, sc, alpha) {
+            var c = dsalSty(st);
+            var bh = cellH * sc;
+            var bwS = bw * sc;
+            var bx = cxOf(j) - bwS / 2;
+            var by = cyc - bh / 2;
+            ctx.globalAlpha = alpha;
+            if (st === 'empty') {
+                ctx.setLineDash([4, 3]);
+                rr(bx, by, bwS, bh, 6, 'none', c.s, 1.4);
+                ctx.setLineDash([]);
+            } else {
+                rr(bx, by, bwS, bh, 6, c.f, c.s, 2);
             }
-
-            rr(cellX + offX, cellTopY, cellW, cellH, 6, 'none', col + 'dd', 2);
-
-            tx(cell.val,  cellX + offX + cellW / 2, cellTopY + cellH * 0.38, fVal,  col, 'center', true);
-            tx(cell.addr, cellX + offX + cellW / 2, cellTopY + cellH * 0.72, fAddr, P.muted, 'center', false);
+            tx(val, cxOf(j), by + bh * 0.38, fv * sc, c.t, 'center', true);
+            tx(s.cells[j].addr, cxOf(j), by + bh * 0.76, fa, P.sub + 'ff', 'center', false);
+            ctx.globalAlpha = 1;
         }
-
-        if (step.insertIdx >= 0) {
-            var ix = startX + step.insertIdx * (cellW + gap) + cellW / 2;
-            var iy = cellTopY + cellH + (mob ? 18 : 22);
-            tx('← 삽입 위치', ix, iy, fLbl, P.yellow, 'center', false);
+        for (i = 0; i < n; i++) {
+            var cc = s.cells[i];
+            var val = cc.val;
+            var st = cc.state;
+            var sc = 1;
+            if (fresh && shift && i === m + 1 && e < 0.75) { val = p.cells[i].val; st = p.cells[i].state; }
+            if (fresh && i === ins) {
+                if (e < 0.45) { val = p.cells[i].val; st = p.cells[i].state; }
+                else { sc = 0.8 + 0.2 * ez(seg(e, 0.45, 0.9)); }
+            }
+            drawCell(i, val, st, sc, 1);
         }
-
-        var tblTop = cellTopY + cellH + (mob ? 46 : 54);
-        drawTable(L, 'array', tblTop);
+        if (fresh && shift && e > 0 && e < 0.9) {
+            var xs = cxOf(m);
+            var xd = cxOf(m + 1);
+            var cq = ez(seg(e, 0, 0.75));
+            ctx.globalAlpha = 0.6 * ez(seg(e, 0, 0.1));
+            ctx.beginPath();
+            for (k = 0; k <= 16; k++) {
+                var pq = k / 16;
+                var pxk = lerp(xs, xd, pq);
+                var pyk = lerp(cyc, apexY, Math.sin(Math.PI * pq));
+                if (k === 0) ctx.moveTo(pxk, pyk); else ctx.lineTo(pxk, pyk);
+            }
+            ctx.setLineDash([3, 3]);
+            ctx.strokeStyle = P.orange + 'ff';
+            ctx.lineWidth = 1.4;
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.globalAlpha = ez(seg(e, 0, 0.1)) * (1 - ez(seg(e, 0.75, 0.9)));
+            var chx = lerp(xs, xd, cq);
+            var chy = lerp(cyc, apexY, Math.sin(Math.PI * cq));
+            rr(chx - chW / 2, chy - chH / 2, chW, chH, 5, P.orange + 'ff', 'none');
+            tx(s.cells[m].val, chx, chy, fv - 2, '#111111', 'center', true);
+            ctx.globalAlpha = 1;
+        }
+        if (fresh && ins >= 0 && e < 0.6) {
+            var iy = lerp(apexY, cyc, ez(seg(e, 0, 0.45)));
+            ctx.globalAlpha = ez(seg(e, 0, 0.12)) * (1 - ez(seg(e, 0.45, 0.6)));
+            rr(cxOf(ins) - chW / 2, iy - chH / 2, chW, chH, 5, P.green + 'ff', 'none');
+            tx(s.cells[ins].val, cxOf(ins), iy, fv - 2, '#111111', 'center', true);
+            ctx.globalAlpha = 1;
+        }
+        if (jump >= 0) {
+            var jx0 = cxOf(0);
+            var jx1 = cxOf(jump);
+            var jy0 = cellTop - 3;
+            var jyA = cellTop - 14;
+            ctx.globalAlpha = 0.9;
+            ctx.beginPath();
+            for (k = 0; k <= 20; k++) {
+                var jq = k / 20;
+                var jxk = lerp(jx0, jx1, jq);
+                var jyk = lerp(jy0, jyA, Math.sin(Math.PI * jq));
+                if (k === 0) ctx.moveTo(jxk, jyk); else ctx.lineTo(jxk, jyk);
+            }
+            ctx.setLineDash([3, 3]);
+            ctx.strokeStyle = P.yellow + 'ff';
+            ctx.lineWidth = 1.6;
+            ctx.stroke();
+            ctx.setLineDash([]);
+            if (fresh) {
+                var bq = ez(seg(e, 0, 0.85));
+                ctx.globalAlpha = 1 - ez(seg(e, 0.9, 1));
+                circ(lerp(jx0, jx1, bq), lerp(jy0, jyA, Math.sin(Math.PI * bq)), 5, P.yellow + 'ff', 'none');
+            }
+            ctx.globalAlpha = 1;
+            tx('인덱스 ' + jump + ' 계산으로 바로 점프', x0 + w / 2, top + L.capH + 6, fl, P.yellow + 'ff', 'center', true);
+        }
+        for (i = 0; i < n; i++) {
+            tx('[' + i + ']', cxOf(i), top + L.aIdxCY, fl, P.sub + 'ff', 'center', false);
+        }
+        if (s.insertIdx >= 0) {
+            tx(mob ? '▲ 삽입' : '▲ 삽입 위치', cxOf(s.insertIdx), top + L.aMarkCY, fl, P.yellow + 'ff', 'center', true);
+        }
+        if (shift) {
+            tx('이동', cxOf(m + 1), top + L.aMarkCY, fl, P.orange + 'ff', 'center', true);
+        }
+        ctx.globalAlpha = 1;
     }
 
-    /* ===================== 연결 리스트 드로우 ===================== */
-    function drawLinked(L, step) {
-        if (!step || !step.nodes) return;
-        var nodes = step.nodes;
-        var n     = nodes.length;
-        var W     = L.W;
-        var mob   = L.mob;
-        var pad   = L.pad;
-
-        var fVal  = mob ? 16 : 22;
-        var fAddr = mob ? 8   : 11;
-        var fLbl  = mob ? 11 : 13;
-        var fNext = mob ? 7   : 10;
-
-        var nodeH  = mob ? 64 : 80;
-        var nullW  = mob ? 36 : 50;
-        var arrW   = mob ? 18 : 28;
-        var maxN   = 5;
-        var avail  = W - pad * 2 - nullW - arrW * maxN;
-        var nodeW  = Math.max(mob ? 50 : 70, Math.floor(avail / maxN));
-        var testW  = maxN * nodeW + (maxN - 1) * arrW + nullW;
-        if (testW > W - pad * 2) {
-            nodeW = Math.floor((W - pad * 2 - (maxN - 1) * arrW - nullW) / maxN);
-        }
-
-        var topPad = mob ? 20 : 28;
-        var headLblY  = topPad + (mob ? 12 : 14);
-        var baseY     = headLblY + (mob ? 42 : 52);
-        var startX    = pad;
-
-        var headX = startX + nodeW / 2;
-        if (step.headArrow) {
-            tx('HEAD', headX, headLblY, fLbl + 1, P.purple, 'center', true);
-            arrowLine(headX, headLblY + (mob ? 10 : 12), headX, baseY - nodeH / 2 - 3, P.purple, 2);
-        }
-
-        if (step.newNode) {
-            var nn    = step.newNode;
-            var nnCol = stateColor(nn.state);
-            var nnX   = startX + nodeW + arrW;
-            var nnY   = baseY + nodeH / 2 + (mob ? 22 : 30);
-            var alpha = animDir === 'nodeappear' ? animProg : 1;
-            var nnA   = Math.round(alpha * 255).toString(16).padStart(2, '0');
-
-            rr(nnX, nnY, nodeW, nodeH, 6, 'none', nnCol + nnA, 2);
-
-            var divX = nnX + Math.round(nodeW * 0.62);
-            ctx.beginPath();
-            ctx.moveTo(divX, nnY + 5);
-            ctx.lineTo(divX, nnY + nodeH - 5);
-            ctx.strokeStyle = nnCol + nnA; ctx.lineWidth = 1; ctx.stroke();
-
-            tx(nn.val,  nnX + nodeW * 0.29, nnY + nodeH * 0.36, fVal,  nnCol, 'center', true);
-            tx(nn.addr, nnX + nodeW * 0.50, nnY + nodeH * 0.70, fAddr, P.muted, 'center', false);
-            var nnNextDisp = (mob && nn.next.length > 4) ? nn.next.replace('0x', '') : nn.next;
-            tx(nnNextDisp, nnX + nodeW * 0.81, nnY + nodeH * 0.50, fNext, nnCol + nnA, 'center', false);
-            tx('NEW NODE', nnX + nodeW / 2, nnY - (mob ? 13 : 16), fLbl, nnCol, 'center', true);
-        }
-
-        for (var i = 0; i < n; i++) {
-            var nd  = nodes[i];
-            var col = stateColor(nd.state);
-            var nx  = startX + i * (nodeW + arrW);
-            var ny  = baseY - nodeH / 2;
-
-            rr(nx, ny, nodeW, nodeH, 6, 'none', col + 'dd', 2);
-
-            var divX = nx + Math.round(nodeW * 0.62);
-            ctx.beginPath();
-            ctx.moveTo(divX, ny + 5);
-            ctx.lineTo(divX, ny + nodeH - 5);
-            ctx.strokeStyle = col + '66'; ctx.lineWidth = 1; ctx.stroke();
-
-            tx(nd.val,  nx + nodeW * 0.29, baseY - nodeH * 0.14, fVal,  col, 'center', true);
-            tx(nd.addr, nx + nodeW * 0.50, baseY + nodeH * 0.28, fAddr, P.muted, 'center', false);
-            var nxt = nd.next === 'null' ? 'null' : nd.next;
-            var nxtDisp = (mob && nxt.length > 4) ? nxt.replace('0x', '') : nxt;
-            tx(nxtDisp, nx + nodeW * 0.81, baseY, fNext, col + 'bb', 'center', false);
-
-            if (nd.next !== 'null' && i < n - 1) {
-                arrowLine(nx + nodeW + 3, baseY, nx + nodeW + arrW - 3, baseY, col + 'bb', 2);
-            } else if (nd.next === 'null') {
-                var nxRight = nx + nodeW + 4;
-                if (nxRight + nullW <= W - 2) {
-                    tx('→ null', nxRight, baseY, fNext + 1, P.muted, 'left', false);
-                } else {
-                    tx('→ null', nx + nodeW / 2, ny + nodeH + 13, fNext, P.muted, 'center', false);
-                }
+    /* ===================== 연결 리스트 장면 ===================== */
+    function dsalLnkDraw(x0, top, w, mob, L, s, p, fresh, e) {
+        var fl = L.fl;
+        var fa = L.fa;
+        var nh = L.nh;
+        var fv = mob ? 13 : 18;
+        var pitch = Math.min(w / 6, 130);
+        var sx = x0 + (w - pitch * 6) / 2;
+        var bw = Math.min(pitch - (mob ? 15 : 26), 84);
+        var nullHalf = mob ? 14 : 20;
+        var cur = dsalRecs(s);
+        var prv = dsalRecs(p);
+        var cm = {};
+        var pm = {};
+        var q = ez(seg(e, 0, 0.7));
+        cur.forEach(function (r) { cm[r.addr] = r; });
+        prv.forEach(function (r) { pm[r.addr] = r; });
+        function pxOf(col) { return sx + (col + 0.5) * pitch; }
+        function pyOf(row) { return top + (row ? L.lHeapCY : L.lNodeCY); }
+        function dsalPlace(r) {
+            var pr = fresh ? pm[r.addr] : null;
+            var pt = { x: pxOf(r.col), y: pyOf(r.row), a: 1 };
+            if (pr) {
+                pt.x = lerp(pxOf(pr.col), pt.x, q);
+                pt.y = lerp(pyOf(pr.row), pt.y, q);
+            } else if (fresh) {
+                pt.a = ez(seg(e, 0, 0.5));
             }
+            return pt;
         }
+        function dsalLink(fp, fr, tp, tr, alpha, col, lw) {
+            if (!tp || alpha <= 0) return;
+            var x1, y1, x2, y2;
+            if (fr === tr) {
+                x1 = fp.x + bw / 2 + 1; y1 = fp.y;
+                x2 = tp.x - bw / 2 - 1; y2 = tp.y;
+            } else if (tp.y > fp.y) {
+                x1 = fp.x; y1 = fp.y + nh / 2 + 2;
+                x2 = tp.x; y2 = tp.y - nh / 2 - 3;
+            } else {
+                x1 = fp.x; y1 = fp.y - nh / 2 - 2;
+                x2 = tp.x; y2 = tp.y + nh / 2 + 3;
+            }
+            ctx.globalAlpha = alpha;
+            arrow(x1, y1, x2, y2, col, lw);
+            ctx.globalAlpha = 1;
+        }
+        var nN = s.nodes.length;
+        var pN = p.nodes.length;
+        var nullX = fresh ? lerp(pxOf(pN), pxOf(nN), q) : pxOf(nN);
+        var nullY = pyOf(0);
+        var nullTP = { x: nullX - nullHalf + bw / 2 + 1, y: nullY };
 
-        var hasNew = step.newNode !== null && step.newNode !== undefined;
-        var tblTop = baseY + nodeH / 2
-            + (hasNew ? nodeH + (mob ? 52 : 62) : (mob ? 24 : 32));
-        drawTable(L, 'linked', tblTop);
+        cur.forEach(function (r) {
+            var pt = dsalPlace(r);
+            var pr = fresh ? pm[r.addr] : null;
+            var k2 = ez(seg(e, 0.35, 1));
+            var tgtNow = r.next === 'null' ? null : cm[r.next];
+            var tpNow = r.next === 'null' ? nullTP : (tgtNow ? dsalPlace(tgtNow) : null);
+            var rowNow = tgtNow ? tgtNow.row : 0;
+            if (pr && pr.next !== r.next) {
+                var oldTgt = pr.next === 'null' ? null : cm[pr.next];
+                var oldTP = pr.next === 'null' ? nullTP : (oldTgt ? dsalPlace(oldTgt) : null);
+                var oldRow = oldTgt ? oldTgt.row : 0;
+                dsalLink(pt, r.row, oldTP, oldRow, pt.a * (1 - k2), P.sub + 'ff', 1.8);
+                dsalLink(pt, r.row, tpNow, rowNow, pt.a * k2, P.green + 'ff', 2.4);
+            } else {
+                dsalLink(pt, r.row, tpNow, rowNow, pt.a, P.sub + 'ff', 1.8);
+            }
+        });
+
+        cur.forEach(function (r) {
+            var pt = dsalPlace(r);
+            var c = dsalSty(r.state);
+            ctx.globalAlpha = pt.a;
+            rr(pt.x - bw / 2, pt.y - nh / 2, bw, nh, 6, c.f, c.s, 2);
+            tx(r.val, pt.x, pt.y, fv, c.t, 'center', true);
+            tx(r.addr, pt.x, r.row ? pt.y + nh / 2 + 4 + fa / 2 : pt.y - nh / 2 - 5 - fa / 2, fa, P.sub + 'ff', 'center', false);
+            if (r.row) tx('NEW', pt.x + bw / 2 + 5, pt.y, fl, P.green + 'ff', 'left', true);
+            ctx.globalAlpha = 1;
+        });
+
+        var hx = pxOf(0);
+        tx('HEAD', hx, top + L.lHeadCY, fl, P.purple + 'ff', 'center', true);
+        arrow(hx, top + L.lHeadCY - fl / 2 - 3, hx, top + L.lNodeCY + nh / 2 + 2, P.purple + 'ff', 2);
+        tx('힙 메모리', hx, top + L.lHeapCY, fl, P.sub + 'ff', 'center', false);
+        tx('null', nullX, nullY, fl, P.sub + 'ff', 'center', false);
+
+        var cc = dsalCursor(s);
+        var pc = fresh ? dsalCursor(p) : null;
+        var cz = null;
+        if (cc) {
+            cz = { x: pxOf(cc.i), lab: cc.lab, a: 1 };
+            if (pc) cz.x = lerp(pxOf(pc.i), cz.x, ez(seg(e, 0, 0.6)));
+            else if (fresh) cz.a = ez(seg(e, 0, 0.5));
+        } else if (pc) {
+            cz = { x: pxOf(pc.i), lab: pc.lab, a: 1 - ez(seg(e, 0, 0.5)) };
+        }
+        if (cz) {
+            ctx.globalAlpha = cz.a;
+            tx(cz.lab, cz.x, top + L.lCurCY, fl, (cz.lab === '발견' ? P.yellow : P.purple) + 'ff', 'center', true);
+            ctx.globalAlpha = 1;
+        }
     }
 
     /* ===================== 복잡도 표 ===================== */
-    function drawTable(L, activeMode, topY) {
-        var W   = L.W;
-        var mob = L.mob;
-        var fHead = mob ? 11 : 13;
-        var fBody = mob ? 11 : 13;
-        var rowH  = mob ? 28 : 34;
-
-        var rows = [
-            ['연산',      'Array',   'Linked List'],
-            ['임의 접근', 'O(1) ✓',  'O(n)'],
-            ['맨 앞 삽입', 'O(n)',   'O(1) ✓'],
-            ['중간 삽입', 'O(n)',    'O(1) *'],
-        ];
-
-        var panW = mob ? Math.min(W - 32, 380) : Math.min(480, W - 80);
-        var panH = rows.length * rowH + 4;
-        var panX = (W - panW) / 2;
-        var panY = topY;
+    function dsalTable(x0, top, w, mob, L, activeMode) {
+        var fl = L.fl;
+        var tr = L.tr;
+        var panW = mob ? w : Math.min(w, 480);
+        var panX = x0 + (w - panW) / 2;
         var colW = panW / 3;
-
-        rr(panX, panY, panW, panH, 6, 'none', P.border + '66', 1);
-
-        var hiC = activeMode === 'array' ? 1 : 2;
-        rr(panX + hiC * colW, panY, colW, panH, 0,
-           isLight() ? P.green + '18' : P.green + '12', 'none', 0);
-
-        for (var r = 0; r < rows.length; r++) {
-            var cy = panY + r * rowH + rowH / 2 + 2;
-            for (var c = 0; c < 3; c++) {
-                var cx       = panX + c * colW + colW / 2;
-                var txt      = rows[r][c];
-                var isHead   = r === 0;
-                var isActive = (c === 1 && activeMode === 'array') || (c === 2 && activeMode === 'linked');
+        var py = top + L.tblTop;
+        var rows = [
+            ['연산', 'Array', 'Linked List'],
+            ['임의 접근', 'O(1) ✓', 'O(n)'],
+            ['맨 앞 삽입', 'O(n)', 'O(1) ✓'],
+            ['중간 삽입', 'O(n)', 'O(1) *']
+        ];
+        var hi = activeMode === 'linked' ? 2 : 1;
+        var r, c;
+        rr(panX + hi * colW, py, colW, L.tblH, 0, P.green + '22', 'none', 0);
+        rr(panX, py, panW, L.tblH, 6, 'none', P.border + '99', 1);
+        for (r = 0; r < rows.length; r++) {
+            var cy = py + 2 + r * tr + tr / 2;
+            for (c = 0; c < 3; c++) {
+                var txt = rows[r][c];
+                var isHead = r === 0;
+                var isActive = c === hi;
                 var hasCheck = txt.indexOf('✓') >= 0;
                 var hasAster = txt.indexOf('*') >= 0;
-
                 var color;
-                if (isHead) {
-                    color = P.text;
-                } else if (isActive && hasCheck) {
-                    color = P.green;
-                } else if (isActive) {
-                    color = P.text;
-                } else if (hasCheck) {
-                    color = P.green + 'aa';
-                } else {
-                    color = P.muted;
-                }
-
-                tx(txt, cx, cy, isHead ? fHead : fBody, color, 'center',
-                   isHead || hasCheck || hasAster);
+                if (isHead) color = P.text + 'ff';
+                else if (hasCheck) color = P.green + (isActive ? 'ff' : 'aa');
+                else color = (isActive ? P.text : P.sub) + 'ff';
+                tx(txt, panX + colW * (c + 0.5), cy, fl, color, 'center', isHead || hasCheck || hasAster);
             }
-
-            ctx.beginPath();
-            ctx.moveTo(panX + 6, panY + (r + 1) * rowH + 2);
-            ctx.lineTo(panX + panW - 6, panY + (r + 1) * rowH + 2);
-            ctx.strokeStyle = P.border + '55'; ctx.lineWidth = 1; ctx.stroke();
+            if (r < rows.length - 1) {
+                ln(panX + 6, py + (r + 1) * tr + 2, panX + panW - 6, py + (r + 1) * tr + 2, P.border + '99', 1);
+            }
         }
+        ln(panX + colW, py + 4, panX + colW, py + L.tblH - 4, P.border + '99', 1);
+        ln(panX + 2 * colW, py + 4, panX + 2 * colW, py + L.tblH - 4, P.border + '99', 1);
+        lines('* 위치를 이미 알고 있을 때 기준', w, fl).forEach(function (row, idx) {
+            tx(row, x0 + w / 2, top + L.footTop + idx * (fl + 5) + (fl + 5) / 2, fl, P.sub + 'ff', 'center', false);
+        });
+    }
 
-        for (var c = 1; c < 3; c++) {
-            ctx.beginPath();
-            ctx.moveTo(panX + c * colW, panY + 4);
-            ctx.lineTo(panX + c * colW, panY + panH - 4);
-            ctx.strokeStyle = P.border + '55'; ctx.lineWidth = 1; ctx.stroke();
-        }
+    /* ===================== 메인 장면 ===================== */
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var steps = currentSteps();
+        var s = step || steps[0];
+        var p = prev || s;
+        var fresh = s !== p;
+        var e = fresh ? clamp01(t) : 1;
+        var L = layout(w, mob);
+        tx(mode === 'linked' ? '노드는 흩어진 주소에 저장' : '연속된 메모리 칸', x0 + w / 2, top + L.capH / 2, L.fl, P.sub + 'ff', 'center', false);
+        if (mode === 'linked') dsalLnkDraw(x0, top, w, mob, L, s, p, fresh, e);
+        else dsalArrDraw(x0, top, w, mob, L, s, p, fresh, e);
+        dsalTable(x0, top, w, mob, L, mode);
+        ctx.globalAlpha = 1;
     }
 
     /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
     function draw() {
         P = window.CsFlow.getP();
         ctx.clearRect(0, 0, GW(), GH());
-        var L     = buildLayout();
+        var W = GW(); var mob = W < 600;
         var steps = currentSteps();
-        var step  = stepIdx >= 0 ? steps[stepIdx] : steps[0];
-        if (mode === 'array') drawArray(L, step);
-        else drawLinked(L, step);
+        var step = stepIdx >= 0 ? steps[stepIdx] : null;
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
-    /* ===================== 애니메이션 ===================== */
-    function getAnimDir(idx) {
-        var steps = currentSteps();
-        var step  = steps[idx];
-        if (!step) return 'none';
-        if (mode === 'array') {
-            if (step.arrowIdx >= 0) return 'shift';
-            if (step.cells && step.cells.some(function (c) { return c.state === 'inserted'; })) return 'insert';
-        } else {
-            if (step.newNode) return 'nodeappear';
-            if (step.nodes && step.nodes.some(function (nd) { return nd.state === 'inserted'; })) return 'ptrchange';
-        }
-        return 'none';
+    /* ===================== resize ===================== */
+    function resize() {
+        var w = canvasWrap.offsetWidth || 320;
+        var mob = w < 600;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
+        canvasWrap.style.height    = 'auto';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
+        var actualH = canvasWrap.offsetHeight || neededH;
+        if (actualH < neededH) actualH = neededH;
+        canvas.width  = w * dpr;
+        canvas.height = actualH * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        draw();
     }
 
+    /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
-        animDir  = getAnimDir(stepIdx);
-        animProg = 0;
         if (rafId) cancelAnimationFrame(rafId);
-        var s = 0.007 * (1800 / speed);
-        (function tick() {
-            animProg = Math.min(1, animProg + s);
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
             draw();
-            if (animProg < 1) {
-                rafId = requestAnimationFrame(tick);
-            } else {
-                animDir = 'none'; draw();
-                if (onDone) onDone();
-            }
-        })();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
-    function setSpeedDisabled(v) {
-        root.querySelectorAll('.al-viz__speed-btn').forEach(function (b) { b.disabled = v; });
-    }
+    function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -591,7 +689,7 @@
                 if (next === steps.length - 1) {
                     running = false; btnStep.disabled = true; setSpeedDisabled(false);
                 } else {
-                    timer = setTimeout(tick, speed);
+                    timer = setTimeout(tick, speed * 0.6);
                 }
             });
         }
@@ -599,9 +697,9 @@
     }
 
     function vizStep() {
-        if (running || animProg < 1) return;
+        if (running) return;
         var steps = currentSteps();
-        var next  = stepIdx + 1;
+        var next = stepIdx + 1;
         if (next >= steps.length) return;
         applyStep(next, null);
         if (next === steps.length - 1) { btnPlay.disabled = true; btnStep.disabled = true; }
@@ -610,30 +708,27 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1; animProg = 1; animDir = 'none';
-        logEl.textContent = mode === 'array'
-            ? '▶ PLAY를 눌러 배열 삽입 과정을 확인하세요.'
-            : '▶ PLAY를 눌러 연결 리스트 삽입 과정을 확인하세요.';
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
+        logEl.textContent = defaultLog();
         setSpeedDisabled(false);
         resize();
     }
 
     function setSpeed(ms, btn) {
         speed = ms;
-        root.querySelectorAll('.al-viz__speed-btn').forEach(function (b) {
-            b.classList.remove('al-viz__speed-btn--active');
-        });
+        speedBtns.forEach(function (b) { b.classList.remove('al-viz__speed-btn--active'); });
         btn.classList.add('al-viz__speed-btn--active');
     }
 
     function switchMode(m) {
         if (mode === m) return;
         mode = m;
-        modeArray.classList.toggle('al-viz__mode-btn--active',  m === 'array');
-        modeLinked.classList.toggle('al-viz__mode-btn--active', m === 'linked');
+        modeDefs.forEach(function (d) { modeBtns[d.key].classList.toggle('al-viz__mode-btn--active', d.key === m); });
         vizReset();
     }
+
+    logEl.textContent = defaultLog();
 
     /* ===================== 라이프사이클 ===================== */
     window.CsFlow.createVizLifecycle({
@@ -642,9 +737,15 @@
         setState : function (s) { rafId = s.rafId; timer = s.timer; running = s.running; },
         onPause  : function () { setSpeedDisabled(false); },
         getMouseCtx: function () {
-            return { GW: GW, GH: GH, mousePos: { x: -1, y: -1 }, tooltipHits: [],
-                     hoveredKey: function () { return null; }, setHoveredKey: function () {}, draw: draw };
-        },
+            return {
+                GW: GW, GH: GH,
+                mousePos: { x: -1, y: -1 },
+                tooltipHits: [],
+                hoveredKey: function () { return null; },
+                setHoveredKey: function () {},
+                draw: draw
+            };
+        }
     });
 
     setTimeout(resize, 60);

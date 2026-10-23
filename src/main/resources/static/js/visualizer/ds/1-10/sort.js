@@ -1,5 +1,5 @@
 /**
- * 정렬 알고리즘 시각화
+ * 정렬 알고리즘 시각화 시각화
  */
 (function () {
     'use strict';
@@ -23,8 +23,8 @@
     var modeWrap = el('div', 'sort-viz__mode');
     var modeDefs = [
         { key: 'bubble', label: '버블 정렬' },
-        { key: 'merge',  label: '병합 정렬' },
-        { key: 'quick',  label: '퀵 정렬' },
+        { key: 'merge', label: '병합 정렬' },
+        { key: 'quick', label: '퀵 정렬' }
     ];
     var modeBtns = {};
     modeDefs.forEach(function (m, i) {
@@ -39,7 +39,7 @@
     var speedWrap = el('div', 'sort-viz__speed');
     speedWrap.appendChild(el('span', 'sort-viz__speed-label', 'SPEED'));
     var speedBtns = [];
-    [['1x', 1400], ['2x', 700], ['3x', 400]].forEach(function (pair, i) {
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
         var b = el('button', 'sort-viz__speed-btn' + (i === 0 ? ' sort-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
@@ -54,7 +54,7 @@
     canvasWrap.appendChild(canvas);
     root.appendChild(canvasWrap);
 
-    var logEl = el('div', 'sort-viz__log', '▶ PLAY를 눌러 정렬 과정을 확인하세요.');
+    var logEl = el('div', 'sort-viz__log', '');
     root.appendChild(logEl);
 
     var controls = el('div', 'sort-viz__controls');
@@ -72,11 +72,78 @@
 
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    function GW() { return canvas.width  / dpr; }
+    function GW() { return canvas.width / dpr; }
     function GH() { return canvas.height / dpr; }
 
-    /* ===================== 팔레트 ===================== */
     var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'bubble';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
+    }
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 데이터 ===================== */
     var ARR = [8, 3, 6, 1, 9, 4, 7, 2];
@@ -226,202 +293,272 @@
     var MERGE_STEPS  = buildMergeSteps(ARR);
     var QUICK_STEPS  = buildQuickSteps(ARR);
 
-    /* ===================== 상태 변수 ===================== */
-    var mode     = 'bubble';
-    var stepIdx  = -1;
-    var running  = false;
-    var timer    = null;
-    var rafId    = null;
-    var speed    = 1400;
-    var animProg = 1;
-
+    /* ===================== 상태 ===================== */
     function currentSteps() {
-        if (mode === 'bubble') return BUBBLE_STEPS;
-        if (mode === 'merge')  return MERGE_STEPS;
-        return QUICK_STEPS;
+        if (mode === 'merge') return MERGE_STEPS;
+        if (mode === 'quick') return QUICK_STEPS;
+        return BUBBLE_STEPS;
+    }
+    function defaultLog() {
+        if (mode === 'merge') return '▶ PLAY를 눌러 병합 정렬 과정을 확인하세요.';
+        if (mode === 'quick') return '▶ PLAY를 눌러 퀵 정렬 과정을 확인하세요.';
+        return '▶ PLAY를 눌러 버블 정렬 과정을 확인하세요.';
     }
 
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        var rad = Math.min(r, w / 2, h / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + rad, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, rad);
-        ctx.arcTo(x + w, y + h, x,     y + h, rad);
-        ctx.arcTo(x,     y + h, x,     y,     rad);
-        ctx.arcTo(x,     y,     x + w, y,     rad);
-        ctx.closePath();
-        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
-        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.5; ctx.stroke(); }
+    /* ===================== 레이아웃 ===================== */
+    function ez(q) { q = clamp01(q); return q * q * (3 - 2 * q); }
+    function layout(w, mob) {
+        var bh = mob ? 92 : 124;
+        var base = (mob ? 58 : 62) + bh;
+        return { fs: mob ? 10.5 : 12, bh: bh, base: base, total: base + (mob ? 60 : 66) };
     }
-
-    function tx(str, x, y, sz, color, align, bold) {
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
+    function sceneH(w, mob) { return layout(w, mob).total; }
+    function dsGeom(x0, top, w, mob, n) {
+        var L = layout(w, mob);
+        var cw = Math.min(mob ? 40 : 60, (w - 24) / n);
+        var gap = mob ? 7 : 10;
+        return {
+            x0: x0, w: w, top: top, n: n, fs: L.fs, bh: L.bh, cw: cw, gap: gap, bw: cw - gap,
+            ox: x0 + (w - cw * n) / 2, base: top + L.base, legY: top + (mob ? 8 : 9)
+        };
     }
-
-    function textWidth(str, sz, bold) {
-        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+    function dsX(g, k) { return g.ox + k * g.cw; }
+    function dsCX(g, k) { return g.ox + k * g.cw + g.cw / 2; }
+    function dsTw(str, fs) {
+        ctx.font = '500 ' + fs + 'px "JetBrains Mono",monospace';
         return ctx.measureText(str).width;
     }
-
-    function circle(cx, cy, r, fill, stroke, lw) {
-        ctx.beginPath();
-        ctx.arc(cx, cy, r, 0, Math.PI * 2);
-        if (fill)   { ctx.fillStyle = fill; ctx.fill(); }
-        if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.5; ctx.stroke(); }
+    function dsMid(steps, idx, lo, hi) {
+        for (var q = idx; q >= 0; q--) {
+            var h = steps[q].highlight;
+            if (steps[q].type === 'split' && h.range[0] === lo && h.range[1] === hi) return h.splitMid;
+        }
+        return -1;
     }
 
-    function line(x1, y1, x2, y2, col, lw) {
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
-        ctx.strokeStyle = col; ctx.lineWidth = lw || 1.5;
-        ctx.stroke();
-    }
-
-    /* ===================== 막대 색상 (항상 순수 hex 반환 — 알파는 그리는 곳에서 한 번만 붙임) ===================== */
-    function barColor(i, step) {
-        if (step.sorted && step.sorted.indexOf(i) >= 0) return step.type === 'done' ? P.green : P.teal;
-        if (step.highlight.pivot === i) return P.purple;
-        if (step.highlight.compare && step.highlight.compare.indexOf(i) >= 0) return P.orange;
-        if (step.highlight.swap && step.highlight.swap.indexOf(i) >= 0) return P.orange;
-        if (step.highlight.writing === i) return P.orange;
-        return P.muted;
+    /* ===================== 색 ===================== */
+    function dsColor(s, i) {
+        var h = s.highlight;
+        if (s.sorted.indexOf(i) >= 0) return s.type === 'done' ? P.green : P.teal;
+        if (h.pivot === i) return P.purple;
+        if ((h.compare && h.compare.indexOf(i) >= 0) || (h.swap && h.swap.indexOf(i) >= 0) || h.writing === i) return P.orange;
+        return P.sub;
     }
 
     /* ===================== 범례 ===================== */
-    function drawLegend(W, top, mob) {
-        var items = [
-            { col: P.teal,   label: '정렬됨' },
-            { col: P.orange, label: '비교/교환' },
-        ];
-        if (mode === 'quick') items.push({ col: P.purple, label: '피벗' });
-        items.push({ col: P.muted, label: '아직' });
-
-        var fLbl = mob ? 10 : 11;
-        var sw   = mob ? 9  : 10;
-        var x0   = mob ? 16 : 28;
-        var y    = top + (mob ? 7 : 9);
-        var gapAfterLabel = mob ? 16 : 20;
-
-        var x = x0;
+    function dsLegend(g, mob) {
+        var fs = mob ? 10 : 11;
+        var items = mode === 'merge'
+            ? [[P.purple, '구간'], [P.orange, '비교/기록'], [P.teal, '정렬됨'], [P.sub, '아직']]
+            : mode === 'quick'
+                ? [[P.purple, '피벗'], [P.orange, '비교/교환'], [P.teal, '정렬됨'], [P.sub, '아직']]
+                : [[P.orange, '비교/교환'], [P.teal, '정렬됨'], [P.sub, '아직']];
+        var x = g.x0 + 2;
         items.forEach(function (it) {
-            circle(x, y, sw / 2, it.col + 'dd', it.col + 'ee', 1);
-            x += sw + 5;
-            tx(it.label, x, y, fLbl, P.text + 'cc', 'left', false);
-            x += textWidth(it.label, fLbl, false) + gapAfterLabel;
+            circ(x + 4, g.legY, 4, it[0] + 'ff', null, 1);
+            x += 12;
+            tx(it[1], x, g.legY, fs, P.text + 'cc', 'left', false);
+            x += dsTw(it[1], fs) + 12;
         });
     }
 
-    /* ===================== 막대 그래프 ===================== */
-    function drawBars(W, top, h, mob, step) {
-        var n = step.array.length;
-        var marginX = mob ? 14 : 26;
-        var gap     = mob ? 8  : 14;
-        var barW    = (W - 2 * marginX - (n - 1) * gap) / n;
-        var topPad    = mob ? 22 : 26;
-        var bottomPad = mob ? 40 : 46;
-        var maxBarH   = Math.max(20, h - topPad - bottomPad);
-        var baselineY = top + topPad + maxBarH;
-
-        for (var i = 0; i < n; i++) {
-            var val  = step.array[i];
-            var barH = Math.max(6, (val / MAXVAL) * maxBarH);
-            var barX = marginX + i * (barW + gap);
-            var barY = baselineY - barH;
-            var col  = barColor(i, step);
-
-            rr(barX, barY, barW, barH, 4, col + '33', col + 'ee', 2);
-            tx(String(val), barX + barW / 2, barY - (mob ? 11 : 13), mob ? 12 : 14, P.text + 'ee', 'center', true);
-            tx(String(i), barX + barW / 2, baselineY + (mob ? 13 : 15), mob ? 9 : 10, P.text + '77', 'center', false);
+    /* ===================== 구간 표시 ===================== */
+    function dsZone(g, a, b, col, label) {
+        var x1 = dsX(g, a) + 1, x2 = dsX(g, b) + g.cw - 1;
+        rr(x1, g.base - g.bh - 14, x2 - x1, g.bh + 16, 6, col + '2a', null, 0);
+        if (x2 - x1 >= dsTw(label, g.fs - 1) + 6) tx(label, (x1 + x2) / 2, g.base + 36, g.fs - 1, col + 'ff', 'center', true);
+    }
+    function dsRangeBg(g, s) {
+        var r = s.highlight.range;
+        if (!r) return;
+        var x1 = dsX(g, r[0]) + 1, x2 = dsX(g, r[1]) + g.cw - 1;
+        rr(x1, g.base - g.bh - 14, x2 - x1, g.bh + 16, 6, P.purple + '14', null, 0);
+    }
+    function dsQuickBase(g, s) {
+        var h = s.highlight;
+        if (mode !== 'quick' || !h.range || h.pivot === undefined) return;
+        var lo = h.range[0], hi = h.range[1];
+        var pv = s.array[h.pivot];
+        var j = h.pivot === hi ? (h.compare ? h.compare[0] : (h.swap ? h.swap[1] : -1)) : -1;
+        if (j >= 0) {
+            var cnt = 0;
+            for (var x = lo; x < j; x++) if (s.array[x] < pv) cnt++;
+            var bd = lo - 1 + cnt;
+            if (bd >= lo) dsZone(g, lo, bd, P.teal, '작음');
+            if (j - 1 > bd) dsZone(g, bd + 1, j - 1, P.sub, '큼');
         }
+        var yP = g.base - pv / MAXVAL * g.bh;
+        ln(dsX(g, lo), yP, dsX(g, hi) + g.cw, yP, P.purple + '99', 1.2, [4, 3]);
+    }
 
-        if (step.highlight.range) {
-            var lo = step.highlight.range[0], hi = step.highlight.range[1];
-            var xlo = marginX + lo * (barW + gap);
-            var xhi = marginX + hi * (barW + gap) + barW;
-            var by  = baselineY + (mob ? 26 : 30);
-            line(xlo, by, xhi, by, P.purple + '99', 2);
-            line(xlo, by - 4, xlo, by + 4, P.purple + '99', 2);
-            line(xhi, by - 4, xhi, by + 4, P.purple + '99', 2);
-            tx('구간 [' + lo + '..' + hi + ']', (xlo + xhi) / 2, by + (mob ? 12 : 14), mob ? 9 : 10, P.purple + 'cc', 'center', true);
+    /* ===================== 병합 구간 ===================== */
+    function dsBracket(g, a, b, col, alpha) {
+        if (alpha <= 0) return;
+        var x1 = dsX(g, a) + 2, x2 = dsX(g, b) + g.cw - 2, y = g.base + 24;
+        ctx.globalAlpha = alpha;
+        ln(x1, y, x2, y, col + 'ff', 2);
+        ln(x1, y, x1, y - 5, col + 'ff', 2);
+        ln(x2, y, x2, y - 5, col + 'ff', 2);
+        ctx.globalAlpha = 1;
+    }
+    function dsMergeRuns(g, s, fresh, e, steps, idx) {
+        var h = s.highlight;
+        if (mode !== 'merge' || !h.range) return;
+        var lo = h.range[0], hi = h.range[1];
+        var splitting = s.type === 'split';
+        var whole = s.type === 'merged';
+        var mid = splitting ? h.splitMid : dsMid(steps, idx, lo, hi);
+        var aWhole = whole ? (fresh ? ez(e) : 1) : (splitting && fresh ? 1 - ez(e) : 0);
+        var aSub = whole ? (fresh ? 1 - ez(e) : 0) : (splitting && fresh ? ez(e) : 1);
+        dsBracket(g, lo, hi, P.teal, aWhole);
+        if (mid >= 0) {
+            dsBracket(g, lo, mid, P.teal, aSub);
+            dsBracket(g, mid + 1, hi, P.purple, aSub);
+        }
+        if (splitting && mid >= 0) {
+            ctx.globalAlpha = fresh ? ez(e) : 1;
+            ln(dsX(g, mid + 1), g.base - g.bh - 14, dsX(g, mid + 1), g.base + 2, P.yellow + 'ff', 1.4, [3, 3]);
+            ctx.globalAlpha = 1;
         }
     }
 
-    /* ===================== 레이아웃 상수 ===================== */
-    function getLayout(mob) {
-        return {
-            top:      mob ? 18 : 24,
-            legendH:  mob ? 24 : 28,
-            barAreaH: mob ? 232 : 268,
-        };
+    /* ===================== 막대 ===================== */
+    function dsSlot(s, p, fresh, e, k) {
+        if (!fresh || mode === 'merge') return k;
+        var m = p.array.indexOf(s.array[k]);
+        return m < 0 ? k : lerp(m, k, ez(e));
+    }
+    function dsBars(g, s, p, fresh, e) {
+        ln(g.ox, g.base + 1, g.ox + g.n * g.cw, g.base + 1, P.sub + '66', 1);
+        for (var k = 0; k < g.n; k++) {
+            var v = s.array[k];
+            var slot = dsSlot(s, p, fresh, e, k);
+            var moving = Math.abs(slot - k) > 0.001;
+            var changing = fresh && mode === 'merge' && p.array[k] !== v;
+            var shown = changing && e < 0.5 ? p.array[k] : v;
+            var bh = Math.max(6, (changing ? lerp(p.array[k], v, ez(e)) : v) / MAXVAL * g.bh);
+            var lift = moving ? Math.sin(Math.PI * ez(e)) * (g.bh + 16 - bh + (slot < k ? 14 : 0)) : 0;
+            var x = dsX(g, slot) + g.gap / 2;
+            var y = g.base - bh - lift;
+            var col = dsColor(s, k);
+            rr(x, y, g.bw, bh, 4, col + '55', col + 'ff', 1.8);
+            tx(String(shown), x + g.bw / 2, y - 8, g.fs, P.text + 'ff', 'center', true);
+            tx(String(k), dsCX(g, k), g.base + 12, g.fs - 1, P.sub + 'ff', 'center', false);
+        }
+    }
+
+    /* ===================== 이동 표시 ===================== */
+    function dsFlight(g, s, p, fresh, e) {
+        var h = s.highlight;
+        if (mode !== 'merge' || !fresh || h.writing === undefined || !p.highlight.compare) return;
+        var a = 1 - seg(e, 0.8, 1);
+        if (a <= 0) return;
+        var c = p.highlight.compare, v = s.array[h.writing];
+        var src = p.array[c[0]] === v ? c[0] : (p.array[c[1]] === v ? c[1] : -1);
+        if (src < 0) return;
+        var q = ez(e);
+        var x = lerp(dsCX(g, src), dsCX(g, h.writing), q) - g.bw / 2;
+        var y = g.base - g.bh - 26 - Math.sin(Math.PI * q) * 10;
+        ctx.globalAlpha = a;
+        rr(x, y - 9, g.bw, 18, 4, P.yellow + 'ff', null, 0);
+        tx(String(v), x + g.bw / 2, y, g.fs, '#111111', 'center', true);
+        ctx.globalAlpha = 1;
+    }
+    function dsPointers(g, s, p, fresh, e) {
+        var h = s.highlight;
+        if (mode === 'merge' && h.compare) {
+            tx('L', dsCX(g, h.compare[0]), g.base + 36, g.fs - 1, P.teal + 'ff', 'center', true);
+            tx('R', dsCX(g, h.compare[1]), g.base + 36, g.fs - 1, P.purple + 'ff', 'center', true);
+        }
+        if (mode === 'quick' && h.range && h.pivot !== undefined) {
+            tx('피벗', dsX(g, dsSlot(s, p, fresh, e, h.pivot)) + g.cw / 2, g.base + 36, g.fs - 1, P.purple + 'ff', 'center', true);
+        }
+    }
+
+    /* ===================== 설명 ===================== */
+    function dsNote(g, s) {
+        var h = s.highlight, txt = '';
+        if (s.type === 'done') txt = '정렬 완료 · 모든 칸 확정';
+        else if (mode === 'bubble') txt = '확정 ' + s.sorted.length + '칸 / 전체 ' + g.n + '칸';
+        else if (mode === 'quick' && h.range) txt = (h.pivot !== undefined ? '피벗 ' + s.array[h.pivot] + ' · ' : '') + '구간 [' + h.range[0] + '..' + h.range[1] + ']';
+        else if (mode === 'merge' && h.range) {
+            if (s.type === 'split') txt = '[' + h.range[0] + '..' + h.splitMid + ']+[' + (h.splitMid + 1) + '..' + h.range[1] + ']로 분할';
+            else if (s.type === 'merged') txt = '[' + h.range[0] + '..' + h.range[1] + '] 병합 완료';
+            else txt = '구간 [' + h.range[0] + '..' + h.range[1] + '] 병합 중';
+        }
+        if (txt) tx(txt, g.x0 + g.w / 2, g.base + 50, g.fs - 0.5, P.text + 'dd', 'center', true);
+    }
+
+    /* ===================== 메인 장면 ===================== */
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var e = clamp01(t);
+        var steps = currentSteps();
+        var s = step || steps[0];
+        var p = prev || s;
+        var fresh = s !== p;
+        var g = dsGeom(x0, top, w, mob, s.array.length);
+        dsLegend(g, mob);
+        dsRangeBg(g, s);
+        dsQuickBase(g, s);
+        dsMergeRuns(g, s, fresh, e, steps, steps.indexOf(s));
+        dsBars(g, s, p, fresh, e);
+        dsFlight(g, s, p, fresh, e);
+        dsPointers(g, s, p, fresh, e);
+        dsNote(g, s);
+    }
+
+    /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
+    function draw() {
+        P = window.CsFlow.getP();
+        ctx.clearRect(0, 0, GW(), GH());
+        var W = GW(); var mob = W < 600;
+        var steps = currentSteps();
+        var step = stepIdx >= 0 ? steps[stepIdx] : null;
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
     }
 
     /* ===================== resize ===================== */
-    function calcH(W) {
-        var mob = W < 600;
-        var L = getLayout(mob);
-        return L.top + L.legendH + L.barAreaH + L.top;
-    }
-
     function resize() {
         var w = canvasWrap.offsetWidth || 320;
-        var h = calcH(w);
-        canvasWrap.style.height    = h + 'px';
-        canvasWrap.style.minHeight = h + 'px';
+        var mob = w < 600;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
+        canvasWrap.style.height    = 'auto';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
+        var actualH = canvasWrap.offsetHeight || neededH;
+        if (actualH < neededH) actualH = neededH;
         canvas.width  = w * dpr;
-        canvas.height = h * dpr;
+        canvas.height = actualH * dpr;
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         draw();
     }
 
-    /* ===================== 메인 드로우 ===================== */
-    function draw() {
-        P = window.CsFlow.getP();
-        ctx.clearRect(0, 0, GW(), GH());
-        var W   = GW();
-        var mob = W < 600;
-        var L   = getLayout(mob);
-
-        var steps = currentSteps();
-        var step  = stepIdx >= 0 ? steps[stepIdx] : steps[0];
-
-        drawLegend(W, L.top, mob);
-        drawBars(W, L.top + L.legendH, L.barAreaH, mob, step);
-    }
-
-    /* ===================== 애니메이션 ===================== */
+    /* ===================== 애니메이션(스텝 전환) ===================== */
     function animateStep(onDone) {
-        animProg = 0;
         if (rafId) cancelAnimationFrame(rafId);
-        var s = 0.01 * (1400 / speed);
-        (function tick() {
-            animProg = Math.min(1, animProg + s);
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
             draw();
-            if (animProg < 1) {
-                rafId = requestAnimationFrame(tick);
-            } else {
-                draw();
-                if (onDone) onDone();
-            }
-        })();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
-    function setSpeedDisabled(v) {
-        speedBtns.forEach(function (b) { b.disabled = v; });
-    }
-
-    function defaultLog() {
-        if (mode === 'bubble') return '▶ PLAY를 눌러 버블 정렬 과정을 확인하세요.';
-        if (mode === 'merge')  return '▶ PLAY를 눌러 병합 정렬 과정을 확인하세요.';
-        return '▶ PLAY를 눌러 퀵 정렬 과정을 확인하세요.';
-    }
+    function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
@@ -441,7 +578,7 @@
                 if (next === steps.length - 1) {
                     running = false; btnStep.disabled = true; setSpeedDisabled(false);
                 } else {
-                    timer = setTimeout(tick, speed * 0.45);
+                    timer = setTimeout(tick, speed * 0.6);
                 }
             });
         }
@@ -449,9 +586,9 @@
     }
 
     function vizStep() {
-        if (running || animProg < 1) return;
+        if (running) return;
         var steps = currentSteps();
-        var next  = stepIdx + 1;
+        var next = stepIdx + 1;
         if (next >= steps.length) return;
         applyStep(next, null);
         if (next === steps.length - 1) { btnPlay.disabled = true; btnStep.disabled = true; }
@@ -460,7 +597,7 @@
     function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1; animProg = 1;
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
         setSpeedDisabled(false);
@@ -476,11 +613,11 @@
     function switchMode(m) {
         if (mode === m) return;
         mode = m;
-        modeDefs.forEach(function (d) {
-            modeBtns[d.key].classList.toggle('sort-viz__mode-btn--active', d.key === m);
-        });
+        modeDefs.forEach(function (d) { modeBtns[d.key].classList.toggle('sort-viz__mode-btn--active', d.key === m); });
         vizReset();
     }
+
+    logEl.textContent = defaultLog();
 
     /* ===================== 라이프사이클 ===================== */
     window.CsFlow.createVizLifecycle({
@@ -495,9 +632,9 @@
                 tooltipHits: [],
                 hoveredKey: function () { return null; },
                 setHoveredKey: function () {},
-                draw: draw,
+                draw: draw
             };
-        },
+        }
     });
 
     setTimeout(resize, 60);
