@@ -1,102 +1,182 @@
 /**
- * 프로세스 동기화 시각화
+ * 프로세스 동기화 시각화 시각화
  */
 (function () {
     'use strict';
 
-    const container = document.getElementById('visualizer-container');
+    var container = document.getElementById('visualizer-container');
     if (!container) return;
 
-    /* ===================== UI 구성 ===================== */
     function el(tag, cls, txt) {
-        const e = document.createElement(tag);
+        var e = document.createElement(tag);
         if (cls) e.className = cls;
-        if (txt) e.textContent = txt;
+        if (txt !== undefined && txt !== null) e.textContent = txt;
         return e;
     }
 
-    const root    = el('div', 'sync-viz');
-    const toolbar = el('div', 'sync-viz__toolbar');
-    const tbLeft  = el('div', 'sync-viz__toolbar-left');
+    /* ===================== DOM ===================== */
+    var root    = el('div', 'sync-viz');
+    var toolbar = el('div', 'sync-viz__toolbar');
+    var tbLeft  = el('div', 'sync-viz__toolbar-left');
     tbLeft.appendChild(el('span', 'sync-viz__title', 'Process Sync'));
 
-    const modeTabs = el('div', 'sync-viz__mode-tabs');
-    const modeHint = el('span', 'sync-viz__mode-hint', '모드 선택 →');
-    ['Race', 'Mutex', 'Semaphore'].forEach(function (lbl, i) {
-        const b = el('button', 'sync-viz__mode-btn' + (i === 0 ? ' sync-viz__mode-btn--active' : ''), lbl);
-        b.addEventListener('click', function () { if (!running) setMode(i, b); });
-        modeTabs.appendChild(b);
+    var modeWrap = el('div', 'sync-viz__mode');
+    var modeDefs = [
+        { key: 'race', label: 'Race' },
+        { key: 'mutex', label: 'Mutex' },
+        { key: 'semaphore', label: 'Semaphore' }
+    ];
+    var modeBtns = {};
+    modeDefs.forEach(function (m, i) {
+        var b = el('button', 'sync-viz__mode-btn' + (i === 0 ? ' sync-viz__mode-btn--active' : ''), m.label);
+        b.addEventListener('click', function () { if (!running) switchMode(m.key); });
+        modeWrap.appendChild(b);
+        modeBtns[m.key] = b;
     });
-    tbLeft.appendChild(modeHint);
-    tbLeft.appendChild(modeTabs);
+    if (modeDefs.length) tbLeft.appendChild(modeWrap);
     toolbar.appendChild(tbLeft);
 
-    const speedWrap = el('div', 'sync-viz__speed');
+    var speedWrap = el('div', 'sync-viz__speed');
     speedWrap.appendChild(el('span', 'sync-viz__speed-label', 'SPEED'));
-    [['1x', 1800], ['2x', 900], ['3x', 600]].forEach(function (pair, i) {
-        const b = el('button', 'sync-viz__speed-btn' + (i === 0 ? ' sync-viz__speed-btn--active' : ''), pair[0]);
+    var speedBtns = [];
+    [['1x', 1900], ['2x', 950], ['3x', 520]].forEach(function (pair, i) {
+        var b = el('button', 'sync-viz__speed-btn' + (i === 0 ? ' sync-viz__speed-btn--active' : ''), pair[0]);
         b.addEventListener('click', function () { if (!running) setSpeed(pair[1], b); });
         speedWrap.appendChild(b);
+        speedBtns.push(b);
     });
     toolbar.appendChild(speedWrap);
     root.appendChild(toolbar);
 
-    const canvasWrap = el('div', 'sync-viz__canvas-wrap');
-    const canvas     = document.createElement('canvas');
+    var canvasWrap = el('div', 'sync-viz__canvas-wrap');
+    var canvas     = document.createElement('canvas');
     canvas.className = 'sync-viz__canvas';
     canvasWrap.appendChild(canvas);
     root.appendChild(canvasWrap);
 
-    const logEl = el('div', 'sync-viz__log', '▶ PLAY를 눌러 동기화 원리를 확인하세요. 상단 버튼으로 모드를 바꿀 수 있습니다.');
+    var logEl = el('div', 'sync-viz__log', '');
     root.appendChild(logEl);
 
-    const controls = el('div', 'sync-viz__controls');
-    const btnPlay  = el('button', 'sync-viz__btn sync-viz__btn--primary', '▶ PLAY');
-    const btnStep  = el('button', 'sync-viz__btn', '▶| STEP');
-    const btnReset = el('button', 'sync-viz__btn', '↺ RESET');
-    btnPlay.addEventListener('click',  syncStart);
-    btnStep.addEventListener('click',  syncStep);
-    btnReset.addEventListener('click', syncReset);
+    var controls = el('div', 'sync-viz__controls');
+    var btnPlay  = el('button', 'sync-viz__btn sync-viz__btn--primary', '▶ PLAY');
+    var btnStep  = el('button', 'sync-viz__btn', '▶| STEP');
+    var btnReset = el('button', 'sync-viz__btn', '↺ RESET');
+    btnPlay.addEventListener('click',  vizStart);
+    btnStep.addEventListener('click',  vizStep);
+    btnReset.addEventListener('click', vizReset);
     controls.appendChild(btnPlay);
     controls.appendChild(btnStep);
     controls.appendChild(btnReset);
     root.appendChild(controls);
     container.appendChild(root);
 
-    /* ===================== 캔버스 ===================== */
-    const ctx = canvas.getContext('2d');
-    const dpr = window.devicePixelRatio || 1;
-    const GW  = function () { return canvas.width  / dpr; };
-    const GH  = function () { return canvas.height / dpr; };
+    var ctx = canvas.getContext('2d');
+    var dpr = window.devicePixelRatio || 1;
+    function GW() { return canvas.width / dpr; }
+    function GH() { return canvas.height / dpr; }
 
-    function calcMobH() {
-        const tH     = 66;
-        const midH   = 80;
-        const botH   = 100;
-        const topPad = 22;
-        const vGap1  = 42;
-        const vGap2  = 38;
-        const botPad = 28;
-        if (modeIdx === 0) {
-            return topPad + tH + vGap1 + (midH + vGap2 + botH) + botPad;
-        }
-        return topPad + tH + vGap1 + midH + vGap2 + botH + botPad;
+    var P = window.CsFlow.getP();
+
+    /* ===================== 상태 ===================== */
+    var mode    = 'race';
+    var stepIdx = -1;
+    var running = false;
+    var timer   = null;
+    var rafId   = null;
+    var speed   = 1900;
+    var anim    = 1;
+
+    /* ===================== 드로우 헬퍼 ===================== */
+    function rr(x, y, w, h, r, fill, stroke, lw) {
+        if (w <= 0 || h <= 0) return;
+        var rad = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;              ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
     }
-
-    function resize() {
-        const w   = canvasWrap.offsetWidth;
-        const mob = w < 520;
-        const minH = mob ? calcMobH() : 460;
-        canvasWrap.style.minHeight = minH + 'px';
-        const h    = mob ? minH : Math.max(canvasWrap.offsetHeight, minH);
-        canvas.width  = w * dpr;
-        canvas.height = h * dpr;
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        draw();
+    function tx(str, x, y, sz, color, align, bold) {
+        if (sz < 9.5) sz = 9.5;
+        if (color.indexOf(P.muted) === 0) color = P.sub + 'ff';
+        ctx.font = (bold ? '700' : '500') + ' ' + sz + 'px "JetBrains Mono",monospace';
+        ctx.fillStyle = color;
+        ctx.textAlign = align || 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(str, x, y);
     }
-
-    /* ===================== 팔레트 ===================== */
-    let P = window.CsFlow.getP();
+    function ln(x1, y1, x2, y2, color, lw, dash) {
+        ctx.beginPath();
+        ctx.setLineDash(dash || []);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw || 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    function arrow(x1, y1, x2, y2, color, lw, dash) {
+        ln(x1, y1, x2, y2, color, lw, dash);
+        var a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4));
+        ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    function circ(x, y, r, fill, stroke, lw) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (fill   && fill   !== 'none') { ctx.fillStyle   = fill;   ctx.fill();   }
+        if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+    }
+    var tipHits = [];
+    var mousePos = { x: -1, y: -1 };
+    var hoveredKey = null;
+    function tipHit(x, y, w, h, key) { tipHits.push({ x: x, y: y, w: w, h: h, key: key }); }
+    function tipBadge(cx, cy, key) {
+        var on = hoveredKey === key;
+        circ(cx, cy, 7, on ? P.purple + '44' : 'none', P.purple + (on ? 'ff' : '99'), 1.2);
+        tx('?', cx, cy, 9.5, on ? P.text + 'ff' : P.sub + 'ff', 'center', true);
+        tipHit(cx - 10, cy - 10, 20, 20, key);
+    }
+    function drawTip(mx, my, text) {
+        var parts = text.split(String.fromCharCode(10));
+        var title = parts[0], desc = parts[1] || '';
+        var W = GW(), H = GH();
+        var pad = 14;
+        var maxIn = W - 16 - pad * 2;
+        ctx.font = '700 14px "JetBrains Mono",monospace';
+        var titleW = Math.min(maxIn, ctx.measureText(title).width);
+        ctx.font = '400 13px "JetBrains Mono",monospace';
+        var dl = desc ? window.CsFlow.wrapText(ctx, desc, maxIn) : [];
+        var descW = 0;
+        dl.forEach(function (l) { descW = Math.max(descW, ctx.measureText(l).width); });
+        var tw = Math.min(W - 16, Math.max(titleW, descW) + pad * 2);
+        var th = desc ? 42 + dl.length * 18 : 36;
+        var bx = mx + 14, by = my - th - 8;
+        if (bx + tw > W - 8) bx = mx - tw - 14;
+        if (bx < 8) bx = 8;
+        if (by < 8) by = my + 14;
+        if (by + th > H - 8) by = H - th - 8;
+        rr(bx, by, tw, th, 6, P.surf2, P.purple + 'cc', 2);
+        tx(title, bx + pad, by + (desc ? 18 : th / 2), 14, P.text + 'ff', 'left', true);
+        dl.forEach(function (l, i) { tx(l, bx + pad, by + 42 + i * 18, 13, P.sub + 'ff', 'left', false); });
+    }
+    function colorOf(key) { return P[key] || P.muted; }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function seg(t, a, b) { return clamp01((t - a) / (b - a)); }
+    function lines(str, maxW, fs) {
+        ctx.font = '700 ' + fs + 'px "JetBrains Mono",monospace';
+        return window.CsFlow.wrapText(ctx, str, maxW);
+    }
 
     /* ===================== 시나리오 ===================== */
     const RACE_STEPS = [
@@ -232,575 +312,532 @@
         { name: 'Semaphore',      steps: SEM_STEPS },
     ];
 
-    /* ===================== 상태 변수 ===================== */
-    let modeIdx    = 0;
-    let stepIdx    = -1;
-    let running    = false;
-    let timer      = null;
-    let rafId      = null;
-    let speed      = 1800;
-    let pktCurrent = null;
-    let pktProg    = 0;
-    let pktDone    = null;
-
-    let tooltipHits = [];
-    let mousePos    = { x: -1, y: -1 };
-    let hoveredKey  = null;
-
-    /* ===================== 드로우 헬퍼 ===================== */
-    function rr(x, y, w, h, r, fill, stroke, lw) {
-        if (w <= 0 || h <= 0) return;
-        ctx.beginPath();
-        ctx.moveTo(x + r, y);
-        ctx.arcTo(x + w, y, x + w, y + h, r);
-        ctx.arcTo(x + w, y + h, x, y + h, r);
-        ctx.arcTo(x, y + h, x, y, r);
-        ctx.arcTo(x, y, x + w, y, r);
-        ctx.closePath();
-        if (fill)   { ctx.fillStyle = fill;   ctx.fill(); }
-        if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.5; ctx.stroke(); }
-    }
-
-    function tx(str, x, y, sz, color, align, bold) {
-        ctx.font = (bold ? '700' : '400') + ' ' + sz + 'px "JetBrains Mono",monospace';
-        ctx.fillStyle = color;
-        ctx.textAlign = align || 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(str, x, y);
-    }
-
-    function arrowHead(x2, y2, ux, uy, col) {
-        const p = 6;
-        ctx.beginPath();
-        ctx.moveTo(x2, y2);
-        ctx.lineTo(x2 - ux*p*2 - uy*p, y2 - uy*p*2 + ux*p);
-        ctx.lineTo(x2 - ux*p*2 + uy*p, y2 - uy*p*2 - ux*p);
-        ctx.closePath();
-        ctx.fillStyle = col; ctx.fill();
-    }
-
-    function drawEdge(x1, y1, x2, y2, col, dashed) {
-        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
-        ctx.strokeStyle = col; ctx.lineWidth = 1.5;
-        if (dashed) ctx.setLineDash([5, 5]);
-        ctx.stroke(); ctx.setLineDash([]);
-        const dx = x2-x1, dy = y2-y1, len = Math.sqrt(dx*dx+dy*dy);
-        if (len > 2) arrowHead(x2, y2, dx/len, dy/len, col);
-    }
-
-    function nc(n) { return { x: n.x + n.w/2, y: n.y + n.h/2 }; }
-
-    /* ===================== 색상 헬퍼 ===================== */
-    function tColByKey(k) {
-        if (k === 'T1') return P.teal;
-        if (k === 'T2') return P.purple;
-        if (k === 'T3') return P.green;
-        return null;
-    }
-
-    function stateCol(s) {
-        return s === 'RUNNING' ? P.green
-             : s === 'READY'   ? P.purple
-             : s === 'BLOCKED' ? P.red
-             : P.muted;
-    }
-
-    function pktCol(step) {
-        if (!step || !step.pkt) return P.orange;
-        return tColByKey(step.pkt.from) || tColByKey(step.pkt.to) || P.orange;
-    }
-
-    /* ===================== 레이아웃 — 수직 흐름 (Threads→LOCK→MEM) ===================== */
-    function buildLayout() {
-        const W = GW(), H = GH();
-        const mob = W < 520;
-        const fMd = mob ? 13 : 15;
-        const fSm = mob ? 11 : 12;
-
-        const tH    = mob ? 66  : Math.round(H * 0.175);
-        const midH  = mob ? 80  : Math.round(H * 0.195);
-        const botH  = mob ? 100 : Math.round(H * 0.225);
-
-        const topPad   = mob ? 22 : Math.round(H * 0.06);
-        const vGap1    = mob ? 42 : Math.round(H * 0.09);
-        const vGap2    = mob ? 38 : Math.round(H * 0.08);
-
-        const tY   = topPad;
-        const midY = tY + tH + vGap1;
-        const botY = midY + midH + vGap2;
-
-        if (modeIdx === 0) {
-            const tW   = mob ? Math.round((W - 28) / 2) : Math.round(W * 0.24);
-            const tGap = mob ? 8 : Math.round(W * 0.04);
-            const ttW  = tW * 2 + tGap;
-            const tStartX = Math.round((W - ttW) / 2);
-            const memW = mob ? Math.round(W * 0.56) : Math.round(W * 0.32);
-            const memH = botH + midH + vGap2;
-            const memYr = midY;
-            return {
-                W, H, mob, fMd, fSm, tH,
-                nodes: {
-                    T1:  { x: tStartX,          y: tY, w: tW, h: tH, col: P.teal,   lbl: 'T1' },
-                    T2:  { x: tStartX+tW+tGap,  y: tY, w: tW, h: tH, col: P.purple, lbl: 'T2' },
-                    MEM: { x: Math.round((W-memW)/2), y: memYr, w: memW, h: memH, col: P.orange, lbl: 'Shared Memory' },
-                },
-            };
-        }
-
-        if (modeIdx === 1) {
-            const tW   = mob ? Math.round((W - 28) / 2) : Math.round(W * 0.24);
-            const tGap = mob ? 8 : Math.round(W * 0.04);
-            const ttW  = tW * 2 + tGap;
-            const tStartX = Math.round((W - ttW) / 2);
-            const lockW = mob ? Math.round(W * 0.52) : Math.round(W * 0.32);
-            const memW  = mob ? Math.round(W * 0.56) : Math.round(W * 0.36);
-            const lockX = Math.round((W - lockW) / 2);
-            const memX  = Math.round((W - memW) / 2);
-            return {
-                W, H, mob, fMd, fSm, tH, midH, botH,
-                lockX, lockY: midY, lockW, lockH: midH,
-                memX, memY: botY, memW, memH: botH,
-                nodes: {
-                    T1:   { x: tStartX,         y: tY, w: tW, h: tH, col: P.teal,   lbl: 'T1' },
-                    T2:   { x: tStartX+tW+tGap, y: tY, w: tW, h: tH, col: P.purple, lbl: 'T2' },
-                    LOCK: { x: lockX, y: midY, w: lockW, h: midH, col: P.red,    lbl: '' },
-                    MEM:  { x: memX,  y: botY, w: memW,  h: botH, col: P.orange, lbl: 'Shared Memory' },
-                },
-            };
-        }
-
-        const tW3  = mob ? Math.round((W - 36) / 3) : Math.round(W * 0.20);
-        const tGap3 = mob ? 8 : Math.round((W - tW3*3 - 40) / 2);
-        const tStart3 = Math.round((W - (tW3*3 + tGap3*2)) / 2);
-        const semW  = mob ? Math.round(W * 0.50) : Math.round(W * 0.30);
-        const resW  = mob ? Math.round(W * 0.72) : Math.round(W * 0.50);
-        const semX  = Math.round((W - semW) / 2);
-        const resX  = Math.round((W - resW) / 2);
-        const slotW = Math.round((resW - 20) / 2);
-        const slotH = Math.round(botH * 0.50);
-        return {
-            W, H, mob, fMd, fSm, tH, midH, botH,
-            semX, semY: midY, semW, semH: midH,
-            resX, resY: botY, resW, resH: botH, slotW, slotH,
-            nodes: {
-                T1:  { x: tStart3,               y: tY, w: tW3, h: tH, col: P.teal,   lbl: 'T1' },
-                T2:  { x: tStart3+tW3+tGap3,     y: tY, w: tW3, h: tH, col: P.purple, lbl: 'T2' },
-                T3:  { x: tStart3+(tW3+tGap3)*2, y: tY, w: tW3, h: tH, col: P.green,  lbl: 'T3' },
-                SEM: { x: semX, y: midY, w: semW, h: midH, col: P.teal,   lbl: '' },
-                RES: { x: resX, y: botY, w: resW, h: botH, col: P.orange, lbl: '' },
-            },
-        };
-    }
-
-    /* ===================== 메인 드로우 ===================== */
-    function draw() {
-        P = window.CsFlow.getP();
-        ctx.clearRect(0, 0, GW(), GH());
-        ctx.fillStyle = P.bg;
-        ctx.fillRect(0, 0, GW(), GH());
-        tooltipHits = [];
-
-        const L    = buildLayout();
-        const step = stepIdx >= 0 ? MODES[modeIdx].steps[stepIdx] : MODES[modeIdx].steps[0];
-
-        if      (modeIdx === 0) drawRace(L, step);
-        else if (modeIdx === 1) drawMutex(L, step);
-        else                    drawSemaphore(L, step);
-
-        drawPkt(L, step);
-        drawTooltip(L);
-    }
-
-    /* ===================== 스레드 노드 ===================== */
-    function drawThread(n, key, state, regVal, L) {
-        const { fMd, fSm } = L;
-        const col   = n.col;
-        const isAct = pktCurrent && (pktCurrent.from === key || pktCurrent.to === key);
-        const isHov = hoveredKey === key;
-        const sCol  = stateCol(state);
-
-        rr(n.x, n.y, n.w, n.h, 8,
-            isAct ? col+'25' : state==='BLOCKED' ? P.red+'12' : P.surf,
-            isAct ? col : state==='BLOCKED' ? P.red+'bb' : isHov ? P.purple : P.border,
-            isAct ? 2.5 : 1.5);
-
-        const cx  = n.x + n.w/2;
-        const lblY = n.y + n.h * 0.32;
-        const pilY = n.y + n.h * 0.62;
-        tx(n.lbl, cx, lblY, fMd, isAct ? col : state==='BLOCKED' ? P.red : P.text, 'center', true);
-
-        const pW = Math.round(n.w*0.70), pH = 18;
-        rr(cx-pW/2, pilY-pH/2, pW, pH, 5, sCol+'22', sCol, 1.5);
-        tx(state, cx, pilY, Math.max(8, fSm-2), sCol, 'center', true);
-
-        if (regVal !== null && regVal !== undefined) {
-            tx('R=' + regVal, cx, n.y + n.h*0.88, fSm-1, P.yellow, 'center', true);
-        }
-
-        const qx = n.x+n.w-11, qy = n.y+11;
-        ctx.beginPath(); ctx.arc(qx, qy, 7, 0, Math.PI*2);
-        ctx.fillStyle   = isHov ? col : P.surf2; ctx.fill();
-        ctx.strokeStyle = isHov ? col : P.muted; ctx.lineWidth=1; ctx.stroke();
-        tx('?', qx, qy, 8, isHov ? '#fff' : P.muted, 'center', true);
-        tooltipHits.push({ x: qx-7, y: qy-7, w: 14, h: 14, key });
-    }
-
-    /* ===================== 공유 메모리 노드 ===================== */
-    function drawMem(n, counter, raceResult, mutexOk, L) {
-        const { fMd, fSm } = L;
-        const isAct = pktCurrent && (pktCurrent.from==='MEM'||pktCurrent.to==='MEM');
-        const isHov = hoveredKey === 'MEM';
-        const bCol  = raceResult ? P.red : mutexOk ? P.green : isAct ? P.orange : isHov ? P.purple : P.border;
-        const bW    = (raceResult||mutexOk||isAct) ? 2.5 : isHov ? 2 : 1.5;
-
-        rr(n.x, n.y, n.w, n.h, 8,
-            (raceResult||mutexOk||isAct) ? bCol+'18' : P.surf, bCol, bW);
-
-        const cx = n.x+n.w/2;
-        tx('Shared Memory', cx, n.y+n.h*0.14, fSm, isAct?P.orange:P.sub, 'center', true);
-        ctx.beginPath(); ctx.moveTo(n.x+14, n.y+n.h*0.27); ctx.lineTo(n.x+n.w-14, n.y+n.h*0.27);
-        ctx.strokeStyle=P.border; ctx.lineWidth=1; ctx.stroke();
-        tx('counter =', cx, n.y+n.h*0.44, fSm-1, P.muted, 'center', false);
-        const vCol = raceResult?P.red : mutexOk?P.green : isAct?P.orange : P.text;
-        tx(String(counter), cx, n.y+n.h*0.66, Math.round(n.h*0.26), vCol, 'center', true);
-        if (raceResult) tx('⚠ 예상: 2  /  실제: '+counter, cx, n.y+n.h*0.88, fSm-1, P.red, 'center', true);
-        if (mutexOk)    tx('✓ 정확한 결과', cx, n.y+n.h*0.88, fSm-1, P.green, 'center', true);
-
-        const qx = n.x+n.w-11, qy = n.y+11;
-        ctx.beginPath(); ctx.arc(qx, qy, 7, 0, Math.PI*2);
-        ctx.fillStyle   = isHov ? P.orange : P.surf2; ctx.fill();
-        ctx.strokeStyle = isHov ? P.orange : P.muted; ctx.lineWidth=1; ctx.stroke();
-        tx('?', qx, qy, 8, isHov?'#fff':P.muted, 'center', true);
-        tooltipHits.push({ x: qx-7, y: qy-7, w: 14, h: 14, key: 'MEM' });
-    }
-
-    /* ===================== Race 모드 ===================== */
-    function drawRace(L, step) {
-        const { nodes, fSm, mob } = L;
-
-        ['T1','T2'].forEach(function (k) {
-            const tn = nodes[k], mn = nodes.MEM;
-            const active = pktCurrent && (pktCurrent.from===k||pktCurrent.to===k||
-                                          pktCurrent.from==='MEM'||pktCurrent.to==='MEM');
-            const frac = k==='T1' ? 0.32 : 0.68;
-            drawEdge(
-                tn.x+tn.w/2, tn.y+tn.h,
-                mn.x+mn.w*frac, mn.y,
-                active ? tn.col : P.border, !active
-            );
-        });
-
-        drawThread(nodes.T1, 'T1', step.t1, step.t1reg, L);
-        drawThread(nodes.T2, 'T2', step.t2, step.t2reg, L);
-        drawMem(nodes.MEM, step.counter, !!step.raceResult, false, L);
-
-        if (step.phase !== 'init') {
-            const mn = nodes.MEM;
-            tx('⚠ 임계 구역 보호 없음', mn.x+mn.w/2, mn.y - (mob?14:18),
-               fSm-1, P.red+'cc', 'center', false);
-        }
-    }
-
-    /* ===================== Mutex 모드 ===================== */
-    function drawMutex(L, step) {
-        const { nodes, fMd, fSm, lockX, lockY, lockW, lockH, memX, memY, memW, memH } = L;
-
-        const locked  = step.mutex === 'LOCKED';
-        const lockCol = locked ? P.red : P.green;
-
-        ['T1','T2'].forEach(function (k) {
-            const tn = nodes[k];
-            const active = pktCurrent && (pktCurrent.from===k||pktCurrent.to===k);
-            const frac   = k==='T1' ? 0.30 : 0.70;
-            drawEdge(
-                tn.x+tn.w/2, tn.y+tn.h,
-                lockX+lockW*frac, lockY,
-                active ? tn.col : P.border, !active
-            );
-        });
-
-        const memActive = pktCurrent && (pktCurrent.from==='MEM'||pktCurrent.to==='MEM'||
-                                         pktCurrent.from==='T1'&&step.phase==='t1-cs'||
-                                         pktCurrent.from==='T2'&&step.phase==='t2-cs');
-        const ownerCol  = step.owner === 'T1' ? P.teal : step.owner === 'T2' ? P.purple : lockCol;
-        drawEdge(
-            lockX+lockW/2, lockY+lockH,
-            memX+memW/2,   memY,
-            memActive ? ownerCol : P.border, !memActive
-        );
-
-        drawThread(nodes.T1, 'T1', step.t1, null, L);
-        drawThread(nodes.T2, 'T2', step.t2, null, L);
-
-        const isLkAct = pktCurrent && (pktCurrent.from==='LOCK'||pktCurrent.to==='LOCK'||
-                                        pktCurrent.from==='T1'||pktCurrent.from==='T2');
-        const isLkHov = hoveredKey === 'LOCK';
-        rr(lockX, lockY, lockW, lockH, 8,
-            locked ? P.red+'15' : P.green+'15',
-            isLkAct ? lockCol : isLkHov ? P.purple : lockCol, isLkAct?2.5:1.5);
-
-        tx('Mutex', lockX+lockW/2, lockY+lockH*0.24, fMd, lockCol, 'center', true);
-        ctx.beginPath(); ctx.moveTo(lockX+14,lockY+lockH*0.40); ctx.lineTo(lockX+lockW-14,lockY+lockH*0.40);
-        ctx.strokeStyle=lockCol+'44'; ctx.lineWidth=1; ctx.stroke();
-        tx(locked?'LOCKED':'UNLOCKED', lockX+lockW/2, lockY+lockH*0.60, fMd, lockCol, 'center', true);
-        tx(step.owner?'보유: '+step.owner:'대기 없음', lockX+lockW/2, lockY+lockH*0.82, fSm-1, P.sub, 'center', false);
-
-        const qx=lockX+lockW-11, qy=lockY+11;
-        ctx.beginPath(); ctx.arc(qx,qy,7,0,Math.PI*2);
-        ctx.fillStyle=isLkHov?lockCol:P.surf2; ctx.fill();
-        ctx.strokeStyle=isLkHov?lockCol:P.muted; ctx.lineWidth=1; ctx.stroke();
-        tx('?',qx,qy,8,isLkHov?'#fff':P.muted,'center',true);
-        tooltipHits.push({x:qx-7,y:qy-7,w:14,h:14,key:'LOCK'});
-
-        drawMem(nodes.MEM, step.counter, false, !!step.mutexOk, L);
-    }
-
-    /* ===================== Semaphore 모드 ===================== */
-    function drawSemaphore(L, step) {
-        const { nodes, fMd, fSm, semX, semY, semW, semH,
-                resX, resY, resW, resH, slotW, slotH, mob } = L;
-
-        const semCol = step.sem > 0 ? P.teal : P.red;
-        const tKeys  = ['T1','T2','T3'];
-        const fracArr = [0.22, 0.50, 0.78];
-
-        tKeys.forEach(function (k, i) {
-            const tn = nodes[k];
-            const active = pktCurrent && (pktCurrent.from===k||pktCurrent.to===k);
-            drawEdge(
-                tn.x+tn.w/2, tn.y+tn.h,
-                semX+semW*fracArr[i], semY,
-                active ? tn.col : P.border, !active
-            );
-        });
-
-        const resActive = pktCurrent && (pktCurrent.from==='SEM'||pktCurrent.to==='SEM');
-        drawEdge(semX+semW/2, semY+semH, resX+resW/2, resY, resActive?semCol:P.border, !resActive);
-
-        const tsStates = step.ts || ['READY','READY','READY'];
-        tKeys.forEach(function (k, i) {
-            drawThread(nodes[k], k, tsStates[i], null, L);
-        });
-
-        const isSemAct = pktCurrent && (pktCurrent.from==='SEM'||pktCurrent.to==='SEM'||
-                                         tKeys.indexOf(pktCurrent.from)>=0||tKeys.indexOf(pktCurrent.to)>=0);
-        const isSemHov = hoveredKey === 'SEM';
-        rr(semX, semY, semW, semH, 8, semCol+'18', isSemAct?semCol:isSemHov?P.purple:semCol, isSemAct?2.5:1.5);
-        tx('Semaphore', semX+semW/2, semY+semH*0.24, fMd, semCol, 'center', true);
-        ctx.beginPath(); ctx.moveTo(semX+14,semY+semH*0.40); ctx.lineTo(semX+semW-14,semY+semH*0.40);
-        ctx.strokeStyle=semCol+'44'; ctx.lineWidth=1; ctx.stroke();
-        tx('S = '+step.sem, semX+semW/2, semY+semH*0.62, fMd+4, semCol, 'center', true);
-        tx(step.sem===0?'자원 없음 (블로킹)':'진입 가능 ('+step.sem+'개)',
-           semX+semW/2, semY+semH*0.84, fSm-1, P.sub, 'center', false);
-
-        const qxs=semX+semW-11, qys=semY+11;
-        ctx.beginPath(); ctx.arc(qxs,qys,7,0,Math.PI*2);
-        ctx.fillStyle=isSemHov?semCol:P.surf2; ctx.fill();
-        ctx.strokeStyle=isSemHov?semCol:P.muted; ctx.lineWidth=1; ctx.stroke();
-        tx('?',qxs,qys,8,isSemHov?'#fff':P.muted,'center',true);
-        tooltipHits.push({x:qxs-7,y:qys-7,w:14,h:14,key:'SEM'});
-
-        const using = step.using || [];
-        rr(resX, resY, resW, resH, 8, P.surf, P.border, 1.5);
-        tx('공유 자원 (동시 접근 허용: 2개)', resX+resW/2, resY+resH*0.18, fSm-1, P.sub, 'center', false);
-        for (let si = 0; si < 2; si++) {
-            const slotPad = 8;
-            const sx = resX + slotPad + si*(slotW+slotPad);
-            const sy = resY + Math.round(resH*0.32);
-            const who = using[si] || null;
-            const sc  = who ? tColByKey(who) : P.surf2;
-            rr(sx, sy, slotW, slotH, 6, who?sc+'33':P.surf2, who?sc:P.border, who?2:1);
-            tx(who?who+' 사용 중':'빈 슬롯', sx+slotW/2, sy+slotH/2, fSm-1,
-               who?sc:P.muted, 'center', !!who);
-        }
-        if (step.semOk) {
-            tx('✓ 최대 2개 동시 접근 제어 완료', resX+resW/2, resY+resH*0.86, fSm-1, P.green, 'center', true);
-        }
-    }
-
-    /* ===================== 유휴 화면 ===================== */
-    function drawIdle(L) {
-        const { fMd, fSm } = L;
-        const W = GW(), H = GH();
-        const names = ['Race Condition', 'Mutex', 'Semaphore'];
-        tx(names[modeIdx] + ' 시각화', W/2, H/2-14, fMd, P.sub, 'center', false);
-        tx('PLAY 또는 STEP을 눌러 시작하세요', W/2, H/2+16, fSm, P.muted, 'center', false);
-    }
-
-    /* ===================== 패킷 ===================== */
-    function drawPkt(L, step) {
-        if (!pktCurrent || !step || !step.pkt) return;
-        const { nodes } = L;
-        const fn = nodes[step.pkt.from], tn = nodes[step.pkt.to];
-        if (!fn || !tn) return;
-        const fc = nc(fn), tc = nc(tn);
-        const x  = fc.x + (tc.x-fc.x)*pktProg;
-        const y  = fc.y + (tc.y-fc.y)*pktProg;
-        const col = pktCol(step);
-        ctx.beginPath(); ctx.arc(x, y, 11, 0, Math.PI*2);
-        ctx.fillStyle = col; ctx.fill();
-        tx('→', x, y, 9, '#0f0f1a', 'center', true);
-    }
-
-    function animPkt(step, cb) {
-        if (!step || !step.pkt) { if (cb) cb(); return; }
-        pktCurrent = step.pkt;
-        pktProg    = 0;
-        pktDone    = cb || null;
-        if (rafId) cancelAnimationFrame(rafId);
-        const BASE = 1800, baseStep = 0.005;
-        const s = baseStep * (BASE / speed);
-        (function tick() {
-            pktProg = Math.min(1, pktProg + s);
-            draw();
-            if (pktProg < 1) { rafId = requestAnimationFrame(tick); }
-            else {
-                pktCurrent = null; draw();
-                if (pktDone) { var fn = pktDone; pktDone = null; fn(); }
-            }
-        })();
-    }
-
-    /* ===================== 툴팁 ===================== */
-    const TIPS = {
+    /* ===================== 상태 ===================== */
+    var TIPS = {
         T1:   'Thread 1\n독립된 Stack·PC를 가집니다. 공유 자원에 접근 시 동기화가 필요합니다.',
         T2:   'Thread 2\nT1과 같은 프로세스 내에서 Heap·Data 영역을 공유합니다.',
         T3:   'Thread 3\n계수형 Semaphore 예제에서 세 번째 경쟁자입니다.',
         MEM:  'Shared Memory\n여러 스레드가 동시에 읽고 쓰는 공유 변수입니다. Race Condition의 발생 지점입니다.',
         LOCK: 'Mutex Lock\n한 번에 하나의 스레드만 임계 구역에 진입하도록 보장하는 상호 배제 락입니다.',
-        SEM:  'Semaphore\n정수 카운터 S로 동시 접근 수를 제한합니다. wait(P): S-- 또는 블로킹, signal(V): S++.',
+        SEM:  'Semaphore\n정수 카운터 S로 동시 접근 수를 제한합니다. wait(P): S-- 또는 블로킹, signal(V): S++.'
     };
 
-    function drawTooltip(L) {
-        if (!hoveredKey || !TIPS[hoveredKey]) return;
-        const parts = TIPS[hoveredKey].split('\n');
-        const title = parts[0], desc = parts[1] || '';
-        const W = GW(), H = GH();
-        const pad = 14;
-        const maxTW = Math.min(W-24, W<520 ? W*0.85 : 300);
-        const innerW = maxTW - pad*2;
-        const tFont = '700 13px "JetBrains Mono",monospace';
-        const dFont = '400 12px "JetBrains Mono",monospace';
-        ctx.font = tFont;
-        const tW2 = ctx.measureText(title).width;
-        ctx.font = dFont;
-        const words = desc.split(' ');
-        const lines = [];
-        let cur = '';
-        words.forEach(function (w) {
-            const t = cur ? cur+' '+w : w;
-            if (ctx.measureText(t).width > innerW && cur) { lines.push(cur); cur=w; }
-            else cur=t;
-        });
-        if (cur) lines.push(cur);
-        const lineH=17, titleH=24;
-        const th = desc ? titleH+lines.length*lineH+10 : 36;
-        const tw = Math.min(Math.max(tW2, innerW)+pad*2, maxTW);
-        let bx = mousePos.x+14, by = mousePos.y-th-8;
-        if (bx+tw > W-8) bx = mousePos.x-tw-14;
-        if (bx < 8)      bx = 8;
-        if (by < 8)      by = mousePos.y+14;
-        if (by+th > H-8) by = H-th-8;
-        rr(bx, by, tw, th, 6, P.surf2, P.purple+'cc', 2);
-        ctx.font=tFont; ctx.fillStyle=P.text; ctx.textAlign='left'; ctx.textBaseline='middle';
-        ctx.fillText(title, bx+pad, by+(desc?14:th/2));
-        if (lines.length) {
-            ctx.font=dFont; ctx.fillStyle=P.sub;
-            lines.forEach(function(l,i){ ctx.fillText(l, bx+pad, by+titleH+i*lineH+4); });
+    function currentSteps() {
+        return mode === 'mutex' ? MUTEX_STEPS : mode === 'semaphore' ? SEM_STEPS : RACE_STEPS;
+    }
+
+    function defaultLog() {
+        return '▶ PLAY를 눌러 동기화 원리를 확인하세요. 상단 버튼으로 모드를 바꿀 수 있습니다.';
+    }
+
+    function ez(q) {
+        q = clamp01(q);
+        return q * q * (3 - 2 * q);
+    }
+
+    function psThrCol(k) {
+        return k === 'T1' ? P.teal : k === 'T2' ? P.purple : P.green;
+    }
+
+    function psStCol(st) {
+        return st === 'RUNNING' ? P.green : st === 'READY' ? P.purple : st === 'BLOCKED' ? P.red : P.sub;
+    }
+
+    function psIsThr(k) {
+        return k === 'T1' || k === 'T2' || k === 'T3';
+    }
+
+    function psThrIdx(k) {
+        return k === 'T1' ? 0 : k === 'T2' ? 1 : 2;
+    }
+
+    /* ===================== 레이아웃 ===================== */
+    function psLayRace(w, mob) {
+        var g = mob ? 10 : 24;
+        var tw = Math.round((w - g) / 2);
+        var th = mob ? 66 : 84;
+        var ty = mob ? 52 : 66;
+        var mw = Math.round(w * (mob ? 0.6 : 0.4));
+        var mh = mob ? 80 : 96;
+        var my = ty + th + (mob ? 60 : 72);
+        return {
+            fr: [0.3, 0.7],
+            rail: mob ? 30 : 36,
+            nodes: {
+                T1:  { x: 0,      y: ty, w: tw, h: th },
+                T2:  { x: tw + g, y: ty, w: tw, h: th },
+                MEM: { x: Math.round((w - mw) / 2), y: my, w: mw, h: mh }
+            },
+            total: my + mh + (mob ? 30 : 36)
+        };
+    }
+
+    function psLayMutex(w, mob) {
+        var g = mob ? 10 : 24;
+        var tw = Math.round((w - g) / 2);
+        var th = mob ? 62 : 80;
+        var ty = mob ? 40 : 52;
+        var lw = Math.round(w * (mob ? 0.56 : 0.36));
+        var lh = mob ? 74 : 90;
+        var ly = ty + th + (mob ? 44 : 60);
+        var mw = Math.round(w * (mob ? 0.56 : 0.4));
+        var mh = mob ? 80 : 90;
+        var my = ly + lh + (mob ? 44 : 60);
+        return {
+            fr: [0.18, 0.82],
+            nodes: {
+                T1:   { x: 0,      y: ty, w: tw, h: th },
+                T2:   { x: tw + g, y: ty, w: tw, h: th },
+                LOCK: { x: Math.round((w - lw) / 2), y: ly, w: lw, h: lh },
+                MEM:  { x: Math.round((w - mw) / 2), y: my, w: mw, h: mh }
+            },
+            total: my + mh + 14
+        };
+    }
+
+    function psLaySem(w, mob) {
+        var g = mob ? 6 : 16;
+        var tw = Math.round((w - g * 2) / 3);
+        var th = mob ? 62 : 80;
+        var ty = mob ? 40 : 52;
+        var sw = Math.round(w * (mob ? 0.5 : 0.3));
+        var sh = mob ? 88 : 108;
+        var sy = ty + th + (mob ? 44 : 60);
+        var rw = Math.round(w * (mob ? 0.76 : 0.5));
+        var rh = mob ? 62 : 80;
+        var ry = sy + sh + (mob ? 44 : 60);
+        return {
+            fr: [0.2, 0.5, 0.8],
+            nodes: {
+                T1:  { x: 0,            y: ty, w: tw, h: th },
+                T2:  { x: tw + g,       y: ty, w: tw, h: th },
+                T3:  { x: (tw + g) * 2, y: ty, w: tw, h: th },
+                SEM: { x: Math.round((w - sw) / 2), y: sy, w: sw, h: sh },
+                RES: { x: Math.round((w - rw) / 2), y: ry, w: rw, h: rh }
+            },
+            total: ry + rh + (mob ? 30 : 36)
+        };
+    }
+
+    function layout(w, mob) {
+        var L = mode === 'mutex' ? psLayMutex(w, mob) : mode === 'semaphore' ? psLaySem(w, mob) : psLayRace(w, mob);
+        L.mob = mob;
+        L.fL = mob ? 12 : 14;
+        L.fS = mob ? 11 : 12;
+        return L;
+    }
+
+    function sceneH(w, mob) {
+        return layout(w, mob).total;
+    }
+
+    /* ===================== 경로 ===================== */
+    function psBot(n) {
+        return { x: n.x + n.w / 2, y: n.y + n.h };
+    }
+
+    function psTopC(n) {
+        return { x: n.x + n.w / 2, y: n.y };
+    }
+
+    function psTopAt(n, f) {
+        return { x: n.x + n.w * f, y: n.y };
+    }
+
+    function psPts(L, a, b) {
+        var na = L.nodes[a], nb = L.nodes[b];
+        if (psIsThr(a)) return [psBot(na), psTopAt(nb, L.fr[psThrIdx(a)])];
+        if (psIsThr(b)) return [psTopAt(na, L.fr[psThrIdx(b)]), psBot(nb)];
+        return [psBot(na), psTopC(nb)];
+    }
+
+    function psRoute(L, a, b) {
+        if (mode === 'mutex' && psIsThr(a) && b === 'MEM') {
+            var lk = L.nodes.LOCK;
+            return [psBot(L.nodes[a]), psTopAt(lk, L.fr[psThrIdx(a)]), psBot(lk), psTopC(L.nodes.MEM)];
+        }
+        return psPts(L, a, b);
+    }
+
+    function psAlong(pts, u) {
+        var total = 0, i;
+        for (i = 1; i < pts.length; i++) total += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
+        var rest = clamp01(u) * total;
+        for (i = 1; i < pts.length; i++) {
+            var d = Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
+            if (rest <= d || i === pts.length - 1) {
+                var r = d ? clamp01(rest / d) : 1;
+                return { x: pts[i - 1].x + (pts[i].x - pts[i - 1].x) * r, y: pts[i - 1].y + (pts[i].y - pts[i - 1].y) * r };
+            }
+            rest -= d;
+        }
+        return pts[0];
+    }
+
+    /* ===================== 그리기 헬퍼 ===================== */
+    function psEdge(p, q, col, on) {
+        if (on) arrow(p.x, p.y, q.x, q.y, col + 'ff', 2.2);
+        else ln(p.x, p.y, q.x, q.y, P.sub + '66', 1.2, [4, 4]);
+    }
+
+    function psChip(x, y, lab, col, al) {
+        if (al <= 0) return;
+        ctx.save();
+        ctx.globalAlpha = clamp01(al);
+        circ(x, y, 11, col + 'ff', '#111111', 1.2);
+        tx(lab, x, y, 10, '#111111', 'center', true);
+        ctx.restore();
+    }
+
+    function psRegTxt(st, reg) {
+        if (reg === null || reg === undefined) return null;
+        return (st === 'READY' ? 'TCB R=' : 'R=') + reg;
+    }
+
+    function psPktLabel(pk, s) {
+        if (pk.to === 'MEM') return String(s.counter);
+        if (pk.from === 'MEM') return String(pk.to === 'T2' ? s.t2reg : s.t1reg);
+        return psIsThr(pk.from) ? pk.from : pk.to;
+    }
+
+    function psPktCol(pk) {
+        var k = psIsThr(pk.from) ? pk.from : pk.to;
+        return psIsThr(k) ? psThrCol(k) : P.orange;
+    }
+
+    function psThread(n, key, st, regTxt, act, L, bd) {
+        var col = psThrCol(key), sc = psStCol(st), hov = hoveredKey === key, blk = st === 'BLOCKED';
+        rr(n.x, n.y, n.w, n.h, 8,
+            act ? col + '25' : blk ? P.red + '14' : P.surf,
+            act ? col : blk ? P.red : hov ? P.purple : P.border,
+            act ? 2.5 : hov ? 2 : 1.5);
+        var cx = n.x + n.w / 2;
+        tx(key, cx, n.y + 14, L.fL, (act ? col : blk ? P.red : P.text) + 'ff', 'center', true);
+        var py = regTxt ? n.y + n.h * 0.5 : n.y + n.h * 0.62;
+        var pw = Math.min(L.mob ? 74 : 90, n.w - 10);
+        rr(cx - pw / 2, py - 8, pw, 16, 8, sc + '22', sc, 1.2);
+        tx(st, cx, py, L.fS, sc + 'ff', 'center', true);
+        if (regTxt) {
+            rr(n.x + 6, n.y + n.h - 22, n.w - 12, 16, 5, P.surf2, P.border, 1);
+            tx(regTxt, cx, n.y + n.h - 14, L.fS, P.yellow + 'ff', 'center', true);
+        }
+        bd.push({ x: n.x + n.w - 9, y: n.y + 9, key: key });
+    }
+
+    function psMem(M, s, L, mAct, resMsg, resCol, bd) {
+        var cx = M.x + M.w / 2;
+        var hov = hoveredKey === 'MEM';
+        rr(M.x, M.y, M.w, M.h, 8,
+            resMsg ? resCol + '18' : P.surf,
+            resMsg ? resCol : mAct ? P.orange : hov ? P.purple : P.border,
+            resMsg || mAct ? 2.5 : hov ? 2 : 1.5);
+        tx('Shared Memory', cx, M.y + 13, L.fS, (mAct ? P.orange : P.sub) + 'ff', 'center', true);
+        tx('counter', cx, M.y + M.h * 0.38, L.fS, P.sub + 'ff', 'center', false);
+        tx(String(s.counter), cx, M.y + M.h * 0.62, L.mob ? 20 : 26, (resMsg ? resCol : P.text) + 'ff', 'center', true);
+        if (resMsg) tx(resMsg, cx, M.y + M.h - 11, L.fS, resCol + 'ff', 'center', true);
+        bd.push({ x: M.x + M.w - 9, y: M.y + 9, key: 'MEM' });
+    }
+
+    /* ===================== Race 장면 ===================== */
+    function psDrawRace(L, s, pv, fresh, t, bd) {
+        var N = L.nodes;
+        var pk = s.pkt || null;
+        var cpuNow = s.t1 === 'RUNNING' ? 'T1' : s.t2 === 'RUNNING' ? 'T2' : null;
+        var cpuPrev = pv.t1 === 'RUNNING' ? 'T1' : pv.t2 === 'RUNNING' ? 'T2' : null;
+        var moved = fresh && !!cpuNow && cpuPrev !== cpuNow;
+        var x1 = N.T1.x + N.T1.w / 2, x2 = N.T2.x + N.T2.w / 2;
+        var a1 = !!pk && (pk.from === 'T1' || pk.to === 'T1');
+        var a2 = !!pk && (pk.from === 'T2' || pk.to === 'T2');
+        var mAct = !!pk && (pk.from === 'MEM' || pk.to === 'MEM');
+        var e1 = psPts(L, 'T1', 'MEM'), e2 = psPts(L, 'T2', 'MEM');
+
+        ln(x1, L.rail, x2, L.rail, P.sub + '55', 1.2, [3, 3]);
+        if (cpuNow) {
+            var target = cpuNow === 'T1' ? x1 : x2;
+            var cx = target, al = 1;
+            if (moved && cpuPrev) cx = lerp(cpuPrev === 'T1' ? x1 : x2, target, ez(seg(t, 0, 0.4)));
+            if (moved && !cpuPrev) al = seg(t, 0, 0.3);
+            if (al > 0) {
+                ctx.save();
+                ctx.globalAlpha = al;
+                rr(cx - 24, L.rail - 9, 48, 18, 9, P.green + 'ff', P.green + 'ff', 1);
+                tx('CPU', cx, L.rail, 10, '#111111', 'center', true);
+                ctx.restore();
+            }
+        }
+
+        psEdge(e1[0], e1[1], P.teal, a1);
+        psEdge(e2[0], e2[1], P.purple, a2);
+        psThread(N.T1, 'T1', s.t1, psRegTxt(s.t1, s.t1reg), a1, L, bd);
+        psThread(N.T2, 'T2', s.t2, psRegTxt(s.t2, s.t2reg), a2, L, bd);
+        psMem(N.MEM, s, L, mAct, s.raceResult ? '⚠ 예상 2 / 실제 ' + s.counter : null, P.red, bd);
+        if (s.phase !== 'init') {
+            tx('⚠ 임계 구역 보호 없음', N.MEM.x + N.MEM.w / 2, N.MEM.y + N.MEM.h + (L.mob ? 16 : 20), L.fS, P.red + 'ff', 'center', true);
+        }
+        if (pk && fresh) {
+            var pos = psAlong(psRoute(L, pk.from, pk.to), ez(seg(t, moved ? 0.4 : 0, 0.9)));
+            psChip(pos.x, pos.y, psPktLabel(pk, s), psPktCol(pk), 1 - seg(t, 0.9, 1));
         }
     }
 
-    /* ===================== 단계 적용 ===================== */
-    function setLog(s)  { logEl.textContent = s; }
-    function setModeBtnsDisabled(v) {
-        root.querySelectorAll('.sync-viz__mode-btn').forEach(function(b){b.disabled=v;});
-    }
-    function setSpeedDisabled(v) {
-        root.querySelectorAll('.sync-viz__speed-btn').forEach(function(b){b.disabled=v;});
+    /* ===================== Mutex 장면 ===================== */
+    function psDrawMutex(L, s, pv, fresh, t, bd) {
+        var N = L.nodes;
+        var pk = s.pkt || null;
+        var lk = N.LOCK;
+        var locked = s.mutex === 'LOCKED';
+        var lc = locked ? P.red : P.green;
+        var a1 = !!pk && (pk.from === 'T1' || pk.to === 'T1');
+        var a2 = !!pk && (pk.from === 'T2' || pk.to === 'T2');
+        var lkAct = !!pk && (pk.from === 'LOCK' || pk.to === 'LOCK');
+        var mAct = !!pk && (pk.from === 'MEM' || pk.to === 'MEM');
+        var e1 = psPts(L, 'T1', 'LOCK'), e2 = psPts(L, 'T2', 'LOCK'), e3 = psPts(L, 'LOCK', 'MEM');
+
+        psEdge(e1[0], e1[1], P.teal, a1);
+        psEdge(e2[0], e2[1], P.purple, a2);
+        psEdge(e3[0], e3[1], s.owner ? psThrCol(s.owner) : lc, !!pk && pk.to === 'MEM');
+        psThread(N.T1, 'T1', s.t1, null, a1, L, bd);
+        psThread(N.T2, 'T2', s.t2, null, a2, L, bd);
+
+        var lhov = hoveredKey === 'LOCK';
+        rr(lk.x, lk.y, lk.w, lk.h, 8,
+            locked ? P.red + '15' : P.green + '15',
+            lkAct ? lc : lhov ? P.purple : lc,
+            lkAct ? 2.5 : lhov ? 2 : 1.5);
+        var cx = lk.x + lk.w / 2;
+        tx('Mutex', cx, lk.y + 14, L.fL, lc + 'ff', 'center', true);
+        tx(locked ? 'LOCKED' : 'UNLOCKED', cx, lk.y + lk.h * 0.5, L.fL, lc + 'ff', 'center', true);
+        if (s.owner) tx('보유: ' + s.owner, cx, lk.y + lk.h - 14, L.fS, psThrCol(s.owner) + 'ff', 'center', true);
+        else tx('대기 없음', cx, lk.y + lk.h - 14, L.fS, P.sub + 'ff', 'center', false);
+        bd.push({ x: lk.x + lk.w - 9, y: lk.y + 9, key: 'LOCK' });
+
+        var waiting = [];
+        if (s.t1 === 'BLOCKED') waiting.push('T1');
+        if (s.t2 === 'BLOCKED') waiting.push('T2');
+        if (waiting.length) tx('대기열', lk.x - 24, lk.y + lk.h / 2 - 16, L.fS, P.sub + 'ff', 'center', false);
+        waiting.forEach(function (k, i) {
+            var qx = lk.x - 24, qy = lk.y + lk.h / 2 + 6 + i * 24;
+            rr(qx - 18, qy - 9, 36, 18, 9, P.red + '22', P.red, 1.5);
+            tx(k, qx, qy, L.fS, P.red + 'ff', 'center', true);
+        });
+
+        psMem(N.MEM, s, L, mAct, s.mutexOk ? '✓ 정확한 결과' : null, P.green, bd);
+        if (pk && fresh) {
+            var pos = psAlong(psRoute(L, pk.from, pk.to), ez(seg(t, 0, 0.9)));
+            psChip(pos.x, pos.y, psPktLabel(pk, s), psPktCol(pk), 1 - seg(t, 0.9, 1));
+        }
     }
 
-    function applyStep(idx, onDone) {
-        stepIdx = idx;
-        const step = MODES[modeIdx].steps[idx];
-        setLog(step.log);
-        animPkt(step, function() {
-            draw();
-            if (onDone) setTimeout(onDone, 0);
+    /* ===================== Semaphore 장면 ===================== */
+    function psDrawSem(L, s, pv, fresh, t, bd) {
+        var N = L.nodes;
+        var pk = s.pkt || null;
+        var sm = N.SEM, rs = N.RES;
+        var semCol = s.sem > 0 ? P.teal : P.red;
+        var ks = ['T1', 'T2', 'T3'];
+        var sAct = !!pk && (pk.from === 'SEM' || pk.to === 'SEM');
+        var shov = hoveredKey === 'SEM';
+
+        ks.forEach(function (k) {
+            var e = psPts(L, k, 'SEM');
+            psEdge(e[0], e[1], psThrCol(k), !!pk && (pk.from === k || pk.to === k));
         });
+        var rb = psBot(sm), rtp = psTopC(rs);
+        ln(rb.x, rb.y, rtp.x, rtp.y, P.sub + '66', 1.2, [4, 4]);
+        ks.forEach(function (k, i) {
+            psThread(N[k], k, s.ts[i], null, !!pk && (pk.from === k || pk.to === k), L, bd);
+        });
+
+        rr(sm.x, sm.y, sm.w, sm.h, 8, semCol + '18', sAct || shov ? (sAct ? semCol : P.purple) : semCol, sAct ? 2.5 : shov ? 2 : 1.5);
+        var cx = sm.x + sm.w / 2;
+        tx('Semaphore', cx, sm.y + 13, L.fL, semCol + 'ff', 'center', true);
+        tx('S = ' + s.sem, cx, sm.y + sm.h * 0.42, L.fL + 2, semCol + 'ff', 'center', true);
+        for (var ti = 0; ti < 2; ti++) {
+            circ(cx - 10 + ti * 20, sm.y + sm.h * 0.66, 5, ti < s.sem ? semCol + 'ff' : 'none', semCol + 'ff', 1.2);
+        }
+        tx(s.sem === 0 ? '자원 없음 (블로킹)' : '진입 가능 (' + s.sem + '개)', cx, sm.y + sm.h - 13, L.fS, P.sub + 'ff', 'center', false);
+        bd.push({ x: sm.x + sm.w - 9, y: sm.y + 9, key: 'SEM' });
+
+        var rcx = rs.x + rs.w / 2;
+        rr(rs.x, rs.y, rs.w, rs.h, 8, P.surf, P.border, 1.5);
+        tx(L.mob ? '공유 자원 · 2칸' : '공유 자원 (동시 접근 허용: 2개)', rcx, rs.y + 12, L.fS, P.sub + 'ff', 'center', false);
+        var using = s.using || [];
+        var prevUsing = pv.using || [];
+        var slotW = Math.round((rs.w - 24) / 2);
+        for (var si = 0; si < 2; si++) {
+            var sx = rs.x + 8 + si * (slotW + 8), sy = rs.y + 24, sh = rs.h - 32;
+            var who = using[si] || null;
+            rr(sx, sy, slotW, sh, 6, P.surf2, P.border, 1);
+            if (!who) {
+                tx('빈 슬롯', sx + slotW / 2, sy + sh / 2, L.fS, P.sub + 'ff', 'center', false);
+                continue;
+            }
+            var enter = fresh && prevUsing.indexOf(who) < 0;
+            ctx.save();
+            ctx.globalAlpha = enter ? seg(t, 0.5, 1) : 1;
+            rr(sx, sy, slotW, sh, 6, psThrCol(who) + '33', psThrCol(who), 2);
+            tx(who + ' 사용 중', sx + slotW / 2, sy + sh / 2, L.fS, psThrCol(who) + 'ff', 'center', true);
+            ctx.restore();
+        }
+        if (s.semOk) tx('✓ 최대 2개 동시 접근 제어 완료', rcx, rs.y + rs.h + (L.mob ? 16 : 20), L.fS, P.green + 'ff', 'center', true);
+
+        if (pk && fresh) {
+            var pos = psAlong(psRoute(L, pk.from, pk.to), ez(seg(t, 0, 0.9)));
+            psChip(pos.x, pos.y, psPktLabel(pk, s), psPktCol(pk), 1 - seg(t, 0.9, 1));
+        }
+    }
+
+    /* ===================== 장면 그리기 ===================== */
+    function drawScene(x0, top, w, mob, step, prev, t) {
+        var L = layout(w, mob);
+        var steps = currentSteps();
+        var s = step || steps[0];
+        var pv = prev || s;
+        var fresh = s !== pv;
+        var tt = fresh ? clamp01(t) : 1;
+        var bd = [];
+        var bcol = s.raceResult ? P.red : (s.mutexOk || s.semOk) ? P.green : P.purple;
+
+        ctx.save();
+        ctx.translate(x0, top);
+        tx(s.badge, w / 2, 12, L.mob ? 11 : 13, bcol + 'ff', 'center', true);
+        if (mode === 'mutex') psDrawMutex(L, s, pv, fresh, tt, bd);
+        else if (mode === 'semaphore') psDrawSem(L, s, pv, fresh, tt, bd);
+        else psDrawRace(L, s, pv, fresh, tt, bd);
+        ctx.restore();
+        bd.forEach(function (b) { tipBadge(x0 + b.x, top + b.y, b.key); });
+    }
+
+    /* ===================== 메인 드로우 ===================== */
+    function sidePad(w) { return w < 600 ? 14 : 24; }
+    function topPad(w) { return w < 600 ? 14 : 20; }
+
+    function draw() {
+        P = window.CsFlow.getP();
+        ctx.clearRect(0, 0, GW(), GH());
+        var W = GW(); var mob = W < 600;
+        var steps = currentSteps();
+        var step = stepIdx >= 0 ? steps[stepIdx] : null;
+        var prev = stepIdx > 0 ? steps[stepIdx - 1] : null;
+        tipHits.length = 0;
+        drawScene(sidePad(W), topPad(W), W - sidePad(W) * 2, mob, step, prev, anim);
+        if (hoveredKey && typeof TIPS !== 'undefined' && TIPS[hoveredKey]) drawTip(mousePos.x, mousePos.y, TIPS[hoveredKey]);
+    }
+
+    /* ===================== resize ===================== */
+    function resize() {
+        var w = canvasWrap.offsetWidth || 320;
+        var mob = w < 600;
+        var neededH = 260;
+        currentSteps().concat([null]).forEach(function (s) {
+            var h = topPad(w) + sceneH(w - sidePad(w) * 2, mob, s) + 14;
+            if (h > neededH) neededH = h;
+        });
+        canvasWrap.style.height    = 'auto';
+        canvasWrap.style.minHeight = Math.ceil(neededH) + 'px';
+        var actualH = canvasWrap.offsetHeight || neededH;
+        if (actualH < neededH) actualH = neededH;
+        canvas.width  = w * dpr;
+        canvas.height = actualH * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        draw();
+    }
+
+    /* ===================== 애니메이션(스텝 전환) ===================== */
+    function animateStep(onDone) {
+        if (rafId) cancelAnimationFrame(rafId);
+        var dur = Math.max(320, speed * 0.55);
+        var t0 = null;
+        function frame(now) {
+            if (t0 === null) t0 = now;
+            var p = Math.min(1, (now - t0) / dur);
+            anim = p;
+            draw();
+            if (p < 1) { rafId = requestAnimationFrame(frame); }
+            else { rafId = null; anim = 1; if (onDone) onDone(); }
+        }
+        anim = 0;
+        rafId = requestAnimationFrame(frame);
     }
 
     /* ===================== 컨트롤 ===================== */
-    function syncStart() {
+    function setSpeedDisabled(v) { speedBtns.forEach(function (b) { b.disabled = v; }); }
+
+    function applyStep(idx, onDone) {
+        stepIdx = idx;
+        logEl.textContent = currentSteps()[idx].log;
+        animateStep(function () { if (onDone) setTimeout(onDone, 0); });
+    }
+
+    function vizStart() {
         if (running) return;
         running = true; btnPlay.disabled = true; btnStep.disabled = true;
-        setModeBtnsDisabled(true); setSpeedDisabled(true);
-
+        setSpeedDisabled(true);
+        var steps = currentSteps();
         function tick() {
-            const steps = MODES[modeIdx].steps;
-            const next  = stepIdx + 1;
+            var next = stepIdx + 1;
             if (next >= steps.length) { running = false; setSpeedDisabled(false); return; }
-            applyStep(next, function() {
-                if (next === steps.length-1) {
+            applyStep(next, function () {
+                if (next === steps.length - 1) {
                     running = false; btnStep.disabled = true; setSpeedDisabled(false);
                 } else {
-                    timer = setTimeout(tick, speed);
+                    timer = setTimeout(tick, speed * 0.6);
                 }
             });
         }
         tick();
     }
 
-    function syncStep() {
-        if (running || pktCurrent) return;
-        const steps = MODES[modeIdx].steps;
-        const next  = stepIdx + 1;
+    function vizStep() {
+        if (running) return;
+        var steps = currentSteps();
+        var next = stepIdx + 1;
         if (next >= steps.length) return;
         applyStep(next, null);
-        if (next === steps.length-1) { btnPlay.disabled = true; btnStep.disabled = true; }
+        if (next === steps.length - 1) { btnPlay.disabled = true; btnStep.disabled = true; }
     }
 
-    function syncReset() {
+    function vizReset() {
         clearTimeout(timer);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        running = false; stepIdx = -1;
-        pktCurrent = null; pktProg = 0; pktDone = null;
-        setLog('▶ PLAY를 눌러 동기화 원리를 확인하세요. 상단 버튼으로 모드를 바꿀 수 있습니다.');
+        running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
-        setModeBtnsDisabled(false); setSpeedDisabled(false);
+        logEl.textContent = defaultLog();
+        setSpeedDisabled(false);
         resize();
-    }
-
-    function setMode(idx, btn) {
-        modeIdx = idx;
-        root.querySelectorAll('.sync-viz__mode-btn').forEach(function(b){
-            b.classList.remove('sync-viz__mode-btn--active');
-        });
-        btn.classList.add('sync-viz__mode-btn--active');
-        syncReset();
     }
 
     function setSpeed(ms, btn) {
         speed = ms;
-        root.querySelectorAll('.sync-viz__speed-btn').forEach(function(b){
-            b.classList.remove('sync-viz__speed-btn--active');
-        });
+        speedBtns.forEach(function (b) { b.classList.remove('sync-viz__speed-btn--active'); });
         btn.classList.add('sync-viz__speed-btn--active');
     }
 
+    function switchMode(m) {
+        if (mode === m) return;
+        mode = m;
+        modeDefs.forEach(function (d) { modeBtns[d.key].classList.toggle('sync-viz__mode-btn--active', d.key === m); });
+        vizReset();
+    }
+
+    logEl.textContent = defaultLog();
+
     /* ===================== 라이프사이클 ===================== */
     window.CsFlow.createVizLifecycle({
-        canvas, canvasWrap, resize, draw,
-        getState : function() { return { rafId, timer, running }; },
-        setState : function(s) { rafId=s.rafId; timer=s.timer; running=s.running; },
-        onPause  : function() { setSpeedDisabled(false); },
-        getMouseCtx: function() {
+        canvas: canvas, canvasWrap: canvasWrap, resize: resize, draw: draw,
+        getState : function () { return { rafId: rafId, timer: timer, running: running }; },
+        setState : function (s) { rafId = s.rafId; timer = s.timer; running = s.running; },
+        onPause  : function () { setSpeedDisabled(false); },
+        getMouseCtx: function () {
             return {
-                GW, GH, mousePos, tooltipHits,
-                hoveredKey   : function()  { return hoveredKey; },
-                setHoveredKey: function(k) { hoveredKey = k; },
-                draw,
+                GW: GW, GH: GH,
+                mousePos: mousePos,
+                tooltipHits: tipHits,
+                hoveredKey: function () { return hoveredKey; },
+                setHoveredKey: function (k) { hoveredKey = k; },
+                draw: draw
             };
-        },
+        }
     });
 
     setTimeout(resize, 60);

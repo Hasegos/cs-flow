@@ -27,6 +27,13 @@
   flex-wrap: wrap;
 }
 
+.http-viz__mode {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .http-viz__title {
   font-family: var(--font-mono);
   font-size: 0.62rem;
