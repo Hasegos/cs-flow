@@ -340,7 +340,7 @@
         if (mob) {
             tx(lay.name, x + 6, y + h / 2, fs, c, 'left', on);
         } else {
-            tx('L' + lay.num, x + 17, y + h / 2, fs, on ? col + 'ff' : P.sub + 'ff', 'center', true);
+            tx('L' + lay.num, x + 17, y + h / 2, fs, on && !light ? col + 'ff' : P.sub + 'ff', 'center', true);
             tx(lay.name, x + 38, y + h * 0.36, 13, c, 'left', on);
             tx(lay.proto, x + 38, y + h * 0.74, fs, P.sub + 'ff', 'left', false);
         }
