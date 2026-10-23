@@ -1,6 +1,7 @@
 package io.dev.cs_flow.service;
 
 import io.dev.cs_flow.common.exception.NotFoundException;
+import io.dev.cs_flow.common.util.SearchPatterns;
 import io.dev.cs_flow.dto.TagCount;
 import io.dev.cs_flow.dto.TopicIndexItem;
 import io.dev.cs_flow.dto.TopicSearchCondition;
@@ -19,7 +20,6 @@ import tools.jackson.databind.ObjectMapper;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -111,7 +111,7 @@ public class TopicService {
         Page<Long> idPage = topicRepository.searchPublishedTopicIds(
                 subjectSlug == null ? "" : subjectSlug,
                 condition.tag() == null ? "" : condition.tag(),
-                toLikePattern(condition.query()),
+                SearchPatterns.toLikePattern(condition.query()),
                 pageable
         );
         if (idPage.isEmpty()) {
@@ -184,22 +184,6 @@ public class TopicService {
             log.warn("JSON-LD 직렬화 실패 - topicSlug: {}", topic.getSlug(), e);
             return null;
         }
-    }
-
-    /**
-     * 검색어를 소문자·공백 제거 부분 일치 LIKE 패턴으로 바꾼다. LIKE 특수문자는 '!'로 이스케이프한다.
-     * 예: "로드밸런서"와 "로드 밸런서"가 같은 패턴이 되어 제목 "로드 밸런서"에 걸린다.
-     */
-    private static String toLikePattern(String query){
-        if (query == null) {
-            return "%";
-        }
-        String escaped = query.toLowerCase(Locale.ROOT)
-                .replaceAll("\\s+", "")
-                .replace("!", "!!")
-                .replace("%", "!%")
-                .replace("_", "!_");
-        return "%" + escaped + "%";
     }
 
     /**

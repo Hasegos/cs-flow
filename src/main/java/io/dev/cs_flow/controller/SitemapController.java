@@ -1,6 +1,7 @@
 package io.dev.cs_flow.controller;
 
 import io.dev.cs_flow.model.Topic;
+import io.dev.cs_flow.service.ErrorEntryService;
 import io.dev.cs_flow.service.SitemapService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -28,11 +29,13 @@ public class SitemapController {
 
     private static final String SLUG_PATTERN = "^[a-z0-9\\-]+$";
     private final SitemapService sitemapService;
+    private final ErrorEntryService errorEntryService;
 
     /**
      * sitemap.xml을 생성하여 반환한다.
      * <p>
      * 홈, 정적 정책 페이지(개인정보처리방침·이용약관), 공개된 과목 홈 페이지, 공개된 토픽 개별 페이지 URL을 포함한다.
+     * 에러 사전은 검증된 항목이 있을 때만 목록 페이지와 검증된 항목 URL을 포함한다.
      * 토픽 목록은 {@link SitemapService}를 통해 캐시된 데이터를 사용한다.
      * </p>
      *
@@ -65,6 +68,14 @@ public class SitemapController {
                 .forEach(t -> sb.append(url(
                         BASE_URL + "/" + t.getSubject().getSlug() + "/" + t.getSlug(),
                         CHANGE_FREQ_MONTHLY, "0.7")));
+
+        List<String> errorSlugs = errorEntryService.getVerifiedSlugs().stream()
+                .filter(slug -> slug.matches(SLUG_PATTERN))
+                .toList();
+        if (!errorSlugs.isEmpty()) {
+            sb.append(url(BASE_URL + "/errors", CHANGE_FREQ_WEEKLY, "0.6"));
+            errorSlugs.forEach(slug -> sb.append(url(BASE_URL + "/errors/" + slug, CHANGE_FREQ_MONTHLY, "0.6")));
+        }
 
         sb.append("</urlset>");
         return sb.toString();
