@@ -1,0 +1,152 @@
+/* 에러 메시지 사전 (목록 · 상세) */
+
+/* === .errdict — 페이지 공통 강조색 === */
+.errdict {
+  --subject-accent: var(--color-teal);
+}
+
+/* === .errdict-lead — 목록 히어로 설명 === */
+.errdict-lead {
+  max-width: 640px;
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
+  font-weight: 300;
+  line-height: 1.8;
+  color: var(--color-text-sub);
+}
+
+/* === .errdict-card__message — 목록 카드의 에러 메시지 한 줄 === */
+.errdict-card__message {
+  margin: 0.4rem 0 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+/* === .errdict-badge — 검증 상태 === */
+.errdict-badge {
+  display: inline-block;
+  padding: 0.2rem 0.65rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+}
+
+.errdict-badge--ok {
+  color: var(--color-teal);
+  border-color: var(--color-teal);
+}
+
+.errdict-badge--wait {
+  color: var(--color-text-sub);
+  background: var(--color-surface);
+}
+
+/* === .errdict-notice — 미검증 안내 === */
+.errdict-notice {
+  margin-bottom: 2rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--subject-accent);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  font-size: 0.9rem;
+  line-height: 1.7;
+  color: var(--color-text-sub);
+}
+
+/* === .errdict-heading--first — 첫 제목 위 여백 제거 === */
+.errdict-heading--first {
+  margin-top: 0;
+}
+
+/* === .errdict-message — 에러 메시지 원문 === */
+.errdict-message {
+  margin: 0;
+  padding: 1.25rem 1.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  line-height: 1.8;
+  color: var(--color-text-sub);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* === .errdict-text — 원인 · 해결 · 재현 본문 === */
+.errdict-text {
+  font-size: 0.95rem;
+  font-weight: 300;
+  line-height: 1.9;
+  color: var(--color-text-sub);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* === .errdict-env — 환경 · 기록 표 === */
+.errdict-env {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.errdict-env__row {
+  display: flex;
+  gap: 1rem;
+  padding: 0.75rem 1.25rem;
+  font-size: 0.9rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.errdict-env__row:last-child {
+  border-bottom: 0;
+}
+
+.errdict-env__row dt {
+  flex: 0 0 5.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.errdict-env__row dd {
+  margin: 0;
+  color: var(--color-text-sub);
+  overflow-wrap: anywhere;
+}
+
+/* === .errdict .topic-grid — 긴 메시지가 카드 폭을 밀어내지 않게 === */
+.errdict .topic-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* === 반응형 === */
+@media (max-width: 768px) {
+  .errdict .topic-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .errdict-env__row {
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .errdict-env__row dt {
+    flex-basis: auto;
+  }
+}

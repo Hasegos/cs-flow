@@ -4,7 +4,7 @@
 환경변수 SNAPSHOT_BASE로 대상 주소를 바꾼다(기본 https://csflow.kr).
 원본이 아니라 Worker 폴백(X-Served-By 헤더)이 응답한 페이지는 실패로 보고, 하나라도 실패하면 종료 코드 1로 끝난다.
 조회수가 굽는 횟수만큼 오르지 않도록 고정 방문자 쿠키(cv)로 요청한다.
-sitemap에 없는 /study, /search(검색어 없는 빈 화면)도 굽는다.
+sitemap에 없는 /study, /search(검색어 없는 빈 화면), /errors(에러 사전 목록 첫 페이지)도 굽는다.
 과목 페이지는 정렬(default/view/like)과 페이지 조합마다 {과목}/_list/{정렬}-{페이지}.html로 따로 굽는다.
 """
 import os
@@ -26,8 +26,8 @@ WAIT_SECONDS = 180
 UA = "csflow-snapshot/1.0"
 VISITOR_COOKIE = "cv=00000000-0000-4000-8000-00000000c5f1"
 SORTS = ("default", "view", "like")
-EXTRA_PAGES = ("/study", "/search")
-SUBJECT_RE = re.compile(r"^/(arch|os|network|ds|algo|db)$")
+EXTRA_PAGES = ("/study", "/search", "/errors")
+SUBJECT_RE = re.compile(r"^/(arch|os|network|ds|algo|db|robot)$")
 PAGE_RE = re.compile(r"[?&;](?:amp;)?page=(\d+)")
 ASSET_RE = re.compile(r'''(?:href|src)=["'](/[^"'#]+?)["']''')
 CSS_URL_RE = re.compile(r'url\(["\']?(/[^"\')]+)["\']?\)')
