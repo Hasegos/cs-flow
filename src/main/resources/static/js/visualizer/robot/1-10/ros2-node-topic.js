@@ -307,7 +307,7 @@
             var y = p[1];
             if (bad) {
                 ln(x1, y, lerp(x1, x2, 0.5), y, P.red + 'cc', 2, [5, 4]);
-                tx('✕', lerp(x1, x2, 0.5) + 10, y, fs + 6, P.red + 'ff', 'center', true);
+                tx('✕', lerp(x1, x2, 0.5), y, fs + 3,P.red + 'ff', 'center', true);
                 return;
             }
             if (gone) { ln(x1, y, x2, y, P.muted + '55', 1.4, [4, 4]); return; }

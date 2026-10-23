@@ -369,7 +369,7 @@
         }
         var sy = srvY + 34;
         var dcol = hl.D ? colorOf(hl.D[1]) : P.muted;
-        var title = variant === 'session' ? '세션 저장소 (서버 메모리 · DB · Redis)' : '저장소: 사용하지 않음 · 서버가 가진 것';
+        var title = variant === 'session' ? (mob ? '세션 저장소' : '세션 저장소 (서버 메모리 · DB · Redis)') :'저장소: 사용하지 않음 · 서버가 가진 것';
         if (variant === 'session') {
             var storeRows = wrapRows(s.srv, w - 40, fs - 1);
             var boxH = 26 + Math.max(1, storeRows.length) * L.lh + 6;
@@ -384,7 +384,7 @@
             if (!storeRows.length) tx('(비어 있음)', x0 + 20, sy + 30, fs - 1, P.sub + 'ff', 'left', false);
             storeRows.forEach(function (r, i) { tx(r[0], x0 + 20, sy + 30 + i * L.lh, fs - 1, colorOf(r[1]) + 'ff', 'left', false); });
         } else {
-            tx('🔑 비밀키만 보관, 사용자 정보는 저장하지 않음', x0 + 14, sy + 8, fs - 1, P.sub + 'ff', 'left', true);
+            tx('🔑 비밀키만 보관', x0 + 14, sy + 8, fs - 1, P.sub + 'ff', 'left', true);
             if (hl.D) tx('저장소: ' + hl.D[0], x0 + 14, sy + 26, fs - 1, dcol + 'ff', 'left', true);
             var jr = wrapRows(s.srv, w - 28, fs - 1);
             jr.forEach(function (r, i) { tx(r[0], x0 + 14, sy + 46 + i * L.lh, fs - 1, colorOf(r[1]) + 'ff', 'left', false); });
