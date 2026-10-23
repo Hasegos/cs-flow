@@ -467,7 +467,7 @@
             ctx.globalAlpha = 1;
         }
 
-        var idx = 0;
+        var idx = 0, cells = ap.reduce(function (n, p) { return n + p.spec.rows.length * p.spec.cols.length; }, 0);
         var flights = [];
         ap.forEach(function (pl2, ai) {
             var done = s.kind === 'done';
@@ -480,7 +480,7 @@
                 var starts = {};
                 pl2.spec.rows.forEach(function (row, ri) {
                     pl2.spec.cols.forEach(function (c) {
-                        var st = 0.12 + idx * 0.055;
+                        var st = 0.04 + idx * 0.45 / Math.max(1, cells - 1);
                         starts[c + ':' + ri] = st;
                         idx++;
                         var sr = sourceRow(bp.spec, row);

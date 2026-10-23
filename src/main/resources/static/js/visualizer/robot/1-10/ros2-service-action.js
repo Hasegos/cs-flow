@@ -290,17 +290,23 @@
     }
 
     /* ===================== 레이아웃(모드마다 고정) ===================== */
+    function legendLines(a, w, fs) { return lines(a.lg.replace(/^[①-⑩]\s*/, ''), w - 32, fs); }
+    function legendH(s, w, fs) {
+        var h = 0;
+        (s.arrs || []).forEach(function (a) { h += legendLines(a, w, fs).length * (fs + 3) + 5; });
+        return h;
+    }
     function layout(w, mob) {
         var fs = mob ? 11 : 12;
         var maxLg = 0, anyGs = false;
         currentSteps().forEach(function (s) {
-            if (s.arrs && s.arrs.length > maxLg) maxLg = s.arrs.length;
+            maxLg = Math.max(maxLg, legendH(s, w, fs));
             if (s.gs !== undefined && mode !== 'service') anyGs = true;
         });
         var laneH = 18 + 30 + 76 + 18 + 30;
         var stH = anyGs ? 22 + 2 * 34 + 14 : 0;
         var sqH = anyGs ? 52 : 0;
-        var lgH = 20 + maxLg * (fs + 8) + 10;
+        var lgH = 20 + maxLg + 10;
         return { fs: fs, laneH: laneH, stH: stH, sqH: sqH, lgH: lgH, fmH: 30, total: laneH + 14 + stH + sqH + lgH + 30 };
     }
     function sceneH(w, mob) { return layout(w, mob).total; }
@@ -419,13 +425,16 @@
 
         /* 범례 */
         tx('오간 메시지', x0 + 2, y + 6, fs - 1, P.sub + 'ff', 'left', true);
+        var ly = y + 28;
         s.arrs.forEach(function (a, i) {
             var c = colorOf(kindCol(a.k));
             var isNew = i >= prevCnt && !!step;
+            var ls = legendLines(a, w, fs);
             ctx.globalAlpha = isNew ? e : 1;
-            circ(x0 + 12, y + 28 + i * (fs + 8), 8, c + 'ff', 'none');
-            tx(String(i + 1), x0 + 12, y + 28 + i * (fs + 8), 10.5, '#111111', 'center', true);
-            tx(a.lg.replace(/^[①-⑩]\s*/, ''), x0 + 28, y + 28 + i * (fs + 8), fs - 0.5, c + 'ff', 'left', true);
+            circ(x0 + 12, ly, 8, c + 'ff', 'none');
+            tx(String(i + 1), x0 + 12, ly, 10.5, '#111111', 'center', true);
+            ls.forEach(function (l, k) { tx(l, x0 + 28, ly + k * (fs + 3), fs - 0.5, c + 'ff', 'left', true); });
+            ly += ls.length * (fs + 3) + 5;
             ctx.globalAlpha = 1;
         });
         var fy = top + L.total - 30;

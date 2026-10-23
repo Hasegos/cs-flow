@@ -197,7 +197,7 @@
 
     /* ===================== 레이아웃 ===================== */
     function layout(w, mob) {
-        var h = mode === 'types' ? (mob ? 356 : 232) : (mode === 'wait' ? 244 : 284);
+        var h = mode === 'types' ? (mob ? 374 : 232) : (mode === 'wait' ? 244 : 284);
         return { fs: mob ? 11 : 12, total: h };
     }
     function sceneH(w, mob) { return layout(w, mob).total; }
@@ -246,7 +246,7 @@
         }
         /* 호환표 */
         var mx, my, cw = 52, chh = 34;
-        if (mob) { mx = x0 + w / 2 - (cw * 3) / 2; my = top + 196; }
+        if (mob) { mx = x0 + w / 2 - (cw * 3) / 2; my = top + 214; }
         else { mx = x0 + areaW + (w - areaW) / 2 - (cw * 3) / 2; my = top + 52; }
         tx('락 호환표', mx + cw * 1.5, my - 14, fs, P.sub + 'ff', 'center', true);
         var names = ['S', 'X'];
@@ -266,7 +266,7 @@
                 tx(ok ? '✓' : '✕', rx + cw / 2, ry + chh / 2, fs + 3, col + (hot ? 'ff' : '99'), 'center', true);
             }
         }
-        caption(s, x0, w, mob ? top + 316 : top + 188, fs);
+        caption(s, x0, w, mob ? top + 334 : top + 188, fs);
     }
 
     /* ===================== 장면: 락 대기(시간 흐름) ===================== */

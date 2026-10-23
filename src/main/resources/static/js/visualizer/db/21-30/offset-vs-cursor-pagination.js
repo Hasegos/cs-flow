@@ -299,7 +299,7 @@
         var cardN = 0;
         currentSteps().forEach(function (s) { cardN = Math.max(cardN, wrapRows(s.msg, w - 40, fs - 1).length); });
         var cardH = Math.max(1, cardN) * lh + 14;
-        var body = mode === 'change' ? 4 * 62 + 24 : 196;
+        var body = mode === 'change' ? 4 * 62 + 24 : 236;
         return { fs: fs, lh: lh, pipeH: 54, cardH: cardH, body: body, total: 54 + 12 + cardH + 14 + body + 10 };
     }
     function sceneH(w, mob) { return layout(w, mob).total; }
@@ -328,7 +328,7 @@
             if (hl[k]) {
                 var x = x0 + i * (bw + gap);
                 var c = colorOf(hl[k][1]);
-                tx(hl[k][0], x + bw / 2, top + 44, fs - 1.5, c + 'ff', 'center', true);
+                tx(hl[k][0], i === 0 ? x0 : (i === 2 ? x0 + w : x + bw / 2), top + 44, fs - 1.5, c + 'ff', i === 0 ? 'left' : (i === 2 ? 'right' : 'center'), true);
             }
         });
     }
@@ -348,8 +348,8 @@
 
     function drawTrack(x0, y, w, fs, s, prev, e, L) {
         var cx = x0 + 14, cw = w - 28;
-        tx('post 테이블  (id 1 → 1,000,000, 100만 행)', x0 + 2, y + 6, fs - 0.5, P.sub + 'ff', 'left', true);
-        var ty = y + 22, th = 26;
+        tx(w < 400 ? 'post 테이블 (100만 행)' : 'post 테이블  (id 1 → 1,000,000, 100만 행)', x0 + 2, y + 6, fs - 0.5, P.sub + 'ff', 'left', true);
+        var ty = y + 46, th = 26;
         rr(cx, ty, cw, th, 6, P.muted + '1a', P.muted + 'aa', 1.4);
         var scanTo = 0;
         if (s.sc && s.read !== undefined && mode === 'offset') scanTo = clamp01(s.read / BIG);
@@ -378,7 +378,7 @@
                 ctx.setLineDash([6, 4]);
                 ctx.stroke();
                 ctx.setLineDash([]);
-                tx('인덱스로 바로 이동', mid, ty - 24, fs - 0.5, P.green + 'ff', 'center', true);
+                tx('인덱스로 바로 이동', Math.min(cx + cw - 70, Math.max(cx + 70, mid)), ty - 24, fs - 0.5, P.green + 'ff', 'center', true);
             }
         }
         if (mode === 'cursor' && s.cur !== undefined) {
@@ -406,7 +406,7 @@
             tx(shown === null ? '-' : comma(shown), nx + nw / 2, ny + 36, fs + 3, c + 'ff', 'center', true);
         });
         if (s.nm) tx(s.nm, x0 + w / 2, ny + 74, fs, P.yellow + 'ff', 'center', true);
-        if (s.fm) tx(s.fm, x0 + w / 2, ny + 74, fs, P.yellow + 'ff', 'center', true);
+        if (s.fm) lines(s.fm, w - 8, fs).forEach(function (l, i) { tx(l, x0 + w / 2, ny + 74 + i * (fs + 5), fs, P.yellow + 'ff', 'center', true); });
     }
 
     function drawChips(x0, y, w, fs, row, e, idx) {
