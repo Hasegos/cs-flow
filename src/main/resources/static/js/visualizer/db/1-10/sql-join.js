@@ -440,10 +440,10 @@
         ctx.strokeStyle = P.teal + 'dd';
         ctx.lineWidth = 2;
         ctx.stroke();
-        tx('A', lx - r * 0.5, cy - 6, mob ? 13 : 15, P.purple + 'ee', 'center', true);
-        tx('B', rx + r * 0.5, cy - 6, mob ? 13 : 15, P.teal + 'ee', 'center', true);
-        tx('USERS', lx - r * 0.5, cy + (mob ? 10 : 14), mob ? 11 : 12, P.purple + 'cc', 'center', false);
-        tx('ORDERS', rx + r * 0.5, cy + (mob ? 10 : 14), mob ? 11 : 12, P.teal + 'cc', 'center', false);
+        tx('A', lx - r * 0.5, cy - 6, mob ? 13 : 15, P.text + 'ff', 'center', true);
+        tx('B', rx + r * 0.5, cy - 6, mob ? 13 : 15, P.text + 'ff', 'center', true);
+        tx('USERS', lx - r * 0.5, cy + (mob ? 10 : 14), mob ? 11 : 12, P.text + 'ff', 'center', false);
+        tx('ORDERS', rx + r * 0.5, cy + (mob ? 10 : 14), mob ? 11 : 12, P.text + 'ff', 'center', false);
     }
 
     /* ===================== 장면 그리기 ===================== */

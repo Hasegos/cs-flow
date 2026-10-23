@@ -333,7 +333,8 @@
         var lay = LAYERS[idx];
         if (on) rr(x, y, w, h, 5, col + '2a', col + 'ff', 2);
         else rr(x, y, w, h, 5, P.surf, P.border, 1.2);
-        var c = on ? col + 'ff' : P.text + 'ff';
+        var light = document.documentElement.getAttribute('data-theme') === 'light';
+        var c = on && !light ? col + 'ff' : P.text + 'ff';
         if (mob) {
             tx(lay.name, x + 6, y + h / 2, fs, c, 'left', on);
         } else {
