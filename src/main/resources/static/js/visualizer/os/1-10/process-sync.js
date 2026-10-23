@@ -153,21 +153,23 @@
         var pad = 14;
         var maxIn = W - 16 - pad * 2;
         ctx.font = '700 14px "JetBrains Mono",monospace';
-        var titleW = Math.min(maxIn, ctx.measureText(title).width);
+        var tl = window.CsFlow.wrapText(ctx, title, maxIn);
+        var titleW = 0;
+        tl.forEach(function (l) { titleW = Math.max(titleW, ctx.measureText(l).width); });
         ctx.font = '400 13px "JetBrains Mono",monospace';
         var dl = desc ? window.CsFlow.wrapText(ctx, desc, maxIn) : [];
         var descW = 0;
         dl.forEach(function (l) { descW = Math.max(descW, ctx.measureText(l).width); });
         var tw = Math.min(W - 16, Math.max(titleW, descW) + pad * 2);
-        var th = desc ? 42 + dl.length * 18 : 36;
+        var th = desc ? 24 + tl.length * 18 + dl.length * 18 : 18 + tl.length * 18;
         var bx = mx + 14, by = my - th - 8;
         if (bx + tw > W - 8) bx = mx - tw - 14;
         if (bx < 8) bx = 8;
         if (by < 8) by = my + 14;
         if (by + th > H - 8) by = H - th - 8;
         rr(bx, by, tw, th, 6, P.surf2, P.purple + 'cc', 2);
-        tx(title, bx + pad, by + (desc ? 18 : th / 2), 14, P.text + 'ff', 'left', true);
-        dl.forEach(function (l, i) { tx(l, bx + pad, by + 42 + i * 18, 13, P.sub + 'ff', 'left', false); });
+        tl.forEach(function (l, i) { tx(l, bx + pad, by + 18 + i * 18, 14, P.text + 'ff', 'left', true); });
+        dl.forEach(function (l, i) { tx(l, bx + pad, by + 24 + tl.length * 18 + i * 18, 13, P.sub + 'ff', 'left', false); });
     }
     function colorOf(key) { return P[key] || P.muted; }
     function lerp(a, b, t) { return a + (b - a) * t; }

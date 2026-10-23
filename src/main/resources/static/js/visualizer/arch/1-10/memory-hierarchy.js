@@ -186,15 +186,15 @@
         const mob  = W < 580;
         const pad  = mob ? 10 : 24;
 
-        const pyrW = mob ? W - pad * 2 : Math.min(W * 0.52, 380);
+        const pyrW = mob ? W - pad * 2 - 16 : Math.min(W * 0.52, 380);
         const pyrX = mob ? pad + 16 : pad;
 
         const panelX = mob ? 0 : pyrX + pyrW + (mob ? 0 : 20);
         const panelW = mob ? 0 : W - panelX - pad;
 
         const pyrH    = H - pad * 2;
-        const layerH  = Math.floor(pyrH / LAYERS.length);
         const layerGap = 4;
+        const layerH  = Math.floor((pyrH - layerGap * (LAYERS.length - 1)) / LAYERS.length);
 
         return { W, H, mob, pad, pyrX, pyrW, pyrH, panelX, panelW, layerH, layerGap };
     }
@@ -252,7 +252,7 @@
 
                 rr(x, y, 5, h, 3, col, null);
 
-                const cx = x + w / 2;
+                const cx = mob ? x + w * 0.35 : x + w / 2;
                 const cy = y + h / 2;
 
                 tx(layer.name, cx, cy - (mob ? 7 : 8), fLg, isSel || isHov ? col : P.text, 'center', true);
@@ -305,8 +305,9 @@
         ctx.fill();
 
         const fAxis = mob ? 10 : 11;
-        tx('빠름', axX, topY - 14, fAxis, P.purple, 'center', true);
-        tx('느림', axX, botY + 14, fAxis, P.muted,  'center', false);
+        const lx = Math.max(axX, 18);
+        tx('빠름', lx, topY - 14, fAxis, P.purple, 'center', true);
+        tx('느림', lx, botY + 14, fAxis, P.muted,  'center', false);
     }
 
     /* ===================== 상세 패널 ===================== */
