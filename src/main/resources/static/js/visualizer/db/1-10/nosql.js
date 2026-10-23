@@ -350,7 +350,8 @@
             var bx2 = lerp(a[0], b[0], prog), by2 = lerp(a[1], b[1], prog);
             ln(a[0], a[1], bx2, by2, col + (hopHot ? 'ff' : 'aa'), hopHot ? 2.6 : 1.8);
             if (prog > 0.9 && !mob) {
-                tx(ed[2], (a[0] + b[0]) / 2, (a[1] + b[1]) / 2 - 8, fs - 2, (hopHot ? col : P.sub) + 'ff', 'center', true);
+                var vert = Math.abs(a[0] - b[0]) < 4;
+                tx(ed[2], (a[0] + b[0]) / 2 + (vert ? 8 : 0), (a[1] + b[1]) / 2 - (vert ? 0 : 8), fs - 2, (hopHot ? col : P.sub) + 'ff', vert ? 'left' : 'center', true);
             }
         });
         Object.keys(G_NODES).forEach(function (k) {
