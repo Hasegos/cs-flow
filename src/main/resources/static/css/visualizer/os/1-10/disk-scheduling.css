@@ -35,18 +35,9 @@
   color: var(--color-purple);
 }
 
-.dsk-viz__algo-hint {
-  font-family: var(--font-mono);
-  font-size: 0.58rem;
-  letter-spacing: 0.10em;
-  color: var(--color-text-muted);
-  opacity: 0.7;
-  white-space: nowrap;
-}
+.dsk-viz__mode { display: flex; gap: 6px; flex-wrap: wrap; }
 
-.dsk-viz__algo-tabs { display: flex; gap: 6px; }
-
-.dsk-viz__algo-btn {
+.dsk-viz__mode-btn {
   font-family: var(--font-mono);
   font-size: 0.65rem;
   padding: 5px 14px;
@@ -60,12 +51,12 @@
   box-shadow: 0 1px 3px rgba(0,0,0,0.25);
 }
 
-.dsk-viz__algo-btn:hover {
+.dsk-viz__mode-btn:hover {
   border-color: var(--color-purple);
   color: var(--color-purple);
 }
 
-.dsk-viz__algo-btn--active {
+.dsk-viz__mode-btn--active {
   border-color: var(--color-purple);
   color: var(--color-purple);
   background: rgba(108, 99, 255, 0.14);
@@ -73,7 +64,7 @@
   font-weight: 700;
 }
 
-.dsk-viz__algo-btn:disabled {
+.dsk-viz__mode-btn:disabled {
   opacity: 0.3;
   cursor: not-allowed;
   pointer-events: none;

@@ -38,18 +38,10 @@
 }
 
 /* === 모드 탭 === */
-.fs-viz__mode-tabs {
+.fs-viz__mode {
   display: flex;
   gap: 6px;
-}
-
-.fs-viz__mode-hint {
-  font-family: var(--font-mono);
-  font-size: 0.58rem;
-  letter-spacing: 0.10em;
-  color: var(--color-text-muted);
-  opacity: 0.7;
-  white-space: nowrap;
+  flex-wrap: wrap;
 }
 
 .fs-viz__mode-btn {
