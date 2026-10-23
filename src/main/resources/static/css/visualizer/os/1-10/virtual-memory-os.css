@@ -38,21 +38,13 @@
 }
 
 /* === 알고리즘 탭 === */
-.vmos-viz__algo-tabs {
+.vmos-viz__mode {
   display: flex;
   gap: 6px;
+  flex-wrap: wrap;
 }
 
-.vmos-viz__algo-hint {
-  font-family: var(--font-mono);
-  font-size: 0.58rem;
-  letter-spacing: 0.10em;
-  color: var(--color-text-muted);
-  opacity: 0.7;
-  white-space: nowrap;
-}
-
-.vmos-viz__algo-btn {
+.vmos-viz__mode-btn {
   font-family: var(--font-mono);
   font-size: 0.65rem;
   padding: 5px 14px;
@@ -66,14 +58,14 @@
   box-shadow: 0 1px 3px rgba(0,0,0,0.25);
 }
 
-.vmos-viz__algo-btn:hover {
+.vmos-viz__mode-btn:hover {
   border-color: var(--color-purple);
   color: var(--color-purple);
   transform: translateY(-1px);
   box-shadow: 0 0 0 2px rgba(108, 99, 255, 0.2);
 }
 
-.vmos-viz__algo-btn--active {
+.vmos-viz__mode-btn--active {
   border-color: var(--color-purple);
   color: var(--color-purple);
   background: rgba(108, 99, 255, 0.14);
@@ -81,7 +73,7 @@
   font-weight: 700;
 }
 
-.vmos-viz__algo-btn:disabled {
+.vmos-viz__mode-btn:disabled {
   opacity: 0.3;
   cursor: not-allowed;
   pointer-events: none;
