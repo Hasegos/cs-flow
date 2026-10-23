@@ -371,13 +371,24 @@
         var rowH = 52;
         ADDR_ROWS.forEach(function (r, i) {
             var shown = k >= i + 1 || (i === 3 && k >= 5);
-            if (!shown) return;
-            var cur = k === i + 1;
-            var fresh = cur && pk < k;
             var y = top + 8 + i * rowH;
             var c = P[r.col];
+            if (!shown) {
+                ctx.globalAlpha = 0.3;
+                tx(r.name, x0, y + 8, fs - 0.5, c + 'ff', 'left', true);
+                if (i < 3) {
+                    rr(x0, y + 18, w, 24, 5, 'none', c + 'ff', 1.2);
+                } else {
+                    var gw = Math.min(64, (w - 3 * 4) / 4);
+                    for (var g = 0; g < 4; g++) rr(x0 + g * (gw + 4), y + 18, gw, 22, 4, 'none', c + 'ff', 1.2);
+                }
+                ctx.globalAlpha = 1;
+                return;
+            }
+            var cur = k === i + 1;
+            var fresh = cur && pk < k;
             var q = fresh ? ez(seg(e, 0, 0.5)) : 1;
-            ctx.globalAlpha = fresh ? clamp01(e * 4) : 1;
+            ctx.globalAlpha = fresh ? lerp(0.3, 1, clamp01(e * 4)) : 1;
             tx(r.name, x0, y + 8, fs - 0.5, c + 'ff', 'left', true);
             ctx.globalAlpha = 1;
             if (i < 3) {

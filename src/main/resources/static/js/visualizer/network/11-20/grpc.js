@@ -246,14 +246,14 @@
         var bw = mob ? 66 : 64;
         var laneX1 = x0 + bw + 6, laneX2 = x0 + w - bw - 6;
         CALLS.forEach(function (c, i) {
-            if (k < i + 1) return;
+            var reached = k >= i + 1;
             var y = top + i * rowH;
             var cur = k === i + 1;
             var fresh = cur && pk < k;
-            ctx.globalAlpha = fresh ? clamp01(e * 5) : 1;
+            var base = !reached ? 0.3 : (fresh ? lerp(0.3, 1, clamp01(e * 5)) : 1);
+            ctx.globalAlpha = base;
             tx(c.name, x0, y + 8, fs - 0.5, (cur ? P.text : P.sub) + 'ff', 'left', true);
             tx('예: ' + c.ex, x0 + w, y + 8, fs - 1.5, P.yellow + 'ff', 'right', false);
-            ctx.globalAlpha = 1;
             [['클라이언트', c.c, P.orange, 0], ['서버', c.s, P.teal, 1]].forEach(function (ln2) {
                 var j = ln2[3];
                 var ly = y + 20 + j * 20;
@@ -261,6 +261,7 @@
                 rr(j === 0 ? x0 : x0 + w - bw, ly, bw, 18, 4, col + '22', col + 'ff', 1.2);
                 tx(ln2[0], (j === 0 ? x0 : x0 + w - bw) + bw / 2, ly + 9, fs - 1.5, col + 'ff', 'center', true);
                 ln(laneX1, ly + 9, laneX2, ly + 9, P.sub + '44', 1, [3, 4]);
+                if (!reached) return;
                 var n2 = ln2[1];
                 var respStart = c.c > 1 && c.s === 1 ? 0.62 : (c.s > 1 && c.c > 1 ? 0.2 : 0.4);
                 for (var m = 0; m < n2; m++) {
@@ -274,6 +275,7 @@
                     tx(String(m + 1), px + 13, ly + 9, fs - 1.5, P.text + 'ff', 'center', true);
                 }
             });
+            ctx.globalAlpha = 1;
         });
     }
 
@@ -289,8 +291,20 @@
             tx(JSON_S.slice(0, typed), x0 + w / 2, top + 33, fs, P.text + 'ff', 'center', false);
             rr(x0, top + 52, JSON_LEN * unit * (f1 ? ez(seg(e, 0.1, 0.8)) : 1), 7, 2, P.orange + '66', P.orange + 'ff', 1);
         }
+        if (k < 1) {
+            ctx.globalAlpha = 0.3;
+            tx('JSON', x0, top + 8, fs, P.orange + 'ff', 'left', true);
+            rr(x0, top + 20, w, 26, 4, 'none', P.orange + 'ff', 1.3);
+            ctx.globalAlpha = 1;
+        }
         var fresh2 = k === 2 && pk < 2, fresh3 = k === 3 && pk < 3;
         var shown = k >= 3 ? PB_GROUPS.length : (k >= 2 ? 2 : 0);
+        if (shown === 0) {
+            ctx.globalAlpha = 0.3;
+            tx('Protocol Buffers', x0, top + 82, fs, P.teal + 'ff', 'left', true);
+            rr(x0, top + 94, w, 28, 4, 'none', P.teal + 'ff', 1.5);
+            ctx.globalAlpha = 1;
+        }
         if (shown > 0) {
             var py = top + 82;
             var colors = { tag: P.orange, val: P.green, len: P.purple, data: P.teal };

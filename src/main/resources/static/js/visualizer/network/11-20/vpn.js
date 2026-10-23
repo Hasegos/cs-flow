@@ -243,6 +243,16 @@
         var f1 = k === 1 && pk < 1, f2 = k === 2 && pk < 2, f3 = k === 3 && pk < 3, f4 = k === 4 && pk < 4;
         var rev = k === 5 && pk < 5;
 
+        var ghost = function (i, yy, label, lx, al, hh) {
+            if (k > i + 1 || (k === i + 1 && pk >= k)) return;
+            ctx.globalAlpha = 0.3;
+            tx(label, lx, yy + 6, fs - 1, P.sub + 'ff', al, true);
+            rr(x0, yy + 14, w, hh, 4, 'none', P.sub + 'ff', 1.2);
+            ctx.globalAlpha = 1;
+        };
+        ghost(0, y1, '원래 패킷 (내부 패킷)', x0, 'left', bh);
+        ghost(1, y2, '암호화', x0 + w / 2, 'center', bh);
+        ghost(2, y3, '캡슐화한 패킷 (외부 패킷)', x0, 'left', bh);
         if (k >= 1) {
             var a1 = f1 ? q : 1;
             ctx.globalAlpha = a1;
@@ -433,7 +443,14 @@
         blocks.forEach(function (b) {
             var on = k >= b[0], cur = k === b[0], fresh = cur && pk < b[0];
             tx(b[2], x0, b[1], fs - 0.5, (cur ? P.text : P.sub) + 'ff', 'left', true);
-            if (!on) return;
+            if (!on) {
+                node(x0, b[1] + 12, b[3], b[4], 0.3);
+                node(x0 + w - bw, b[1] + 12, b[5], b[6], 0.3);
+                ctx.globalAlpha = 0.3;
+                ln(x0 + bw, b[1] + 12 + bh / 2, x0 + w - bw, b[1] + 12 + bh / 2, P.sub + '66', 3);
+                ctx.globalAlpha = 1;
+                return;
+            }
             var a = fresh ? ez(seg(e, 0, 0.3)) : 1;
             node(x0, b[1] + 12, b[3], b[4], a);
             node(x0 + w - bw, b[1] + 12, b[5], b[6], a);
@@ -444,8 +461,15 @@
         var y3 = y + 132;
         KINDS.forEach(function (r, i) {
             var rowK = 3 + i;
-            if (k < rowK) return;
             var yy = y3 + i * 28;
+            if (k < rowK) {
+                var gc = colorOf(r[2]);
+                ctx.globalAlpha = 0.3;
+                rr(x0, yy, w, 24, 4, 'none', gc + 'ff', 1.2);
+                tx(r[0], x0 + 10, yy + 12, fs - 1, gc + 'ff', 'left', true);
+                ctx.globalAlpha = 1;
+                return;
+            }
             var cur = k === rowK;
             var fresh = cur && pk < rowK;
             var q = fresh ? ez(seg(e, 0, 0.5)) : 1;
