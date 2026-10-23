@@ -141,7 +141,7 @@
 }
 
 /* === 반응형 === */
-@media (max-width: 960px) {
+@media (max-width: 1140px) {
   .gnb__nav { display: none; }
 
   .gnb__hamburger {

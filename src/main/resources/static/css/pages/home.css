@@ -265,6 +265,11 @@
   transform: translateY(-3px);
 }
 
+/* === .subject-card--errors — 에러 사전 카드 강조색 === */
+.subject-card--errors {
+  --accent: var(--color-teal);
+}
+
 /* 과목 색상 좌측 강조바 */
 .subject-card__accent-bar {
   position: absolute;
