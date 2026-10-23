@@ -256,9 +256,10 @@
                 var isNew = !(prev && prev.put[i]);
                 ctx.globalAlpha = isNew ? clamp01((e - 0.3) * 2) : 1;
                 tx(it[0], bx + 26, y + 13, fs, col + 'ff', 'left', true);
-                ctx.font = '500 ' + fs + 'px "JetBrains Mono",monospace';
+                ctx.font = '500 ' + (fs - 1.5) + 'px "JetBrains Mono",monospace';
                 var shortVal = it[1].replace('name: "Alice", grade: "VIP"', 'Alice, VIP').replace('"Order#1", "Order#2"', '#1, #2');
-                var val = ctx.measureText(it[1]).width > bw - 34 ? shortVal : it[1];
+                var val = ctx.measureText(it[1]).width > bw - 40 ? shortVal : it[1];
+                if (ctx.measureText(val).width > bw - 40) val = val.replace(/^[\[{] | [\]}]$/g, '');
                 tx(val, bx + 26, y + 29, fs - 1.5, P.text + 'dd', 'left', false);
                 ctx.globalAlpha = 1;
             }
@@ -289,9 +290,9 @@
         if (s.join && !prev.join) {
             /* 조합 표시는 아래 칩이 대신한다 */
         }
-        if (s.rd) readChip(s.rd, appX + appW / 2, appY + 70, fs);
+        if (s.rd) readChip(s.rd, Math.max(appX + appW / 2, x0 + 46), appY + 70, fs);
         if (s.join) {
-            tx('앱이 직접 조합', appX + appW / 2, appY + 100, fs - 1, P.purple + 'ff', 'center', true);
+            tx('앱이 직접 조합', x0, appY + 100, fs - 1, P.purple + 'ff', 'left', true);
         }
         caption(s, x0 + w / 2, w, by + 4 * (rowH + 4) + 18, fs);
     }
@@ -325,6 +326,20 @@
         var gh = mob ? 210 : 196;
         function pos(k) { var n = G_NODES[k]; return [x0 + 34 + n.x * (w - 68), top + 18 + n.y * (gh - 56)]; }
         var pnodes = prev ? prev.nodes : {};
+        var empty = !Object.keys(G_NODES).some(function (k) { return s.nodes[k]; });
+        if (empty) {
+            ctx.globalAlpha = 0.3;
+            G_EDGES.forEach(function (ed) {
+                var a = pos(ed[0]), b = pos(ed[1]);
+                ln(a[0], a[1], b[0], b[1], P.muted + 'ff', 1.4, [4, 4]);
+            });
+            Object.keys(G_NODES).forEach(function (k) {
+                var p = pos(k), n = G_NODES[k];
+                circ(p[0], p[1], 13, 'none', P[n.c] + 'ff', 1.6);
+                tx(n.l, p[0], p[1] + 25, fs, P[n.c] + 'ff', 'center', true);
+            });
+            ctx.globalAlpha = 1;
+        }
         G_EDGES.forEach(function (ed) {
             if (!(s.nodes[ed[0]] && s.nodes[ed[1]]) || !s.edges[ed[3]]) return;
             var a = pos(ed[0]), b = pos(ed[1]);

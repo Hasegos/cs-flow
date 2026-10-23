@@ -261,13 +261,19 @@
     /* ===================== 표 크기 ===================== */
     var COL_W = {
         d: { order_id: 84, product: 96, user_name: 112, user_grade: 92, products: 210 },
-        m: { order_id: 60, product: 62, user_name: 72, user_grade: 70, products: 100 }
+        m: { order_id: 60, product: 62, user_name: 58, user_grade: 58, products: 80 }
     };
     var TAGS = { '1nf': '✕ 한 칸에 값이 여러 개', '2nf': '✕ 부분 함수 종속', '3nf': '✕ 이행 종속' };
     var OKS = { '1nf': '✓ 1NF', '2nf': '✓ 2NF', '3nf': '✓ 3NF' };
 
+    var SC = 1;
+    function cwOf(mob) {
+        var src = mob ? COL_W.m : COL_W.d, out = {};
+        for (var c in src) out[c] = src[c] * SC;
+        return out;
+    }
     function tblW(spec, mob) {
-        var cw = mob ? COL_W.m : COL_W.d;
+        var cw = cwOf(mob);
         var w = 0;
         spec.cols.forEach(function (c) { w += cw[c]; });
         return w;
@@ -298,7 +304,15 @@
         return h;
     }
     function layout(w, mob) {
-        var maxH = 0;
+        var maxH = 0, maxW = 0, raw = mob ? COL_W.m : COL_W.d;
+        currentSteps().forEach(function (s) {
+            (s.before ? [s.before] : []).concat(s.after || []).forEach(function (sp) {
+                var tw = 0;
+                sp.cols.forEach(function (c) { tw += raw[c]; });
+                maxW = Math.max(maxW, tw);
+            });
+        });
+        SC = maxW > w - 4 ? (w - 4) / maxW : 1;
         currentSteps().forEach(function (s) { maxH = Math.max(maxH, stepH(s, w, mob)); });
         return { fs: mob ? 12 : 13.5, total: titleGap(mob) + maxH + 12 };
     }
@@ -339,7 +353,7 @@
 
     /* ===================== 셀 위치와 출처 ===================== */
     function cellCenter(pl, col, ri, mob) {
-        var cw = mob ? COL_W.m : COL_W.d;
+        var cw = cwOf(mob);
         var x = pl.x;
         for (var i = 0; i < pl.spec.cols.length; i++) {
             if (pl.spec.cols[i] === col) break;
@@ -361,9 +375,20 @@
     }
 
     /* ===================== 표 그리기 ===================== */
+    function wrapTxt(text, size, bold, room) {
+        ctx.font = (bold ? '700 ' : '500 ') + size + 'px "JetBrains Mono",monospace';
+        if (ctx.measureText(text).width <= room) return [text];
+        var parts = text.split(', ');
+        if (parts.length > 1) return parts.map(function (pt, i) { return i < parts.length - 1 ? pt + ',' : pt; });
+        var u = text.indexOf('_');
+        return u > 0 ? [text.slice(0, u + 1), text.slice(u + 1)] : [text];
+    }
+    function txLines(arr, x, y, size, color, bold) {
+        arr.forEach(function (l, i) { tx(l, x, y + (i - (arr.length - 1) / 2) * 14, size, color, 'center', bold); });
+    }
     function drawTable(pl, mob, hiCols, o) {
         var spec = pl.spec;
-        var cw = mob ? COL_W.m : COL_W.d;
+        var cw = cwOf(mob);
         var headerH = mob ? 38 : 44, rowH = mob ? 36 : 42;
         var fs = mob ? 12 : 13.5;
         var x0 = pl.x, y0 = pl.y;
@@ -379,7 +404,7 @@
             var isPk = spec.pk.indexOf(c) !== -1;
             var isHi = (hiCols || []).indexOf(c) !== -1;
             rr(x0 + colX[c], y0, cw[c], headerH, 0, isHi ? P.orange + (pulse > 1.2 ? '44' : '22') : P.sub + '14', 'none');
-            tx(c, x0 + colX[c] + cw[c] / 2, isPk ? y0 + headerH * 0.38 : y0 + headerH / 2, fs - 1, isHi ? P.orange + 'ff' : P.text + 'ee', 'center', true);
+            txLines(isPk ? [c] : wrapTxt(c, fs - 1, true, cw[c] - 6), x0 + colX[c] + cw[c] / 2, isPk ? y0 + headerH * 0.38 : y0 + headerH / 2, fs - 1, isHi ? P.orange + 'ff' : P.text + 'ee', true);
             if (isPk) tx('PK', x0 + colX[c] + cw[c] / 2, y0 + headerH * 0.76, fs - 2, P.purple + 'ff', 'center', true);
         });
         ln(x0, y0 + headerH, x0 + totalW, y0 + headerH, P.sub + '88', 1.3);
@@ -394,7 +419,7 @@
                 ctx.globalAlpha = o.frame * a;
                 if (isHi) rr(cx, ry, cw[c], rowH, 0, P.orange + (pulse > 1.2 ? '30' : '14'), 'none');
                 if (dup) rr(cx + 2, ry + 2, cw[c] - 4, rowH - 4, 4, P.orange + (pulse > 1.2 ? '44' : '22'), P.orange + 'ff', 1.6);
-                tx(String(row[c]), cx + cw[c] / 2, ry + rowH / 2, fs, (isHi || dup) ? P.orange + 'ff' : P.text + 'ee', 'center', isHi || dup);
+                txLines(wrapTxt(String(row[c]), fs, isHi || dup, cw[c] - 8), cx + cw[c] / 2, ry + rowH / 2, fs, (isHi || dup) ? P.orange + 'ff' : P.text + 'ee', isHi || dup);
             });
         });
         ctx.globalAlpha = o.frame;

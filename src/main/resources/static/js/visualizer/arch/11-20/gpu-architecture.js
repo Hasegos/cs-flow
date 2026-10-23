@@ -461,7 +461,20 @@
         var cwT = (w - L.labelW) / T_MAX;
 
         gpTextBlock(lines('가로: 사이클 0~' + (T_MAX - 1) + ' · C 계산 · M 메모리 대기', w, fs), x0, top, lh, fs, P.sub + 'ff', 'left', false);
-        if (!s.w) return;
+        ctx.globalAlpha = 0.3;
+        for (var gi = fresh && s.w > p.w ? p.w : s.w; gi < 4; gi++) {
+            var gy = top + L.rowsY + gi * (L.rh + 6);
+            tx('워프 ' + gi, x0, gy + L.rh / 2, fs, P.text + 'dd', 'left', true);
+            for (var gq = 0; gq < T_MAX; gq++) rr(x0 + L.labelW + gq * cwT, gy, cwT - 1, L.rh, 2, 'none', P.muted + 'aa', 1);
+        }
+        ctx.globalAlpha = 1;
+        if (!s.w) {
+            ctx.globalAlpha = 0.3;
+            gpTextBlock(lines('계산 유닛 활용률: 0%', w, fs + 2), x0, top + L.uy, lh, fs + 2, P.sub + 'ee', 'left', true);
+            rr(x0, top + L.barY, w, 8, 4, 'none', P.muted + 'aa', 1);
+            ctx.globalAlpha = 1;
+            return;
+        }
 
         var sim = SIMS[s.w];
         var nP = p.w;
