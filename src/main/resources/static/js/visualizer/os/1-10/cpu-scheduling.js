@@ -335,7 +335,7 @@
         }
         var sliceLen = s.end - s.start;
         return 'T=' + s.start + ' — ' + s.id + ' 에 퀀텀 ' + sliceLen +
-               ' 단위 할당' + (sliceLen < p.burst ? ' (선점 후 Ready Queue 재삽입)' : ' (완료)') +
+               ' 단위 할당' + (ocsLast(s.id, ALGOS[idx].slots) !== i ? ' (선점 후 Ready Queue 재삽입)' : ' (완료)') +
                '. → T=' + s.end + '.';
     }
     function ocsSteps(idx) {

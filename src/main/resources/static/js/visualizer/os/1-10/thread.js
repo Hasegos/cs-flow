@@ -229,10 +229,10 @@
         },
         {
             badge:  'Mutex 적용 → counter=2',
-            log:    'Step 6 — Mutex로 임계 구역을 보호합니다. T1이 Lock을 획득하는 동안 T2는 Blocked 상태로 대기합니다. T1이 0→1로 안전하게 업데이트하고 Unlock하면, T2가 Lock을 획득해 1→2로 업데이트합니다. 최종값 2 정확합니다.',
+            log:    'Step 6 — 이번에는 counter=0부터 Mutex로 임계 구역을 보호합니다. T1이 Lock을 획득하는 동안 T2는 Blocked 상태로 대기합니다. T1이 0→1로 안전하게 업데이트하고 Unlock하면, T2가 Lock을 획득해 1→2로 업데이트합니다. 최종값 2 정확합니다.',
             pkts:   [{ from: 'T1', to: 'CPU', col: 'T1' }, { from: 'CPU', to: 'MEM', col: 'T1' }],
-            states: { T1: 'RUNNING', T2: 'BLOCKED', T3: 'READY' },
-            counter: 2, cpuLabel: 'T1', mutex: 'LOCKED',
+            states: { T1: 'READY', T2: 'RUNNING', T3: 'READY' },
+            counter: 2, cpuLabel: 'T2', mutex: 'LOCKED',
             mutexOk: true,
         },
     ];
@@ -371,6 +371,8 @@
             v.regs = { T1: f < 0.2 ? '-' : f < 0.5 ? '0' : '1', T2: f < 0.5 ? '-' : f < 0.85 ? '1' : '2', T3: s.regs.T3 };
             v.cpuReg = f < 0.2 ? '-' : f < 0.5 ? '0' : '1';
             v.mutex = f >= 0.2 ? 'LOCKED' : null;
+            v.states = f < 0.5 ? { T1: 'RUNNING', T2: 'BLOCKED', T3: 'READY' } : { T1: 'READY', T2: 'RUNNING', T3: 'READY' };
+            v.cpu = f < 0.5 ? 'T1' : 'T2';
             if (f < 0.5) { v.note = '0에서 다시 시작'; v.noteCol = P.sub; }
             if (f >= 0.85) { v.note = '순차 갱신 완료'; v.noteCol = P.green; v.mutexOk = true; }
         }
@@ -457,7 +459,7 @@
         tx('Mutex Lock', cx, n.y + (L.wide ? 20 : 16), L.fs, P.sub + 'ff', 'center', true);
         ln(n.x + 14, sepY, n.x + n.w - 14, sepY, col + '88', 1, []);
         tx(locked ? 'LOCKED' : 'UNLOCKED', cx, n.y + (L.wide ? 66 : 46), L.fs + 1, col + 'ff', 'center', true);
-        var sub = locked ? (v.states.T2 === 'BLOCKED' ? 'T2 : Blocked (대기)' : 'T1 보유 중') : '진입 가능';
+        var sub = locked ? (v.states.T2 === 'BLOCKED' ? 'T2 : Blocked (대기)' : (v.states.T2 === 'RUNNING' ? 'T2 보유 중' : 'T1 보유 중')) : '진입 가능';
         tx(sub, cx, n.y + (L.wide ? 94 : 62), L.fsS, P.sub + 'ff', 'center', false);
     }
 
