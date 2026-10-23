@@ -292,7 +292,7 @@
             tx(String(v), cx, cy, fs, ixC('text', k), 'center', false);
             if (amt[i] > 0) {
                 ctx.globalAlpha = amt[i] * k;
-                tx(String(v), cx, cy, fs, ixC(hues[i], 1), 'center', true);
+                tx(String(v), cx, cy, fs, ixC(document.documentElement.getAttribute('data-theme') === 'light' ? 'text' : hues[i], 1), 'center', true);
                 ctx.globalAlpha = 1;
             }
         });

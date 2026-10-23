@@ -554,7 +554,7 @@
         var mx = (a.x + b.x) / 2 + 13;
         var my = (a.y + b.y) / 2;
         ctx.globalAlpha = al;
-        rr(mx - 7, my - 7, 14, 14, 3, P.bg + 'cc', null, 0);
+        rr(mx - 8, my - 8, 16, 16, 3, P.bg + 'ff', null, 0);
         tx(ch, mx, my, fs, P.text + 'ff', 'center', true);
         ctx.globalAlpha = 1;
     }

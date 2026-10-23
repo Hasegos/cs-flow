@@ -429,7 +429,7 @@
         });
 
         var pk = s.pktPath || [];
-        var k = s.pktEdgeIdx;
+        var k = s.pktEdgeIdx, pkt = null;
         if (k >= 0 && k < pk.length) {
             var seq = rtChain(pk);
             var moving = fresh && p.pktEdgeIdx !== k;
@@ -442,8 +442,7 @@
             var dy = a1.y > a0.y ? 1 : (a1.y < a0.y ? -1 : 0);
             var px = lerp(a0.x + dx * off, a1.x - dx * off, pr);
             var py = lerp(a0.y + dy * off, a1.y - dy * off, pr);
-            circ(px, py, rad, P.green + 'ff', P.green + 'ff', 2.5);
-            tx('PKT', px, py, L.fsE, '#111111', 'center', true);
+            pkt = { x: px, y: py, r: rad };
         }
 
         EDGES.forEach(function (ed, i) {
@@ -454,17 +453,23 @@
             var mx = (A.x + B.x) / 2;
             var my = (A.y + B.y) / 2;
             var label = rtLabel(i);
+            var pa0 = pkt && Math.hypot(mx - pkt.x, my - pkt.y) < pkt.r + 24 ? 0.2 : 1;
             if (!fresh || ka === kb) {
-                rtPill(L, mx, my, label, rtStyle(kb, i), 1);
+                rtPill(L, mx, my, label, rtStyle(kb, i), pa0);
             } else {
                 var pa = ez(seg(e, 0.4, 0.9));
-                rtPill(L, mx, my, label, rtStyle(ka, i), 1 - pa);
-                rtPill(L, mx, my, label, rtStyle(kb, i), pa);
+                rtPill(L, mx, my, label, rtStyle(ka, i), (1 - pa) * pa0);
+                rtPill(L, mx, my, label, rtStyle(kb, i), pa * pa0);
             }
             if (mode === 'rip' && ed.ospf > 1) {
                 tx('실제 비용 ' + ed.ospf, mx, my + (L.mob ? 18 : 20), L.fsS, P.sub + 'ff', 'center', false);
             }
         });
+
+        if (pkt) {
+            circ(pkt.x, pkt.y, pkt.r, P.green + 'ff', P.green + 'ff', 2.5);
+            tx('PKT', pkt.x, pkt.y, L.fsE, '#111111', 'center', true);
+        }
 
         var pathNow = rtNodes(s.path);
         var pathPrev = rtNodes(p.path);
@@ -486,7 +491,7 @@
             }
             if (isSrc || isDst) {
                 tx(name, pt.x, pt.y - 4, L.fsN, P.text + 'ff', 'center', true);
-                tx(isSrc ? 'SRC' : 'DST', pt.x, pt.y + (L.mob ? 8 : 9), L.fsS, base + 'ff', 'center', false);
+                tx(isSrc ? 'SRC' : 'DST', pt.x, pt.y + (L.mob ? 8 : 9), L.fsS, P.sub + 'ff', 'center', false);
             } else {
                 tx(name, pt.x, pt.y, L.fsN, P.text + 'ff', 'center', true);
             }
