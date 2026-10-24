@@ -35,7 +35,7 @@ public class SitemapController {
      * sitemap.xml을 생성하여 반환한다.
      * <p>
      * 홈, 정적 정책 페이지(개인정보처리방침·이용약관), 공개된 과목 홈 페이지, 공개된 토픽 개별 페이지 URL을 포함한다.
-     * 에러 사전은 검증된 항목이 있을 때만 목록 페이지와 검증된 항목 URL을 포함한다.
+     * 에러 사전은 검증된 항목이 있을 때만 목록 페이지, 색인 가능한 분류 페이지, 검증된 항목 URL을 포함한다.
      * 토픽 목록은 {@link SitemapService}를 통해 캐시된 데이터를 사용한다.
      * </p>
      *
@@ -74,6 +74,9 @@ public class SitemapController {
                 .toList();
         if (!errorSlugs.isEmpty()) {
             sb.append(url(BASE_URL + "/errors", CHANGE_FREQ_WEEKLY, "0.6"));
+            errorEntryService.getCategories().stream()
+                    .filter(c -> c.indexable() && c.category().matches(SLUG_PATTERN))
+                    .forEach(c -> sb.append(url(BASE_URL + "/errors/category/" + c.category(), CHANGE_FREQ_WEEKLY, "0.6")));
             errorSlugs.forEach(slug -> sb.append(url(BASE_URL + "/errors/" + slug, CHANGE_FREQ_MONTHLY, "0.6")));
         }
 
