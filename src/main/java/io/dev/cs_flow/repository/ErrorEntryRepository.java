@@ -1,5 +1,6 @@
 package io.dev.cs_flow.repository;
 
+import io.dev.cs_flow.dto.ErrorCategoryCount;
 import io.dev.cs_flow.model.ErrorEntry;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -21,6 +22,7 @@ public interface ErrorEntryRepository extends JpaRepository<ErrorEntry, Long> {
      * 비교는 소문자·공백 제거 기준이다. 줄바꿈은 제거하지 않으므로 한 줄 안의 문자열로 검색해야 걸린다.
      * </p>
      *
+     * @param category 분류 slug, 전체면 빈 문자열
      * @param pattern  공백을 뺀 소문자 LIKE 패턴('!'로 이스케이프), 조건 없으면 "%"
      * @param pageable 페이지 정보
      * @return 항목 ID Page 객체
@@ -28,18 +30,34 @@ public interface ErrorEntryRepository extends JpaRepository<ErrorEntry, Long> {
     @Query(
             value = """
             SELECT e.errorId FROM ErrorEntry e
-            WHERE REPLACE(LOWER(e.errorMessage), ' ', '') LIKE :pattern ESCAPE '!'
+            WHERE (:category = '' OR e.category = :category)
+              AND (REPLACE(LOWER(e.errorMessage), ' ', '') LIKE :pattern ESCAPE '!'
                OR REPLACE(LOWER(e.title), ' ', '') LIKE :pattern ESCAPE '!'
-               OR REPLACE(LOWER(e.category), ' ', '') LIKE :pattern ESCAPE '!'
+               OR REPLACE(LOWER(e.category), ' ', '') LIKE :pattern ESCAPE '!')
             """,
             countQuery = """
             SELECT COUNT(e) FROM ErrorEntry e
-            WHERE REPLACE(LOWER(e.errorMessage), ' ', '') LIKE :pattern ESCAPE '!'
+            WHERE (:category = '' OR e.category = :category)
+              AND (REPLACE(LOWER(e.errorMessage), ' ', '') LIKE :pattern ESCAPE '!'
                OR REPLACE(LOWER(e.title), ' ', '') LIKE :pattern ESCAPE '!'
-               OR REPLACE(LOWER(e.category), ' ', '') LIKE :pattern ESCAPE '!'
+               OR REPLACE(LOWER(e.category), ' ', '') LIKE :pattern ESCAPE '!')
             """
     )
-    Page<Long> searchIds(@Param("pattern") String pattern, Pageable pageable);
+    Page<Long> searchIds(@Param("category") String category, @Param("pattern") String pattern, Pageable pageable);
+
+    /**
+     * 분류별 전체 항목 수와 검증된 항목 수를 항목이 많은 분류부터 조회한다.
+     *
+     * @return 분류별 항목 수 목록, 항목이 없으면 빈 리스트 반환
+     */
+    @Query("""
+            SELECT new io.dev.cs_flow.dto.ErrorCategoryCount(
+                e.category, COUNT(e), SUM(CASE WHEN e.verified = true THEN 1L ELSE 0L END))
+            FROM ErrorEntry e
+            GROUP BY e.category
+            ORDER BY COUNT(e) DESC, e.category ASC
+            """)
+    List<ErrorCategoryCount> countByCategory();
 
     /**
      * 항목 ID 목록으로 항목을 조회한다. 목록 화면용이라 근거 링크와 관련 개념은 가져오지 않는다.
