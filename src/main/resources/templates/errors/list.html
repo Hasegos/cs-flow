@@ -28,13 +28,18 @@
                         홈
                     </a>
                     <span class="subject-hero__breadcrumb-sep">/</span>
-                    <span class="subject-hero__breadcrumb-current">에러 사전</span>
+                    <span class="subject-hero__breadcrumb-current" th:unless="${category}">에러 사전</span>
+                    <th:block th:if="${category}">
+                        <a th:href="@{/errors}" class="subject-hero__breadcrumb-home">에러 사전</a>
+                        <span class="subject-hero__breadcrumb-sep">/</span>
+                        <span class="subject-hero__breadcrumb-current" th:text="${categoryLabel}">분류</span>
+                    </th:block>
                 </div>
 
                 <div class="subject-hero__meta">
-                    <span class="subject-hero__slug">errors</span>
+                    <span class="subject-hero__slug" th:text="${category} ? ${category} : 'errors'">errors</span>
                 </div>
-                <h1 class="subject-hero__title">에러 메시지 사전</h1>
+                <h1 class="subject-hero__title" th:text="${category} ? (${categoryLabel} + ' 에러 메시지') : '에러 메시지 사전'">에러 메시지 사전</h1>
                 <p class="errdict-lead">에러 메시지 원문으로 원인과 해결 방법을 찾습니다. 발생 환경과 근거 링크를 함께 적고, 직접 재현해 확인한 항목만 검증 표시를 붙입니다.</p>
                 <p class="subject-hero__count">
                     <span th:text="${totalElements}">0</span><th:block th:text="${filtered} ? '개 검색 결과' : '개 항목'">개 항목</th:block>
@@ -48,7 +53,7 @@
 
                 <!-- 검색 -->
                 <div class="topic-filter">
-                    <form class="topic-filter__form" role="search" method="get" th:action="@{/errors}">
+                    <form class="topic-filter__form" role="search" method="get" th:action="@{${basePath}}">
                         <input type="search" name="q" class="topic-filter__input"
                                th:value="${q}" maxlength="50"
                                placeholder="에러 메시지 일부를 붙여넣어 검색" aria-label="에러 메시지 검색">
@@ -58,11 +63,27 @@
 
                 <!-- 결과 (입력 중 실시간 검색 시 이 영역만 교체) -->
                 <div class="topic-results" id="topic-results">
+                <!-- 분류 -->
+                <div class="topic-filter__meta" th:if="${not #lists.isEmpty(categories)}">
+                    <nav class="topic-filter__tags" aria-label="에러 분류">
+                        <a th:href="@{/errors}"
+                           th:classappend="${category == null} ? ' is-active' : ''"
+                           class="topic-filter__tag">전체</a>
+                        <a th:each="c : ${categories}"
+                           th:href="@{/errors/category/{category}(category=${c.category})}"
+                           th:classappend="${c.category == category} ? ' is-active' : ''"
+                           class="topic-filter__tag">
+                            <span th:text="${c.label}">분류</span>
+                            <span class="topic-filter__tag-count" th:text="${c.total}">0</span>
+                        </a>
+                    </nav>
+                </div>
+
                 <div class="topic-filter__meta" th:if="${filtered}">
                     <p class="topic-filter__summary">
                         "<span th:text="${q}">검색어</span>"
                         검색 결과 <span th:text="${totalElements}">0</span>개
-                        <a th:href="@{/errors}" class="topic-filter__reset">필터 초기화</a>
+                        <a th:href="@{${basePath}}" class="topic-filter__reset">필터 초기화</a>
                     </p>
                 </div>
 
@@ -100,7 +121,7 @@
                 <!-- 페이지네이션 -->
                 <nav class="pagination" th:if="${totalPages > 1}" aria-label="에러 페이지 네비게이션">
                     <a th:if="${currentPage > 0}"
-                       th:href="@{/errors(page=${currentPage - 1})} + ${qQs}"
+                       th:href="@{${basePath}(page=${currentPage - 1})} + ${qQs}"
                        class="pagination__btn pagination__btn--prev"
                        aria-label="이전 페이지">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -120,7 +141,7 @@
                     <th:block th:each="p : ${pageRange}">
                         <span th:if="${p == -1}" class="pagination__ellipsis">…</span>
                         <a th:if="${p != -1 && p != currentPage}"
-                           th:href="@{/errors(page=${p})} + ${qQs}"
+                           th:href="@{${basePath}(page=${p})} + ${qQs}"
                            class="pagination__btn pagination__num"
                            th:text="${p + 1}">1</a>
                         <span th:if="${p != -1 && p == currentPage}"
@@ -129,7 +150,7 @@
                     </th:block>
 
                     <a th:if="${currentPage < totalPages - 1}"
-                       th:href="@{/errors(page=${currentPage + 1})} + ${qQs}"
+                       th:href="@{${basePath}(page=${currentPage + 1})} + ${qQs}"
                        class="pagination__btn pagination__btn--next"
                        aria-label="다음 페이지">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -160,7 +181,7 @@
                     <th:block th:if="${filtered}">
                         <p class="topic-empty__text">조건에 맞는 에러가 없어요.</p>
                         <p class="topic-empty__sub">메시지의 다른 부분이나 짧은 키워드로 찾아보세요.</p>
-                        <a th:href="@{/errors}" class="btn btn--ghost">필터 초기화</a>
+                        <a th:href="@{${basePath}}" class="btn btn--ghost">필터 초기화</a>
                     </th:block>
                     <th:block th:unless="${filtered}">
                         <p class="topic-empty__text">아직 등록된 항목이 없어요.</p>

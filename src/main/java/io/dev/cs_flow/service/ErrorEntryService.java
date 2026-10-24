@@ -2,6 +2,7 @@ package io.dev.cs_flow.service;
 
 import io.dev.cs_flow.common.exception.NotFoundException;
 import io.dev.cs_flow.common.util.SearchPatterns;
+import io.dev.cs_flow.dto.ErrorCategoryCount;
 import io.dev.cs_flow.dto.TopicSearchCondition;
 import io.dev.cs_flow.model.ErrorEntry;
 import io.dev.cs_flow.model.ErrorEntrySource;
@@ -56,18 +57,20 @@ public class ErrorEntryService {
     }
 
     /**
-     * 검색어에 맞는 항목 목록을 페이지 단위로 조회한다. 검색어가 없으면 전체를 최신 등록 순으로 돌려준다.
+     * 분류와 검색어에 맞는 항목 목록을 페이지 단위로 조회한다. 조건이 없으면 전체를 최신 등록 순으로 돌려준다.
      *
+     * @param category  분류 slug, 전체면 null
      * @param condition 검색 조건 (검색어만 사용, 소문자·공백 제거 부분 일치)
      * @param page      페이지 번호 (0-based)
      * @param size      페이지 크기
      * @return 항목 Page 객체
      */
     @Transactional(readOnly = true)
-    public Page<ErrorEntry> search(TopicSearchCondition condition, int page, int size) {
-        log.info("에러 항목 목록 조회 - condition: {}, page: {}, size: {}", condition, page, size);
+    public Page<ErrorEntry> search(String category, TopicSearchCondition condition, int page, int size) {
+        log.info("에러 항목 목록 조회 - category: {}, condition: {}, page: {}, size: {}", category, condition, page, size);
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Order.desc("errorId")));
-        Page<Long> idPage = errorEntryRepository.searchIds(SearchPatterns.toLikePattern(condition.query()), pageable);
+        Page<Long> idPage = errorEntryRepository.searchIds(
+                category == null ? "" : category, SearchPatterns.toLikePattern(condition.query()), pageable);
         if (idPage.isEmpty()) {
             return new PageImpl<>(List.of(), pageable, idPage.getTotalElements());
         }
@@ -75,6 +78,31 @@ public class ErrorEntryService {
         errorEntryRepository.findAllByIds(idPage.getContent()).forEach(e -> byId.put(e.getErrorId(), e));
         List<ErrorEntry> ordered = idPage.getContent().stream().map(byId::get).toList();
         return new PageImpl<>(ordered, pageable, idPage.getTotalElements());
+    }
+
+    /**
+     * 분류별 항목 수를 항목이 많은 분류부터 조회한다. 목록 화면의 분류 칩과 sitemap에 쓴다.
+     *
+     * @return 분류별 항목 수 목록, 항목이 없으면 빈 리스트 반환
+     */
+    @Transactional(readOnly = true)
+    public List<ErrorCategoryCount> getCategories() {
+        return errorEntryRepository.countByCategory();
+    }
+
+    /**
+     * 분류 slug에 해당하는 분류의 항목 수를 조회한다.
+     *
+     * @param category 분류 slug
+     * @return 해당 분류의 항목 수
+     * @throws NotFoundException 항목이 하나도 없는 분류일 경우
+     */
+    @Transactional(readOnly = true)
+    public ErrorCategoryCount getCategory(String category) {
+        return getCategories().stream()
+                .filter(c -> c.category().equals(category))
+                .findFirst()
+                .orElseThrow(() -> new NotFoundException("존재하지 않는 에러 분류입니다. category: " + category));
     }
 
     /**

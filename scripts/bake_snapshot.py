@@ -4,6 +4,7 @@
 환경변수 SNAPSHOT_BASE로 대상 주소를 바꾼다(기본 https://csflow.kr).
 원본이 아니라 Worker 폴백(X-Served-By 헤더)이 응답한 페이지는 실패로 보고, 하나라도 실패하면 종료 코드 1로 끝난다.
 조회수가 굽는 횟수만큼 오르지 않도록 고정 방문자 쿠키(cv)로 요청한다.
+sitemap은 Cloudflare 에지 캐시(1일)를 피하려고 매번 다른 쿼리를 붙여 받는다(저장되는 sitemap.xml은 같다).
 sitemap에 없는 /study, /search(검색어 없는 빈 화면), /errors(에러 사전 목록 첫 페이지)도 굽는다.
 과목 페이지는 정렬(default/view/like)과 페이지 조합마다 {과목}/_list/{정렬}-{페이지}.html로 따로 굽는다.
 """
@@ -147,7 +148,7 @@ def main() -> None:
         shutil.rmtree(OUT)
     OUT.mkdir(parents=True)
 
-    _, sitemap = fetch("/sitemap.xml")
+    _, sitemap = fetch(f"/sitemap.xml?t={int(time.time())}")
     (OUT / "sitemap.xml").write_bytes(sitemap)
     paths = [urllib.parse.urlparse(u).path for u in re.findall(r"<loc>([^<]+)</loc>", sitemap.decode("utf-8"))]
     print(f"sitemap urls: {len(paths)}")
