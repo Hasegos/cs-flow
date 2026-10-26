@@ -1,7 +1,9 @@
 package io.dev.cs_flow.controller;
 
 import io.dev.cs_flow.common.interceptor.VisitorCookieInterceptor;
+import io.dev.cs_flow.common.util.BotDetector;
 import io.dev.cs_flow.common.util.BreadcrumbLd;
+import io.dev.cs_flow.common.util.OgImages;
 import io.dev.cs_flow.common.util.SubjectSlugs;
 import io.dev.cs_flow.dto.TopicViewPath;
 import io.dev.cs_flow.model.Topic;
@@ -64,7 +66,7 @@ public class TopicController {
         String canonicalUrl = "https://csflow.kr/" + subjectSlug + "/" + encodedTopic;
 
         String visitorId = (String) request.getAttribute(VisitorCookieInterceptor.REQUEST_ATTR);
-        if (visitorId != null) {
+        if (visitorId != null && !BotDetector.isBot(request.getHeader("User-Agent"))) {
             topicService.recordView(topic.getTopicId(), visitorId);
         }
 
@@ -75,6 +77,7 @@ public class TopicController {
         model.addAttribute("breadcrumbLd", BreadcrumbLd.build(List.of(
                 new BreadcrumbLd.Crumb(topic.getSubject().getName(), "https://csflow.kr/" + subjectSlug),
                 new BreadcrumbLd.Crumb(topic.getTitle(), canonicalUrl))));
+        model.addAttribute("ogImage", OgImages.url(subjectSlug, topicSlug));
         model.addAttribute("nextTopic", topicService.getNextTopic(subjectSlug, topic.getTopicId()));
         model.addAttribute("relatedTopics", topicService.getRelatedTopics(topic.getTopicId()));
         model.addAttribute("topicErrors", errorEntryService.getVerifiedByTopic(subjectSlug, topicSlug));

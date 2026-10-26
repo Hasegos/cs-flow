@@ -865,6 +865,59 @@
   }
 }
 
+/* === .topic-next-nav — 페이지 하단 다음 토픽 링크 === */
+.topic-next-nav {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem 3rem;
+}
+
+.topic-next-nav__link {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.1rem 1.4rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: border-color var(--transition), background var(--transition);
+}
+
+.topic-next-nav__link:hover {
+  border-color: var(--color-border-hover);
+  background: var(--color-surface-2);
+}
+
+.topic-next-nav__label {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.topic-next-nav__title {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.topic-next-nav__arrow {
+  color: var(--subject-accent, var(--color-purple));
+}
+
+@media (max-width: 768px) {
+  .topic-next-nav {
+    padding: 0 1.25rem 2rem;
+  }
+
+  .topic-next-nav__link {
+    flex-wrap: wrap;
+    gap: 0.4rem 1rem;
+  }
+}
+
 /* === .viz-fx-overlay — 시각화 단계 전환 효과(viz-common.js) === */
 .viz-fx-overlay {
   position: absolute;

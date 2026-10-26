@@ -1,6 +1,7 @@
 package io.dev.cs_flow.controller;
 
 import io.dev.cs_flow.common.util.BreadcrumbLd;
+import io.dev.cs_flow.common.util.OgImages;
 import io.dev.cs_flow.common.util.PageRangeUtil;
 import io.dev.cs_flow.dto.ErrorCategoryCount;
 import io.dev.cs_flow.dto.TopicSearchCondition;
@@ -134,6 +135,7 @@ public class ErrorEntryController {
 
         model.addAttribute("entry", entry);
         model.addAttribute("noindex", !entry.isVerified());
+        model.addAttribute("ogImage", OgImages.url("errors", slug));
         model.addAttribute("ldJson", errorEntryService.buildLdJson(entry, canonicalUrl));
         model.addAttribute("breadcrumbLd", BreadcrumbLd.build(List.of(
                 new BreadcrumbLd.Crumb("에러 사전", BASE_URL),
