@@ -1,6 +1,7 @@
 package io.dev.cs_flow.controller;
 
 import io.dev.cs_flow.common.interceptor.VisitorCookieInterceptor;
+import io.dev.cs_flow.common.util.BotDetector;
 import io.dev.cs_flow.common.util.BreadcrumbLd;
 import io.dev.cs_flow.common.util.SubjectSlugs;
 import io.dev.cs_flow.dto.TopicViewPath;
@@ -64,7 +65,7 @@ public class TopicController {
         String canonicalUrl = "https://csflow.kr/" + subjectSlug + "/" + encodedTopic;
 
         String visitorId = (String) request.getAttribute(VisitorCookieInterceptor.REQUEST_ATTR);
-        if (visitorId != null) {
+        if (visitorId != null && !BotDetector.isBot(request.getHeader("User-Agent"))) {
             topicService.recordView(topic.getTopicId(), visitorId);
         }
 
