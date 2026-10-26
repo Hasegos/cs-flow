@@ -1,5 +1,6 @@
 package io.dev.cs_flow.controller;
 
+import io.dev.cs_flow.common.util.BreadcrumbLd;
 import io.dev.cs_flow.common.util.PageRangeUtil;
 import io.dev.cs_flow.common.util.SubjectSlugs;
 import io.dev.cs_flow.dto.TopicSearchCondition;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 /**
  * 과목 홈 페이지(태그·검색어 필터 포함)와 전체 검색 페이지 요청을 처리하는 컨트롤러.
@@ -61,6 +63,8 @@ public class SubjectController {
 
         Subject subject = subjectService.getPublishedSubject(subjectSlug);
         model.addAttribute("subject", subject);
+        model.addAttribute("breadcrumbLd", BreadcrumbLd.build(List.of(
+                new BreadcrumbLd.Crumb(subject.getName(), "https://csflow.kr/" + subjectSlug))));
         model.addAttribute("pageTitle", subject.getName() + " CS 지식 정리 | CS Flow");
         model.addAttribute("pageDescription", subject.getName() + " 핵심 개념을 인터랙티브 시각화, 코드 연결, 퀴즈로 정리합니다. 개발자 면접 대비 " + subject.getName() + " CS 지식 총정리.");
         model.addAttribute("topics", topicPage.getContent());

@@ -1,5 +1,6 @@
 package io.dev.cs_flow.controller;
 
+import io.dev.cs_flow.common.util.BreadcrumbLd;
 import io.dev.cs_flow.common.util.PageRangeUtil;
 import io.dev.cs_flow.dto.ErrorCategoryCount;
 import io.dev.cs_flow.dto.TopicSearchCondition;
@@ -16,6 +17,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 에러 메시지 사전 목록·상세 페이지 요청을 처리하는 컨트롤러.
@@ -105,6 +108,11 @@ public class ErrorEntryController {
                     + "개의 원인과 해결 방법. 발생 환경과 근거 링크를 함께 정리하고, 직접 재현해 검증한 항목은 검증됨으로 표시합니다.");
         }
         String canonicalBase = "https://csflow.kr" + basePath;
+        List<BreadcrumbLd.Crumb> crumbs = new ArrayList<>(List.of(new BreadcrumbLd.Crumb("에러 사전", BASE_URL)));
+        if (current != null) {
+            crumbs.add(new BreadcrumbLd.Crumb(current.label(), canonicalBase));
+        }
+        model.addAttribute("breadcrumbLd", BreadcrumbLd.build(crumbs));
         model.addAttribute("canonicalUrl", entryPage.getNumber() > 0 ? canonicalBase + "?page=" + entryPage.getNumber() : canonicalBase);
         return "errors/list";
     }
@@ -127,6 +135,9 @@ public class ErrorEntryController {
         model.addAttribute("entry", entry);
         model.addAttribute("noindex", !entry.isVerified());
         model.addAttribute("ldJson", errorEntryService.buildLdJson(entry, canonicalUrl));
+        model.addAttribute("breadcrumbLd", BreadcrumbLd.build(List.of(
+                new BreadcrumbLd.Crumb("에러 사전", BASE_URL),
+                new BreadcrumbLd.Crumb(entry.getTitle(), canonicalUrl))));
         model.addAttribute("currentSection", "errors");
         model.addAttribute("pageTitle", entry.getTitle() + " 원인과 해결 | CS Flow 에러 사전");
         model.addAttribute("pageDescription", errorEntryService.describe(entry));

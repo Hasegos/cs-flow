@@ -78,4 +78,8 @@
     </script>
 
     <script th:if="${ldJson}" type="application/ld+json" th:utext="${ldJson}"></script>
+    <meta th:if="${nextTopic}" name="csflow-next-topic"
+          th:content="@{/{subject}/{topic}(subject=${nextTopic.subjectSlug}, topic=${nextTopic.slug})}"
+          th:attr="data-title=${nextTopic.title}">
+    <script th:if="${breadcrumbLd}" type="application/ld+json" th:utext="${breadcrumbLd}"></script>
 </th:block>

@@ -130,6 +130,39 @@
         });
     }
 
+    /* ===================== 다음 단계 버튼 ===================== */
+    if (tabBtns.length > 1) {
+        const nextTopicMeta = document.querySelector('meta[name="csflow-next-topic"]');
+
+        tabBtns.forEach(function (btn, i) {
+            const panel = document.getElementById('panel-' + btn.dataset.tab);
+            if (!panel) return;
+
+            const nextBtn = tabBtns[i + 1];
+            const bar = document.createElement('div');
+            bar.className = 'topic-next';
+
+            const link = document.createElement(nextBtn ? 'button' : 'a');
+            link.className = 'topic-next__btn';
+            if (nextBtn) {
+                link.type = 'button';
+                link.textContent = '다음: ' + nextBtn.textContent.trim() + ' \u2192';
+                link.addEventListener('click', function () {
+                    nextBtn.click();
+                    const tabs = document.querySelector('.topic-tabs');
+                    if (tabs) tabs.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                });
+            } else if (nextTopicMeta) {
+                link.href = nextTopicMeta.content;
+                link.textContent = '다음 토픽: ' + nextTopicMeta.dataset.title + ' \u2192';
+            } else {
+                return;
+            }
+            bar.appendChild(link);
+            panel.appendChild(bar);
+        });
+    }
+
     /* ===================== 테마 토글 ===================== */
     const themeBtn = document.getElementById('themeToggleBtn');
 

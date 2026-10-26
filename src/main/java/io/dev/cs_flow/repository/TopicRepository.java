@@ -1,5 +1,6 @@
 package io.dev.cs_flow.repository;
 
+import io.dev.cs_flow.dto.TopicIndexItem;
 import io.dev.cs_flow.model.Topic;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -168,4 +169,24 @@ public interface TopicRepository extends JpaRepository<Topic,Long> {
     @Modifying
     @Query("UPDATE Topic t SET t.likeCount = t.likeCount - 1, t.likeCountUpdatedAt = CURRENT_TIMESTAMP WHERE t.topicId = :topicId AND t.likeCount > 0")
     void decrementLikeCount(@Param("topicId") Long topicId);
+
+    /**
+     * 같은 과목에서 기준 토픽 다음 순서(topicId 오름차순)의 공개 토픽을 조회한다.
+     *
+     * @param subjectSlug 과목 영문 식별자
+     * @param topicId     기준 토픽 ID
+     * @param pageable    첫 건만 가져오기 위한 {@code PageRequest.of(0, 1)}
+     * @return 다음 토픽 한 건, 마지막 토픽이면 빈 리스트 반환
+     */
+    @Query("""
+            SELECT new io.dev.cs_flow.dto.TopicIndexItem(t.slug, t.title, t.subject.slug)
+            FROM Topic t
+            WHERE t.subject.slug = :subjectSlug
+            AND t.isPublished = true
+            AND t.topicId > :topicId
+            ORDER BY t.topicId ASC
+            """)
+    List<TopicIndexItem> findNextPublished(@Param("subjectSlug") String subjectSlug,
+                                           @Param("topicId") Long topicId,
+                                           Pageable pageable);
 }
