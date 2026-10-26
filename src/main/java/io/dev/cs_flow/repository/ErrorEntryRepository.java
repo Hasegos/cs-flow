@@ -1,6 +1,7 @@
 package io.dev.cs_flow.repository;
 
 import io.dev.cs_flow.dto.ErrorCategoryCount;
+import io.dev.cs_flow.dto.ErrorEntrySummary;
 import io.dev.cs_flow.model.ErrorEntry;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -44,6 +45,22 @@ public interface ErrorEntryRepository extends JpaRepository<ErrorEntry, Long> {
             """
     )
     Page<Long> searchIds(@Param("category") String category, @Param("pattern") String pattern, Pageable pageable);
+
+    /**
+     * 토픽에 연결된 검증된 항목을 등록 순으로 조회한다.
+     *
+     * @param subjectSlug 과목 영문 식별자
+     * @param topicSlug   토픽 영문 식별자
+     * @return 항목 요약 목록, 없으면 빈 리스트 반환
+     */
+    @Query("""
+            SELECT new io.dev.cs_flow.dto.ErrorEntrySummary(e.slug, e.title, e.errorMessage)
+            FROM ErrorEntry e JOIN e.topics t
+            WHERE e.verified = true AND t.slug = :topicSlug AND t.subject.slug = :subjectSlug
+            ORDER BY e.errorId ASC
+            """)
+    List<ErrorEntrySummary> findVerifiedByTopic(@Param("subjectSlug") String subjectSlug,
+                                                @Param("topicSlug") String topicSlug);
 
     /**
      * 분류별 전체 항목 수와 검증된 항목 수를 항목이 많은 분류부터 조회한다.

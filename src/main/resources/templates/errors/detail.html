@@ -58,30 +58,38 @@
                 <h2 class="overview-heading errdict-heading--first">에러 메시지 원문</h2>
 <pre class="errdict-message" th:text="${entry.errorMessage}">에러 메시지</pre>
 
-                <h2 class="overview-heading">발생 환경</h2>
-                <dl class="errdict-env">
-                    <div class="errdict-env__row">
-                        <dt>OS</dt>
-                        <dd th:text="${entry.envOs} ?: '미확인'">Ubuntu 22.04</dd>
-                    </div>
-                    <div class="errdict-env__row">
-                        <dt>배포판</dt>
-                        <dd th:text="${entry.envDistro} ?: '미확인'">Humble</dd>
-                    </div>
-                    <div class="errdict-env__row">
-                        <dt>버전</dt>
-                        <dd th:text="${entry.envVersion} ?: '미확인'">0.0.0</dd>
-                    </div>
-                </dl>
+                <th:block th:if="${entry.envOs != null or entry.envDistro != null or entry.envVersion != null}">
+                    <h2 class="overview-heading">발생 환경</h2>
+                    <dl class="errdict-env">
+                        <div class="errdict-env__row" th:if="${entry.envOs}">
+                            <dt>OS</dt>
+                            <dd th:text="${entry.envOs}">Ubuntu 22.04</dd>
+                        </div>
+                        <div class="errdict-env__row" th:if="${entry.envDistro}">
+                            <dt>배포판</dt>
+                            <dd th:text="${entry.envDistro}">Humble</dd>
+                        </div>
+                        <div class="errdict-env__row" th:if="${entry.envVersion}">
+                            <dt>버전</dt>
+                            <dd th:text="${entry.envVersion}">0.0.0</dd>
+                        </div>
+                    </dl>
+                </th:block>
 
-                <h2 class="overview-heading">원인</h2>
-                <p class="errdict-text" th:text="${entry.cause} ?: '미확인'">원인</p>
+                <th:block th:if="${entry.cause}">
+                    <h2 class="overview-heading">원인</h2>
+                    <p class="errdict-text" th:text="${entry.cause}">원인</p>
+                </th:block>
 
-                <h2 class="overview-heading">해결 방법</h2>
-                <p class="errdict-text" th:text="${entry.solution} ?: '미확인'">해결 방법</p>
+                <th:block th:if="${entry.solution}">
+                    <h2 class="overview-heading">해결 방법</h2>
+                    <p class="errdict-text" th:text="${entry.solution}">해결 방법</p>
+                </th:block>
 
-                <h2 class="overview-heading">재현 방법</h2>
-                <p class="errdict-text" th:text="${entry.reproduction} ?: '미확인'">재현 방법</p>
+                <th:block th:if="${entry.reproduction}">
+                    <h2 class="overview-heading">재현 방법</h2>
+                    <p class="errdict-text" th:text="${entry.reproduction}">재현 방법</p>
+                </th:block>
 
                 <h2 class="overview-heading">근거 링크</h2>
                 <div class="overview-points" th:if="${not #lists.isEmpty(entry.sources)}">

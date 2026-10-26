@@ -4,6 +4,7 @@ import io.dev.cs_flow.common.interceptor.VisitorCookieInterceptor;
 import io.dev.cs_flow.common.util.SubjectSlugs;
 import io.dev.cs_flow.dto.TopicViewPath;
 import io.dev.cs_flow.model.Topic;
+import io.dev.cs_flow.service.ErrorEntryService;
 import io.dev.cs_flow.service.QuizService;
 import io.dev.cs_flow.service.TopicLikeService;
 import io.dev.cs_flow.service.TopicService;
@@ -32,6 +33,7 @@ public class TopicController {
     private final VisualizerService visualizerService;
     private final QuizService quizService;
     private final TopicLikeService topicLikeService;
+    private final ErrorEntryService errorEntryService;
 
     @Value("${kakao.js-key}")
     private String kakaoJsKey;
@@ -69,6 +71,7 @@ public class TopicController {
         model.addAttribute("jsFileKey", viewPath.jsFileKey());
         model.addAttribute("ldJson", topicService.buildLdJson(topic, canonicalUrl));
         model.addAttribute("relatedTopics", topicService.getRelatedTopics(topic.getTopicId()));
+        model.addAttribute("topicErrors", errorEntryService.getVerifiedByTopic(subjectSlug, topicSlug));
         model.addAttribute("quizQuestions", quizService.getQuestions(topic.getTopicId()));
         model.addAttribute("liked", visitorId != null && topicLikeService.isLiked(topic.getTopicId(), visitorId));
         model.addAttribute("likeCount", topicLikeService.countLikes(topic.getTopicId()));
