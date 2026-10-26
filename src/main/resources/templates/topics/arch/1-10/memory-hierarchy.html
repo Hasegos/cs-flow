@@ -285,6 +285,8 @@
             </div>
         </div>
 
+        <th:block th:replace="~{fragments/topic-next :: next}"></th:block>
+
         <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
             <p class="related-section__label">Related Concepts</p>
             <div class="related-grid">
