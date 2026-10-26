@@ -1,5 +1,5 @@
 /**
- * 토픽 공유 버튼 — 링크 복사 / 카카오톡 공유.
+ * 토픽 공유 버튼 — 링크 복사 / 카카오톡 공유 / 스레드 공유.
  */
 (function () {
     'use strict';
@@ -67,6 +67,42 @@
         });
     }
 
+    function initThreadsButton() {
+        var box = document.querySelector('.topic-share');
+        if (!box) return;
+
+        var canonical = document.querySelector('link[rel="canonical"]');
+        var url = canonical ? canonical.href : window.location.origin + window.location.pathname;
+        var text = getMetaContent('meta[property="og:title"]') + '\n' + url;
+
+        var link = document.createElement('a');
+        link.className = 'topic-share__btn topic-share__btn--threads';
+        link.href = 'https://www.threads.net/intent/post?text=' + encodeURIComponent(text);
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.setAttribute('aria-label', '스레드로 공유');
+
+        var ns = 'http://www.w3.org/2000/svg';
+        var svg = document.createElementNS(ns, 'svg');
+        svg.setAttribute('viewBox', '0 0 24 24');
+        svg.setAttribute('fill', 'none');
+        svg.setAttribute('stroke', 'currentColor');
+        svg.setAttribute('stroke-width', '2');
+        svg.setAttribute('stroke-linecap', 'round');
+        svg.setAttribute('stroke-linejoin', 'round');
+        var circle = document.createElementNS(ns, 'circle');
+        circle.setAttribute('cx', '12');
+        circle.setAttribute('cy', '12');
+        circle.setAttribute('r', '4');
+        var path = document.createElementNS(ns, 'path');
+        path.setAttribute('d', 'M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94');
+        svg.appendChild(circle);
+        svg.appendChild(path);
+        link.appendChild(svg);
+        box.appendChild(link);
+    }
+
     initCopyButton();
     initKakaoButton();
+    initThreadsButton();
 })();
