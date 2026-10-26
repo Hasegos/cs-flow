@@ -1,6 +1,7 @@
 package io.dev.cs_flow.controller;
 
 import io.dev.cs_flow.common.interceptor.VisitorCookieInterceptor;
+import io.dev.cs_flow.common.util.BreadcrumbLd;
 import io.dev.cs_flow.common.util.SubjectSlugs;
 import io.dev.cs_flow.dto.TopicViewPath;
 import io.dev.cs_flow.model.Topic;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 /**
  * 토픽 학습 페이지 요청을 처리하는 컨트롤러.
@@ -70,6 +72,10 @@ public class TopicController {
         model.addAttribute("currentSubject", subjectSlug);
         model.addAttribute("jsFileKey", viewPath.jsFileKey());
         model.addAttribute("ldJson", topicService.buildLdJson(topic, canonicalUrl));
+        model.addAttribute("breadcrumbLd", BreadcrumbLd.build(List.of(
+                new BreadcrumbLd.Crumb(topic.getSubject().getName(), "https://csflow.kr/" + subjectSlug),
+                new BreadcrumbLd.Crumb(topic.getTitle(), canonicalUrl))));
+        model.addAttribute("nextTopic", topicService.getNextTopic(subjectSlug, topic.getTopicId()));
         model.addAttribute("relatedTopics", topicService.getRelatedTopics(topic.getTopicId()));
         model.addAttribute("topicErrors", errorEntryService.getVerifiedByTopic(subjectSlug, topicSlug));
         model.addAttribute("quizQuestions", quizService.getQuestions(topic.getTopicId()));
