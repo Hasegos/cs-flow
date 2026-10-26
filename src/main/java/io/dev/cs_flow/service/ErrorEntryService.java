@@ -3,6 +3,7 @@ package io.dev.cs_flow.service;
 import io.dev.cs_flow.common.exception.NotFoundException;
 import io.dev.cs_flow.common.util.SearchPatterns;
 import io.dev.cs_flow.dto.ErrorCategoryCount;
+import io.dev.cs_flow.dto.ErrorEntrySummary;
 import io.dev.cs_flow.dto.TopicSearchCondition;
 import io.dev.cs_flow.model.ErrorEntry;
 import io.dev.cs_flow.model.ErrorEntrySource;
@@ -78,6 +79,19 @@ public class ErrorEntryService {
         errorEntryRepository.findAllByIds(idPage.getContent()).forEach(e -> byId.put(e.getErrorId(), e));
         List<ErrorEntry> ordered = idPage.getContent().stream().map(byId::get).toList();
         return new PageImpl<>(ordered, pageable, idPage.getTotalElements());
+    }
+
+    /**
+     * 토픽에 연결된 검증된 항목 요약을 조회한다. 토픽 페이지의 "이 개념에서 만나는 에러"에 쓴다.
+     *
+     * @param subjectSlug 과목 영문 식별자
+     * @param topicSlug   토픽 영문 식별자
+     * @return 항목 요약 목록, 없으면 빈 리스트 반환
+     */
+    @Cacheable(value = "topicErrors", key = "#subjectSlug + ':' + #topicSlug")
+    @Transactional(readOnly = true)
+    public List<ErrorEntrySummary> getVerifiedByTopic(String subjectSlug, String topicSlug) {
+        return errorEntryRepository.findVerifiedByTopic(subjectSlug, topicSlug);
     }
 
     /**

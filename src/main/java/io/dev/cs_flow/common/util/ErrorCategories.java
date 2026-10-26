@@ -17,6 +17,7 @@ public final class ErrorCategories {
             Map.entry("ros2", "ROS 2"),
             Map.entry("spring", "Spring Boot"),
             Map.entry("postgresql", "PostgreSQL"),
+            Map.entry("sqlite", "SQLite"),
             Map.entry("docker", "Docker"),
             Map.entry("ssh", "SSH")
     );
