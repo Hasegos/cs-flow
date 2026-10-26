@@ -1,0 +1,10 @@
+<th:block th:fragment="next">
+    <nav class="topic-next-nav" th:if="${nextTopic}" aria-label="다음 토픽">
+        <a th:href="@{/{subject}/{topic}(subject=${nextTopic.subjectSlug}, topic=${nextTopic.slug})}"
+           class="topic-next-nav__link">
+            <span class="topic-next-nav__label">다음 토픽</span>
+            <span class="topic-next-nav__title" th:text="${nextTopic.title}">토픽 제목</span>
+            <span class="topic-next-nav__arrow" aria-hidden="true">→</span>
+        </a>
+    </nav>
+</th:block>

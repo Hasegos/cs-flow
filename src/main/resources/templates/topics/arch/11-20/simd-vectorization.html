@@ -309,6 +309,8 @@
 
         </div>
 
+        <th:block th:replace="~{fragments/topic-next :: next}"></th:block>
+
         <!-- 연관 개념 -->
         <section class="related-section" th:if="${not #lists.isEmpty(relatedTopics)}">
             <p class="related-section__label">Related Concepts</p>
