@@ -1,0 +1,16 @@
+<th:block th:fragment="errors">
+    <section class="topic-errors" th:if="${not #lists.isEmpty(topicErrors)}">
+        <h2 class="overview-heading">이 개념에서 만나는 에러</h2>
+        <p class="topic-errors__lead">코드를 실행하다 이 개념 때문에 만나는 에러입니다. 직접 재현해 확인한 항목만 싣습니다.</p>
+        <div class="topic-errors__grid">
+            <a th:each="err : ${topicErrors}"
+               th:href="@{/errors/{slug}(slug=${err.slug})}"
+               class="topic-errors__card">
+                <span class="topic-errors__title" th:text="${err.title}">에러 제목</span>
+                <span class="topic-errors__message" th:text="${err.errorMessage}">에러 메시지</span>
+                <span class="topic-errors__badge">검증됨</span>
+            </a>
+        </div>
+        <a th:href="@{/errors}" class="topic-errors__more">에러 사전에서 전체 보기 →</a>
+    </section>
+</th:block>
