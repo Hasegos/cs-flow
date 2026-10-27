@@ -48,17 +48,15 @@
     container.appendChild(root);
 
     /* ===================== 3D 팝업북 전환 ===================== */
-    function webglMode() {
+    function webglAvailable() {
         try {
-            const strict = document.createElement('canvas').getContext('webgl', { failIfMajorPerformanceCaveat: true });
-            if (strict) {
-                const lose = strict.getExtension('WEBGL_lose_context');
-                if (lose) lose.loseContext();
-                return 'ok';
-            }
-            return document.createElement('canvas').getContext('webgl') ? 'soft' : 'none';
+            const gl = document.createElement('canvas').getContext('webgl');
+            if (!gl) return false;
+            const lose = gl.getExtension('WEBGL_lose_context');
+            if (lose) lose.loseContext();
+            return true;
         } catch (e) {
-            return 'none';
+            return false;
         }
     }
 
@@ -92,14 +90,9 @@
         resize();
     }
 
-    const glMode = webglMode();
-    if (container.dataset.threeSrc && container.dataset.viz3dSrc && glMode !== 'none') {
-        const btn3d = el('button', 'mem-hier__btn mem-hier__btn--primary', glMode === 'ok' ? '3D 팝업북' : '3D 팝업북 (GPU 가속 필요)');
+    if (container.dataset.threeSrc && container.dataset.viz3dSrc && webglAvailable()) {
+        const btn3d = el('button', 'mem-hier__btn mem-hier__btn--primary', '3D 팝업북');
         btn3d.type = 'button';
-        if (glMode === 'soft') {
-            btn3d.disabled = true;
-            btn3d.title = '브라우저 설정에서 하드웨어 가속을 켜면 쓸 수 있습니다';
-        }
         btn3d.addEventListener('click', function () {
             btn3d.disabled = true;
             btn3d.textContent = '불러오는 중…';
