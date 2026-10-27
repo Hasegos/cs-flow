@@ -867,9 +867,16 @@
 
 /* === .topic-next-nav — 페이지 하단 다음 토픽 링크 === */
 .topic-next-nav {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 2rem 3rem;
+}
+
+.topic-next-nav__link--next {
+  grid-column: 2;
 }
 
 .topic-next-nav__link {
@@ -909,7 +916,12 @@
 
 @media (max-width: 768px) {
   .topic-next-nav {
+    grid-template-columns: minmax(0, 1fr);
     padding: 0 1.25rem 2rem;
+  }
+
+  .topic-next-nav__link--next {
+    grid-column: 1;
   }
 
   .topic-next-nav__link {

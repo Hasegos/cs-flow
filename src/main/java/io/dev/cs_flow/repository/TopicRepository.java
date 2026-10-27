@@ -189,4 +189,24 @@ public interface TopicRepository extends JpaRepository<Topic,Long> {
     List<TopicIndexItem> findNextPublished(@Param("subjectSlug") String subjectSlug,
                                            @Param("topicId") Long topicId,
                                            Pageable pageable);
+
+    /**
+     * 같은 과목에서 기준 토픽 바로 앞 순서(topicId 내림차순)의 공개 토픽을 조회한다.
+     *
+     * @param subjectSlug 과목 영문 식별자
+     * @param topicId     기준 토픽 ID
+     * @param pageable    첫 건만 가져오기 위한 {@code PageRequest.of(0, 1)}
+     * @return 이전 토픽 한 건, 과목의 첫 토픽이면 빈 리스트 반환
+     */
+    @Query("""
+            SELECT new io.dev.cs_flow.dto.TopicIndexItem(t.slug, t.title, t.subject.slug)
+            FROM Topic t
+            WHERE t.subject.slug = :subjectSlug
+            AND t.isPublished = true
+            AND t.topicId < :topicId
+            ORDER BY t.topicId DESC
+            """)
+    List<TopicIndexItem> findPrevPublished(@Param("subjectSlug") String subjectSlug,
+                                           @Param("topicId") Long topicId,
+                                           Pageable pageable);
 }
