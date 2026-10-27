@@ -410,7 +410,7 @@
         const renderer = new THREE.WebGLRenderer({ antialias: !lowEnd, powerPreference: 'high-performance' });
         const minGap = 12;
         const slowGap = 28;
-        const prMin = 0.75;
+        const prMin = soft ? 0.5 : 0.75;
         const texScale = lowEnd ? 1 : 1.25;
         const canvases = [];
         const tweens = [];
@@ -1207,11 +1207,11 @@
             }
             try {
                 const gap = t - (last || t);
-                const dt = Math.min(50, gap);
+                const dt = Math.min(250, gap);
                 last = t;
-                slow = gap > slowGap && gap < 400 ? slow + 1 : Math.max(0, slow - 1);
+                slow = gap > slowGap && gap < 3000 ? slow + (gap > 120 ? 5 : 1) : Math.max(0, slow - 1);
                 if (slow > 20 && pr > prMin) {
-                    pr = Math.max(prMin, pr - 0.2);
+                    pr = Math.max(prMin, pr - (gap > 120 ? 0.35 : 0.2));
                     renderer.setPixelRatio(pr);
                     resize();
                     slow = 0;
