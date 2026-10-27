@@ -389,18 +389,19 @@
     function createWorld(stage) {
         const mobile = window.matchMedia('(max-width: 768px), (pointer: coarse)').matches;
         const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const lowEnd = mobile && ((navigator.deviceMemory || 8) <= 3 || (navigator.hardwareConcurrency || 8) <= 4);
         let soft = false;
         let renderer;
         try {
-            renderer = new THREE.WebGLRenderer({ antialias: !mobile, failIfMajorPerformanceCaveat: true, powerPreference: 'high-performance' });
+            renderer = new THREE.WebGLRenderer({ antialias: !lowEnd, failIfMajorPerformanceCaveat: true, powerPreference: 'high-performance' });
         } catch (e) {
             soft = true;
-            renderer = new THREE.WebGLRenderer({ antialias: !mobile, powerPreference: 'high-performance' });
+            renderer = new THREE.WebGLRenderer({ antialias: !lowEnd, powerPreference: 'high-performance' });
         }
         const minGap = 12;
         const slowGap = 28;
         const prMin = 0.75;
-        const texScale = mobile ? 1 : 1.25;
+        const texScale = lowEnd ? 1 : 1.25;
         const canvases = [];
         const tweens = [];
         let streams = [];
@@ -422,7 +423,7 @@
         let curLevelTimeNs = 0;
         let timerKey = '';
 
-        let pr = mobile ? 1 : Math.min(window.devicePixelRatio || 1, 1.5);
+        let pr = Math.min(window.devicePixelRatio || 1, mobile ? (lowEnd ? 1.25 : 2) : 1.5);
         let slow = 0;
         renderer.setPixelRatio(pr);
         renderer.shadowMap.enabled = true;
@@ -535,7 +536,7 @@
         const sun = new THREE.DirectionalLight(0xfff0d6, 1.25);
         sun.position.set(-5, 9, 3.5);
         sun.castShadow = true;
-        sun.shadow.mapSize.set(mobile ? 512 : 1024, mobile ? 512 : 1024);
+        sun.shadow.mapSize.set(lowEnd ? 512 : 1024, lowEnd ? 512 : 1024);
         Object.assign(sun.shadow.camera, { left: -6, right: 6, top: 6, bottom: -6, near: 1, far: 26 });
         sun.shadow.bias = -0.0005;
         scene.add(sun);
