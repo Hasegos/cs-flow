@@ -4,6 +4,9 @@ on:
   pull_request:
     branches: [ master ] # master로 들어오는 모든 PR 감시
 
+permissions:
+  contents: read
+
 jobs:
   allow-only-dev:
     name: Allow only dev -> master
