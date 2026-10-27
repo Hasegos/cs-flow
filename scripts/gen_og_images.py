@@ -128,7 +128,7 @@ def chip(draw: ImageDraw.ImageDraw, xy: tuple[int, int], label: str, fnt: ImageF
 
 
 def render(kind: str, label: str, title: str, accent: tuple[int, int, int], message: str = "") -> Image.Image:
-    """카드 한 장을 그린다. kind가 topic이면 탭 칩을, error이면 에러 메시지 상자를 아래에 둔다."""
+    """카드 한 장을 그린다. topic · subject는 탭 칩을, error는 에러 메시지 상자를, list는 제목 아래 한 줄만 둔다."""
     img = background(accent)
     draw = ImageDraw.Draw(img)
 
@@ -138,7 +138,7 @@ def render(kind: str, label: str, title: str, accent: tuple[int, int, int], mess
     label_w = int(draw.textlength(label, font=label_font)) + 36
     chip(draw, (W - 64 - label_w, 50), label, label_font, accent, True)
 
-    sizes = (76, 64, 54) if kind == "topic" else (60, 52, 46)
+    sizes = (60, 52, 46) if kind == "error" else (76, 64, 54)
     title_font, lines = fit_title(draw, title, sizes, 3 if kind == "topic" else 2)
     line_h = int(title_font.size * 1.28)
     y = 170
@@ -146,12 +146,15 @@ def render(kind: str, label: str, title: str, accent: tuple[int, int, int], mess
         draw.text((64, y), line, font=title_font, fill=TEXT)
         y += line_h
 
-    if kind == "topic":
+    if kind in ("subject", "list") and message:
+        draw.text((64, y + 6), message, font=font("malgun.ttf", 36), fill=SUB)
+
+    if kind in ("topic", "subject"):
         x = 64
         tab_font = font("malgun.ttf", 28)
         for tab in TABS:
             x = chip(draw, (x, 470), tab, tab_font, accent, False) + 14
-    else:
+    elif kind == "error":
         mono = font("consola.ttf" if message.isascii() else "malgun.ttf", 30)
         msg_lines = wrap(draw, message, mono, W - 128 - 56, 2)
         top = max(y + 14, 380)
@@ -161,7 +164,7 @@ def render(kind: str, label: str, title: str, accent: tuple[int, int, int], mess
             draw.text((92, top + 22 + 42 * i), line, font=mono, fill=(255, 170, 120))
 
     draw.text((64, 548), "csflow.kr", font=font("malgunbd.ttf", 34), fill=accent)
-    tag = "시각화로 배우는 CS 지식" if kind == "topic" else "직접 재현해 확인한 에러 사전"
+    tag = "시각화로 배우는 CS 지식" if kind in ("topic", "subject") else "직접 재현해 확인한 에러 사전"
     tag_font = font("malgun.ttf", 28)
     draw.text((W - 64 - draw.textlength(tag, font=tag_font), 552), tag, font=tag_font, fill=SUB)
     return img
@@ -181,8 +184,49 @@ def sitemap_paths() -> list[str]:
     return [urllib.parse.urlparse(u).path for u in locs]
 
 
+def make_lists(paths: list[str], accents: dict, names: dict) -> tuple[int, int, list[str]]:
+    """과목 홈, 에러 사전 목록, 에러 분류 페이지의 카드를 만든다. (생성, 건너뜀, 실패 목록)을 돌려준다."""
+    teal = (62, 207, 178)
+    topic_counts: dict[str, int] = {}
+    error_count = 0
+    categories: list[str] = []
+    for path in paths:
+        parts = [p for p in path.split("/") if p]
+        if len(parts) == 2 and parts[0] in accents:
+            topic_counts[parts[0]] = topic_counts.get(parts[0], 0) + 1
+        elif len(parts) == 2 and parts[0] == "errors" and parts[1] != "category":
+            error_count += 1
+        elif len(parts) == 3 and parts[:2] == ["errors", "category"]:
+            categories.append(parts[2])
+
+    jobs = [(g + "/_index", "subject", names[g], names[g], "토픽 %d개 · 시각화 · 코드 · 퀴즈" % topic_counts.get(g, 0), accents[g], "/" + g)
+            for g in SUBJECTS if g in accents]
+    jobs.append(("errors/_index", "list", "에러 사전", "에러 메시지 사전",
+                 "직접 재현해 확인한 에러 %d개" % error_count, teal, "/errors"))
+    for c in categories:
+        label = CATEGORIES.get(c, c)
+        jobs.append(("errors/_category-" + c, "list", "에러 사전 · " + label, label + " 에러 메시지 모음", "", teal, "/errors/category/" + c))
+
+    made = skipped = 0
+    failed: list[str] = []
+    for rel, kind, label, title, sub, accent, path in jobs:
+        target = OUT / (rel + ".png")
+        if target.exists() and not FORCE:
+            skipped += 1
+            continue
+        try:
+            if kind == "list" and not sub:
+                count = first(r"(\d+)\s*</span>\s*개 항목", fetch(path))
+                sub = "직접 재현해 확인한 에러 %s개" % (count or "")
+            save(render(kind, label, title, accent, sub), target)
+            made += 1
+        except Exception as e:
+            failed.append(path + " " + str(e))
+    return made, skipped, failed
+
+
 def main() -> int:
-    """sitemap의 토픽과 에러 항목마다 카드를 만든다. 실패가 있으면 종료 코드 1."""
+    """sitemap의 토픽과 에러 항목, 과목 · 에러 목록 페이지마다 카드를 만든다. 실패가 있으면 종료 코드 1."""
     accents = {}
     names = {}
     for sub in SUBJECTS:
@@ -193,9 +237,9 @@ def main() -> int:
         accents[sub] = hex_to_rgb(first(r"--subject-accent: ?(#[0-9a-fA-F]{6})", page))
         names[sub] = first(r'<h1 class="subject-hero__title">(.*?)</h1>', page)
 
-    made = skipped = 0
-    failed: list[str] = []
-    for path in sitemap_paths():
+    paths = sitemap_paths()
+    made, skipped, failed = make_lists(paths, accents, names)
+    for path in paths:
         parts = [p for p in path.split("/") if p]
         if len(parts) != 2:
             continue

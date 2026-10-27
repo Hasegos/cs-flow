@@ -1,6 +1,7 @@
 package io.dev.cs_flow.controller;
 
 import io.dev.cs_flow.common.util.BreadcrumbLd;
+import io.dev.cs_flow.common.util.OgImages;
 import io.dev.cs_flow.common.util.PageRangeUtil;
 import io.dev.cs_flow.common.util.SubjectSlugs;
 import io.dev.cs_flow.dto.TopicSearchCondition;
@@ -63,6 +64,7 @@ public class SubjectController {
 
         Subject subject = subjectService.getPublishedSubject(subjectSlug);
         model.addAttribute("subject", subject);
+        model.addAttribute("ogImage", OgImages.url(subjectSlug, "_index"));
         model.addAttribute("breadcrumbLd", BreadcrumbLd.build(List.of(
                 new BreadcrumbLd.Crumb(subject.getName(), "https://csflow.kr/" + subjectSlug))));
         model.addAttribute("pageTitle", subject.getName() + " CS 지식 정리 | CS Flow");
