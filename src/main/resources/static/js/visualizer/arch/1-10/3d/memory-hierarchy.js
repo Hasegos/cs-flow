@@ -60,6 +60,12 @@
         timerLabel: 'x 한 번 읽는 데 걸린 시간'
     };
 
+    const CPU_TIP = {
+        title: 'CPU로 그리는 중',
+        body: '브라우저의 하드웨어 가속이 꺼져 있어 3D를 CPU로 그립니다. 화면은 같지만 CPU 사용률이 높고 덜 부드러울 수 있습니다.',
+        fix: '해결: Chrome 설정 > 시스템 > 가능한 경우 그래픽 가속 사용을 켜고 브라우저를 다시 시작하세요.'
+    };
+
     const state = {
         wanted: false,
         world: null,
@@ -239,7 +245,19 @@
         left.appendChild(badge);
         const cpuTag = mk('span', 'mem-hier3d__tag', 'CPU 렌더링');
         cpuTag.hidden = true;
-        cpuTag.title = '하드웨어 가속이 꺼져 있어 CPU로 그립니다. Chrome 설정 > 시스템에서 켜면 더 부드럽습니다';
+        const qmark = mk('button', 'mem-hier3d__qmark', '?');
+        qmark.type = 'button';
+        qmark.setAttribute('aria-label', 'CPU 렌더링 설명');
+        qmark.setAttribute('aria-describedby', 'mem-hier3d-cpu-tip');
+        qmark.addEventListener('click', function () { cpuTag.classList.toggle('is-open'); });
+        const tip = mk('span', 'mem-hier3d__tip');
+        tip.id = 'mem-hier3d-cpu-tip';
+        tip.setAttribute('role', 'tooltip');
+        tip.appendChild(mk('b', '', CPU_TIP.title));
+        tip.appendChild(mk('span', '', CPU_TIP.body));
+        tip.appendChild(mk('span', 'mem-hier3d__tip-fix', CPU_TIP.fix));
+        cpuTag.appendChild(qmark);
+        cpuTag.appendChild(tip);
         left.appendChild(cpuTag);
         toolbar.appendChild(left);
 
@@ -1672,6 +1690,9 @@
     });
     window.addEventListener('csflow-viz-resume', function () {
         if (state.wanted && state.ui && !state.world) startWorld();
+    });
+    document.addEventListener('click', function (e) {
+        if (state.ui && !state.ui.cpuTag.contains(e.target)) state.ui.cpuTag.classList.remove('is-open');
     });
     window.addEventListener('pagehide', function () {
         if (state.world) state.world.dispose();

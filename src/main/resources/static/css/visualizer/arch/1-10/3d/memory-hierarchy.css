@@ -12,6 +12,7 @@
 
 /* === 툴바 === */
 .mem-hier3d__toolbar {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -56,14 +57,71 @@
 }
 
 .mem-hier3d__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-family: var(--font-mono);
   font-size: 0.62rem;
-  padding: 4px 10px;
+  padding: 4px 6px 4px 10px;
   border-radius: 20px;
   border: 1px solid var(--color-border-hover);
   color: var(--color-text-sub);
   letter-spacing: 0.08em;
+}
+
+.mem-hier3d__qmark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid var(--color-purple);
+  border-radius: 50%;
+  background: var(--color-purple-dim);
+  color: var(--color-purple);
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 1;
   cursor: help;
+}
+
+.mem-hier3d__tip {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 20px;
+  z-index: 10;
+  flex-direction: column;
+  gap: 6px;
+  width: min(340px, calc(100% - 40px));
+  padding: 12px 14px;
+  border: 2px solid var(--color-purple);
+  border-radius: 10px;
+  background: var(--color-surface);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: 0.8rem;
+  letter-spacing: 0;
+  line-height: 1.6;
+  text-transform: none;
+}
+
+.mem-hier3d__tip b {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+}
+
+.mem-hier3d__tip-fix {
+  color: var(--color-text-sub);
+}
+
+.mem-hier3d__tag:hover .mem-hier3d__tip,
+.mem-hier3d__tag:focus-within .mem-hier3d__tip,
+.mem-hier3d__tag.is-open .mem-hier3d__tip {
+  display: flex;
 }
 
 .mem-hier3d__tag[hidden] {
