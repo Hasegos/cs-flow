@@ -504,8 +504,9 @@
   min-height: 44px;
   margin: 12px auto 4px;
   padding: 7px 16px;
-  border: 0;
+  border: 1px solid rgba(185, 181, 255, 0.3);
   border-radius: 6px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
   background: rgba(0, 0, 0, 0.74);
   color: #fff;
   font-family: inherit;
