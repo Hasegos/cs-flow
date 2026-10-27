@@ -54,6 +54,16 @@
   background: rgba(108,99,255,0.1);
 }
 
+.mem-hier__toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mem-hier--hidden {
+  display: none;
+}
+
 .mem-hier__canvas-wrap {
   flex: 1;
   position: relative;
