@@ -237,6 +237,10 @@
         left.appendChild(mk('span', 'mem-hier3d__title', 'Memory Hierarchy 3D'));
         const badge = mk('span', 'mem-hier3d__badge', STEP_BADGES[0]);
         left.appendChild(badge);
+        const cpuTag = mk('span', 'mem-hier3d__tag', 'CPU 렌더링');
+        cpuTag.hidden = true;
+        cpuTag.title = '하드웨어 가속이 꺼져 있어 CPU로 그립니다. Chrome 설정 > 시스템에서 켜면 더 부드럽습니다';
+        left.appendChild(cpuTag);
         toolbar.appendChild(left);
 
         const right = mk('div', 'mem-hier3d__toolbar-right');
@@ -302,7 +306,7 @@
         root.appendChild(controls);
 
         container.appendChild(root);
-        return { root: root, hint: hint, stage: stage, badge: badge, log: log, fail: fail, failMsg: failMsg, prev: prev, play: play, next: next, dotEls: dotEls, speedBtns: speedBtns };
+        return { root: root, hint: hint, cpuTag: cpuTag, stage: stage, badge: badge, log: log, fail: fail, failMsg: failMsg, prev: prev, play: play, next: next, dotEls: dotEls, speedBtns: speedBtns };
     }
 
     /**
@@ -1600,7 +1604,7 @@
             return;
         }
         state.ui.fail.classList.remove('is-on');
-        if (state.world.soft) state.ui.hint.textContent = '하드웨어 가속이 꺼져 있어 CPU로 그립니다. Chrome 설정 > 시스템에서 켜면 더 부드럽습니다';
+        state.ui.cpuTag.hidden = !state.world.soft;
         state.world.start();
         go(state.step);
     }

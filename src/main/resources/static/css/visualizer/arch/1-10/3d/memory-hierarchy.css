@@ -55,6 +55,21 @@
   background: rgba(108, 99, 255, 0.1);
 }
 
+.mem-hier3d__tag {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid var(--color-border-hover);
+  color: var(--color-text-sub);
+  letter-spacing: 0.08em;
+  cursor: help;
+}
+
+.mem-hier3d__tag[hidden] {
+  display: none;
+}
+
 .mem-hier3d__speed-label {
   font-family: var(--font-mono);
   font-size: 0.6rem;
