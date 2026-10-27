@@ -1589,7 +1589,7 @@
         if (!alive(g)) return;
         if (state.auto) {
             if (i < STEPS.length - 1) {
-                await wait(1800);
+                await new Promise(function (r) { setTimeout(r, 1800 / state.speed); });
                 if (alive(g) && state.auto) go(i + 1);
             } else {
                 state.auto = false;
@@ -1599,10 +1599,9 @@
     }
 
     /**
-     * 자동 재생을 켜거나 끈다. reduced-motion이면 자동 재생하지 않는다.
+     * 자동 재생을 켜거나 끈다. reduced-motion이면 장면 안의 움직임은 줄이지만, 사용자가 누른 재생은 막지 않고 장면 사이에 쉬는 시간을 둔다.
      */
     function togglePlay() {
-        if (state.world && state.world.reduced) return;
         state.auto = !state.auto;
         syncUi();
         if (state.auto) go(state.step === 0 || state.step === STEPS.length - 1 ? 1 : state.step);
