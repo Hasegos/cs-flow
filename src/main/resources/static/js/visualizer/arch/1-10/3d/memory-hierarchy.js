@@ -410,7 +410,7 @@
         const renderer = new THREE.WebGLRenderer({ antialias: !lowEnd, powerPreference: 'high-performance' });
         const minGap = 12;
         const slowGap = 28;
-        const prMin = 0.75;
+        const prMin = soft ? 0.5 : 0.75;
         const texScale = lowEnd ? 1 : 1.25;
         const canvases = [];
         const tweens = [];
@@ -1045,7 +1045,7 @@
                 im.setColorAt(k, from);
             }
             scene.add(im);
-            const s = { a: a, b: b, path: path, im: im, guide: guide, from: from, to: to, t0: performance.now(), dur: reduced ? 1 : HOP_MS[a] / speed, arrived: new Array(NDOT).fill(false), count: 0, head: A.clone(), done: false };
+            const s = { a: a, b: b, path: path, im: im, guide: guide, from: from, to: to, t0: performance.now(), dur: HOP_MS[a] / speed, arrived: new Array(NDOT).fill(false), count: 0, head: A.clone(), done: false };
             streams.push(s);
             return s;
         }
@@ -1122,7 +1122,7 @@
          */
         function tween(d, fn, ease, delay) {
             return new Promise(function (res) {
-                tweens.push({ s: performance.now() + (reduced ? 0 : (delay || 0)), d: reduced ? 1 : d, fn: fn, ease: ease || easeOut, res: res });
+                tweens.push({ s: performance.now() + (delay || 0), d: d, fn: fn, ease: ease || easeOut, res: res });
                 invalidate();
             });
         }
@@ -1207,11 +1207,11 @@
             }
             try {
                 const gap = t - (last || t);
-                const dt = Math.min(50, gap);
+                const dt = Math.min(250, gap);
                 last = t;
-                slow = gap > slowGap && gap < 400 ? slow + 1 : Math.max(0, slow - 1);
+                slow = gap > slowGap && gap < 3000 ? slow + (gap > 120 ? 5 : 1) : Math.max(0, slow - 1);
                 if (slow > 20 && pr > prMin) {
-                    pr = Math.max(prMin, pr - 0.2);
+                    pr = Math.max(prMin, pr - (gap > 120 ? 0.35 : 0.2));
                     renderer.setPixelRatio(pr);
                     resize();
                     slow = 0;
@@ -1440,7 +1440,6 @@
             jars: jars,
             easeInOut: easeInOut,
             easeBack: easeBack,
-            reduced: reduced,
             soft: soft,
             tween: tween,
             shot: shot,
@@ -1469,15 +1468,13 @@
     }
 
     /**
-     * 지정한 시간만큼 기다린다. 배속과 reduced-motion을 반영한다.
+     * 지정한 시간만큼 기다린다. 배속을 반영한다.
      *
      * @param ms 밀리초
      * @returns 완료 Promise
      */
     function wait(ms) {
-        const w = state.world;
-        const d = w && w.reduced ? 0 : ms / state.speed;
-        return new Promise(function (r) { setTimeout(r, d); });
+        return new Promise(function (r) { setTimeout(r, ms / state.speed); });
     }
 
     /**
@@ -1599,7 +1596,7 @@
     }
 
     /**
-     * 자동 재생을 켜거나 끈다. reduced-motion이면 장면 안의 움직임은 줄이지만, 사용자가 누른 재생은 막지 않고 장면 사이에 쉬는 시간을 둔다.
+     * 자동 재생을 켜거나 끈다. reduced-motion이어도 사용자가 누른 재생은 막지 않는다.
      */
     function togglePlay() {
         state.auto = !state.auto;
