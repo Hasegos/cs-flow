@@ -381,6 +381,22 @@
 
     /* ===================== 월드(씬) ===================== */
     /**
+     * 하드웨어 가속 WebGL을 쓸 수 있는지 렌더러 밖에서 먼저 확인한다.
+     * Three.js가 컨텍스트 생성에 실패하면 콘솔에 오류를 남기므로, 실패를 거기서 겪지 않게 한다.
+     *
+     * @returns 소프트웨어 렌더링이 아니고 WebGL을 쓸 수 있으면 true
+     */
+    function hasHardwareGl() {
+        const probe = document.createElement('canvas');
+        const opts = { failIfMajorPerformanceCaveat: true };
+        const gl = probe.getContext('webgl2', opts) || probe.getContext('webgl', opts);
+        if (!gl) return false;
+        const lose = gl.getExtension('WEBGL_lose_context');
+        if (lose) lose.loseContext();
+        return true;
+    }
+
+    /**
      * Three.js 씬을 만든다. 책상, 책, 유리병 6개, CPU, 타이머 카드와 점 흐름을 포함한다.
      *
      * @param stage 캔버스를 넣을 요소
@@ -390,14 +406,8 @@
         const mobile = window.matchMedia('(max-width: 768px), (pointer: coarse)').matches;
         const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         const lowEnd = mobile && ((navigator.deviceMemory || 8) <= 3 || (navigator.hardwareConcurrency || 8) <= 4);
-        let soft = false;
-        let renderer;
-        try {
-            renderer = new THREE.WebGLRenderer({ antialias: !lowEnd, failIfMajorPerformanceCaveat: true, powerPreference: 'high-performance' });
-        } catch (e) {
-            soft = true;
-            renderer = new THREE.WebGLRenderer({ antialias: !lowEnd, powerPreference: 'high-performance' });
-        }
+        const soft = !hasHardwareGl();
+        const renderer = new THREE.WebGLRenderer({ antialias: !lowEnd, powerPreference: 'high-performance' });
         const minGap = 12;
         const slowGap = 28;
         const prMin = 0.75;
