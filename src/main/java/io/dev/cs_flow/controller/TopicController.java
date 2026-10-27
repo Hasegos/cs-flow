@@ -78,6 +78,7 @@ public class TopicController {
                 new BreadcrumbLd.Crumb(topic.getSubject().getName(), "https://csflow.kr/" + subjectSlug),
                 new BreadcrumbLd.Crumb(topic.getTitle(), canonicalUrl))));
         model.addAttribute("ogImage", OgImages.url(subjectSlug, topicSlug));
+        model.addAttribute("prevTopic", topicService.getPrevTopic(subjectSlug, topic.getTopicId()));
         model.addAttribute("nextTopic", topicService.getNextTopic(subjectSlug, topic.getTopicId()));
         model.addAttribute("relatedTopics", topicService.getRelatedTopics(topic.getTopicId()));
         model.addAttribute("topicErrors", errorEntryService.getVerifiedByTopic(subjectSlug, topicSlug));

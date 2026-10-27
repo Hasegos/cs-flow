@@ -1,7 +1,15 @@
 <th:block th:fragment="next">
-    <nav class="topic-next-nav" th:if="${nextTopic}" aria-label="다음 토픽">
-        <a th:href="@{/{subject}/{topic}(subject=${nextTopic.subjectSlug}, topic=${nextTopic.slug})}"
-           class="topic-next-nav__link">
+    <nav class="topic-next-nav" th:if="${prevTopic != null or nextTopic != null}" aria-label="이전·다음 토픽">
+        <a th:if="${prevTopic}"
+           th:href="@{/{subject}/{topic}(subject=${prevTopic.subjectSlug}, topic=${prevTopic.slug})}"
+           class="topic-next-nav__link topic-next-nav__link--prev">
+            <span class="topic-next-nav__arrow" aria-hidden="true">←</span>
+            <span class="topic-next-nav__title" th:text="${prevTopic.title}">토픽 제목</span>
+            <span class="topic-next-nav__label">이전 토픽</span>
+        </a>
+        <a th:if="${nextTopic}"
+           th:href="@{/{subject}/{topic}(subject=${nextTopic.subjectSlug}, topic=${nextTopic.slug})}"
+           class="topic-next-nav__link topic-next-nav__link--next">
             <span class="topic-next-nav__label">다음 토픽</span>
             <span class="topic-next-nav__title" th:text="${nextTopic.title}">토픽 제목</span>
             <span class="topic-next-nav__arrow" aria-hidden="true">→</span>

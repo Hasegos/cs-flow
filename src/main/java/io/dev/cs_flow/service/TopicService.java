@@ -86,6 +86,21 @@ public class TopicService {
     }
 
     /**
+     * 같은 과목에서 현재 토픽 바로 앞 순서의 공개 토픽을 조회한다.
+     *
+     * @param subjectSlug 과목 영문 식별자
+     * @param topicId     현재 토픽 ID
+     * @return 이전 토픽, 과목의 첫 토픽이면 null
+     */
+    @Cacheable(value = "prevTopic", key = "#subjectSlug + ':' + #topicId")
+    @Transactional(readOnly = true)
+    public TopicIndexItem getPrevTopic(String subjectSlug, Long topicId){
+        log.info("이전 토픽 조회 - subjectSlug: {}, topicId: {}", subjectSlug, topicId);
+        return topicRepository.findPrevPublished(subjectSlug, topicId, PageRequest.of(0, 1))
+                .stream().findFirst().orElse(null);
+    }
+
+    /**
      * 조건에 맞는 공개된 토픽 목록을 페이지 단위로 조회한다.
      * <p>
      * collection fetch join과 Pageable 충돌을 피하기 위해 2단계로 조회한다.
