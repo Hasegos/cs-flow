@@ -156,8 +156,8 @@ flowchart LR
 ```
 templates/topics/{과목}/{묶음}/{slug}.html               큰 그림 · 작동 원리 · 퀴즈 뼈대
 templates/fragments/code/{과목}/{묶음}/{slug}-code.html  코드 연결
-static/css/visualizer/{과목}/{묶음}/{slug}.css           시각화 스타일
-static/js/visualizer/{과목}/{묶음}/{slug}.js             시각화 로직
+static/css/visualizer/{과목}/{묶음}/2d/{slug}.css       시각화 스타일
+static/js/visualizer/{과목}/{묶음}/2d/{slug}.js        시각화 로직
 ```
 
 ## 개발자

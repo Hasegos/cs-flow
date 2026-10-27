@@ -43,5 +43,6 @@ class VisualizerServiceTest {
     void otherSubjectOrFolderIsRejected() {
         assertThrows(NotFoundException.class, () -> resolve("os/11-20/branch-prediction", "arch"));
         assertThrows(NotFoundException.class, () -> resolve("arch/11-20/3d/branch-prediction", "arch"));
+        assertThrows(NotFoundException.class, () -> resolve("arch/11-20/2d/../branch-prediction", "arch"));
     }
 }
