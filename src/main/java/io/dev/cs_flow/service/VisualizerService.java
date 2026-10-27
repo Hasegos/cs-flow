@@ -25,8 +25,8 @@ import java.util.regex.Pattern;
 @RequiredArgsConstructor
 public class VisualizerService {
 
-    /** 시각화 JS 키 형식: {과목}/{묶음}/{이름} (예: arch/11-20/branch-prediction) */
-    private static final Pattern JS_FILE_KEY = Pattern.compile("^([a-z]+)/(\\d+-\\d+)/[a-z0-9\\-]+$");
+    /** 시각화 JS 키 형식: {과목}/{묶음}/{이름} 또는 {과목}/{묶음}/2d/{이름} (예: arch/11-20/2d/branch-prediction) */
+    private static final Pattern JS_FILE_KEY = Pattern.compile("^([a-z]+)/(\\d+-\\d+)/(?:2d/)?([a-z0-9\\-]+)$");
     private static final String TEMPLATE_NAME = "^[a-z0-9\\-]+$";
 
     private final VisualizerRepository visualizerRepository;
@@ -35,6 +35,7 @@ public class VisualizerService {
      * 토픽의 시각화 JS 키와 학습 페이지 뷰 이름을 결정한다.
      * <p>
      * jsFileKey는 {과목}/{묶음}/{이름} 형식이어야 하고 과목이 요청 과목과 같아야 한다.
+     * 2D 파일은 {과목}/{묶음}/2d/ 폴더에 있으므로, DB 값에 2d/가 없어도 있는 것으로 보정해 돌려준다.
      * 뷰 이름은 topics/{과목}/{묶음}/{templateName} 이다.
      * </p>
      *
@@ -66,6 +67,7 @@ public class VisualizerService {
         }
 
         String viewName = "topics/" + subjectSlug + "/" + keyMatcher.group(2) + "/" + templateName;
-        return new TopicViewPath(jsFileKey, viewName);
+        String assetKey = keyMatcher.group(1) + "/" + keyMatcher.group(2) + "/2d/" + keyMatcher.group(3);
+        return new TopicViewPath(assetKey, viewName);
     }
 }
