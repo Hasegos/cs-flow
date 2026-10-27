@@ -373,13 +373,12 @@
             renderer = new THREE.WebGLRenderer({ antialias: !mobile, failIfMajorPerformanceCaveat: true, powerPreference: 'high-performance' });
         } catch (e) {
             soft = true;
-            renderer = new THREE.WebGLRenderer({ antialias: false });
+            renderer = new THREE.WebGLRenderer({ antialias: !mobile, powerPreference: 'high-performance' });
         }
-        const lite = mobile || soft;
-        const minGap = soft ? 40 : 12;
-        const slowGap = soft ? 70 : 28;
-        const prMin = soft ? 0.4 : 0.75;
-        const texScale = lite ? 1 : 1.25;
+        const minGap = 12;
+        const slowGap = 28;
+        const prMin = 0.75;
+        const texScale = mobile ? 1 : 1.25;
         const canvases = [];
         const tweens = [];
         let streams = [];
@@ -401,10 +400,10 @@
         let curLevelTimeNs = 0;
         let timerKey = '';
 
-        let pr = soft ? 0.6 : (mobile ? 1 : Math.min(window.devicePixelRatio || 1, 1.5));
+        let pr = mobile ? 1 : Math.min(window.devicePixelRatio || 1, 1.5);
         let slow = 0;
         renderer.setPixelRatio(pr);
-        renderer.shadowMap.enabled = !soft;
+        renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         renderer.outputEncoding = THREE.sRGBEncoding;
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -513,8 +512,8 @@
         scene.add(hemi);
         const sun = new THREE.DirectionalLight(0xfff0d6, 1.25);
         sun.position.set(-5, 9, 3.5);
-        sun.castShadow = !soft;
-        sun.shadow.mapSize.set(lite ? 512 : 1024, lite ? 512 : 1024);
+        sun.castShadow = true;
+        sun.shadow.mapSize.set(mobile ? 512 : 1024, mobile ? 512 : 1024);
         Object.assign(sun.shadow.camera, { left: -6, right: 6, top: 6, bottom: -6, near: 1, far: 26 });
         sun.shadow.bias = -0.0005;
         scene.add(sun);
@@ -1601,7 +1600,7 @@
             return;
         }
         state.ui.fail.classList.remove('is-on');
-        if (state.world.soft) state.ui.hint.textContent = '하드웨어 가속이 꺼져 있어 저화질로 표시합니다. Chrome 설정 > 시스템에서 켜면 선명해집니다';
+        if (state.world.soft) state.ui.hint.textContent = '하드웨어 가속이 꺼져 있어 CPU로 그립니다. Chrome 설정 > 시스템에서 켜면 더 부드럽습니다';
         state.world.start();
         go(state.step);
     }
