@@ -27,6 +27,8 @@
     const badge = el('span', 'mem-hier__step-badge', 'IDLE');
     tbLeft.appendChild(badge);
     toolbar.appendChild(tbLeft);
+    const tbRight = el('div', 'mem-hier__toolbar-right');
+    toolbar.appendChild(tbRight);
     root.appendChild(toolbar);
 
     const canvasWrap = el('div', 'mem-hier__canvas-wrap');
@@ -44,6 +46,75 @@
     controls.appendChild(btnReset);
     root.appendChild(controls);
     container.appendChild(root);
+
+    /* ===================== 3D 팝업북 전환 ===================== */
+    function webglMode() {
+        try {
+            const strict = document.createElement('canvas').getContext('webgl', { failIfMajorPerformanceCaveat: true });
+            if (strict) {
+                const lose = strict.getExtension('WEBGL_lose_context');
+                if (lose) lose.loseContext();
+                return 'ok';
+            }
+            return document.createElement('canvas').getContext('webgl') ? 'soft' : 'none';
+        } catch (e) {
+            return 'none';
+        }
+    }
+
+    function loadScript(src) {
+        return new Promise(function (resolve, reject) {
+            const s = document.createElement('script');
+            s.src = src;
+            s.addEventListener('load', resolve);
+            s.addEventListener('error', reject);
+            document.head.appendChild(s);
+        });
+    }
+
+    let loading3d = null;
+
+    function ensure3d() {
+        if (window.CsFlow.memHier3d) return Promise.resolve();
+        if (!loading3d) {
+            loading3d = loadScript(container.dataset.threeSrc)
+                .then(function () { return loadScript(container.dataset.viz3dSrc); })
+                .catch(function (err) {
+                    loading3d = null;
+                    throw err;
+                });
+        }
+        return loading3d;
+    }
+
+    function show2d() {
+        root.classList.remove('mem-hier--hidden');
+        resize();
+    }
+
+    const glMode = webglMode();
+    if (container.dataset.threeSrc && container.dataset.viz3dSrc && glMode !== 'none') {
+        const btn3d = el('button', 'mem-hier__btn mem-hier__btn--primary', glMode === 'ok' ? '3D 팝업북' : '3D 팝업북 (GPU 가속 필요)');
+        btn3d.type = 'button';
+        if (glMode === 'soft') {
+            btn3d.disabled = true;
+            btn3d.title = '브라우저 설정에서 하드웨어 가속을 켜면 쓸 수 있습니다';
+        }
+        btn3d.addEventListener('click', function () {
+            btn3d.disabled = true;
+            btn3d.textContent = '불러오는 중…';
+            ensure3d().then(function () {
+                root.classList.add('mem-hier--hidden');
+                window.CsFlow.memHier3d.open(container, show2d);
+            }).catch(function () {
+                if (window.CsFlow.showToast) window.CsFlow.showToast('3D 화면을 불러오지 못했습니다');
+            }).then(function () {
+                btn3d.disabled = false;
+                btn3d.textContent = '3D 팝업북';
+            });
+        });
+        tbRight.appendChild(btn3d);
+    }
 
     /* ===================== 캔버스 ===================== */
     const ctx = canvas.getContext('2d');
@@ -140,6 +211,10 @@
             detail: '영구 저장 장치입니다. SSD는 수십~수백 μs, HDD는 수 ms의 접근 시간을 가집니다. 전원이 꺼져도 데이터가 유지됩니다.',
         },
     ];
+
+    window.CsFlow.memHierLayers = LAYERS.map(function (l) {
+        return { id: l.id, size: l.size, speed: l.speed };
+    });
 
     /* ===================== 상태 ===================== */
     let selectedIdx = -1;
