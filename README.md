@@ -72,7 +72,7 @@ CS Flow는 이런 개념을 단계별로 직접 실행해 보게 만든 학습 �
 ### 3D 팝업북
 
 <div align="center">
-  <img src="img/3d.gif" alt="3D 팝업북 (메모리 계층 구조)" width="640">
+  <img src="img/3d.webp" alt="3D 팝업북 (메모리 계층 구조)" width="640">
   <br>
   메모리 계층 구조 — 데이터가 SSD → RAM → 캐시 → CPU로 올라오는 모습을 책 위의 유리병으로 따라갑니다
 </div>
