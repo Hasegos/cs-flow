@@ -381,6 +381,22 @@
 
     /* ===================== 월드(씬) ===================== */
     /**
+     * 하드웨어 가속 WebGL을 쓸 수 있는지 렌더러 밖에서 먼저 확인한다.
+     * Three.js가 컨텍스트 생성에 실패하면 콘솔에 오류를 남기므로, 실패를 거기서 겪지 않게 한다.
+     *
+     * @returns 소프트웨어 렌더링이 아니고 WebGL을 쓸 수 있으면 true
+     */
+    function hasHardwareGl() {
+        const probe = document.createElement('canvas');
+        const opts = { failIfMajorPerformanceCaveat: true };
+        const gl = probe.getContext('webgl2', opts) || probe.getContext('webgl', opts);
+        if (!gl) return false;
+        const lose = gl.getExtension('WEBGL_lose_context');
+        if (lose) lose.loseContext();
+        return true;
+    }
+
+    /**
      * Three.js 씬을 만든다. 책상, 책, 유리병 6개, CPU, 타이머 카드와 점 흐름을 포함한다.
      *
      * @param stage 캔버스를 넣을 요소
@@ -389,18 +405,13 @@
     function createWorld(stage) {
         const mobile = window.matchMedia('(max-width: 768px), (pointer: coarse)').matches;
         const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        let soft = false;
-        let renderer;
-        try {
-            renderer = new THREE.WebGLRenderer({ antialias: !mobile, failIfMajorPerformanceCaveat: true, powerPreference: 'high-performance' });
-        } catch (e) {
-            soft = true;
-            renderer = new THREE.WebGLRenderer({ antialias: !mobile, powerPreference: 'high-performance' });
-        }
+        const lowEnd = mobile && ((navigator.deviceMemory || 8) <= 3 || (navigator.hardwareConcurrency || 8) <= 4);
+        const soft = !hasHardwareGl();
+        const renderer = new THREE.WebGLRenderer({ antialias: !lowEnd, powerPreference: 'high-performance' });
         const minGap = 12;
         const slowGap = 28;
         const prMin = 0.75;
-        const texScale = mobile ? 1 : 1.25;
+        const texScale = lowEnd ? 1 : 1.25;
         const canvases = [];
         const tweens = [];
         let streams = [];
@@ -422,7 +433,7 @@
         let curLevelTimeNs = 0;
         let timerKey = '';
 
-        let pr = mobile ? 1 : Math.min(window.devicePixelRatio || 1, 1.5);
+        let pr = Math.min(window.devicePixelRatio || 1, mobile ? (lowEnd ? 1.25 : 2) : 1.5);
         let slow = 0;
         renderer.setPixelRatio(pr);
         renderer.shadowMap.enabled = true;
@@ -535,7 +546,7 @@
         const sun = new THREE.DirectionalLight(0xfff0d6, 1.25);
         sun.position.set(-5, 9, 3.5);
         sun.castShadow = true;
-        sun.shadow.mapSize.set(mobile ? 512 : 1024, mobile ? 512 : 1024);
+        sun.shadow.mapSize.set(lowEnd ? 512 : 1024, lowEnd ? 512 : 1024);
         Object.assign(sun.shadow.camera, { left: -6, right: 6, top: 6, bottom: -6, near: 1, far: 26 });
         sun.shadow.bias = -0.0005;
         scene.add(sun);
@@ -1578,7 +1589,7 @@
         if (!alive(g)) return;
         if (state.auto) {
             if (i < STEPS.length - 1) {
-                await wait(1800);
+                await new Promise(function (r) { setTimeout(r, 1800 / state.speed); });
                 if (alive(g) && state.auto) go(i + 1);
             } else {
                 state.auto = false;
@@ -1588,10 +1599,9 @@
     }
 
     /**
-     * 자동 재생을 켜거나 끈다. reduced-motion이면 자동 재생하지 않는다.
+     * 자동 재생을 켜거나 끈다. reduced-motion이면 장면 안의 움직임은 줄이지만, 사용자가 누른 재생은 막지 않고 장면 사이에 쉬는 시간을 둔다.
      */
     function togglePlay() {
-        if (state.world && state.world.reduced) return;
         state.auto = !state.auto;
         syncUi();
         if (state.auto) go(state.step === 0 || state.step === STEPS.length - 1 ? 1 : state.step);
