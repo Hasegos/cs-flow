@@ -86,6 +86,7 @@ public class ErrorEntryController {
         Page<ErrorEntry> entryPage = errorEntryService.search(category, condition, Math.max(0, page), PAGE_SIZE);
         String basePath = category == null ? "/errors" : "/errors/category/" + category;
 
+        model.addAttribute("ogImage", OgImages.url("errors", category == null ? "_index" : "_category-" + category));
         model.addAttribute("categories", errorEntryService.getCategories());
         model.addAttribute("category", category);
         model.addAttribute("categoryLabel", current == null ? null : current.label());
