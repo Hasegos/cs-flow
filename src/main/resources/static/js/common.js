@@ -123,11 +123,27 @@
                 const targetPanel = document.getElementById('panel-' + target);
                 if (targetPanel) targetPanel.classList.add('is-active');
 
+                scrollToTabTop();
+
                 if (target === 'visualizer') {
                     window.dispatchEvent(new CustomEvent('csflow-viz-resume'));
                 }
             });
         });
+    }
+
+    /**
+     * 탭을 바꾼 뒤 새 내용이 맨 위부터 보이게 스크롤한다.
+     * 탭 막대는 헤더 아래에 붙어 있으므로, 막대가 원래 놓인 자리(히어로 바로 아래)까지만 올린다.
+     * 이미 그 위에 있으면 움직이지 않는다.
+     */
+    function scrollToTabTop() {
+        const tabs = document.querySelector('.topic-tabs');
+        const above = tabs && tabs.previousElementSibling;
+        if (!above) return;
+        const stuckTop = parseFloat(getComputedStyle(tabs).top) || 0;
+        const natural = above.getBoundingClientRect().bottom + window.scrollY - stuckTop;
+        if (window.scrollY > natural) window.scrollTo(0, Math.max(0, natural));
     }
 
     /* ===================== 다음 단계 버튼 ===================== */
@@ -149,8 +165,6 @@
                 link.textContent = '다음: ' + nextBtn.textContent.trim() + ' \u2192';
                 link.addEventListener('click', function () {
                     nextBtn.click();
-                    const tabs = document.querySelector('.topic-tabs');
-                    if (tabs) tabs.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 });
             } else if (nextTopicMeta) {
                 link.href = nextTopicMeta.content;
