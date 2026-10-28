@@ -1245,7 +1245,9 @@
                 off.copy(cur.p).sub(cur.t);
                 sph.setFromVector3(off);
                 sph.theta += userYaw;
-                sph.phi = Math.max(0.12, Math.min(1.5, sph.phi + userPitch));
+                const basePhi = sph.phi;
+                sph.phi = Math.max(0.12, Math.min(1.5, basePhi + userPitch));
+                userPitch = sph.phi - basePhi;
                 sph.radius *= zoom;
                 off.setFromSpherical(sph);
                 look.copy(cur.t).add(pan);
@@ -1365,7 +1367,7 @@
                 panBy(e.clientX - p[0], e.clientY - p[1]);
             } else {
                 userYaw -= (e.clientX - p[0]) * 0.006;
-                userPitch = Math.max(-0.5, Math.min(0.6, userPitch + (e.clientY - p[1]) * 0.004));
+                userPitch = Math.max(-2, Math.min(2, userPitch - (e.clientY - p[1]) * 0.006));
             }
             p[0] = e.clientX;
             p[1] = e.clientY;
