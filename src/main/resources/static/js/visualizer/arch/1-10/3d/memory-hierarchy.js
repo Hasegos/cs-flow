@@ -291,7 +291,7 @@
         fail.appendChild(toFlat);
         stage.appendChild(fail);
         const touch = window.matchMedia('(pointer: coarse)').matches;
-        const hint = mk('span', 'mem-hier3d__hint', touch ? '한 손가락 회전 · 두 손가락 이동·확대' : '드래그 회전 · 우클릭 드래그 이동 · 누른 채 휠 확대 · 더블클릭 원위치');
+        const hint = mk('span', 'mem-hier3d__hint', touch ? '한 손가락 회전 · 두 손가락 이동·확대' : '드래그 회전 · 우클릭 또는 휠 클릭 드래그 이동 · 누른 채 휠 확대 · 더블클릭 원위치');
         root.appendChild(stage);
 
         const log = mk('div', 'mem-hier3d__caption');
@@ -1342,8 +1342,8 @@
         }
 
         dom.addEventListener('pointerdown', function (e) {
-            if (e.pointerType === 'mouse' && e.button !== 0 && e.button !== 2) return;
-            pointers.set(e.pointerId, [e.clientX, e.clientY, e.button === 2 || e.shiftKey ? 1 : 0]);
+            if (e.pointerType === 'mouse' && e.button > 2) return;
+            pointers.set(e.pointerId, [e.clientX, e.clientY, e.button > 0 || e.shiftKey ? 1 : 0]);
             dom.setPointerCapture(e.pointerId);
             dom.classList.add('is-grabbing');
             pinch = pointers.size === 2 ? pinchDist() : 0;
@@ -1382,6 +1382,7 @@
         dom.addEventListener('pointerup', endPointer);
         dom.addEventListener('pointercancel', endPointer);
         dom.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+        dom.addEventListener('mousedown', function (e) { if (e.button === 1) e.preventDefault(); });
         dom.addEventListener('dblclick', resetView);
         dom.addEventListener('wheel', function (e) {
             if (!e.ctrlKey && !(e.buttons & 3)) return;
