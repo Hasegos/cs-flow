@@ -45,3 +45,5 @@ architecture/
 ### graphify ###
 graphify-out/
 scripts/__pycache__/
+### shorts ###
+shorts-out/
