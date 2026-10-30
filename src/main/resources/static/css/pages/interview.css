@@ -1,0 +1,468 @@
+/* 면접 대비 계획 페이지 (히어로·카드 기본 모양은 subject.css 재사용) */
+
+[hidden] {
+  display: none !important;
+}
+
+/* === 페이지 색 변수 === */
+:root {
+  --color-warn: #f5a623;
+  --color-warn-dim: rgba(245, 166, 35, 0.15);
+  --color-danger: #e5484d;
+}
+
+/* === .interview-note — 저장 위치 안내 === */
+.interview-note {
+  margin-top: 0.75rem;
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+}
+
+/* === .interview-message — 불러오는 중·빈 상태 안내 === */
+.interview-message {
+  padding: 0.5rem 0 1rem;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}
+
+/* === .interview-title — 섹션 제목 === */
+.interview-title {
+  margin-bottom: 1rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.interview-title__sub {
+  margin-left: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+/* === .interview-form — 계획 만들기 폼 === */
+.interview-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  max-width: 560px;
+  padding: 1.5rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.interview-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+  padding: 0;
+  border: none;
+}
+
+.interview-field__label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.interview-field__label small {
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.interview-select,
+.interview-input {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  font-family: var(--font-sans);
+  font-size: 0.92rem;
+  color: var(--color-text);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.interview-select:focus,
+.interview-input:focus {
+  outline: none;
+  border-color: var(--color-purple);
+  box-shadow: 0 0 0 2px var(--color-purple-dim);
+}
+
+/* === .interview-choices — 라디오·체크박스 선택지 === */
+.interview-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.interview-choice {
+  position: relative;
+  cursor: pointer;
+}
+
+.interview-choice input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.interview-choice__text {
+  display: inline-block;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.85rem;
+  color: var(--color-text-sub);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  transition: border-color var(--transition), color var(--transition), background var(--transition);
+}
+
+.interview-choice__text small {
+  margin-left: 0.25rem;
+  font-size: 0.72rem;
+  opacity: 0.75;
+}
+
+.interview-choice:hover .interview-choice__text {
+  border-color: var(--color-border-hover);
+}
+
+.interview-choice input:checked + .interview-choice__text {
+  color: var(--color-purple);
+  background: var(--color-purple-dim);
+  border-color: var(--color-purple);
+}
+
+.interview-choice input:focus-visible + .interview-choice__text {
+  outline: 2px solid var(--color-purple);
+  outline-offset: 2px;
+}
+
+/* === .interview-error — 폼 오류 === */
+.interview-error {
+  font-size: 0.85rem;
+  color: var(--color-danger);
+}
+
+/* === .interview-btn — 버튼 === */
+.interview-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.interview-actions--end {
+  justify-content: flex-end;
+  margin-top: 2rem;
+}
+
+.interview-btn {
+  padding: 0.55rem 1.1rem;
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  color: var(--color-text-sub);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color var(--transition), color var(--transition), background var(--transition);
+}
+
+.interview-btn:hover {
+  color: var(--color-text);
+  border-color: var(--color-border-hover);
+}
+
+.interview-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.interview-btn--primary {
+  color: #fff;
+  background: var(--color-purple);
+  border-color: var(--color-purple);
+}
+
+.interview-btn--primary:hover {
+  color: #fff;
+  background: var(--color-purple);
+  opacity: 0.9;
+}
+
+/* === .interview-summary — D-day 요약 === */
+.interview-summary {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+  padding: 1.1rem 1.4rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.interview-summary__dday {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--color-purple);
+}
+
+.interview-summary__body {
+  min-width: 0;
+}
+
+.interview-summary__meta {
+  font-size: 0.92rem;
+  color: var(--color-text);
+}
+
+.interview-summary__progress {
+  margin-top: 0.25rem;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+/* === .interview-block — 계획 화면의 구역 === */
+.interview-block {
+  margin-bottom: 2rem;
+}
+
+/* === .interview-tasks — 오늘 풀 질문 === */
+.interview-tasks {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.interview-task {
+  padding: 1rem 1.2rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.interview-task.is-done {
+  border-color: var(--color-teal);
+}
+
+.interview-task__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+
+.interview-task__subject {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--color-purple);
+}
+
+.interview-task__done {
+  font-size: 0.72rem;
+  color: var(--color-teal);
+}
+
+.interview-task__question {
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.5;
+  color: var(--color-text);
+}
+
+.interview-task__toggle {
+  margin-top: 0.7rem;
+}
+
+.interview-task__answer {
+  margin-top: 0.8rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.interview-task__answer-text {
+  font-size: 0.9rem;
+  line-height: 1.7;
+  color: var(--color-text-sub);
+}
+
+.interview-task__link {
+  display: inline-block;
+  margin-top: 0.6rem;
+  font-size: 0.82rem;
+  color: var(--color-purple);
+}
+
+.interview-task__prompt {
+  margin: 0.9rem 0 0.5rem;
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+}
+
+/* === .interview-weak — 약한 과목 === */
+.interview-weak {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.interview-weak__item {
+  padding: 0.35rem 0.8rem;
+  font-size: 0.82rem;
+  color: var(--color-teal);
+  background: var(--color-teal-dim);
+  border-radius: 999px;
+}
+
+/* === .interview-calendar — 달력 === */
+.interview-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
+  margin-bottom: 0.8rem;
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+.interview-legend__item::before {
+  content: "";
+  display: inline-block;
+  width: 0.7rem;
+  height: 0.7rem;
+  margin-right: 0.35rem;
+  vertical-align: -1px;
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+}
+
+.interview-legend__item--learn::before {
+  background: var(--color-purple-dim);
+  border-color: var(--color-purple);
+}
+
+.interview-legend__item--review::before {
+  background: var(--color-teal-dim);
+  border-color: var(--color-teal);
+}
+
+.interview-legend__item--mock::before {
+  background: var(--color-warn-dim);
+  border-color: var(--color-warn);
+}
+
+.interview-legend__item--rest::before {
+  background: transparent;
+}
+
+.interview-calendar {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.interview-calendar__week {
+  padding: 0.2rem 0;
+  font-size: 0.75rem;
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+.interview-day {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+  padding: 0.45rem 0.4rem;
+  font-size: 0.72rem;
+  line-height: 1.3;
+  color: var(--color-text-sub);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.interview-day--empty {
+  background: transparent;
+  border-color: transparent;
+}
+
+.interview-day__date {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.interview-day__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.interview-day__count {
+  font-family: var(--font-mono);
+}
+
+.interview-day--learn {
+  background: var(--color-purple-dim);
+  border-color: var(--color-purple);
+}
+
+.interview-day--review {
+  background: var(--color-teal-dim);
+  border-color: var(--color-teal);
+}
+
+.interview-day--mock,
+.interview-day--dday {
+  background: var(--color-warn-dim);
+  border-color: var(--color-warn);
+}
+
+.interview-day--rest {
+  background: transparent;
+}
+
+.interview-day.is-today {
+  box-shadow: 0 0 0 2px var(--color-text);
+}
+
+/* === 반응형 === */
+@media (max-width: 768px) {
+  .interview-form {
+    padding: 1.1rem;
+  }
+
+  .interview-summary {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .interview-calendar {
+    gap: 0.2rem;
+  }
+
+  .interview-day {
+    padding: 0.3rem 0.2rem;
+    font-size: 0.62rem;
+  }
+
+  .interview-day__label {
+    display: none;
+  }
+
+  .interview-actions--end .interview-btn {
+    flex: 1 1 100%;
+  }
+}

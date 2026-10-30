@@ -1,5 +1,6 @@
 package io.dev.cs_flow.common.interceptor;
 
+import io.dev.cs_flow.common.util.LogUris;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
@@ -53,7 +54,7 @@ public class AccessLogInterceptor implements HandlerInterceptor {
             log.info("IP={} METHOD={} URI={} UA={}",
                     ip,
                     request.getMethod(),
-                    maskPlanToken(request.getRequestURI()),
+                    LogUris.mask(request.getRequestURI()),
                     ua);
 
         } catch (Exception e) {
@@ -61,15 +62,5 @@ public class AccessLogInterceptor implements HandlerInterceptor {
         }
 
         return true;
-    }
-
-    /**
-     * 면접 계획 API 경로의 공개 토큰을 로그에 남기지 않도록 가린다. 토큰을 아는 사람은 계획을 조회 · 수정할 수 있다.
-     *
-     * @param uri 요청 경로
-     * @return 토큰 자리를 {@code {token}}으로 바꾼 경로
-     */
-    private String maskPlanToken(String uri) {
-        return uri.replaceFirst("^/api/plans/[^/]+", "/api/plans/{token}");
     }
 }
