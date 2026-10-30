@@ -3,7 +3,7 @@ package io.dev.cs_flow.dto;
 import java.util.List;
 
 /**
- * 콘텐츠 JSON의 토픽 한 건 (`content/{과목}/{slug}.json`).
+ * 콘텐츠 JSON의 토픽 한 건 (`content/{과목}/{묶음}/{slug}.json`).
  * 조회수 · 좋아요 같은 운영 중 값은 콘텐츠가 아니므로 넣지 않는다.
  *
  * @param subject         과목 slug (폴더 이름과 같아야 한다)

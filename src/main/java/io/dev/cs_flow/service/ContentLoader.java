@@ -25,12 +25,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
  * 콘텐츠 JSON(`content/`)을 기동할 때 읽고 검증한다.
  * <p>
- * 파일 구성은 {@code subjects.json}, {@code manifest.json}, {@code {과목}/{토픽slug}.json}이다.
+ * 파일 구성은 {@code subjects.json}, {@code manifest.json}, {@code {과목}/{묶음}/{토픽slug}.json}이다.
  * 문법 오류, 모르는 필드, 필수 값 누락, 중복, 개수 불일치가 하나라도 있으면 {@link IllegalStateException}으로
  * 빈 생성을 실패시켜 앱이 뜨지 않게 한다. 지금은 검증만 하고 읽기 경로는 아직 DB를 쓴다.
  * </p>
@@ -113,13 +114,13 @@ public class ContentLoader {
         Map<Resource, ContentTopic> result = new LinkedHashMap<>();
         Resource[] resources;
         try {
-            resources = resolver.getResources(base + "/*/*.json");
+            resources = resolver.getResources(base + "/*/*/*.json");
         } catch (IOException e) {
             errors.add("토픽 폴더를 읽지 못했습니다: " + base + " (" + e.getMessage() + ")");
             return result;
         }
         if (resources.length == 0) {
-            errors.add("토픽 파일이 없습니다: " + base + "/{과목}/{slug}.json");
+            errors.add("토픽 파일이 없습니다: " + base + "/{과목}/{묶음}/{slug}.json");
         }
         for (Resource resource : resources) {
             ContentTopic topic = parse(resource, mapper, new TypeReference<ContentTopic>() { });
@@ -191,8 +192,14 @@ public class ContentLoader {
             errors.add(where + ": subjects.json에 없는 과목입니다 - " + t.subject());
         }
         String path = pathOf(resource);
-        if (t.subject() != null && !path.endsWith("/" + t.subject() + "/" + t.slug() + ".json")) {
-            errors.add(where + ": 폴더 · 파일 이름이 subject · slug와 다릅니다");
+        if (t.subject() != null && t.slug() != null) {
+            Matcher folder = Pattern.compile("/" + Pattern.quote(t.subject()) + "/(\\d+-\\d+)/" + Pattern.quote(t.slug()) + "\\.json$").matcher(path);
+            if (!folder.find()) {
+                errors.add(where + ": 폴더 · 파일 이름이 {subject}/{묶음 예: 1-10}/{slug}.json과 다릅니다");
+            } else if (t.visual() != null && t.visual().key() != null
+                    && !t.visual().key().startsWith(t.subject() + "/" + folder.group(1) + "/")) {
+                errors.add(where + ": 묶음 폴더(" + folder.group(1) + ")와 visual.key의 묶음이 다릅니다 - " + t.visual().key());
+            }
         }
         validateVisual(where, t);
         validateTags(where, t.tags());
@@ -393,7 +400,7 @@ public class ContentLoader {
         String path = pathOf(resource);
         String[] parts = path.split("/");
         int n = parts.length;
-        return n >= 2 ? parts[n - 2] + "/" + parts[n - 1] : path;
+        return n >= 3 ? parts[n - 3] + "/" + parts[n - 2] + "/" + parts[n - 1] : path;
     }
 
     /**
