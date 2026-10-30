@@ -18,6 +18,7 @@
             <a th:href="@{/db}"      class="gnb__nav-item" th:classappend="${currentSubject == 'db'}      ? ' is-active'">데이터베이스</a>
             <a th:href="@{/robot}"   class="gnb__nav-item" th:classappend="${currentSubject == 'robot'}   ? ' is-active'">로봇·임베디드</a>
             <a th:href="@{/errors}"  class="gnb__nav-item" th:classappend="${currentSection == 'errors'}  ? ' is-active'">에러 사전</a>
+            <a th:href="@{/interview}" class="gnb__nav-item" th:classappend="${currentPage == 'interview'} ? ' is-active'">면접 대비</a>
         </nav>
 
         <!-- 검색 -->
@@ -72,6 +73,7 @@
         <a th:href="@{/db}"      class="gnb__drawer-item" th:classappend="${currentSubject == 'db'}      ? ' is-active'">데이터베이스</a>
         <a th:href="@{/robot}"   class="gnb__drawer-item" th:classappend="${currentSubject == 'robot'}   ? ' is-active'">로봇·임베디드</a>
         <a th:href="@{/errors}"  class="gnb__drawer-item" th:classappend="${currentSection == 'errors'}  ? ' is-active'">에러 사전</a>
+        <a th:href="@{/interview}" class="gnb__drawer-item" th:classappend="${currentPage == 'interview'} ? ' is-active'">면접 대비</a>
         <a th:href="@{/study}"   class="gnb__drawer-item" th:classappend="${currentPage == 'study'}      ? ' is-active'">내 학습</a>
     </div>
 </header>

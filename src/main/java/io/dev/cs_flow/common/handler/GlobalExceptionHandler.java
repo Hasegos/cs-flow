@@ -1,6 +1,7 @@
 package io.dev.cs_flow.common.handler;
 
 import io.dev.cs_flow.common.exception.NotFoundException;
+import io.dev.cs_flow.common.util.LogUris;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -59,7 +60,7 @@ public class GlobalExceptionHandler {
     public Object handleNoResourceFound(NoResourceFoundException e,
                                                       HttpServletRequest request){
         if (isBrowserRequest(request)) {
-            log.warn("[404] URI: {}", request.getRequestURI());
+            log.warn("[404] URI: {}", LogUris.mask(request.getRequestURI()));
             return "error/error";
         }
         return ResponseEntity.notFound().build();
@@ -102,7 +103,7 @@ public class GlobalExceptionHandler {
     })
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Object handleBadRequest(Exception e, HttpServletRequest request, Model model){
-        log.warn("[400] 잘못된 요청 - URI: {}, {}", request.getRequestURI(), e.getClass().getSimpleName());
+        log.warn("[400] 잘못된 요청 - URI: {}, {}", LogUris.mask(request.getRequestURI()), e.getClass().getSimpleName());
         if (isBrowserRequest(request)) {
             model.addAttribute("message", "잘못된 요청이에요");
             return "error/error";
@@ -122,7 +123,7 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.METHOD_NOT_ALLOWED)
     public Object handleMethodNotSupported(HttpRequestMethodNotSupportedException e,
                                            HttpServletRequest request, Model model){
-        log.warn("[405] 지원하지 않는 메서드 - {} {}", request.getMethod(), request.getRequestURI());
+        log.warn("[405] 지원하지 않는 메서드 - {} {}", request.getMethod(), LogUris.mask(request.getRequestURI()));
         if (isBrowserRequest(request)) {
             model.addAttribute("message", "잘못된 요청이에요");
             return "error/error";
