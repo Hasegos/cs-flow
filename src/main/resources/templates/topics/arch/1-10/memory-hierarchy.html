@@ -178,29 +178,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">지역성은 캐시와 어떻게 연결되나요?</h3>
-                            <p class="overview-card__desc">시간 지역성은 최근에 쓴 데이터를 곧 다시 쓴다는 성질이라 캐시에 남겨 두면 이득이 됩니다. 공간 지역성은 가까운 주소를 이어서 쓴다는 성질이라, 캐시는 미스가 나면 한 바이트가 아니라 캐시 라인(x86에서는 보통 64바이트) 단위로 가져옵니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">2차원 배열을 행 순서와 열 순서로 순회하면 속도가 왜 다른가요?</h3>
-                            <p class="overview-card__desc">C에서 2차원 배열은 행 단위로 메모리에 이어서 저장됩니다. Java의 2차원 배열은 배열의 배열이라 행마다 별도의 배열이고, 한 행 안의 원소는 기본형 배열이면 보통(JVM 구현상) 연속해서 놓입니다. 행 순서로 순회하면 한 캐시 라인에 든 원소를 연달아 쓰지만, 행이 충분히 길고 배열이 캐시보다 크면 열 순서로 순회할 때 원소마다 다른 라인을 가져와서 미스가 늘어납니다. 결과는 같지만 시간은 다릅니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">레지스터와 캐시는 무엇이 다른가요?</h3>
-                            <p class="overview-card__desc">레지스터는 명령어가 이름으로 직접 지정하는 CPU 내부 저장소입니다. 캐시는 메모리 주소를 기준으로 하드웨어가 투명하게 관리하는 메모리의 사본이라, 프로그램이 캐시를 이름으로 지정하지 않습니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">평균 메모리 접근 시간을 줄이려면 어떻게 하나요?</h3>
-                            <p class="overview-card__desc">히트율을 높이거나(지역성 좋은 코드, 캐시 크기와 구성), 미스 때의 비용을 줄이거나(다단계 캐시, 프리페치), 히트 시간을 줄입니다(작고 단순한 L1). 세 요소가 서로 맞물려 있어서 하나를 개선하면 다른 하나가 나빠지기도 합니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">

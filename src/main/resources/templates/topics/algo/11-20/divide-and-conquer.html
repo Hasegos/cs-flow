@@ -195,29 +195,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">분할정복의 세 단계는?</h3>
-                            <p class="overview-card__desc">분할(문제를 작게 나눔), 정복(부분 문제를 재귀로 풂), 결합(부분 해를 합침)입니다. 더 나눌 수 없으면 기저 사례로 바로 답을 냅니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">병합 정렬의 시간·공간 복잡도는?</h3>
-                            <p class="overview-card__desc">시간은 기본 병합 정렬에서 모든 경우에 O(n log n)이고 공간은 임시 배열 때문에 O(n)입니다. 절반씩 나누는 단계가 log n개이고 단계마다 합치는 비용이 n이기 때문입니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">분할정복과 동적 계획법의 차이는?</h3>
-                            <p class="overview-card__desc">분할정복은 겹치지 않는 부분 문제를 풀어 합치고, 동적 계획법은 겹치는 부분 문제의 결과를 저장해 같은 계산을 반복하지 않습니다. 부분 문제가 겹치는지가 기준입니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">x^n을 어떻게 빠르게 계산하나요?</h3>
-                            <p class="overview-card__desc">x^n = x^⌊n/2⌋ × x^⌊n/2⌋로 지수를 절반씩 줄이고, n이 홀수이면 x를 한 번 더 곱합니다. 곱셈이 O(log n)번 필요합니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">

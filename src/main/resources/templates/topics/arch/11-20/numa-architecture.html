@@ -188,29 +188,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">NUMA와 UMA의 차이는 무엇인가요?</h3>
-                            <p class="overview-card__desc">UMA는 모든 프로세서가 메모리를 같은 지연으로 접근하고, NUMA는 메모리가 노드별로 나뉘어 로컬 접근이 원격 접근보다 빠릅니다. NUMA는 메모리 경로가 노드 수만큼 늘어 대규모 시스템에 알맞습니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">원격 메모리 접근이 왜 느린가요?</h3>
-                            <p class="overview-card__desc">다른 노드의 메모리를 읽으려면 요청이 노드 사이의 인터커넥트를 지나 상대 노드의 메모리 컨트롤러까지 전달되기 때문입니다. 경로가 길고 인터커넥트 대역폭도 나눠 써야 합니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">NUMA에서 성능을 높이는 방법은?</h3>
-                            <p class="overview-card__desc">스레드와 그 스레드가 쓰는 데이터를 같은 노드에 둡니다. 스레드를 노드에 고정하고, 데이터를 처음 쓰는 스레드가 있는 노드에 할당되게 하며, 여러 노드가 공유하는 데이터는 인터리브로 분산합니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">리눅스에서 NUMA 구성은 어떻게 확인하나요?</h3>
-                            <p class="overview-card__desc">numactl --hardware로 노드, 노드별 메모리, 노드 간 거리를 볼 수 있고, numastat로 노드별 메모리 할당 통계를 볼 수 있습니다. 프로세스는 numactl로 노드 고정과 메모리 정책을 지정해 실행합니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">

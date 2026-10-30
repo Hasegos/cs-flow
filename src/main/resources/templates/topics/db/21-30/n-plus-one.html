@@ -187,29 +187,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">N+1 문제란 무엇이고 왜 생기나요?</h3>
-                            <p class="overview-card__desc">목록을 1번 조회한 뒤 각 항목의 연관 데이터를 가져오는 쿼리가 항목 수 N번 추가로 실행되는 현상입니다. 지연 로딩된 연관에 반복문에서 접근하거나, 즉시 로딩인데 JPQL로 조회할 때 생깁니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">해결 방법과 각각의 단점은?</h3>
-                            <p class="overview-card__desc">join fetch와 @EntityGraph는 연관을 한 번에 로딩해 쿼리를 줄이지만 컬렉션이면 행이 부풀어 오르고, 컬렉션 join fetch에 페이징을 걸면 DB가 아니라 메모리에서 일어납니다. 배치 페치는 쿼리가 몇 번 더 나가지만 페이징과 여러 컬렉션에 안전합니다. 화면에 필요한 값만 DTO로 조회하는 방법도 있습니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">컬렉션 join fetch에 페이징을 쓰면 어떻게 되나요?</h3>
-                            <p class="overview-card__desc">조인 결과의 행 수가 부모 수와 달라 DB의 limit으로 부모 단위로 자를 수 없습니다. Hibernate 7.3 이하는 경고를 남기고 모든 행을 메모리로 읽은 뒤 메모리에서 페이징하므로 데이터가 많으면 메모리 문제가 생깁니다. 7.4부터는 DB가 지원하면 SQL에서 처리하도록 바뀌었습니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">N+1이 생겼는지 어떻게 확인하나요?</h3>
-                            <p class="overview-card__desc">SQL 로그에서 같은 모양의 쿼리가 반복되는지 봅니다. generate_statistics를 켜고 Hibernate Statistics의 getPrepareStatementCount로 실행된 쿼리 수를 세거나, 테스트에서 쿼리 횟수를 단언하면 재발을 막을 수 있습니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">

@@ -198,29 +198,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">에라토스테네스의 체의 원리는?</h3>
-                            <p class="overview-card__desc">2부터 지워지지 않은 가장 작은 수를 소수로 확정하고 그 배수를 지우는 일을 반복합니다. 끝까지 남은 수가 소수입니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">왜 √n까지만 확인하면 되나요?</h3>
-                            <p class="overview-card__desc">n 이하의 합성수는 √n 이하의 소인수를 반드시 가집니다. 따라서 √n 이하 소수의 배수를 지우면 모든 합성수가 지워집니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">시간 복잡도가 O(n log log n)인 이유는?</h3>
-                            <p class="overview-card__desc">소수 p마다 약 n/p칸을 지우고, 소수 역수의 합이 log log n처럼 느리게 자라기 때문입니다. n × (1/2 + 1/3 + 1/5 + ...)에 해당합니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">큰 n에서 메모리를 줄이려면?</h3>
-                            <p class="overview-card__desc">홀수만 저장해 칸 수를 절반으로 줄이거나, 비트 하나에 수 하나를 담거나, 구간을 나눠 처리하는 구간 체가 있습니다. 비트 배열과 구간 체는 접근 횟수가 같고 메모리만 줄어들며, 구간 체는 공간이 O(√n)입니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">활용 분야</h2>
                     <div class="overview-points">

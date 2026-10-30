@@ -185,29 +185,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">빅 엔디언과 리틀 엔디언의 차이는 무엇인가요?</h3>
-                            <p class="overview-card__desc">여러 바이트로 이뤄진 값을 메모리에 놓는 순서입니다. 빅 엔디언은 MSB를 낮은 주소에, 리틀 엔디언은 LSB를 낮은 주소에 먼저 놓습니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">네트워크 바이트 순서가 왜 필요한가요?</h3>
-                            <p class="overview-card__desc">통신하는 호스트들의 엔디언이 다를 수 있어서 전송되는 바이트 순서를 하나로 정해야 같은 값으로 해석됩니다. 인터넷 프로토콜은 빅 엔디언을 씁니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">내 컴퓨터의 엔디언을 코드로 확인하려면?</h3>
-                            <p class="overview-card__desc">정수 1을 저장한 뒤 첫 바이트를 char 포인터로 읽어 보면 됩니다. int가 2바이트 이상일 때 첫 바이트가 1이면 리틀 엔디언, 0이면 빅 엔디언입니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">엔디언 문제는 언제 생기나요?</h3>
-                            <p class="overview-card__desc">바이트 단위로 정수를 다룰 때입니다. 소켓으로 정수를 보내거나, 바이너리 파일 형식을 읽고 쓰거나, 서로 다른 아키텍처 사이에서 메모리 덤프를 옮길 때 순서를 맞춰야 합니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">

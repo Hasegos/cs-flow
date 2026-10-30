@@ -202,29 +202,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">세 가지 이상 현상을 설명해 보세요.</h3>
-                            <p class="overview-card__desc">Dirty Read는 미커밋 값을 읽는 것, Non-repeatable Read는 같은 행을 두 번 읽었는데 값이 바뀌는 것, Phantom Read는 같은 조건으로 조회했는데 행이 늘거나 줄어드는 것입니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">Read Committed와 Repeatable Read의 차이는?</h3>
-                            <p class="overview-card__desc">PostgreSQL에서 Read Committed는 문장마다 새 스냅샷을 봐서 같은 행을 다시 읽으면 값이 달라질 수 있고, Repeatable Read는 트랜잭션 동안 같은 스냅샷을 봅니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">PostgreSQL의 기본 격리 수준은?</h3>
-                            <p class="overview-card__desc">Read Committed입니다. 커밋된 데이터만 읽고 문장마다 그 시점의 최신 커밋 상태를 봅니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">직렬화 실패가 나면 어떻게 하나요?</h3>
-                            <p class="overview-card__desc">데이터가 깨진 것이 아니라 동시 실행 순서를 맞추기 위해 한 트랜잭션이 되돌려진 것이므로, 트랜잭션 전체를 새로 시작해 재시도합니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">활용 분야</h2>
                     <div class="overview-points">

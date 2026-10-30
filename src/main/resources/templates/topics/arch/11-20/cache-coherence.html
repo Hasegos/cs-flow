@@ -190,29 +190,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">캐시 일관성 문제란 무엇인가요?</h3>
-                            <p class="overview-card__desc">코어마다 캐시가 따로 있어 같은 주소의 복사본이 여러 개일 때, 한 코어가 값을 바꾸면 다른 코어의 복사본이 낡은 값이 되는 문제입니다. 프로토콜이 쓰기를 다른 캐시에 알려 복사본을 무효화하거나 갱신합니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">MESI에서 공유(S) 라인에 쓰면 어떻게 되나요?</h3>
-                            <p class="overview-card__desc">먼저 다른 캐시에 무효화 신호를 보내 그쪽 복사본을 무효(I)로 만들고, 자신의 라인을 수정됨(M)으로 바꾼 뒤 씁니다. 그래서 수정됨(M) 라인은 한 시점에 한 캐시에만 있습니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">거짓 공유란 무엇이고 어떻게 피하나요?</h3>
-                            <p class="overview-card__desc">서로 다른 변수가 같은 캐시 라인에 있어 한 코어의 쓰기가 다른 코어의 라인을 무효화하는 현상입니다. 변수를 라인 단위로 띄워 놓거나(패딩, 정렬), 스레드별 지역 값을 모았다가 합쳐서 피합니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">캐시 일관성과 메모리 일관성 모델은 어떻게 다른가요?</h3>
-                            <p class="overview-card__desc">캐시 일관성은 같은 주소에 대한 접근 규칙이고, 메모리 일관성 모델은 서로 다른 주소에 대한 접근이 다른 코어에 어떤 순서로 보이는지를 정합니다. 둘은 별개이며 동기화 코드는 후자를 다룹니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">

@@ -187,29 +187,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">접미사 배열이란 무엇인가요?</h3>
-                            <p class="overview-card__desc">문자열의 모든 접미사를 사전순으로 정렬했을 때 각 접미사가 시작하는 인덱스를 저장한 배열입니다. 접미사 문자열이 아니라 인덱스만 저장해 공간이 O(n)입니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">패턴 검색은 어떻게 하나요?</h3>
-                            <p class="overview-card__desc">정렬되어 있으므로 패턴으로 시작하는 접미사들이 연속된 구간을 이룹니다. 이진 탐색으로 구간의 시작과 끝을 찾고, 그 구간의 SA 값이 출현 위치입니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">LCP 배열은 어디에 쓰나요?</h3>
-                            <p class="overview-card__desc">이웃한 접미사의 최장 공통 접두사 길이로, 가장 긴 반복 부분 문자열과 서로 다른 부분 문자열의 개수 계산에 씁니다. 후자는 n(n + 1) / 2에서 LCP의 합을 뺍니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">접미사 트리와 비교하면?</h3>
-                            <p class="overview-card__desc">접미사 배열은 보통 메모리를 적게 쓰고(원 논문은 실제 구현에서 3~5배 적다고 보고) 구조가 단순합니다. 접미사 트리는 일부 연산이 더 직접적이지만 메모리와 구현 부담이 큽니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">

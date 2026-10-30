@@ -182,29 +182,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">inode란 무엇인가요?</h3>
-                            <p class="overview-card__desc">파일의 메타데이터와 데이터 블록 위치를 담은 구조체입니다. 파일 이름은 담지 않고 디렉토리 항목이 이름과 inode 번호를 연결합니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">/home/a.txt를 열 때 어떤 일이 일어나나요?</h3>
-                            <p class="overview-card__desc">루트 디렉토리의 inode에서 시작해 home 디렉토리의 항목을 찾고, 그 디렉토리에서 a.txt의 inode 번호를 찾습니다. 그 inode의 권한을 확인한 뒤 데이터 블록을 읽습니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">하드 링크와 심볼릭 링크는 어떻게 다른가요?</h3>
-                            <p class="overview-card__desc">하드 링크는 같은 inode에 이름을 하나 더 붙이는 것이라 같은 파일 시스템 안에서만 가능하고 어느 이름을 지워도 데이터는 남습니다. 심볼릭 링크는 경로를 담은 별도 파일이라 다른 파일 시스템도 가리킬 수 있고 대상이 지워지면 끊어집니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">저널링은 왜 필요한가요?</h3>
-                            <p class="overview-card__desc">파일 하나를 바꾸는 데 여러 블록을 고쳐야 하는데 중간에 전원이 꺼지면 구조가 어긋납니다. 변경 내용을 먼저 로그에 기록해 두면 재부팅 때 로그를 보고 완료하거나 취소해 일관성을 복구할 수 있습니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">

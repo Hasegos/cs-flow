@@ -175,29 +175,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">BFS와 DFS는 언제 각각 쓰나요?</h3>
-                            <p class="overview-card__desc">간선 수 기준의 최단 거리나 가까운 노드부터 처리해야 하면 BFS를 씁니다. 경로를 끝까지 따라가야 하는 문제, 사이클 탐지, 위상 정렬(사이클 없는 방향 그래프에서), 모든 경우를 훑는 백트래킹은 DFS 구조를 씁니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">시간 복잡도는 어떻게 되나요?</h3>
-                            <p class="overview-card__desc">인접 리스트로 표현하면 O(V + E)입니다. 인접 행렬은 한 노드의 이웃을 찾는 데 O(V)가 들어서 전체 O(V²)입니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">재귀 DFS의 단점은 무엇인가요?</h3>
-                            <p class="overview-card__desc">그래프가 아주 깊으면 호출 스택이 넘쳐 스택 오버플로가 날 수 있습니다. 이럴 때는 명시적 스택으로 바꾸거나 언어의 재귀 깊이 제한을 확인합니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">BFS로 미로의 최단 경로를 어떻게 구하나요?</h3>
-                            <p class="overview-card__desc">시작 칸을 큐에 넣고 층별로 퍼져 나가며 각 칸에 도달한 거리(또는 이전 칸)를 기록합니다. 도착 칸에 처음 닿은 시점의 거리가 간선 수 기준 최단 거리입니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">

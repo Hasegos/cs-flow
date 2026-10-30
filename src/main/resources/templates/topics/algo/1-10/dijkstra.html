@@ -178,29 +178,7 @@ s
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">음수 가중치가 있으면 왜 다익스트라가 안 되나요?</h3>
-                            <p class="overview-card__desc">다익스트라는 확정한 노드의 거리가 이후에 바뀌지 않는다고 가정합니다. 음수 간선이 있으면 이미 확정한 노드로 더 짧게 가는 길이 나중에 생길 수 있어서 이 가정이 깨집니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">우선순위 큐를 쓰면 왜 빨라지나요?</h3>
-                            <p class="overview-card__desc">매 단계에서 확정 안 된 노드 중 거리가 가장 작은 것을 전체 탐색(O(V))으로 찾는 대신 힙에서 O(log V)에 꺼냅니다. 이진 힙을 쓰면 전체가 O((V + E) log V)입니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">BFS와 다익스트라는 어떻게 다른가요?</h3>
-                            <p class="overview-card__desc">모든 간선의 가중치가 같다면 BFS가 최단 거리를 구합니다. 가중치가 제각각이면 간선 수가 적은 경로가 짧은 경로가 아닐 수 있어서 다익스트라가 필요합니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">최단 경로 자체는 어떻게 복원하나요?</h3>
-                            <p class="overview-card__desc">노드를 갱신할 때 어느 노드를 거쳐 왔는지(이전 노드)를 같이 저장합니다. 끝난 뒤 목적지에서 이전 노드를 따라 시작점까지 거슬러 올라간 뒤 뒤집습니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">

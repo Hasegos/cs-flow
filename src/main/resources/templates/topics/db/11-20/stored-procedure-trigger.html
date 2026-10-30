@@ -194,29 +194,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">저장 프로시저란?</h3>
-                            <p class="overview-card__desc">여러 SQL 문과 제어 흐름을 DB 서버에 저장해 두고 이름으로 호출해 실행하는 기능입니다. 네트워크 왕복을 줄이고 로직을 DB에 모아 둘 수 있습니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">트리거란?</h3>
-                            <p class="overview-card__desc">INSERT, UPDATE, DELETE 같은 이벤트가 일어나면 자동으로 실행되는 DB 객체입니다. 변경 이력 기록이나 값 검증에 씁니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">트리거를 남용하면 어떤 문제가 생기나요?</h3>
-                            <p class="overview-card__desc">코드에서 보이지 않는 숨은 동작이 생겨 추적과 디버깅이 어렵고, 데이터 변경마다 추가 작업이 들어가 쓰기 성능에 영향을 줄 수 있습니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">프로시저와 애플리케이션 로직 중 어디에 규칙을 두나요?</h3>
-                            <p class="overview-card__desc">정해진 답은 없습니다. 여러 앱이 같은 규칙을 써야 하거나 왕복을 줄여야 하면 DB, 다른 DB로 옮길 가능성이 있으면 애플리케이션에 두는 쪽이 유리할 수 있습니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">활용 분야</h2>
                     <div class="overview-points">

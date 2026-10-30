@@ -186,29 +186,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">교착 상태의 발생 조건 네 가지는 무엇인가요?</h3>
-                            <p class="overview-card__desc">상호 배제, 점유와 대기, 비선점, 순환 대기입니다. 네 조건이 동시에 성립할 때 발생하므로 하나를 깨면 예방됩니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">예방, 회피, 탐지와 복구는 어떻게 다른가요?</h3>
-                            <p class="overview-card__desc">예방은 네 조건 중 하나를 구조적으로 막는 것이고, 회피는 자원을 줄 때마다 안전한지 확인하는 것(은행원 알고리즘)입니다. 탐지와 복구는 일단 발생을 허용하고 사이클을 찾아 프로세스를 종료하거나 자원을 회수합니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">실무에서 교착 상태를 어떻게 피하나요?</h3>
-                            <p class="overview-card__desc">락을 잡는 순서를 전역으로 통일하고, 락을 잡은 채 오래 걸리는 작업이나 다른 락 요청을 피하며, tryLock에 타임아웃을 둡니다. 트랜잭션도 같은 순서로 자원에 접근하게 합니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">교착 상태가 생겼는지 어떻게 알아내나요?</h3>
-                            <p class="overview-card__desc">Java는 ThreadMXBean으로 교착 상태의 플랫폼 스레드를 찾을 수 있고, 데이터베이스는 대기 사슬을 탐지해 한 트랜잭션을 중단시킵니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">

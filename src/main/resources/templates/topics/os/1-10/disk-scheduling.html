@@ -182,29 +182,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">FCFS, SSTF, SCAN, C-SCAN의 차이는 무엇인가요?</h3>
-                            <p class="overview-card__desc">FCFS는 도착 순서이고 이동이 많습니다. SSTF는 가까운 요청을 먼저 처리해 이동은 줄지만 기아가 생깁니다. SCAN은 한 방향으로 쓸고 가며 처리하고 끝에서 방향을 바꾸며, C-SCAN은 끝에 닿으면 처음으로 돌아가 한 방향으로만 처리해 대기 시간이 더 고릅니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">LOOK은 SCAN과 무엇이 다른가요?</h3>
-                            <p class="overview-card__desc">SCAN은 디스크 끝까지 가지만 LOOK은 해당 방향에서 마지막 요청까지만 가고 돌아옵니다. 불필요한 이동이 줄어듭니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">SSD에도 디스크 스케줄링이 필요한가요?</h3>
-                            <p class="overview-card__desc">탐색 시간이 없어서 헤드 이동을 줄이는 정렬은 의미가 작습니다. 다만 요청 사이의 공정성이나 지연 상한을 관리하려고 간단한 스케줄러를 둘 수 있습니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">디스크 I/O 시간은 무엇으로 구성되나요?</h3>
-                            <p class="overview-card__desc">탐색 시간, 회전 지연, 전송 시간의 합입니다. HDD에서는 앞의 두 가지가 대부분입니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">

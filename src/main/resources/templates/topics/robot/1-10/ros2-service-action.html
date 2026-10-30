@@ -187,29 +187,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">ROS 2의 토픽, 서비스, 액션은 각각 언제 쓰나요?</h3>
-                            <p class="overview-card__desc">센서 값처럼 지속적으로 흐르는 데이터는 발행-구독의 토픽, 짧게 끝나는 요청과 응답은 서비스, 오래 걸리고 진행 상황 보고와 취소가 필요한 작업은 액션을 씁니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">액션은 어떻게 구성돼 있나요?</h3>
-                            <p class="overview-card__desc">목표, 결과, 피드백 세 부분으로 정의하고, 내부에서는 목표 · 결과 · 취소가 서비스, 피드백 · 상태가 토픽으로 구현됩니다. 목표는 수락, 실행, 성공 · 취소 · 중단의 상태를 거칩니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">서비스 서버가 죽어 있으면 어떻게 되나요?</h3>
-                            <p class="overview-card__desc">요청을 처리할 서버가 없어서 응답이 오지 않습니다. 클라이언트는 wait_for_service로 서버가 있는지 시간 제한을 두고 확인한 뒤, 없으면 재시도하거나 오류로 처리해야 합니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">실행 중인 로봇 이동을 중간에 멈추려면 어떻게 하나요?</h3>
-                            <p class="overview-card__desc">이동을 액션으로 요청했다면 클라이언트가 취소를 요청하고, 서버가 취소를 수락해 작업을 멈추면 목표가 CANCELED로 끝납니다. 서비스로 요청했다면 응답이 올 때까지 멈출 방법이 없습니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">

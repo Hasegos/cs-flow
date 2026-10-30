@@ -174,29 +174,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">정렬된 배열에서 합이 target인 두 수를 O(n)에 찾으려면 어떻게 하나요?</h3>
-                            <p class="overview-card__desc">양 끝에 포인터를 두고 합이 target보다 작으면 왼쪽을, 크면 오른쪽을 안쪽으로 옮깁니다. 정렬되어 있어서 옮긴 쪽 값은 더 이상 답에 쓰일 수 없으므로 되돌아갈 필요가 없습니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">중복 문자가 없는 가장 긴 부분 문자열의 길이는 어떻게 구하나요?</h3>
-                            <p class="overview-card__desc">슬라이딩 윈도우로 오른쪽을 늘리며 문자를 넣고, 중복이 생기면 중복이 사라질 때까지 왼쪽을 줄입니다. 각 포인터가 문자열을 한 번씩만 지나므로 O(n)입니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">3Sum 문제의 시간 복잡도는 얼마인가요?</h3>
-                            <p class="overview-card__desc">배열을 정렬(O(n log n))한 뒤 원소 하나를 고정하고 나머지 구간에서 투 포인터로 합을 찾으면 O(n²)입니다. 모든 세 쌍을 확인하는 O(n³)보다 줄어듭니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">연결 리스트에 순환이 있는지 어떻게 알 수 있나요?</h3>
-                            <p class="overview-card__desc">한 칸씩 가는 느린 포인터와 두 칸씩 가는 빠른 포인터를 두고, 둘이 만나면 순환이 있습니다. 순환이 없으면 빠른 포인터가 끝(null)에 먼저 도달합니다. 같은 방향으로 움직이는 투 포인터의 한 예입니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">

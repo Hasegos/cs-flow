@@ -191,29 +191,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">CORS는 무엇이고 왜 필요한가요?</h3>
-                            <p class="overview-card__desc">브라우저는 동일 출처 정책으로 다른 출처의 응답을 스크립트가 읽지 못하게 막습니다. CORS는 서버가 응답 헤더로 특정 출처에 읽기를 허락해 이 제한을 필요한 만큼 푸는 표준 방법입니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">사전 요청은 언제 발생하나요?</h3>
-                            <p class="overview-card__desc">단순 요청 조건을 벗어날 때입니다. 예를 들어 PUT이나 DELETE 메서드, Content-Type이 application/json인 요청, 안전하지 않은 사용자 지정 헤더가 있으면 브라우저가 OPTIONS로 먼저 허락을 묻습니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">CORS 오류가 나면 요청이 서버에 도달하나요?</h3>
-                            <p class="overview-card__desc">단순 요청은 서버로 전송되어 처리될 수 있고 브라우저가 응답만 막습니다. 사전 요청이 필요한 요청은 OPTIONS가 거절되면 실제 요청이 전송되지 않습니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">쿠키를 포함한 CORS 요청은 어떻게 설정하나요?</h3>
-                            <p class="overview-card__desc">클라이언트에서 credentials를 include로 하고, 서버는 Access-Control-Allow-Credentials: true와 와일드카드가 아닌 정확한 출처의 Access-Control-Allow-Origin을 보내야 합니다. 출처에 따라 응답이 달라지므로 Vary: Origin도 붙입니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">

@@ -185,29 +185,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">VM과 컨테이너의 차이는?</h3>
-                            <p class="overview-card__desc">VM은 하이퍼바이저 위에 게스트 운영체제를 통째로 실행하고, 컨테이너는 호스트 커널을 공유하며 프로세스 단위로 격리합니다. 컨테이너가 가볍고 빠르지만 격리 경계는 더 얇습니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">컨테이너가 가벼운 이유는?</h3>
-                            <p class="overview-card__desc">각 컨테이너가 게스트 운영체제를 따로 띄우지 않고 호스트 커널을 공유하기 때문입니다. 운영체제 부팅과 상주 비용이 없습니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">컨테이너의 격리가 약하다고 하는 이유는?</h3>
-                            <p class="overview-card__desc">모든 컨테이너가 호스트 커널을 공유해서 커널 취약점이 악용되면 여러 컨테이너와 호스트에 영향을 줄 수 있기 때문입니다. VM은 게스트마다 커널이 분리되어 경계가 더 강합니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">컨테이너 이미지는 왜 레이어로 이루어졌나요?</h3>
-                            <p class="overview-card__desc">변경된 부분만 새 레이어로 쌓고 공통 레이어는 이미지와 컨테이너가 재사용해, 저장 공간과 내려받는 시간을 줄이고 빌드를 캐시할 수 있게 하려는 설계입니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">

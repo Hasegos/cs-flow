@@ -188,29 +188,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">FCFS, SJF, Round Robin을 비교해 주세요.</h3>
-                            <p class="overview-card__desc">FCFS는 단순하지만 긴 작업 뒤에 짧은 작업이 기다리는 호위 효과가 있습니다. SJF는 평균 대기 시간이 최소이지만 버스트 예측이 필요하고 기아가 생길 수 있습니다. Round Robin은 퀀텀마다 돌아가며 응답 시간이 짧고 공정하지만 전환 비용이 있습니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">기아는 어떻게 해결하나요?</h3>
-                            <p class="overview-card__desc">대기 시간에 비례해 우선순위를 올리는 에이징을 씁니다. 일정 시간이 지나면 낮은 우선순위 작업도 결국 높은 우선순위가 되어 실행됩니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">선점형과 비선점형의 차이는 무엇인가요?</h3>
-                            <p class="overview-card__desc">비선점형은 실행 중인 프로세스가 CPU를 스스로 놓을 때까지 기다리고, 선점형은 타이머 인터럽트나 더 높은 우선순위의 도착 같은 사건으로 운영체제가 CPU를 빼앗을 수 있습니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">리눅스는 어떤 스케줄링을 쓰나요?</h3>
-                            <p class="overview-card__desc">일반 프로세스는 가중치로 CPU 시간을 나누는 공정 스케줄러를 씁니다. 오랫동안 CFS였고 리눅스 6.6부터 EEVDF로 바뀌었습니다. 실시간 정책으로 SCHED_FIFO와 SCHED_RR이 따로 있습니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">

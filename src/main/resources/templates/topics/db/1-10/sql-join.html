@@ -180,29 +180,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">INNER JOIN과 OUTER JOIN의 차이는 무엇인가요?</h3>
-                            <p class="overview-card__desc">INNER JOIN은 양쪽에 짝이 있는 행만 남깁니다. OUTER JOIN은 한쪽(LEFT, RIGHT) 또는 양쪽(FULL)의 모든 행을 남기고, 짝이 없으면 상대 컬럼을 NULL로 채웁니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">ON과 WHERE의 차이는 무엇인가요?</h3>
-                            <p class="overview-card__desc">ON은 어떤 행끼리 짝지을지 정하는 조건이고, WHERE는 만들어진 결과를 거르는 조건입니다. INNER JOIN에서는 결과가 같지만 OUTER JOIN에서는 NULL로 채워진 행의 유지 여부가 달라집니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">주문이 한 건도 없는 사용자를 어떻게 찾나요?</h3>
-                            <p class="overview-card__desc">USERS LEFT JOIN ORDERS로 사용자를 모두 남긴 뒤, 오른쪽 기본키가 NULL인 행만 WHERE로 고릅니다. 짝이 없는 행만 남는 anti-join 패턴입니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">DB는 JOIN을 어떻게 실행하나요?</h3>
-                            <p class="overview-card__desc">중첩 루프, 해시, 병합(정렬 후 합치기) 방식이 대표적이고, 옵티마이저가 테이블 크기와 인덱스를 보고 비용이 낮은 방법을 고릅니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">

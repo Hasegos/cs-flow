@@ -187,29 +187,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">펜윅 트리는 어떻게 동작하나요?</h3>
-                            <p class="overview-card__desc">칸 i가 i의 lowbit 길이의 구간 합을 저장합니다. 누적 합은 i에서 lowbit를 빼며 거친 칸을 더하고, 갱신은 lowbit를 더하며 거친 칸에 값을 더해 둘 다 O(log n)입니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">lowbit는 어떻게 구하고 왜 되나요?</h3>
-                            <p class="overview-card__desc">i &amp; -i로 구합니다. 2의 보수에서 -i는 i의 가장 낮은 1비트 위쪽 비트를 모두 뒤집은 값이라, i와 AND하면 가장 낮은 1비트만 남습니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">세그먼트 트리와 비교하면?</h3>
-                            <p class="overview-card__desc">펜윅 트리는 코드가 짧고 크기 n 배열 하나만 씁니다. 세그먼트 트리는 2n~4n칸이 필요하지만 최솟값 같은 다양한 연산과 지연 전파를 지원합니다. 합과 점 갱신이면 펜윅 트리가 간결합니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">구간 합은 어떻게 구하나요?</h3>
-                            <p class="overview-card__desc">prefix(r) - prefix(l - 1)로 누적 합 두 개를 빼서 구합니다. 각각 O(log n)이므로 구간 합도 O(log n)입니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">활용 사례</h2>
                     <div class="overview-points">

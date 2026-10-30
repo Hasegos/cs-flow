@@ -182,29 +182,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">계단 오르기(한 번에 1칸 또는 2칸) 경우의 수는 어떻게 구하나요?</h3>
-                            <p class="overview-card__desc">n번째 계단에 오는 방법은 n − 1에서 한 칸, n − 2에서 두 칸 올라오는 경우의 합이라서 피보나치와 같은 점화식 dp[n] = dp[n − 1] + dp[n − 2]입니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">메모이제이션과 타뷸레이션을 어떻게 고르나요?</h3>
-                            <p class="overview-card__desc">필요한 부분 문제가 일부뿐이면 메모이제이션이 편하고, 재귀 깊이가 너무 깊거나 모든 부분 문제가 필요하면 표 채우기가 안전합니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">공간을 줄일 수 있나요?</h3>
-                            <p class="overview-card__desc">dp[i]가 바로 앞 몇 개에만 의존하면 그 값들만 변수로 유지해 O(n) 공간을 O(1)로 줄입니다. 대신 이전 값들로 경로를 복원할 수는 없습니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">DP로 풀 수 있는 다른 대표 문제를 말해 보세요.</h3>
-                            <p class="overview-card__desc">배낭 문제, 최장 공통 부분 수열(LCS), 행렬 연쇄 곱셈 등이 교재에서 다루는 대표 예입니다. 모두 부분 문제를 정의하고 점화식으로 연결하는 같은 틀입니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">

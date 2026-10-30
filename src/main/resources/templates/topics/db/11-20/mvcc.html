@@ -198,29 +198,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">MVCC란 무엇이고 왜 쓰나요?</h3>
-                            <p class="overview-card__desc">행의 여러 버전을 유지해 읽기와 쓰기가 서로 막지 않게 하는 방식입니다. 읽는 쪽은 자기 스냅샷의 버전을 보므로 읽는 중에도 일관된 결과를 얻습니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">VACUUM은 무엇을 하나요?</h3>
-                            <p class="overview-card__desc">더 이상 어떤 트랜잭션도 볼 필요가 없는 이전 버전(dead tuple)을 회수해 공간을 재사용할 수 있게 합니다. autovacuum이 기본으로 켜져 있어 필요한 테이블에 자동 수행합니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">오래 열린 트랜잭션이 왜 문제인가요?</h3>
-                            <p class="overview-card__desc">그 트랜잭션의 스냅샷 이후에 지워진 버전을 회수할 수 없어서 dead tuple이 쌓이고 테이블이 불어날 수 있습니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">PostgreSQL과 InnoDB의 MVCC는 어떻게 다른가요?</h3>
-                            <p class="overview-card__desc">PostgreSQL은 이전 버전을 테이블 안에 새 행으로 남기고, InnoDB는 클러스터드 인덱스 레코드를 제자리에서 고치고 이전 값을 언두 로그에 두어 필요할 때 복원합니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">활용 분야</h2>
                     <div class="overview-points">

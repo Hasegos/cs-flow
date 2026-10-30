@@ -178,29 +178,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">CDN은 사용자 요청을 어떻게 처리하나요?</h3>
-                            <p class="overview-card__desc">사용자의 요청이 DNS 응답이나 애니캐스트 라우팅으로 가까운 엣지에 닿고, 엣지에 유효한 사본이 있으면(히트) 바로 응답합니다. 없거나 만료되었으면(미스) 오리진에서 가져와 응답하고 저장합니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">배포한 정적 파일이 사용자에게 바로 반영되게 하려면 어떻게 하나요?</h3>
-                            <p class="overview-card__desc">파일 이름이나 URL에 내용 해시를 넣어 내용이 바뀌면 URL도 바뀌게 하고 긴 TTL을 씁니다. HTML처럼 이름이 고정된 파일은 짧은 TTL이나 재검증을 쓰거나 CDN의 퍼지 기능을 호출합니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">Cache-Control의 public, private, no-cache, no-store는 어떻게 다른가요?</h3>
-                            <p class="overview-card__desc">public과 private은 공유 캐시(CDN)에 저장해도 되는지의 범위를 정합니다. no-cache는 저장하되 재검증 후 사용하고, no-store는 저장하지 않습니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">stale-while-revalidate는 무엇인가요?</h3>
-                            <p class="overview-card__desc">만료된 사본을 잠시 그대로 응답하면서 뒤에서 새 사본을 받아 오는 방식입니다. 사용자는 대기 없이 응답을 받고 다음 요청부터 최신 사본을 받습니다. CDN과 브라우저마다 지원이 다릅니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">
