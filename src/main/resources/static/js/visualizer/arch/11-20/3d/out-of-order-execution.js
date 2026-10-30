@@ -811,6 +811,7 @@
                 curC = 8;
                 excMode = true;
                 overrides[1] = 'exc';
+                [2, 3, 4].forEach(function (i) { overrides[i] = 'done'; });
                 setHead(8, false);
                 refreshAll();
                 await wait(1400);
