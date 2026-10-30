@@ -1,7 +1,7 @@
-/* 메모리 계층 구조 3D 팝업북 시각화 전용 */
+/* 3D 시각화 공용 UI (툴바, 스테이지, 자막, 컨트롤). viz3d-common.js가 만든다 */
 
 /* === 최상위 컨테이너 === */
-.mem-hier3d {
+.viz3d {
   display: flex;
   flex-direction: column;
   background: var(--color-bg);
@@ -11,7 +11,7 @@
 }
 
 /* === 툴바 === */
-.mem-hier3d__toolbar {
+.viz3d__toolbar {
   position: relative;
   display: flex;
   align-items: center;
@@ -23,15 +23,15 @@
   flex-shrink: 0;
 }
 
-.mem-hier3d__toolbar-left,
-.mem-hier3d__toolbar-right {
+.viz3d__toolbar-left,
+.viz3d__toolbar-right {
   display: flex;
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
 }
 
-.mem-hier3d__title {
+.viz3d__title {
   font-family: var(--font-mono);
   font-size: 0.62rem;
   letter-spacing: 0.18em;
@@ -39,7 +39,7 @@
   color: var(--color-purple);
 }
 
-.mem-hier3d__badge {
+.viz3d__badge {
   font-family: var(--font-mono);
   font-size: 0.62rem;
   padding: 4px 12px;
@@ -50,13 +50,13 @@
   transition: all 0.25s ease;
 }
 
-.mem-hier3d__badge--active {
+.viz3d__badge--active {
   border-color: var(--color-purple);
   color: var(--color-purple);
   background: rgba(108, 99, 255, 0.1);
 }
 
-.mem-hier3d__tag {
+.viz3d__tag {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -69,7 +69,7 @@
   letter-spacing: 0.08em;
 }
 
-.mem-hier3d__qmark {
+.viz3d__qmark {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -87,7 +87,7 @@
   cursor: help;
 }
 
-.mem-hier3d__tip {
+.viz3d__tip {
   display: none;
   position: absolute;
   top: 100%;
@@ -109,26 +109,26 @@
   text-transform: none;
 }
 
-.mem-hier3d__tip b {
+.viz3d__tip b {
   font-family: var(--font-mono);
   font-size: 0.85rem;
 }
 
-.mem-hier3d__tip-fix {
+.viz3d__tip-fix {
   color: var(--color-text-sub);
 }
 
-.mem-hier3d__tag:hover .mem-hier3d__tip,
-.mem-hier3d__tag:focus-within .mem-hier3d__tip,
-.mem-hier3d__tag.is-open .mem-hier3d__tip {
+.viz3d__tag:hover .viz3d__tip,
+.viz3d__tag:focus-within .viz3d__tip,
+.viz3d__tag.is-open .viz3d__tip {
   display: flex;
 }
 
-.mem-hier3d__tag[hidden] {
+.viz3d__tag[hidden] {
   display: none;
 }
 
-.mem-hier3d__speed-label {
+.viz3d__speed-label {
   font-family: var(--font-mono);
   font-size: 0.6rem;
   letter-spacing: 0.12em;
@@ -136,14 +136,14 @@
 }
 
 /* === 스테이지 === */
-.mem-hier3d__stage {
+.viz3d__stage {
   position: relative;
   height: clamp(340px, 56vw, 560px);
   background: var(--color-bg);
   flex-shrink: 0;
 }
 
-.mem-hier3d__stage::after {
+.viz3d__stage::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -152,7 +152,7 @@
   box-shadow: inset 0 0 56px 10px var(--color-bg);
 }
 
-.mem-hier3d__canvas {
+.viz3d__canvas {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -162,11 +162,11 @@
   touch-action: none;
 }
 
-.mem-hier3d__canvas.is-grabbing {
+.viz3d__canvas.is-grabbing {
   cursor: grabbing;
 }
 
-.mem-hier3d__fail {
+.viz3d__fail {
   position: absolute;
   inset: 0;
   display: none;
@@ -182,12 +182,12 @@
   line-height: 1.6;
 }
 
-.mem-hier3d__fail.is-on {
+.viz3d__fail.is-on {
   display: flex;
 }
 
 /* === 자막 === */
-.mem-hier3d__caption {
+.viz3d__caption {
   position: absolute;
   left: 50%;
   bottom: 16px;
@@ -207,11 +207,11 @@
   pointer-events: none;
 }
 
-.mem-hier3d__caption:empty {
+.viz3d__caption:empty {
   display: none;
 }
 
-.mem-hier3d__caption b {
+.viz3d__caption b {
   margin-right: 4px;
   color: var(--color-purple);
   font-family: var(--font-mono);
@@ -221,7 +221,7 @@
 }
 
 /* === 컨트롤 === */
-.mem-hier3d__controls {
+.viz3d__controls {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -231,14 +231,14 @@
   flex-shrink: 0;
 }
 
-.mem-hier3d__dots {
+.viz3d__dots {
   display: flex;
   align-items: center;
   gap: 5px;
   margin: 0 6px;
 }
 
-.mem-hier3d__dot {
+.viz3d__dot {
   width: 6px;
   height: 6px;
   border-radius: 3px;
@@ -246,12 +246,12 @@
   transition: all 0.3s ease;
 }
 
-.mem-hier3d__dot.is-on {
+.viz3d__dot.is-on {
   width: 16px;
   background: var(--color-purple);
 }
 
-.mem-hier3d__btn {
+.viz3d__btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -267,54 +267,54 @@
   transition: all 0.2s ease;
 }
 
-.mem-hier3d__btn:hover {
+.viz3d__btn:hover {
   border-color: var(--color-purple);
   color: var(--color-purple);
 }
 
-.mem-hier3d__btn--primary {
+.viz3d__btn--primary {
   border-color: var(--color-purple);
   color: var(--color-purple);
 }
 
-.mem-hier3d__btn--primary:hover {
+.viz3d__btn--primary:hover {
   background: var(--color-purple);
   color: var(--color-bg);
 }
 
-.mem-hier3d__btn--speed {
+.viz3d__btn--speed {
   padding: 6px 10px;
 }
 
-.mem-hier3d__btn--speed.is-active {
+.viz3d__btn--speed.is-active {
   border-color: var(--color-purple);
   color: var(--color-purple);
   background: rgba(108, 99, 255, 0.1);
 }
 
-.mem-hier3d__btn--icon {
+.viz3d__btn--icon {
   width: 38px;
   height: 34px;
   padding: 0;
 }
 
-.mem-hier3d__btn--icon svg {
+.viz3d__btn--icon svg {
   width: 16px;
   height: 16px;
 }
 
-.mem-hier3d__btn:disabled {
+.viz3d__btn:disabled {
   opacity: 0.35;
   cursor: not-allowed;
 }
 
-.mem-hier3d__zoom {
+.viz3d__zoom {
   display: flex;
   gap: 8px;
   margin-left: auto;
 }
 
-.mem-hier3d__hint {
+.viz3d__hint {
   flex: 1;
   min-width: 0;
   margin: 0 8px;
@@ -327,19 +327,19 @@
 }
 
 @media (max-width: 768px) {
-  .mem-hier3d__toolbar,
-  .mem-hier3d__controls {
+  .viz3d__toolbar,
+  .viz3d__controls {
     padding-left: 14px;
     padding-right: 14px;
   }
 
-  .mem-hier3d__caption {
+  .viz3d__caption {
     bottom: 10px;
     padding: 5px 12px;
     font-size: 0.8rem;
   }
 
-  .mem-hier3d__hint {
+  .viz3d__hint {
     order: 5;
     flex-basis: 100%;
     margin: 4px 0 0;
