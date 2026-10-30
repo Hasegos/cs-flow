@@ -173,6 +173,11 @@
   cursor: not-allowed;
 }
 
+/* === .simd-viz--hidden — 3D 화면을 열 때 2D 시각화 숨김 === */
+.simd-viz--hidden {
+  display: none;
+}
+
 @media (max-width: 600px) {
   .simd-viz__toolbar {
     padding: 12px 16px;
