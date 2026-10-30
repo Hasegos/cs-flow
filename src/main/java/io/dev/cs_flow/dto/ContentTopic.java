@@ -19,7 +19,7 @@ import java.util.List;
  * @param exams           관련 시험 목록 (지금은 비어 있어도 된다)
  * @param visual          시각화 정보(키, 3D 여부), 없으면 null
  * @param quizzes         퀴즈 문항 목록
- * @param interview       면접 질문 목록 (4단계에서 채움, 없으면 null이나 빈 목록)
+ * @param interview       면접 질문 목록 (없으면 null이나 빈 목록)
  */
 public record ContentTopic(
         String subject,

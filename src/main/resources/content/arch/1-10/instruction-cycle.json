@@ -62,5 +62,26 @@
       "explanation": "Decode 단계는 Fetch한 명령어(opcode, operand)를 해석해 어떤 연산과 어떤 데이터가 필요한지 판별합니다."
     }
   ],
-  "interview": []
+  "interview": [
+    {
+      "id": "arch.instruction-cycle.q1",
+      "question": "명령어 사이클의 단계를 설명해 보세요.",
+      "answer": "Fetch에서 PC가 가리키는 주소를 MAR에 넣어 메모리에서 명령어를 읽어 MDR을 거쳐 IR에 담고 PC를 다음 명령어로 옮깁니다. Decode에서 CU가 opcode와 피연산자를 해석하고, Execute에서 ALU 연산이나 메모리 접근을 수행합니다."
+    },
+    {
+      "id": "arch.instruction-cycle.q2",
+      "question": "분기·점프 명령어는 사이클에 어떤 영향을 주나요?",
+      "answer": "실행 단계에서 PC를 새 주소로 덮어씁니다. 그러면 다음 Fetch가 그 주소에서 시작합니다. 파이프라인 CPU에서는 이 때문에 이미 가져온 명령어를 버려야 할 수 있어 분기 예측이 필요합니다."
+    },
+    {
+      "id": "arch.instruction-cycle.q3",
+      "question": "파이프라이닝은 명령어 사이클을 어떻게 바꾸나요?",
+      "answer": "명령어 하나가 끝나는 데 걸리는 시간이 줄지는 않지만, 단계를 겹쳐 여러 명령어를 동시에 진행하므로 단위 시간당 끝나는 명령어 수(처리량)가 늘어납니다."
+    },
+    {
+      "id": "arch.instruction-cycle.q4",
+      "question": "CPI와 IPC는 무엇인가요?",
+      "answer": "CPI는 명령어 하나에 평균 몇 클럭이 걸리는지, IPC는 클럭 한 번에 평균 몇 개의 명령어가 끝나는지입니다. 서로 역수 관계이며, 같은 프로그램을 같은 클럭 속도로 돌릴 때는 IPC가 높은 CPU가 더 빠릅니다."
+    }
+  ]
 }

@@ -1,10 +1,12 @@
 package io.dev.cs_flow.service;
 
 import io.dev.cs_flow.dto.ContentError;
+import io.dev.cs_flow.dto.ContentInterview;
 import io.dev.cs_flow.dto.ContentQuiz;
 import io.dev.cs_flow.dto.ContentSubject;
 import io.dev.cs_flow.dto.ContentTopic;
 import io.dev.cs_flow.dto.ErrorEntryView;
+import io.dev.cs_flow.dto.InterviewQuestionView;
 import io.dev.cs_flow.dto.QuizQuestionView;
 import io.dev.cs_flow.dto.SubjectView;
 import io.dev.cs_flow.dto.TopicInfo;
@@ -41,6 +43,7 @@ public class ContentStore {
     private final Map<String, List<TopicInfo>> topicsBySubject = new HashMap<>();
     private final Map<String, List<QuizQuestionView>> quizzesByTopic = new HashMap<>();
     private final Map<String, String> correctByQuizId = new HashMap<>();
+    private final Map<String, List<InterviewQuestionView>> interviewsByTopic = new HashMap<>();
     private final List<ErrorEntryView> errorEntries;
     private final Map<String, ErrorEntryView> errorBySlug = new HashMap<>();
 
@@ -74,6 +77,7 @@ public class ContentStore {
             topicBySlug.put(t.slug(), info);
             topicsBySubject.computeIfAbsent(t.subject(), k -> new ArrayList<>()).add(info);
             indexQuizzes(t);
+            indexInterviews(t);
         }
         visible.sort(Comparator.comparingInt(TopicInfo::seq));
         this.topics = List.copyOf(visible);
@@ -101,6 +105,16 @@ public class ContentStore {
             correctByQuizId.put(q.id(), q.correctOption());
         }
         quizzesByTopic.put(t.slug(), List.copyOf(views));
+    }
+
+    private void indexInterviews(ContentTopic t) {
+        List<InterviewQuestionView> views = new ArrayList<>();
+        if (t.interview() != null) {
+            for (ContentInterview q : t.interview()) {
+                views.add(new InterviewQuestionView(q.id(), q.question(), q.answer()));
+            }
+        }
+        interviewsByTopic.put(t.slug(), List.copyOf(views));
     }
 
     /**
@@ -144,6 +158,13 @@ public class ContentStore {
     public Optional<TopicInfo> topic(String subjectSlug, String topicSlug) {
         TopicInfo info = topicBySlug.get(topicSlug);
         return info != null && info.subject().slug().equals(subjectSlug) ? Optional.of(info) : Optional.empty();
+    }
+
+    /**
+     * 토픽 slug로 면접 질문을 순서대로 돌려준다.
+     */
+    public List<InterviewQuestionView> interviews(String topicSlug) {
+        return interviewsByTopic.getOrDefault(topicSlug, List.of());
     }
 
     /**

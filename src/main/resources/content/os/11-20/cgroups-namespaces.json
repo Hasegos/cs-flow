@@ -62,5 +62,26 @@
       "explanation": "PID namespace는 프로세스 ID 공간을 분리해, 컨테이너 안의 첫 프로세스가 PID 1로 보이게 합니다. 호스트에서는 같은 프로세스가 다른 PID로 보입니다."
     }
   ],
-  "interview": []
+  "interview": [
+    {
+      "id": "os.cgroups-namespaces.q1",
+      "question": "namespace와 cgroups의 차이는?",
+      "answer": "namespace는 프로세스가 볼 수 있는 자원의 범위를 분리해 독립된 환경처럼 보이게 하고, cgroups는 프로세스 그룹이 쓸 수 있는 CPU, 메모리 등의 양을 제한하고 측정합니다."
+    },
+    {
+      "id": "os.cgroups-namespaces.q2",
+      "question": "컨테이너는 어떻게 격리되나요?",
+      "answer": "호스트 커널의 PID, 마운트, 네트워크 같은 namespace로 시야를 나누고, cgroups로 자원 상한을 걸어 프로세스를 격리합니다. 별도의 게스트 커널은 없습니다."
+    },
+    {
+      "id": "os.cgroups-namespaces.q3",
+      "question": "컨테이너가 메모리 상한을 넘으면?",
+      "answer": "커널이 먼저 메모리를 회수하려 하고, 줄일 수 없으면 그 cgroup 안에서 OOM killer가 프로세스를 종료합니다. 컨테이너가 예기치 않게 종료되는 대표 원인입니다."
+    },
+    {
+      "id": "os.cgroups-namespaces.q4",
+      "question": "컨테이너 안에서 PID 1은 무엇인가요?",
+      "answer": "PID namespace의 첫 프로세스입니다. 이 프로세스가 종료되면 커널이 namespace 안의 나머지 프로세스를 종료하므로 컨테이너도 끝납니다."
+    }
+  ]
 }

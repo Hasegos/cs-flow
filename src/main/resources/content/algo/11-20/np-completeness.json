@@ -62,5 +62,26 @@
       "explanation": "모든 NP 문제는 NP-완전 문제로 다항 시간에 환원됩니다. 따라서 NP-완전 문제 하나라도 다항 시간에 풀리면 모든 NP 문제가 다항 시간에 풀려 P = NP가 됩니다."
     }
   ],
-  "interview": []
+  "interview": [
+    {
+      "id": "algo.np-completeness.q1",
+      "question": "P와 NP의 차이는?",
+      "answer": "P는 다항 시간에 풀 수 있는 결정 문제, NP는 답이 주어지면 다항 시간에 검증할 수 있는 결정 문제입니다. P는 NP에 포함됩니다."
+    },
+    {
+      "id": "algo.np-completeness.q2",
+      "question": "NP-완전이란?",
+      "answer": "NP에 속하면서 NP의 모든 문제가 다항 시간에 환원되는 문제입니다. NP에서 가장 어려운 문제들입니다."
+    },
+    {
+      "id": "algo.np-completeness.q3",
+      "question": "NP-완전 문제 하나를 다항 시간에 풀면?",
+      "answer": "NP의 모든 문제가 환원을 통해 다항 시간에 풀리므로 P = NP가 됩니다."
+    },
+    {
+      "id": "algo.np-completeness.q4",
+      "question": "NP-완전 문제를 만나면 어떻게 하나요?",
+      "answer": "정확한 다항 시간 해법을 기대하기 어려우므로 입력이 작으면 완전 탐색, 다항 시간에 풀리는 특수한 경우의 활용, 근사 알고리즘을 고려합니다."
+    }
+  ]
 }
