@@ -16,12 +16,15 @@
     const THREE = window.THREE;
     if (!window.CsFlow || !THREE) return;
 
-    window.CsFlow.viz3d = { create: create, isLight: isLight, active: null };
-
     const V = THREE.Vector3;
 
     /* ===================== 상수 ===================== */
     const SPEEDS = [1, 2, 3];
+    const SERIF = '"Noto Serif KR", serif';
+    const HAND = 'Caveat, cursive';
+    const INK = '#1f1b17';
+    const FONT_CSS = 'https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Noto+Serif+KR:wght@500;700&display=swap';
+    const FONT_TIMEOUT = 4000;
     const ZOOM_MIN = 0.35;
     const ZOOM_MAX = 1.8;
 
@@ -113,6 +116,87 @@
      */
     function isLight() {
         return document.documentElement.getAttribute('data-theme') === 'light';
+    }
+
+    /* ===================== 캔버스 그리기 도구 ===================== */
+    let fontsPromise = null;
+
+    /**
+     * 캔버스 텍스처에 쓸 글꼴을 한글 글리프까지 불러온다. 시간 안에 못 불러오면 대체 글꼴로 그린다.
+     * 한 번 시작하면 같은 Promise를 돌려준다.
+     *
+     * @param sample 캔버스에 그리는 모든 문구를 이은 문자열
+     * @returns 완료 Promise
+     */
+    function loadFonts(sample) {
+        if (fontsPromise) return fontsPromise;
+        fontsPromise = new Promise(function (resolve) {
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = FONT_CSS;
+            const sheetReady = new Promise(function (res) {
+                link.addEventListener('load', res);
+                link.addEventListener('error', res);
+            });
+            document.head.appendChild(link);
+            const work = sheetReady.then(function () {
+                return Promise.all([
+                    document.fonts.load('700 40px Caveat', '0123456789.<>~ nsμB'),
+                    document.fonts.load('700 40px "Noto Serif KR"', sample),
+                    document.fonts.load('500 40px "Noto Serif KR"', sample)
+                ]);
+            });
+            Promise.race([work, new Promise(function (r) { setTimeout(r, FONT_TIMEOUT); })]).then(resolve, resolve);
+        });
+        return fontsPromise;
+    }
+
+    /**
+     * 줄 바꿈하며 문단을 그린다. 글자 단위로 나눈다.
+     *
+     * @param x  2D 컨텍스트
+     * @param t  문자열
+     * @param X  시작 x
+     * @param Y  첫 줄 y
+     * @param W  최대 폭
+     * @param lh 줄 높이
+     * @returns 다음 줄이 시작될 y
+     */
+    function wrapText(x, t, X, Y, W, lh) {
+        let line = '';
+        let y = Y;
+        for (const ch of t) {
+            const s = line + ch;
+            if (x.measureText(s).width > W && line) {
+                x.fillText(line, X, y);
+                line = ch;
+                y += lh;
+            } else {
+                line = s;
+            }
+        }
+        x.fillText(line, X, y);
+        return y + lh;
+    }
+
+    /**
+     * 둥근 사각형 경로를 만든다.
+     *
+     * @param x 2D 컨텍스트
+     * @param X 왼쪽
+     * @param Y 위
+     * @param W 폭
+     * @param H 높이
+     * @param r 모서리 반지름
+     */
+    function roundRect(x, X, Y, W, H, r) {
+        x.beginPath();
+        x.moveTo(X + r, Y);
+        x.arcTo(X + W, Y, X + W, Y + H, r);
+        x.arcTo(X + W, Y + H, X, Y + H, r);
+        x.arcTo(X, Y + H, X, Y, r);
+        x.arcTo(X, Y, X + W, Y, r);
+        x.closePath();
     }
 
     /* ===================== 엔진 ===================== */
@@ -214,6 +298,59 @@
             t.encoding = THREE.sRGBEncoding;
             t.anisotropy = maxAniso;
             return t;
+        }
+
+        /**
+         * 종이 해칭 텍스처를 만든다.
+         */
+        function hatch(base, alpha, count, repeat) {
+            const [c, x] = canvas2d(256, 256);
+            x.fillStyle = base;
+            x.fillRect(0, 0, 256, 256);
+            for (let i = 0; i < count; i++) {
+                x.strokeStyle = 'rgba(50,44,38,' + (alpha * (0.4 + Math.random() * 0.6)) + ')';
+                x.lineWidth = 0.6 + Math.random() * 0.8;
+                const o = Math.random() * 256;
+                x.beginPath();
+                x.moveTo(o, 0);
+                x.lineTo(o + (Math.random() - 0.5) * 3, 256);
+                x.stroke();
+            }
+            const t = texture(c);
+            t.wrapS = t.wrapT = THREE.RepeatWrapping;
+            t.repeat.set(repeat, repeat);
+            return t;
+        }
+
+        const inkM = new THREE.LineBasicMaterial({ color: 0x2a2622, transparent: true, opacity: 0.82 });
+
+        /**
+         * 메시에 잉크 외곽선을 붙인다.
+         */
+        function ink(m, threshold) {
+            m.add(new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry, threshold || 25), inkM));
+            return m;
+        }
+
+        let glowTex = null;
+
+        /**
+         * 반짝이는 스프라이트를 만든다. 번짐 텍스처는 처음 부를 때 만든다.
+         */
+        function glow(color, size) {
+            if (!glowTex) {
+                const [glowC, glowX] = canvas2d(64, 64);
+                const glowGrad = glowX.createRadialGradient(32, 32, 0, 32, 32, 32);
+                glowGrad.addColorStop(0, 'rgba(255,255,255,1)');
+                glowGrad.addColorStop(0.3, 'rgba(255,255,255,0.45)');
+                glowGrad.addColorStop(1, 'rgba(255,255,255,0)');
+                glowX.fillStyle = glowGrad;
+                glowX.fillRect(0, 0, 64, 64);
+                glowTex = new THREE.CanvasTexture(glowC);
+            }
+            const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: color, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
+            sp.scale.set(size, size, 1);
+            return sp;
         }
 
         /**
@@ -536,11 +673,16 @@
         return {
             renderer: renderer,
             scene: scene,
+            stage: stage,
             lowEnd: lowEnd,
             soft: soft,
             texScale: texScale,
             canvas2d: canvas2d,
             texture: texture,
+            hatch: hatch,
+            ink: ink,
+            inkM: inkM,
+            glow: glow,
             tween: tween,
             clearTweens: clearTweens,
             invalidate: invalidate,
@@ -917,4 +1059,5 @@
         return api;
     }
 
+    window.CsFlow.viz3d = { create: create, isLight: isLight, active: null, kit: { wrapText: wrapText, roundRect: roundRect, loadFonts: loadFonts, SERIF: SERIF, HAND: HAND, INK: INK } };
 })();
