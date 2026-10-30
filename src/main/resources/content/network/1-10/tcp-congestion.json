@@ -6,6 +6,7 @@
   "metaDescription": "TCP 혼잡 제어 CS 지식 정리 — Slow Start, AIMD, Fast Retransmit, Fast Recovery 동작 원리를 인터랙티브 시각화로 학습하세요. 개발자 면접 네트워크 핵심 개념.",
   "published": true,
   "order": 6,
+  "seq": 26,
   "tags": [
     "네트워크",
     "TCP",

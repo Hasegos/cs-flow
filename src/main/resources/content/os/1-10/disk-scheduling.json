@@ -6,6 +6,7 @@
   "metaDescription": "디스크 스케줄링 CS 지식 정리 — FCFS, SSTF, SCAN, C-SCAN 헤드 이동 애니메이션으로 학습하세요. 개발자 면접 운영체제 핵심 개념.",
   "published": true,
   "order": 9,
+  "seq": 19,
   "tags": [
     "OS",
     "디스크",

@@ -6,6 +6,7 @@
   "metaDescription": "백트래킹 CS 지식 정리 — N-Queens 문제로 탐색 트리 가지치기(Pruning) 과정을 인터랙티브 시각화로 학습하세요. 개발자 면접 알고리즘 핵심 개념.",
   "published": true,
   "order": 8,
+  "seq": 48,
   "tags": [
     "알고리즘",
     "백트래킹",

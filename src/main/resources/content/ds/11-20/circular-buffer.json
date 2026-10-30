@@ -6,6 +6,7 @@
   "metaDescription": "원형 버퍼 CS 지식 정리 — head·tail 포인터로 고정 크기 배열을 순환하며 쓰는 큐 구현을 인터랙티브 시각화로 학습하세요. 개발자 면접 자료구조 핵심 개념.",
   "published": true,
   "order": 19,
+  "seq": 99,
   "tags": [
     "링버퍼",
     "버퍼",

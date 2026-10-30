@@ -6,6 +6,7 @@
   "metaDescription": "시스템 콜 CS 지식 정리 — 유저 모드·커널 모드 전환, 트랩(Trap) 동작 원리, fork·exec·read·write 시스템 콜을 인터랙티브 시각화로 학습하세요. 개발자 면접 운영체제 핵심 개념.",
   "published": true,
   "order": 10,
+  "seq": 20,
   "tags": [
     "OS",
     "커널",

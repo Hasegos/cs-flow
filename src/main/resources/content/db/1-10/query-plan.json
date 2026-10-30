@@ -6,6 +6,7 @@
   "metaDescription": "쿼리 실행 계획 CS 지식 정리 — Full Scan vs Index Scan, Nested Loop·Hash·Merge Join 비용 비교를 인터랙티브 시각화로 학습하세요. 개발자 면접 데이터베이스 핵심 개념.",
   "published": true,
   "order": 7,
+  "seq": 57,
   "tags": [
     "DB",
     "쿼리",

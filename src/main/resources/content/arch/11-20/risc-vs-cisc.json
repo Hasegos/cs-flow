@@ -6,6 +6,7 @@
   "metaDescription": "RISC vs CISC CS 지식 정리 — 명령어 집합 설계 철학 차이와 x86·ARM 특징을 인터랙티브 시각화로 학습하세요. 개발자 면접 컴퓨터 구조 핵심 개념.",
   "published": true,
   "order": 18,
+  "seq": 68,
   "tags": [
     "ISA",
     "RISC",

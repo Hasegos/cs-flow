@@ -6,6 +6,7 @@
   "metaDescription": "DHCP CS 지식 정리 — Discover, Offer, Request, Ack 4단계로 IP 주소를 자동 할당받는 과정을 인터랙티브 시각화로 학습하세요. 개발자 면접 네트워크 핵심 개념.",
   "published": true,
   "order": 12,
+  "seq": 82,
   "tags": [
     "부팅",
     "IP할당",

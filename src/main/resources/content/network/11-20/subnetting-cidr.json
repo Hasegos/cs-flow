@@ -6,6 +6,7 @@
   "metaDescription": "서브네팅과 CIDR CS 지식 정리 — 서브넷 마스크, 네트워크·호스트 주소 계산과 CIDR 표기법을 인터랙티브 시각화로 학습하세요. 개발자 면접 네트워크 핵심 개념.",
   "published": true,
   "order": 14,
+  "seq": 84,
   "tags": [
     "IP",
     "CIDR",

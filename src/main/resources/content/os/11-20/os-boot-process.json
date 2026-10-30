@@ -6,6 +6,7 @@
   "metaDescription": "부팅 과정 CS 지식 정리 — 전원 인가부터 펌웨어(BIOS/UEFI), 부트로더, 커널 로딩까지의 흐름을 인터랙티브 시각화로 학습하세요. 개발자 면접 운영체제 핵심 개념.",
   "published": true,
   "order": 20,
+  "seq": 80,
   "tags": [
     "커널",
     "BIOS",

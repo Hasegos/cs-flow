@@ -6,6 +6,7 @@
   "metaDescription": "버스 구조 CS 지식 정리 — Address/Data/Control Bus, 버스 중재(Arbitration), DMA 동작 원리를 인터랙티브 시각화로 학습하세요. 개발자 면접 컴퓨터구조 핵심 개념.",
   "published": true,
   "order": 9,
+  "seq": 9,
   "tags": [
     "버스",
     "구조"

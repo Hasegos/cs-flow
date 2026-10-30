@@ -216,6 +216,9 @@ public class ContentLoader {
         if (t.order() == null || t.order() < 1) {
             errors.add(where + ": order는 1 이상이어야 합니다");
         }
+        if (t.seq() == null || t.seq() < 1) {
+            errors.add(where + ": seq는 1 이상이어야 합니다");
+        }
         if (t.subject() == null || subjectList.stream().noneMatch(s -> t.subject().equals(s.slug()))) {
             errors.add(where + ": subjects.json에 없는 과목입니다 - " + t.subject());
         }
@@ -386,6 +389,7 @@ public class ContentLoader {
     private void validateUnique(Map<Resource, ContentTopic> loaded) {
         Map<String, String> slugOwner = new HashMap<>();
         Map<String, String> orderOwner = new HashMap<>();
+        Map<String, String> seqOwner = new HashMap<>();
         for (Map.Entry<Resource, ContentTopic> entry : loaded.entrySet()) {
             ContentTopic t = entry.getValue();
             String where = describe(entry.getKey());
@@ -396,6 +400,31 @@ public class ContentLoader {
             String orderPrev = orderOwner.put(t.subject() + "#" + t.order(), where);
             if (orderPrev != null) {
                 errors.add(where + ": order가 " + orderPrev + "와 겹칩니다");
+            }
+            String seqPrev = seqOwner.put(String.valueOf(t.seq()), where);
+            if (seqPrev != null) {
+                errors.add(where + ": seq가 " + seqPrev + "와 겹칩니다");
+            }
+        }
+        validateSeqFollowsOrder(loaded.values());
+    }
+
+    /**
+     * 같은 과목 안에서 order가 커질수록 seq도 커지는지 검증한다. 과목 안 순서와 전체 순서가 어긋나면 이전 · 다음 링크가 틀어진다.
+     */
+    private void validateSeqFollowsOrder(Iterable<ContentTopic> topicList) {
+        Map<String, List<ContentTopic>> bySubject = new HashMap<>();
+        for (ContentTopic t : topicList) {
+            if (t.subject() != null && t.order() != null && t.seq() != null) {
+                bySubject.computeIfAbsent(t.subject(), k -> new ArrayList<>()).add(t);
+            }
+        }
+        for (Map.Entry<String, List<ContentTopic>> entry : bySubject.entrySet()) {
+            List<ContentTopic> sorted = entry.getValue().stream().sorted(Comparator.comparing(ContentTopic::order)).toList();
+            for (int i = 1; i < sorted.size(); i++) {
+                if (sorted.get(i).seq() <= sorted.get(i - 1).seq()) {
+                    errors.add(entry.getKey() + "/" + sorted.get(i).slug() + ": order 순서와 seq 순서가 어긋납니다");
+                }
             }
         }
     }

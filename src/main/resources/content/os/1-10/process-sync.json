@@ -6,6 +6,7 @@
   "metaDescription": "프로세스 동기화 CS 지식 정리 — Race Condition, Critical Section, Mutex, Semaphore 동작 원리를 인터랙티브 시각화로 학습하세요. 개발자 면접 운영체제 핵심 개념.",
   "published": true,
   "order": 4,
+  "seq": 14,
   "tags": [
     "OS",
     "동기화",

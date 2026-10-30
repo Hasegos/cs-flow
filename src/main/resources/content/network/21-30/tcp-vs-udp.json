@@ -6,6 +6,7 @@
   "metaDescription": "TCP vs UDP CS 지식 정리 — 3-way handshake, 순서 번호와 재전송, UDP 데이터그램 전송, 수신 윈도 기반 흐름 제어를 인터랙티브 시각화로 학습하세요. 개발자 면접 네트워크 핵심 개념.",
   "published": true,
   "order": 23,
+  "seq": 128,
   "tags": [
     "TCP",
     "UDP",

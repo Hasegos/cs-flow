@@ -6,6 +6,7 @@
   "metaDescription": "프로세스 CS 지식 정리 — 프로세스 상태 전이(New→Ready→Running→Waiting→Terminated), PCB 구조, 컨텍스트 스위칭 동작 원리를 인터랙티브 시각화로 학습하세요. 개발자 면접 운영체제 핵심 개념.",
   "published": true,
   "order": 1,
+  "seq": 11,
   "tags": [
     "OS",
     "프로세스",

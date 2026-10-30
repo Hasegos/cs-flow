@@ -6,6 +6,7 @@
   "metaDescription": "I/O 방식 CS 지식 정리 — Programmed I/O(폴링), Interrupt-Driven I/O, DMA, 사이클 스틸링 동작 원리를 인터랙티브 시각화로 학습하세요. 개발자 면접 컴퓨터구조 핵심 개념.",
   "published": true,
   "order": 10,
+  "seq": 10,
   "tags": [
     "버스",
     "OS",

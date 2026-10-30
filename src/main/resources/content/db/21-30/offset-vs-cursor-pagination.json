@@ -6,6 +6,7 @@
   "metaDescription": "오프셋 vs 커서 페이지네이션 CS 지식 정리 — OFFSET의 거치는 행 증가, 커서(keyset) 방식의 일정한 비용, 데이터가 바뀔 때 중복·누락 차이를 인터랙티브 시각화로 학습하세요. 개발자 면접 데이터베이스 핵심 개념.",
   "published": true,
   "order": 22,
+  "seq": 125,
   "tags": [
     "페이지네이션",
     "OFFSET",

@@ -6,6 +6,7 @@
   "metaDescription": "인터럽트 CS 지식 정리 — 하드웨어·소프트웨어 인터럽트, ISR, IVT 동작 원리를 인터랙티브 시각화로 학습하세요. 개발자 면접 컴퓨터구조 핵심 개념.",
   "published": true,
   "order": 8,
+  "seq": 8,
   "tags": [
     "입출력",
     "OS",

@@ -6,6 +6,7 @@
   "metaDescription": "명령어 사이클 CS 지식 정리 — Fetch, Decode, Execute 명령어 사이클 동작 원리를 인터랙티브 시각화로 학습하세요. 개발자 면접 컴퓨터구조 핵심 개념.",
   "published": true,
   "order": 3,
+  "seq": 3,
   "tags": [
     "사이클",
     "명령어",

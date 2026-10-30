@@ -6,6 +6,7 @@
   "metaDescription": "P와 NP, NP-완전 CS 지식 정리 — 다항 시간 검증과 환원의 개념, 대표적인 NP-완전 문제를 인터랙티브 시각화로 학습하세요. 개발자 면접 알고리즘 핵심 개념.",
   "published": true,
   "order": 20,
+  "seq": 110,
   "tags": [
     "이론",
     "복잡도",

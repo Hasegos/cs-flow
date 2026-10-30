@@ -6,6 +6,7 @@
   "metaDescription": "DDS QoS CS 지식 정리 — 신뢰성(RELIABLE/BEST_EFFORT), 내구성(TRANSIENT_LOCAL), 제공과 요청의 호환 규칙을 인터랙티브 시각화로 학습하세요. 로봇·임베디드 핵심 개념.",
   "published": true,
   "order": 3,
+  "seq": 123,
   "tags": [
     "DDS",
     "QoS",

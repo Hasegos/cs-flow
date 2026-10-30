@@ -6,6 +6,7 @@
   "metaDescription": "GPU 아키텍처 CS 지식 정리 — 수천 개 코어의 데이터 병렬 처리 구조와 CPU와의 설계 차이를 인터랙티브 시각화로 학습하세요. 개발자 면접 컴퓨터 구조 핵심 개념.",
   "published": true,
   "order": 19,
+  "seq": 69,
   "tags": [
     "GPU",
     "병렬처리",

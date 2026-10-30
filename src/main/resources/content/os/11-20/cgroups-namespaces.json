@@ -6,6 +6,7 @@
   "metaDescription": "cgroups와 namespace CS 지식 정리 — 리눅스 컨테이너의 자원 제한과 격리 원리를 인터랙티브 시각화로 학습하세요. 개발자 면접 운영체제 핵심 개념.",
   "published": true,
   "order": 16,
+  "seq": 76,
   "tags": [
     "namespace",
     "cgroups",

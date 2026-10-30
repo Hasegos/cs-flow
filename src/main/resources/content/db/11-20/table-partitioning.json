@@ -6,6 +6,7 @@
   "metaDescription": "테이블 파티셔닝 CS 지식 정리 — 하나의 테이블을 Range·List·Hash로 나누는 방식과 파티션 프루닝을 인터랙티브 시각화로 학습하세요. 개발자 면접 데이터베이스 핵심 개념.",
   "published": true,
   "order": 13,
+  "seq": 113,
   "tags": [
     "설계",
     "성능",

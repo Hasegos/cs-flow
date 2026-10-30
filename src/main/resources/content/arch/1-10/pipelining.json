@@ -6,6 +6,7 @@
   "metaDescription": "파이프라이닝 CS 지식 정리 — IF, ID, EX, MEM, WB 파이프라인 단계와 해저드 해결법을 인터랙티브 시각화로 학습하세요. 개발자 면접 컴퓨터구조 핵심 개념.",
   "published": true,
   "order": 4,
+  "seq": 4,
   "tags": [
     "명령어",
     "성능",

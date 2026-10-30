@@ -6,6 +6,7 @@
   "metaDescription": "VM vs 컨테이너 CS 지식 정리 — 하이퍼바이저 기반 가상 머신과 커널을 공유하는 컨테이너의 구조 차이를 인터랙티브 시각화로 학습하세요. 개발자 면접 운영체제 핵심 개념.",
   "published": true,
   "order": 15,
+  "seq": 75,
   "tags": [
     "Docker",
     "가상화",

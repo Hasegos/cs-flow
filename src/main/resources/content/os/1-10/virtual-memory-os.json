@@ -6,6 +6,7 @@
   "metaDescription": "가상 메모리 CS 지식 정리 — FIFO, LRU, Optimal 페이지 교체 알고리즘과 Thrashing 현상을 인터랙티브 시각화로 학습하세요. 개발자 면접 운영체제 핵심 개념.",
   "published": true,
   "order": 7,
+  "seq": 17,
   "tags": [
     "OS",
     "메모리",

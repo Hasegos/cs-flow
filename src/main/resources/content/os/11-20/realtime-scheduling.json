@@ -6,6 +6,7 @@
   "metaDescription": "실시간 스케줄링 CS 지식 정리 — Rate Monotonic과 EDF의 우선순위 결정 방식과 데드라인 만족 여부를 인터랙티브 시각화로 학습하세요. 개발자 면접 운영체제 핵심 개념.",
   "published": true,
   "order": 19,
+  "seq": 79,
   "tags": [
     "EDF",
     "RM",

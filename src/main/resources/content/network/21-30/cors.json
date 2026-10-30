@@ -6,6 +6,7 @@
   "metaDescription": "CORS CS 지식 정리 — 출처 비교, 단순 요청과 사전 요청(preflight), 쿠키 포함 요청의 허용 헤더 규칙을 인터랙티브 시각화로 학습하세요. 개발자 면접 네트워크 핵심 개념.",
   "published": true,
   "order": 22,
+  "seq": 127,
   "tags": [
     "CORS",
     "브라우저",

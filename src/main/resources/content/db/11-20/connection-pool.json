@@ -6,6 +6,7 @@
   "metaDescription": "커넥션 풀 CS 지식 정리 — DB 연결을 미리 만들어 재사용하는 구조와 풀 크기 설정 기준을 인터랙티브 시각화로 학습하세요. 개발자 면접 데이터베이스 핵심 개념.",
   "published": true,
   "order": 15,
+  "seq": 115,
   "tags": [
     "성능",
     "HikariCP",

@@ -6,6 +6,7 @@
   "metaDescription": "펜윅 트리 CS 지식 정리 — 비트 연산 기반 구간 합 계산과 갱신(BIT)을 인터랙티브 시각화로 학습하세요. 개발자 면접 자료구조 핵심 개념.",
   "published": true,
   "order": 13,
+  "seq": 93,
   "tags": [
     "BIT",
     "구간합",

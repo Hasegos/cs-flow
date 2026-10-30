@@ -6,6 +6,7 @@
   "metaDescription": "Copy-on-Write CS 지식 정리 — fork 시 페이지 공유와 쓰기 시점 복사로 메모리를 아끼는 원리를 인터랙티브 시각화로 학습하세요. 개발자 면접 운영체제 핵심 개념.",
   "published": true,
   "order": 13,
+  "seq": 73,
   "tags": [
     "메모리",
     "fork",

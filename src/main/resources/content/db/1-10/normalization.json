@@ -6,6 +6,7 @@
   "metaDescription": "정규화 CS 지식 정리 — 1NF→2NF→3NF→BCNF 변환 과정과 이상 현상 제거 원리를 인터랙티브 시각화로 학습하세요. 개발자 면접 데이터베이스 핵심 개념.",
   "published": true,
   "order": 6,
+  "seq": 56,
   "tags": [
     "DB",
     "정규화",
