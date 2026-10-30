@@ -1,5 +1,6 @@
 package io.dev.cs_flow.service;
 
+import io.dev.cs_flow.dto.ContentError;
 import io.dev.cs_flow.dto.ContentManifest;
 import io.dev.cs_flow.dto.ContentQuiz;
 import io.dev.cs_flow.dto.ContentSubject;
@@ -31,7 +32,7 @@ import java.util.regex.Pattern;
 /**
  * 콘텐츠 JSON(`content/`)을 기동할 때 읽고 검증한다.
  * <p>
- * 파일 구성은 {@code subjects.json}, {@code manifest.json}, {@code {과목}/{묶음}/{토픽slug}.json}이다.
+ * 파일 구성은 {@code subjects.json}, {@code manifest.json}, {@code {과목}/{묶음}/{토픽slug}.json}, {@code errors/{slug}.json}이다.
  * 문법 오류, 모르는 필드, 필수 값 누락, 중복, 개수 불일치가 하나라도 있으면 {@link IllegalStateException}으로
  * 빈 생성을 실패시켜 앱이 뜨지 않게 한다. 지금은 검증만 하고 읽기 경로는 아직 DB를 쓴다.
  * </p>
@@ -50,6 +51,9 @@ public class ContentLoader {
 
     @Getter
     private final List<ContentTopic> topics;
+
+    @Getter
+    private final List<ContentError> errorEntries;
 
     private final List<String> errors = new ArrayList<>();
 
@@ -74,6 +78,7 @@ public class ContentLoader {
         ContentManifest manifest = readOne(resolver, mapper, base + "/manifest.json",
                 new TypeReference<ContentManifest>() { });
         Map<Resource, ContentTopic> loadedTopics = readTopics(resolver, mapper, base);
+        Map<Resource, ContentError> loadedErrors = readErrors(resolver, mapper, base);
         failIfAny("콘텐츠 파일을 읽지 못했습니다");
 
         validateSubjects(loadedSubjects);
@@ -81,7 +86,8 @@ public class ContentLoader {
             validateTopic(entry.getKey(), entry.getValue(), loadedSubjects);
         }
         validateUnique(loadedTopics);
-        validateManifest(manifest, loadedSubjects, loadedTopics.values());
+        validateErrors(loadedErrors, loadedTopics.values());
+        validateManifest(manifest, loadedSubjects, loadedTopics.values(), loadedErrors.size());
         failIfAny("콘텐츠 검증에 실패했습니다");
 
         Map<String, Integer> subjectOrder = new HashMap<>();
@@ -91,8 +97,9 @@ public class ContentLoader {
                 .sorted(Comparator.comparing((ContentTopic t) -> subjectOrder.get(t.subject()))
                         .thenComparing(ContentTopic::order))
                 .toList();
-        log.info("콘텐츠 검증 완료 - 과목 {}, 토픽 {}, 퀴즈 {}", subjects.size(), topics.size(),
-                topics.stream().mapToInt(t -> t.quizzes().size()).sum());
+        this.errorEntries = loadedErrors.values().stream().sorted(Comparator.comparing(ContentError::order)).toList();
+        log.info("콘텐츠 검증 완료 - 과목 {}, 토픽 {}, 퀴즈 {}, 에러 {}", subjects.size(), topics.size(),
+                topics.stream().mapToInt(t -> t.quizzes().size()).sum(), errorEntries.size());
     }
 
     /**
@@ -127,6 +134,24 @@ public class ContentLoader {
             if (topic != null) {
                 result.put(resource, topic);
             }
+        }
+        return result;
+    }
+
+    /**
+     * 에러 사전 JSON({@code errors/*.json})을 모두 읽는다. 없으면 빈 맵이고, 개수는 manifest가 대조한다.
+     */
+    private Map<Resource, ContentError> readErrors(ResourcePatternResolver resolver, JsonMapper mapper, String base) {
+        Map<Resource, ContentError> result = new LinkedHashMap<>();
+        try {
+            for (Resource resource : resolver.getResources(base + "/errors/*.json")) {
+                ContentError entry = parse(resource, mapper, new TypeReference<ContentError>() { });
+                if (entry != null) {
+                    result.put(resource, entry);
+                }
+            }
+        } catch (IOException e) {
+            errors.add("에러 사전 폴더를 읽지 못했습니다: " + base + "/errors (" + e.getMessage() + ")");
         }
         return result;
     }
@@ -203,7 +228,9 @@ public class ContentLoader {
         }
         validateVisual(where, t);
         validateTags(where, t.tags());
-        validateQuizzes(where, t.quizzes());
+        validateStrings(where, "roles", t.roles());
+        validateStrings(where, "exams", t.exams());
+        validateQuizzes(where, t);
     }
 
     /**
@@ -244,7 +271,8 @@ public class ContentLoader {
     /**
      * 퀴즈 문항의 순서(1부터 빠짐없이), 보기 4개, 정답 A~D, 해설을 검증한다.
      */
-    private void validateQuizzes(String where, List<ContentQuiz> quizzes) {
+    private void validateQuizzes(String where, ContentTopic t) {
+        List<ContentQuiz> quizzes = t.quizzes();
         if (quizzes == null) {
             errors.add(where + ": quizzes가 없습니다");
             return;
@@ -255,6 +283,9 @@ public class ContentLoader {
             if (q == null) {
                 errors.add(at + ": null 항목입니다");
                 continue;
+            }
+            if (q.id() == null || !q.id().equals(t.subject() + "." + t.slug() + ".quiz" + (i + 1))) {
+                errors.add(at + ": id는 {과목}.{slug}.quiz{순서}여야 합니다 - " + q.id());
             }
             if (q.displayOrder() == null || q.displayOrder() != i + 1) {
                 errors.add(at + ": displayOrder는 " + (i + 1) + "여야 합니다 (1부터 빠짐없이)");
@@ -267,6 +298,77 @@ public class ContentLoader {
             }
             if (q.correctOption() == null || !OPTION.matcher(q.correctOption()).matches()) {
                 errors.add(at + ": correctOption은 A~D 중 하나여야 합니다 - " + q.correctOption());
+            }
+        }
+    }
+
+    /**
+     * 선택 목록(roles, exams)이 없거나, 있으면 각 값이 비어 있지 않은지 검증한다.
+     */
+    private void validateStrings(String where, String field, List<String> values) {
+        if (values == null) {
+            return;
+        }
+        for (String value : values) {
+            if (value == null || value.isBlank()) {
+                errors.add(where + ": " + field + "에 빈 값이 있습니다");
+            }
+        }
+    }
+
+    /**
+     * 에러 사전 항목의 필수 값, 길이, 파일 이름 일치, order · slug 중복, 근거 링크, 관련 토픽 존재를 검증한다.
+     */
+    private void validateErrors(Map<Resource, ContentError> loaded, Iterable<ContentTopic> topicList) {
+        Set<String> topicSlugs = new HashSet<>();
+        topicList.forEach(t -> topicSlugs.add(t.slug()));
+        Set<String> slugs = new HashSet<>();
+        Set<Integer> orders = new HashSet<>();
+        for (Map.Entry<Resource, ContentError> entry : loaded.entrySet()) {
+            ContentError e = entry.getValue();
+            String where = describe(entry.getKey());
+            checkSlug(where, "slug", e.slug(), 100);
+            if (e.slug() != null && !pathOf(entry.getKey()).endsWith("/errors/" + e.slug() + ".json")) {
+                errors.add(where + ": 파일 이름이 slug와 다릅니다");
+            }
+            if (e.slug() != null && !slugs.add(e.slug())) {
+                errors.add(where + ": slug가 겹칩니다");
+            }
+            if (e.order() == null || e.order() < 1) {
+                errors.add(where + ": order는 1 이상이어야 합니다");
+            } else if (!orders.add(e.order())) {
+                errors.add(where + ": order가 겹칩니다 - " + e.order());
+            }
+            checkText(where, "category", e.category(), 50);
+            checkText(where, "title", e.title(), 200);
+            checkText(where, "errorMessage", e.errorMessage(), Integer.MAX_VALUE);
+            require(where, "createdOn", e.createdOn());
+            require(where, "verified", e.verified());
+            if (Boolean.TRUE.equals(e.verified()) && e.verifiedOn() == null) {
+                errors.add(where + ": 검증된 항목에 verifiedOn이 없습니다");
+            }
+            for (String env : new String[]{e.envOs(), e.envDistro(), e.envVersion()}) {
+                if (env != null && env.length() > 100) {
+                    errors.add(where + ": 환경 값이 100자를 넘습니다");
+                }
+            }
+            if (e.sources() == null || e.topics() == null) {
+                errors.add(where + ": sources와 topics는 목록이어야 합니다");
+                continue;
+            }
+            for (ContentError.Source s : e.sources()) {
+                if (s == null || s.label() == null || s.label().isBlank() || s.label().length() > 200
+                        || s.url() == null || !s.url().startsWith("http") || s.url().length() > 500) {
+                    errors.add(where + ": 근거 링크의 label(1~200자)과 url(http로 시작, 500자 이하)을 확인하세요");
+                }
+            }
+            Set<String> linked = new HashSet<>();
+            for (String topic : e.topics()) {
+                if (!topicSlugs.contains(topic)) {
+                    errors.add(where + ": 없는 토픽을 가리킵니다 - " + topic);
+                } else if (!linked.add(topic)) {
+                    errors.add(where + ": 관련 토픽이 겹칩니다 - " + topic);
+                }
             }
         }
     }
@@ -294,7 +396,8 @@ public class ContentLoader {
     /**
      * 읽은 과목 · 토픽 · 퀴즈 개수가 manifest와 같은지 전체와 과목별로 검증한다.
      */
-    private void validateManifest(ContentManifest m, List<ContentSubject> subjectList, Iterable<ContentTopic> topicList) {
+    private void validateManifest(ContentManifest m, List<ContentSubject> subjectList, Iterable<ContentTopic> topicList,
+                                  int errorCount) {
         Map<String, int[]> actual = new HashMap<>();
         subjectList.forEach(s -> actual.put(s.slug(), new int[2]));
         int topicTotal = 0;
@@ -310,6 +413,7 @@ public class ContentLoader {
         expect("manifest.subjects", m.subjects(), subjectList.size());
         expect("manifest.topics", m.topics(), topicTotal);
         expect("manifest.quizzes", m.quizzes(), quizTotal);
+        expect("manifest.errors", m.errors(), errorCount);
         if (m.bySubject() == null) {
             errors.add("manifest.bySubject가 없습니다");
             return;
