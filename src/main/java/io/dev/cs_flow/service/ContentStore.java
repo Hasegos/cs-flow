@@ -6,6 +6,7 @@ import io.dev.cs_flow.dto.ContentQuiz;
 import io.dev.cs_flow.dto.ContentSubject;
 import io.dev.cs_flow.dto.ContentTopic;
 import io.dev.cs_flow.dto.ErrorEntryView;
+import io.dev.cs_flow.dto.InterviewDetail;
 import io.dev.cs_flow.dto.InterviewQuestionView;
 import io.dev.cs_flow.dto.QuizQuestionView;
 import io.dev.cs_flow.dto.SubjectView;
@@ -16,6 +17,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -36,6 +38,8 @@ import java.util.Optional;
 @Component
 public class ContentStore {
 
+    private static final int DEFAULT_LEVEL = 2;
+
     private final List<SubjectView> subjects;
     private final Map<String, SubjectView> subjectBySlug = new LinkedHashMap<>();
     private final List<TopicInfo> topics;
@@ -44,6 +48,8 @@ public class ContentStore {
     private final Map<String, List<QuizQuestionView>> quizzesByTopic = new HashMap<>();
     private final Map<String, String> correctByQuizId = new HashMap<>();
     private final Map<String, List<InterviewQuestionView>> interviewsByTopic = new HashMap<>();
+    private final Map<String, InterviewDetail> interviewById = new HashMap<>();
+    private final List<PlanEngine.Question> planQuestions = new ArrayList<>();
     private final List<ErrorEntryView> errorEntries;
     private final Map<String, ErrorEntryView> errorBySlug = new HashMap<>();
 
@@ -112,6 +118,11 @@ public class ContentStore {
         if (t.interview() != null) {
             for (ContentInterview q : t.interview()) {
                 views.add(new InterviewQuestionView(q.id(), q.question(), q.answer()));
+                List<String> keywords = q.keywords() == null ? List.of() : List.copyOf(q.keywords());
+                interviewById.put(q.id(), new InterviewDetail(q.id(), t.subject(), t.slug(), q.question(), q.answer(), keywords));
+                planQuestions.add(new PlanEngine.Question(q.id(), t.subject(), Boolean.TRUE.equals(q.core()),
+                        q.level() == null ? DEFAULT_LEVEL : q.level(),
+                        q.followUps() == null ? List.of() : List.copyOf(q.followUps())));
             }
         }
         interviewsByTopic.put(t.slug(), List.copyOf(views));
@@ -165,6 +176,20 @@ public class ContentStore {
      */
     public List<InterviewQuestionView> interviews(String topicSlug) {
         return interviewsByTopic.getOrDefault(topicSlug, List.of());
+    }
+
+    /**
+     * 면접 계획이 출제할 수 있는 모든 면접 질문을 돌려준다. 난이도가 비어 있으면 2, 필수 여부가 비어 있으면 아님으로 본다.
+     */
+    public List<PlanEngine.Question> planQuestions() {
+        return Collections.unmodifiableList(planQuestions);
+    }
+
+    /**
+     * 질문 ID로 면접 질문의 내용을 찾는다. 없으면 비어 있다.
+     */
+    public Optional<InterviewDetail> interviewDetail(String questionId) {
+        return Optional.ofNullable(interviewById.get(questionId));
     }
 
     /**
