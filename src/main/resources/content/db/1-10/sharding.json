@@ -6,6 +6,7 @@
   "metaDescription": "샤딩 CS 지식 정리 — 수평 파티셔닝, Hash·Range 샤드 키 라우팅, 핫스팟 문제를 인터랙티브 시각화로 학습하세요. 개발자 면접 데이터베이스 핵심 개념.",
   "published": true,
   "order": 9,
+  "seq": 59,
   "tags": [
     "DB",
     "샤딩",

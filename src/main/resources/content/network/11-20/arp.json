@@ -6,6 +6,7 @@
   "metaDescription": "ARP CS 지식 정리 — IP 주소로 MAC 주소를 알아내는 요청·응답 과정과 ARP 캐시를 인터랙티브 시각화로 학습하세요. 개발자 면접 네트워크 핵심 개념.",
   "published": true,
   "order": 11,
+  "seq": 81,
   "tags": [
     "MAC",
     "링크계층",

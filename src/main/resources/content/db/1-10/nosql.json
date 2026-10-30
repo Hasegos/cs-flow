@@ -6,6 +6,7 @@
   "metaDescription": "NoSQL CS 지식 정리 — Key-Value·Document·Column·Graph 모델 비교, CAP 정리와 BASE 특성을 인터랙티브 시각화로 학습하세요. 개발자 면접 데이터베이스 핵심 개념.",
   "published": true,
   "order": 10,
+  "seq": 60,
   "tags": [
     "DB",
     "NoSQL",

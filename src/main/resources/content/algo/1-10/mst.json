@@ -6,6 +6,7 @@
   "metaDescription": "최소 신장 트리 CS 지식 정리 — Kruskal(Union-Find), Prim 알고리즘 간선 선택 과정을 인터랙티브 시각화로 학습하세요. 개발자 면접 알고리즘 핵심 개념.",
   "published": true,
   "order": 9,
+  "seq": 49,
   "tags": [
     "알고리즘",
     "그래프",

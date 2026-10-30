@@ -6,6 +6,7 @@
   "metaDescription": "분리 집합 CS 지식 정리 — Union-Find의 find, union 연산과 경로 압축·랭크 최적화를 인터랙티브 시각화로 학습하세요. 개발자 면접 자료구조 핵심 개념.",
   "published": true,
   "order": 14,
+  "seq": 94,
   "tags": [
     "Union-Find",
     "그래프",

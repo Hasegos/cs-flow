@@ -6,6 +6,7 @@
   "metaDescription": "WebSocket CS 지식 정리 — HTTP Upgrade 핸드셰이크, 양방향 통신 프레임 구조를 인터랙티브 시각화로 학습하세요. 개발자 면접 네트워크 핵심 개념.",
   "published": true,
   "order": 9,
+  "seq": 29,
   "tags": [
     "네트워크",
     "WebSocket",

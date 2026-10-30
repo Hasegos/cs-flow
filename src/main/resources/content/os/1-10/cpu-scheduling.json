@@ -6,6 +6,7 @@
   "metaDescription": "CPU 스케줄링 CS 지식 정리 — FCFS, SJF, Round Robin 알고리즘 간트 차트 애니메이션으로 학습하세요. 개발자 면접 운영체제 핵심 개념.",
   "published": true,
   "order": 3,
+  "seq": 13,
   "tags": [
     "OS",
     "CPU",

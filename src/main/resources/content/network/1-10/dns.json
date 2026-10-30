@@ -6,6 +6,7 @@
   "metaDescription": "DNS CS 지식 정리 — 재귀 질의·반복 질의, DNS 캐시, 루트·TLD·권한 네임서버 동작 원리를 인터랙티브 시각화로 학습하세요. 개발자 면접 네트워크 핵심 개념.",
   "published": true,
   "order": 4,
+  "seq": 24,
   "tags": [
     "네트워크",
     "DNS",

@@ -6,6 +6,7 @@
   "metaDescription": "gRPC CS 지식 정리 — HTTP/2와 Protocol Buffers 기반 RPC 통신과 REST와의 차이를 인터랙티브 시각화로 학습하세요. 개발자 면접 네트워크 핵심 개념.",
   "published": true,
   "order": 19,
+  "seq": 89,
   "tags": [
     "마이크로서비스",
     "RPC",

@@ -6,6 +6,7 @@
   "metaDescription": "스택·큐 CS 지식 정리 — Push·Pop, Enqueue·Dequeue 동작 원리와 활용 사례를 인터랙티브 시각화로 학습하세요. 개발자 면접 자료구조 핵심 개념.",
   "published": true,
   "order": 2,
+  "seq": 32,
   "tags": [
     "자료구조",
     "스택",

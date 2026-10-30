@@ -12,7 +12,8 @@ import java.util.List;
  * @param templateName    본문 템플릿 이름
  * @param metaDescription 검색 · 공유용 설명, 없으면 null
  * @param published       발행 여부
- * @param order           과목 안 순서 (1부터, 이전 · 다음 토픽과 목록 기본 정렬 기준)
+ * @param order           과목 안 순서 (1부터, 이전 · 다음 토픽과 과목 목록 기본 정렬 기준)
+ * @param seq             전체 순서 (1부터, 검색 기본 정렬과 조회수 · 추천수 동점 정렬 기준, 기존 topic_id 순서)
  * @param tags            태그 목록
  * @param roles           관련 직무 목록 (면접 대비 코스용, 지금은 비어 있어도 된다)
  * @param exams           관련 시험 목록 (지금은 비어 있어도 된다)
@@ -28,6 +29,7 @@ public record ContentTopic(
         String metaDescription,
         Boolean published,
         Integer order,
+        Integer seq,
         List<String> tags,
         List<String> roles,
         List<String> exams,

@@ -6,6 +6,7 @@
   "metaDescription": "메모리 계층 구조 CS 지식 정리 — 레지스터, 캐시, RAM, SSD 계층 구조와 지역성 원리를 인터랙티브 시각화로 학습하세요. 개발자 면접 컴퓨터구조 핵심 개념.",
   "published": true,
   "order": 6,
+  "seq": 6,
   "tags": [
     "구조",
     "캐시",

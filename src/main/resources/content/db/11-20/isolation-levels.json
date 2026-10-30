@@ -6,6 +6,7 @@
   "metaDescription": "트랜잭션 격리 수준 CS 지식 정리 — Read Uncommitted부터 Serializable까지 Dirty Read, Non-repeatable Read, Phantom Read 차이를 인터랙티브 시각화로 학습하세요. 개발자 면접 데이터베이스 핵심 개념.",
   "published": true,
   "order": 11,
+  "seq": 111,
   "tags": [
     "이상현상",
     "격리수준",

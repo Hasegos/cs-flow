@@ -6,6 +6,7 @@
   "metaDescription": "트랜잭션 CS 지식 정리 — ACID 속성, Commit·Rollback·Savepoint, 격리 수준별 이상 현상을 인터랙티브 시각화로 학습하세요. 개발자 면접 데이터베이스 핵심 개념.",
   "published": true,
   "order": 4,
+  "seq": 54,
   "tags": [
     "DB",
     "트랜잭션",

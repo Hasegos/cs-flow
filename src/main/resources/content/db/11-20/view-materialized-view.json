@@ -6,6 +6,7 @@
   "metaDescription": "뷰와 구체화 뷰 CS 지식 정리 — 조회 시마다 실행되는 뷰와 결과를 저장하는 Materialized View의 차이를 인터랙티브 시각화로 학습하세요. 개발자 면접 데이터베이스 핵심 개념.",
   "published": true,
   "order": 16,
+  "seq": 116,
   "tags": [
     "SQL",
     "구체화뷰",

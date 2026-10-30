@@ -6,6 +6,7 @@
   "metaDescription": "HTTP/3와 QUIC CS 지식 정리 — UDP 기반 전송, 연결 수립 지연 감소, 헤드 오브 라인 블로킹 해소를 인터랙티브 시각화로 학습하세요. 개발자 면접 네트워크 핵심 개념.",
   "published": true,
   "order": 18,
+  "seq": 88,
   "tags": [
     "UDP",
     "QUIC",

@@ -6,6 +6,7 @@
   "metaDescription": "NAT CS 지식 정리 — 사설 IP와 공인 IP 변환, 포트 기반 주소 변환(PAT) 과정을 인터랙티브 시각화로 학습하세요. 개발자 면접 네트워크 핵심 개념.",
   "published": true,
   "order": 13,
+  "seq": 83,
   "tags": [
     "공인IP",
     "사설IP",

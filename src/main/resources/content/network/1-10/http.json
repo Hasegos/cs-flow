@@ -6,6 +6,7 @@
   "metaDescription": "HTTP CS 지식 정리 — 요청·응답 사이클, 상태 코드, HTTP/1.1 vs HTTP/2 차이를 인터랙티브 시각화로 학습하세요. 개발자 면접 네트워크 핵심 개념.",
   "published": true,
   "order": 3,
+  "seq": 23,
   "tags": [
     "네트워크",
     "HTTP",

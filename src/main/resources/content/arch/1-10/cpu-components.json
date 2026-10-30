@@ -6,6 +6,7 @@
   "metaDescription": "CPU 구성 요소 CS 지식 정리 — ALU, CU, 레지스터 동작 원리를 인터랙티브 시각화로 학습하세요. 개발자 면접 컴퓨터구조 핵심 개념.",
   "published": true,
   "order": 2,
+  "seq": 2,
   "tags": [
     "레지스터",
     "ALU",

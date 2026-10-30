@@ -6,6 +6,7 @@
   "metaDescription": "비트 조작 CS 지식 정리 — AND·OR·XOR·시프트 연산과 비트마스크를 활용한 집합 표현과 최적화 기법을 인터랙티브 시각화로 학습하세요. 개발자 면접 알고리즘 핵심 개념.",
   "published": true,
   "order": 15,
+  "seq": 105,
   "tags": [
     "비트마스크",
     "XOR",

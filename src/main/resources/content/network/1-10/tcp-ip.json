@@ -6,6 +6,7 @@
   "metaDescription": "TCP/IP CS 지식 정리 — 3-way handshake, 4-way termination, 흐름 제어, 오류 검출 동작 원리를 인터랙티브 시각화로 학습하세요. 개발자 면접 네트워크 핵심 개념.",
   "published": true,
   "order": 2,
+  "seq": 22,
   "tags": [
     "네트워크",
     "TCP",

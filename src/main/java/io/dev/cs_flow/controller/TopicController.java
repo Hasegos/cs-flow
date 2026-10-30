@@ -5,8 +5,8 @@ import io.dev.cs_flow.common.util.BotDetector;
 import io.dev.cs_flow.common.util.BreadcrumbLd;
 import io.dev.cs_flow.common.util.OgImages;
 import io.dev.cs_flow.common.util.SubjectSlugs;
+import io.dev.cs_flow.dto.TopicInfo;
 import io.dev.cs_flow.dto.TopicViewPath;
-import io.dev.cs_flow.model.Topic;
 import io.dev.cs_flow.service.ErrorEntryService;
 import io.dev.cs_flow.service.QuizService;
 import io.dev.cs_flow.service.TopicLikeService;
@@ -59,15 +59,16 @@ public class TopicController {
                               Model model){
         log.info("토픽 상세 페이지 요청 - subjectSlug: {}, topicSlug: {}", subjectSlug, topicSlug);
 
-        Topic topic = topicService.getPublishedTopic(subjectSlug, topicSlug);
+        TopicInfo topic = topicService.getPublishedTopic(subjectSlug, topicSlug);
         TopicViewPath viewPath = visualizerService.resolveTopicView(topic, subjectSlug);
 
         String encodedTopic = URLEncoder.encode(topicSlug, StandardCharsets.UTF_8);
         String canonicalUrl = "https://csflow.kr/" + subjectSlug + "/" + encodedTopic;
 
+        Long topicId = topicService.getTopicId(topicSlug);
         String visitorId = (String) request.getAttribute(VisitorCookieInterceptor.REQUEST_ATTR);
-        if (visitorId != null && !BotDetector.isBot(request.getHeader("User-Agent"))) {
-            topicService.recordView(topic.getTopicId(), visitorId);
+        if (topicId != null && visitorId != null && !BotDetector.isBot(request.getHeader("User-Agent"))) {
+            topicService.recordView(topicId, visitorId);
         }
 
         model.addAttribute("topic", topic);
@@ -75,16 +76,16 @@ public class TopicController {
         model.addAttribute("jsFileKey", viewPath.jsFileKey());
         model.addAttribute("ldJson", topicService.buildLdJson(topic, canonicalUrl));
         model.addAttribute("breadcrumbLd", BreadcrumbLd.build(List.of(
-                new BreadcrumbLd.Crumb(topic.getSubject().getName(), "https://csflow.kr/" + subjectSlug),
-                new BreadcrumbLd.Crumb(topic.getTitle(), canonicalUrl))));
+                new BreadcrumbLd.Crumb(topic.subject().name(), "https://csflow.kr/" + subjectSlug),
+                new BreadcrumbLd.Crumb(topic.title(), canonicalUrl))));
         model.addAttribute("ogImage", OgImages.url(subjectSlug, topicSlug));
-        model.addAttribute("prevTopic", topicService.getPrevTopic(subjectSlug, topic.getTopicId()));
-        model.addAttribute("nextTopic", topicService.getNextTopic(subjectSlug, topic.getTopicId()));
-        model.addAttribute("relatedTopics", topicService.getRelatedTopics(topic.getTopicId()));
+        model.addAttribute("prevTopic", topicService.getPrevTopic(topic));
+        model.addAttribute("nextTopic", topicService.getNextTopic(topic));
+        model.addAttribute("relatedTopics", topicService.getRelatedTopics(topic));
         model.addAttribute("topicErrors", errorEntryService.getVerifiedByTopic(subjectSlug, topicSlug));
-        model.addAttribute("quizQuestions", quizService.getQuestions(topic.getTopicId()));
-        model.addAttribute("liked", visitorId != null && topicLikeService.isLiked(topic.getTopicId(), visitorId));
-        model.addAttribute("likeCount", topicLikeService.countLikes(topic.getTopicId()));
+        model.addAttribute("quizQuestions", quizService.getQuestions(topicSlug));
+        model.addAttribute("liked", topicId != null && visitorId != null && topicLikeService.isLiked(topicId, visitorId));
+        model.addAttribute("likeCount", topicId == null ? 0 : topicLikeService.countLikes(topicId));
         model.addAttribute("canonicalUrl", canonicalUrl);
         model.addAttribute("kakaoJsKey", kakaoJsKey);
 

@@ -6,6 +6,7 @@
   "metaDescription": "복제 CS 지식 정리 — Primary-Replica 구조, 동기·비동기 복제, 장애 조치(Failover) 흐름을 인터랙티브 시각화로 학습하세요. 개발자 면접 데이터베이스 핵심 개념.",
   "published": true,
   "order": 8,
+  "seq": 58,
   "tags": [
     "DB",
     "복제",

@@ -6,6 +6,7 @@
   "metaDescription": "그래프 CS 지식 정리 — 인접 행렬·리스트, BFS·DFS 탐색 순서를 인터랙티브 시각화로 학습하세요. 개발자 면접 자료구조 핵심 개념.",
   "published": true,
   "order": 7,
+  "seq": 37,
   "tags": [
     "자료구조",
     "그래프",

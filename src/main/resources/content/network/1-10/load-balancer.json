@@ -6,6 +6,7 @@
   "metaDescription": "로드 밸런서 CS 지식 정리 — Round Robin·Least Connection·IP Hash, L4·L7 로드 밸런싱 차이를 인터랙티브 시각화로 학습하세요. 개발자 면접 네트워크 핵심 개념.",
   "published": true,
   "order": 8,
+  "seq": 28,
   "tags": [
     "네트워크",
     "로드 밸런서",

@@ -6,6 +6,7 @@
   "metaDescription": "OLAP vs OLTP CS 지식 정리 — 짧은 트랜잭션 중심 OLTP와 대량 분석 중심 OLAP의 설계 차이를 인터랙티브 시각화로 학습하세요. 개발자 면접 데이터베이스 핵심 개념.",
   "published": true,
   "order": 19,
+  "seq": 119,
   "tags": [
     "데이터웨어하우스",
     "OLTP",

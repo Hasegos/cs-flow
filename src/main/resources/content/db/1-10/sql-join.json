@@ -6,6 +6,7 @@
   "metaDescription": "SQL JOIN CS 지식 정리 — INNER·LEFT·RIGHT·FULL OUTER JOIN 동작 원리를 벤 다이어그램과 결과 테이블로 학습하세요. 개발자 면접 데이터베이스 핵심 개념.",
   "published": true,
   "order": 2,
+  "seq": 52,
   "tags": [
     "DB",
     "SQL",

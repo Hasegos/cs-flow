@@ -6,6 +6,7 @@
   "metaDescription": "락·동시성 CS 지식 정리 — 공유락·배타락, MVCC, 데드락 탐지와 회피 방법을 인터랙티브 시각화로 학습하세요. 개발자 면접 데이터베이스 핵심 개념.",
   "published": true,
   "order": 5,
+  "seq": 55,
   "tags": [
     "DB",
     "락",

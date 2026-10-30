@@ -6,6 +6,7 @@
   "metaDescription": "정렬 알고리즘 비교 CS 지식 정리 — Merge, Quick, Heap Sort 단계별 동작 원리와 시간 복잡도 비교를 인터랙티브 시각화로 학습하세요. 개발자 면접 알고리즘 핵심 개념.",
   "published": true,
   "order": 3,
+  "seq": 43,
   "tags": [
     "알고리즘",
     "정렬",
