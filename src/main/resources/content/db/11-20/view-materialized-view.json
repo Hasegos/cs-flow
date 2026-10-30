@@ -1,0 +1,60 @@
+{
+  "subject": "db",
+  "slug": "view-materialized-view",
+  "title": "뷰 / 구체화 뷰",
+  "templateName": "view-materialized-view",
+  "metaDescription": "뷰와 구체화 뷰 CS 지식 정리 — 조회 시마다 실행되는 뷰와 결과를 저장하는 Materialized View의 차이를 인터랙티브 시각화로 학습하세요. 개발자 면접 데이터베이스 핵심 개념.",
+  "published": true,
+  "order": 16,
+  "tags": [
+    "SQL",
+    "구체화뷰",
+    "뷰"
+  ],
+  "visual": {
+    "key": "db/11-20/2d/view-materialized-view",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "displayOrder": 1,
+      "prompt": "일반 뷰(View)의 특징은?",
+      "options": [
+        "쿼리 결과를 디스크에 복사해 저장한다",
+        "읽기만 가능하고 쿼리는 저장하지 않는다",
+        "저장된 쿼리로서, 조회할 때마다 원본 테이블에 대해 실행된다(데이터 자체는 저장하지 않는다)",
+        "항상 새 테이블을 만든다"
+      ],
+      "correctOption": "C",
+      "hint": "뷰는 이름을 붙인 SELECT 문이라고 생각하면 됩니다.",
+      "explanation": "일반 뷰는 쿼리 정의만 저장해 두고, 조회할 때마다 그 쿼리를 원본 테이블에 대해 실행합니다. 항상 최신 데이터를 보여주지만 복잡한 쿼리라면 매번 계산 비용이 듭니다."
+    },
+    {
+      "displayOrder": 2,
+      "prompt": "구체화 뷰(Materialized View)의 특징은?",
+      "options": [
+        "쿼리 결과를 실제로 저장해 두고, 필요할 때 REFRESH로 갱신한다",
+        "쿼리를 저장하지 않는다",
+        "항상 원본과 동시에 자동 갱신된다",
+        "읽기 성능이 항상 일반 뷰보다 느리다"
+      ],
+      "correctOption": "A",
+      "hint": "\"구체화\" — 결과를 물리적으로 만들어 둡니다.",
+      "explanation": "Materialized View는 쿼리 결과를 실제 데이터로 저장하므로 조회가 빠릅니다. 대신 PostgreSQL에서는 원본이 바뀌어도 자동으로 반영되지 않아 REFRESH로 갱신해야 합니다."
+    },
+    {
+      "displayOrder": 3,
+      "prompt": "구체화 뷰를 사용할 때 주의할 점은?",
+      "options": [
+        "저장 공간을 전혀 쓰지 않는다",
+        "쿼리를 실행할 수 없다",
+        "갱신하기 전까지는 데이터가 최신이 아닐 수 있어 적절한 갱신 주기를 정해야 한다",
+        "항상 원본보다 데이터가 많다"
+      ],
+      "correctOption": "C",
+      "hint": "결과를 \"복사해 둔\" 것이라 원본과 시차가 생깁니다.",
+      "explanation": "PostgreSQL의 구체화 뷰는 저장된 결과가 REFRESH 전까지 유지되므로 원본과 차이가 날 수 있습니다. 집계 리포트처럼 약간의 지연이 허용되는 무거운 쿼리에 적합합니다."
+    }
+  ],
+  "interview": []
+}

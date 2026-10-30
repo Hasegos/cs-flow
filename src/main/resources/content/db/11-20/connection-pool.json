@@ -1,0 +1,60 @@
+{
+  "subject": "db",
+  "slug": "connection-pool",
+  "title": "커넥션 풀",
+  "templateName": "connection-pool",
+  "metaDescription": "커넥션 풀 CS 지식 정리 — DB 연결을 미리 만들어 재사용하는 구조와 풀 크기 설정 기준을 인터랙티브 시각화로 학습하세요. 개발자 면접 데이터베이스 핵심 개념.",
+  "published": true,
+  "order": 15,
+  "tags": [
+    "성능",
+    "HikariCP",
+    "커넥션풀"
+  ],
+  "visual": {
+    "key": "db/11-20/2d/connection-pool",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "displayOrder": 1,
+      "prompt": "커넥션 풀을 사용하는 주된 이유는?",
+      "options": [
+        "쿼리 결과를 암호화하기 위해",
+        "테이블을 자동으로 만들기 위해",
+        "데이터를 자동으로 백업하기 위해",
+        "DB 연결을 매번 새로 만드는 비용을 줄이려고 미리 만든 연결을 재사용하기 위해"
+      ],
+      "correctOption": "D",
+      "hint": "연결을 맺을 때는 TCP 핸드셰이크와 인증 등이 필요합니다.",
+      "explanation": "DB 연결을 새로 맺는 데는 네트워크 핸드셰이크와 인증 등 비용이 듭니다. 커넥션 풀은 미리 만들어 둔 연결을 빌려 쓰고 반납하게 해 이 비용을 줄이고 동시 연결 수도 제한합니다."
+    },
+    {
+      "displayOrder": 2,
+      "prompt": "커넥션 풀 크기를 무작정 크게 잡으면 생기는 문제는?",
+      "options": [
+        "항상 더 빨라진다",
+        "DB 서버의 자원 부담과 경합이 늘어 오히려 성능이 떨어질 수 있다",
+        "커넥션이 자동으로 줄어든다",
+        "쿼리가 실행되지 않는다"
+      ],
+      "correctOption": "B",
+      "hint": "DB 서버가 동시에 처리할 수 있는 양에는 한계가 있습니다.",
+      "explanation": "연결이 너무 많으면 DB 서버의 메모리 사용과 컨텍스트 스위칭이 늘고 잠금 경합이 심해져 처리량이 오히려 줄 수 있습니다. DB 서버 코어 수와 쿼리 특성을 고려해 적정 크기를 잡아야 합니다."
+    },
+    {
+      "displayOrder": 3,
+      "prompt": "스프링 부트가 기본으로 사용하는 커넥션 풀 구현체는?",
+      "options": [
+        "HikariCP",
+        "Apache DBCP",
+        "C3P0",
+        "Tomcat JDBC Pool"
+      ],
+      "correctOption": "A",
+      "hint": "\"히카리\"는 일본어로 \"빛\"이라는 뜻입니다.",
+      "explanation": "Spring Boot 2.0부터 기본 커넥션 풀은 HikariCP입니다. 가볍고 빠르며, maximum-pool-size 같은 설정으로 풀 크기를 조정합니다."
+    }
+  ],
+  "interview": []
+}

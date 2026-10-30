@@ -1,0 +1,35 @@
+{
+  "subjects": 7,
+  "topics": 128,
+  "quizzes": 386,
+  "bySubject": {
+    "arch": {
+      "topics": 20,
+      "quizzes": 61
+    },
+    "os": {
+      "topics": 20,
+      "quizzes": 60
+    },
+    "network": {
+      "topics": 23,
+      "quizzes": 69
+    },
+    "ds": {
+      "topics": 20,
+      "quizzes": 60
+    },
+    "algo": {
+      "topics": 20,
+      "quizzes": 60
+    },
+    "db": {
+      "topics": 22,
+      "quizzes": 67
+    },
+    "robot": {
+      "topics": 3,
+      "quizzes": 9
+    }
+  }
+}

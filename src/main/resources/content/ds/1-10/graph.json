@@ -1,0 +1,60 @@
+{
+  "subject": "ds",
+  "slug": "graph",
+  "title": "그래프",
+  "templateName": "graph",
+  "metaDescription": "그래프 CS 지식 정리 — 인접 행렬·리스트, BFS·DFS 탐색 순서를 인터랙티브 시각화로 학습하세요. 개발자 면접 자료구조 핵심 개념.",
+  "published": true,
+  "order": 7,
+  "tags": [
+    "자료구조",
+    "그래프",
+    "BFS"
+  ],
+  "visual": {
+    "key": "ds/1-10/2d/graph",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "displayOrder": 1,
+      "prompt": "인접 행렬(Adjacency Matrix)로 그래프를 표현할 때 공간 복잡도는?",
+      "options": [
+        "O(V)",
+        "O(V^2)",
+        "O(E)",
+        "O(1)"
+      ],
+      "correctOption": "B",
+      "hint": "정점 개수 x 정점 개수 크기의 표를 씁니다.",
+      "explanation": "인접 행렬은 V×V 크기의 2차원 배열을 사용하므로 공간 복잡도가 O(V^2)이며, 간선이 적은 희소 그래프에서는 비효율적일 수 있습니다."
+    },
+    {
+      "displayOrder": 2,
+      "prompt": "인접 리스트(Adjacency List)가 인접 행렬보다 유리한 경우는?",
+      "options": [
+        "간선이 매우 많은 완전 그래프일 때",
+        "간선이 적은 희소 그래프일 때",
+        "항상 인접 행렬이 더 좋다",
+        "정점이 1개일 때만"
+      ],
+      "correctOption": "B",
+      "hint": "실제 존재하는 간선만큼만 공간을 씁니다.",
+      "explanation": "인접 리스트는 실제 존재하는 간선의 수(O(V+E))만큼만 공간을 사용해, 간선이 적은 희소 그래프에서 인접 행렬보다 메모리 효율적입니다."
+    },
+    {
+      "displayOrder": 3,
+      "prompt": "BFS(너비 우선 탐색)가 사용하는 자료구조는?",
+      "options": [
+        "스택",
+        "큐",
+        "힙",
+        "해시 테이블"
+      ],
+      "correctOption": "B",
+      "hint": "가까운 노드부터 순서대로 방문하려면 어떤 구조가 맞을까요?",
+      "explanation": "BFS는 큐를 이용해 가까운 노드부터 순서대로(레벨 단위로) 방문합니다. DFS는 보통 스택(또는 재귀)을 사용합니다."
+    }
+  ],
+  "interview": []
+}

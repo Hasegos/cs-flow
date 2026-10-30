@@ -1,0 +1,60 @@
+{
+  "subject": "os",
+  "slug": "process-sync",
+  "title": "프로세스 동기화",
+  "templateName": "process-sync",
+  "metaDescription": "프로세스 동기화 CS 지식 정리 — Race Condition, Critical Section, Mutex, Semaphore 동작 원리를 인터랙티브 시각화로 학습하세요. 개발자 면접 운영체제 핵심 개념.",
+  "published": true,
+  "order": 4,
+  "tags": [
+    "OS",
+    "동기화",
+    "동시성"
+  ],
+  "visual": {
+    "key": "os/1-10/2d/process-sync",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "displayOrder": 1,
+      "prompt": "Race Condition(경쟁 상태)이 발생하는 상황은?",
+      "options": [
+        "프로세스가 순차적으로만 실행될 때",
+        "여러 프로세스/스레드가 공유 자원에 동시 접근해 결과가 실행 순서에 따라 달라질 때",
+        "프로세스가 하나만 존재할 때",
+        "메모리가 부족할 때"
+      ],
+      "correctOption": "B",
+      "hint": "실행 순서에 따라 결과가 달라진다는 게 핵심입니다.",
+      "explanation": "Race Condition은 둘 이상의 실행 흐름이 공유 데이터에 동시에 접근하고 그 결과가 접근 순서(타이밍)에 따라 달라질 때 발생합니다."
+    },
+    {
+      "displayOrder": 2,
+      "prompt": "Mutex(상호배제)의 역할은?",
+      "options": [
+        "여러 스레드가 동시에 임계구역에 들어가게 허용",
+        "한 번에 하나의 스레드만 임계구역에 들어가도록 제한",
+        "스레드를 종료시킴",
+        "메모리를 할당함"
+      ],
+      "correctOption": "B",
+      "hint": "'Mutual Exclusion'의 줄임말입니다.",
+      "explanation": "Mutex는 한 번에 하나의 스레드만 임계구역(critical section)에 진입하도록 해 공유 자원에 대한 동시 접근을 막습니다."
+    },
+    {
+      "displayOrder": 3,
+      "prompt": "세마포어(Semaphore)와 뮤텍스의 차이로 가장 적절한 것은?",
+      "options": [
+        "완전히 동일하다",
+        "세마포어는 카운트를 가져 여러 개의 동시 접근을 허용할 수 있다",
+        "뮤텍스만 스레드에 사용 가능하다",
+        "세마포어는 프로세스 간에 쓸 수 없다"
+      ],
+      "correctOption": "B",
+      "hint": "세마포어는 정수 카운터를 가집니다.",
+      "explanation": "뮤텍스는 0/1(잠김/열림)만 표현하는 반면, 세마포어는 카운트 값을 가져 정해진 개수만큼의 스레드가 동시에 접근하도록 허용할 수 있습니다."
+    }
+  ],
+  "interview": []
+}

@@ -1,0 +1,60 @@
+{
+  "subject": "algo",
+  "slug": "bit-manipulation",
+  "title": "비트 조작 트릭",
+  "templateName": "bit-manipulation",
+  "metaDescription": "비트 조작 CS 지식 정리 — AND·OR·XOR·시프트 연산과 비트마스크를 활용한 집합 표현과 최적화 기법을 인터랙티브 시각화로 학습하세요. 개발자 면접 알고리즘 핵심 개념.",
+  "published": true,
+  "order": 15,
+  "tags": [
+    "비트마스크",
+    "XOR",
+    "비트연산"
+  ],
+  "visual": {
+    "key": "algo/11-20/2d/bit-manipulation",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "displayOrder": 1,
+      "prompt": "양의 정수 n이 2의 거듭제곱인지 판별하는 비트 연산 조건은?",
+      "options": [
+        "(n | (n - 1)) == 0",
+        "(n ^ (n - 1)) == 0",
+        "(n & (n - 1)) == 0",
+        "(n & 1) == 0"
+      ],
+      "correctOption": "C",
+      "hint": "2의 거듭제곱은 이진수로 1이 딱 하나 있습니다.",
+      "explanation": "2의 거듭제곱은 이진수에서 1이 하나뿐입니다. n - 1은 그 1이 0이 되고 아래 비트가 모두 1이 되므로 (n & (n - 1)) 은 0이 됩니다. (단, n > 0 인 경우)"
+    },
+    {
+      "displayOrder": 2,
+      "prompt": "배열에서 한 원소만 한 번 나타나고 나머지는 모두 두 번씩 나타날 때, 그 원소를 O(n)에 O(1) 공간으로 찾는 방법은?",
+      "options": [
+        "배열을 정렬한다",
+        "해시 테이블에 저장한다",
+        "이중 반복문으로 비교한다",
+        "모든 원소를 XOR 한다"
+      ],
+      "correctOption": "D",
+      "hint": "a ^ a = 0 이고 a ^ 0 = a 입니다.",
+      "explanation": "같은 값끼리 XOR하면 0이 되고, 0과 XOR한 값은 그대로이므로 모든 원소를 XOR하면 쌍으로 나온 값은 사라지고 한 번만 나온 값만 남습니다."
+    },
+    {
+      "displayOrder": 3,
+      "prompt": "비트마스크 mask에서 i번째 원소가 집합에 포함되어 있는지 확인하는 식은?",
+      "options": [
+        "(mask >> i) & 1",
+        "mask << i",
+        "mask | i",
+        "mask ^ i"
+      ],
+      "correctOption": "A",
+      "hint": "i번째 비트를 맨 오른쪽으로 옮긴 뒤 그 비트만 남깁니다.",
+      "explanation": "mask를 오른쪽으로 i칸 시프트하면 i번째 비트가 최하위 비트가 되고, & 1로 그 비트만 확인할 수 있습니다. mask & (1 << i) 도 같은 의미입니다."
+    }
+  ],
+  "interview": []
+}

@@ -1,0 +1,60 @@
+{
+  "subject": "arch",
+  "slug": "cpu-components",
+  "title": "CPU 구성 요소",
+  "templateName": "cpu-components",
+  "metaDescription": "CPU 구성 요소 CS 지식 정리 — ALU, CU, 레지스터 동작 원리를 인터랙티브 시각화로 학습하세요. 개발자 면접 컴퓨터구조 핵심 개념.",
+  "published": true,
+  "order": 2,
+  "tags": [
+    "레지스터",
+    "ALU",
+    "CPU"
+  ],
+  "visual": {
+    "key": "arch/1-10/2d/cpu-components",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "displayOrder": 1,
+      "prompt": "ALU(산술논리연산장치)의 역할은?",
+      "options": [
+        "명령어를 메모리에서 읽어옴",
+        "산술·논리 연산 수행",
+        "프로그램 카운터 증가만 담당",
+        "디스크 입출력 제어"
+      ],
+      "correctOption": "B",
+      "hint": "덧셈, 뺄셈, AND, OR 같은 연산을 담당합니다.",
+      "explanation": "ALU는 CU(제어장치)의 지시에 따라 실제 산술·논리 연산을 수행하는 CPU의 핵심 실행 단위입니다."
+    },
+    {
+      "displayOrder": 2,
+      "prompt": "제어장치(CU)의 역할로 가장 적절한 것은?",
+      "options": [
+        "데이터 저장",
+        "각 구성요소에 제어 신호를 보내 명령어 실행을 지휘",
+        "전원 공급",
+        "네트워크 패킷 전송"
+      ],
+      "correctOption": "B",
+      "hint": "오케스트라의 지휘자 역할과 비슷합니다.",
+      "explanation": "CU는 명령어를 해석하고 ALU, 레지스터, 메모리 등에 제어 신호를 보내 명령어가 올바른 순서로 실행되도록 지휘합니다."
+    },
+    {
+      "displayOrder": 3,
+      "prompt": "레지스터가 캐시나 메모리보다 빠른 이유는?",
+      "options": [
+        "용량이 더 크기 때문",
+        "CPU 내부에 위치해 접근 지연이 가장 짧기 때문",
+        "디스크에 저장되기 때문",
+        "네트워크를 거치기 때문"
+      ],
+      "correctOption": "B",
+      "hint": "메모리 계층에서 CPU와 가장 가까운 저장장치입니다.",
+      "explanation": "레지스터는 CPU 내부 회로에 직접 위치해 접근 지연이 거의 없습니다. 대신 용량이 매우 작다는 트레이드오프가 있습니다."
+    }
+  ],
+  "interview": []
+}

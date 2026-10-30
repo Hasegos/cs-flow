@@ -1,0 +1,61 @@
+{
+  "subject": "robot",
+  "slug": "dds-qos",
+  "title": "DDS QoS(신뢰성·내구성)",
+  "templateName": "dds-qos",
+  "metaDescription": "DDS QoS CS 지식 정리 — 신뢰성(RELIABLE/BEST_EFFORT), 내구성(TRANSIENT_LOCAL), 제공과 요청의 호환 규칙을 인터랙티브 시각화로 학습하세요. 로봇·임베디드 핵심 개념.",
+  "published": true,
+  "order": 3,
+  "tags": [
+    "DDS",
+    "QoS",
+    "신뢰성",
+    "내구성"
+  ],
+  "visual": {
+    "key": "robot/1-10/2d/dds-qos",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "displayOrder": 1,
+      "prompt": "센서 드라이버가 BEST_EFFORT로 발행하는 토픽을 구독 노드가 기본 QoS(RELIABLE)로 구독했다. 결과는?",
+      "options": [
+        "RELIABLE이 우선되어 정상 연결된다",
+        "QoS가 호환되지 않아 연결되지 않는다",
+        "발행 노드가 자동으로 RELIABLE로 바뀐다",
+        "구독자가 BEST_EFFORT로 자동 변환된다"
+      ],
+      "correctOption": "B",
+      "hint": "요청이 제공보다 더 강한 약속을 바라고 있습니다.",
+      "explanation": "구독자가 요청한 RELIABLE이 발행자가 제공하는 BEST_EFFORT보다 강해 호환되지 않으므로 둘은 연결되지 않습니다. 오류 없이 데이터만 오지 않는 것처럼 보이기 쉬워서, 구독자를 BEST_EFFORT(센서용 프로파일)로 맞춥니다."
+    },
+    {
+      "displayOrder": 2,
+      "prompt": "발행자가 RELIABLE, 구독자가 BEST_EFFORT로 만들어졌을 때 옳은 설명은?",
+      "options": [
+        "연결되지 않는다",
+        "연결되고 BEST_EFFORT 규칙으로 전달된다",
+        "연결되고 RELIABLE 규칙으로 전달된다",
+        "발행자가 종료된다"
+      ],
+      "correctOption": "B",
+      "hint": "제공이 요청보다 강하거나 같으면 호환됩니다.",
+      "explanation": "발행자의 RELIABLE 제공은 BEST_EFFORT 요청보다 강한 약속이라 호환되어 연결되고, 이 연결은 두 설정 중 낮은 쪽인 BEST_EFFORT로 동작합니다. 반대로 발행 BEST_EFFORT와 구독 RELIABLE의 조합은 연결되지 않습니다."
+    },
+    {
+      "displayOrder": 3,
+      "prompt": "나중에 시작한 구독자도 발행자가 마지막으로 발행한 지도를 받게 하려면 내구성을 어떻게 설정해야 하는가?",
+      "options": [
+        "발행자와 구독자 모두 VOLATILE",
+        "발행자와 구독자 모두 TRANSIENT_LOCAL",
+        "발행자만 BEST_EFFORT",
+        "구독자의 depth를 0으로"
+      ],
+      "correctOption": "B",
+      "hint": "발행자가 지난 메시지를 보관하고, 구독자가 그것을 받겠다고 요청해야 합니다.",
+      "explanation": "TRANSIENT_LOCAL로 발행하면 발행자가 최근 depth개의 메시지를 보관하고, 구독자도 TRANSIENT_LOCAL을 요청해야 연결되는 순간 지난 메시지를 받습니다. VOLATILE 구독자는 연결은 되지만 지난 메시지는 받지 못합니다."
+    }
+  ],
+  "interview": []
+}

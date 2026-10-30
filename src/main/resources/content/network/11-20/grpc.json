@@ -1,0 +1,60 @@
+{
+  "subject": "network",
+  "slug": "grpc",
+  "title": "gRPC 통신",
+  "templateName": "grpc",
+  "metaDescription": "gRPC CS 지식 정리 — HTTP/2와 Protocol Buffers 기반 RPC 통신과 REST와의 차이를 인터랙티브 시각화로 학습하세요. 개발자 면접 네트워크 핵심 개념.",
+  "published": true,
+  "order": 19,
+  "tags": [
+    "마이크로서비스",
+    "RPC",
+    "gRPC"
+  ],
+  "visual": {
+    "key": "network/11-20/2d/grpc",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "displayOrder": 1,
+      "prompt": "gRPC가 기본으로 사용하는 전송 프로토콜과 직렬화 방식은?",
+      "options": [
+        "HTTP/1.1 + JSON",
+        "FTP + XML",
+        "HTTP/2 + Protocol Buffers",
+        "SMTP + CSV"
+      ],
+      "correctOption": "C",
+      "hint": "Google이 만든 이진 직렬화 포맷과 멀티플렉싱을 지원하는 HTTP 버전입니다.",
+      "explanation": "gRPC는 HTTP/2 위에서 동작하며 기본적으로 Protocol Buffers로 메시지를 직렬화합니다. HTTP/2의 멀티플렉싱과 스트리밍 덕분에 효율적인 통신이 가능합니다."
+    },
+    {
+      "displayOrder": 2,
+      "prompt": "Protocol Buffers의 특징은?",
+      "options": [
+        ".proto 스키마로 메시지를 정의하고 이진 형식으로 직렬화해 JSON보다 작고 빠르다",
+        "사람이 읽기 쉬운 텍스트 형식이다",
+        "스키마가 전혀 없다",
+        "암호화 전용 포맷이다"
+      ],
+      "correctOption": "A",
+      "hint": "스키마를 먼저 정의하고 코드를 생성합니다.",
+      "explanation": "Protocol Buffers는 .proto 파일로 스키마를 정의하고 그로부터 각 언어용 코드를 생성합니다. 이진 형식이라 JSON보다 크기가 작고 직렬화/역직렬화가 빠릅니다."
+    },
+    {
+      "displayOrder": 3,
+      "prompt": "gRPC가 지원하는 통신 방식은?",
+      "options": [
+        "단항(Unary) 호출만",
+        "서버 스트리밍만",
+        "폴링만",
+        "단항, 서버 스트리밍, 클라이언트 스트리밍, 양방향 스트리밍"
+      ],
+      "correctOption": "D",
+      "hint": "HTTP/2 스트림 덕분에 요청/응답이 꼭 1:1일 필요가 없습니다.",
+      "explanation": "gRPC는 요청 하나에 응답 하나인 단항 호출뿐 아니라, 서버 스트리밍, 클라이언트 스트리밍, 양방향 스트리밍까지 네 가지 통신 방식을 지원합니다."
+    }
+  ],
+  "interview": []
+}

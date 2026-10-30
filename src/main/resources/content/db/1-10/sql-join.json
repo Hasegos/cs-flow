@@ -1,0 +1,60 @@
+{
+  "subject": "db",
+  "slug": "sql-join",
+  "title": "SQL JOIN",
+  "templateName": "sql-join",
+  "metaDescription": "SQL JOIN CS 지식 정리 — INNER·LEFT·RIGHT·FULL OUTER JOIN 동작 원리를 벤 다이어그램과 결과 테이블로 학습하세요. 개발자 면접 데이터베이스 핵심 개념.",
+  "published": true,
+  "order": 2,
+  "tags": [
+    "DB",
+    "SQL",
+    "JOIN"
+  ],
+  "visual": {
+    "key": "db/1-10/2d/sql-join",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "displayOrder": 1,
+      "prompt": "INNER JOIN의 결과는?",
+      "options": [
+        "두 테이블 모두에서 조건이 일치하는 행만 반환",
+        "왼쪽 테이블의 모든 행을 반환",
+        "오른쪽 테이블의 모든 행을 반환",
+        "두 테이블의 모든 조합을 무조건 반환"
+      ],
+      "correctOption": "A",
+      "hint": "'교집합'과 비슷한 개념입니다.",
+      "explanation": "INNER JOIN은 조인 조건이 양쪽 테이블에서 모두 일치하는 행만 결과로 반환합니다."
+    },
+    {
+      "displayOrder": 2,
+      "prompt": "LEFT JOIN에서 오른쪽 테이블에 일치하는 행이 없을 때 결과는?",
+      "options": [
+        "해당 행 자체가 결과에서 제외됨",
+        "왼쪽 테이블 행은 유지되고 오른쪽 컬럼들은 NULL로 채워짐",
+        "오류가 발생",
+        "왼쪽 테이블도 제외됨"
+      ],
+      "correctOption": "B",
+      "hint": "왼쪽은 무조건 다 살아남습니다.",
+      "explanation": "LEFT JOIN은 왼쪽 테이블의 모든 행을 유지하며, 오른쪽 테이블에 일치하는 행이 없으면 그 컬럼들을 NULL로 채웁니다."
+    },
+    {
+      "displayOrder": 3,
+      "prompt": "FULL OUTER JOIN의 결과는?",
+      "options": [
+        "양쪽 모두 일치하는 행만",
+        "왼쪽 테이블 행만",
+        "양쪽 테이블의 모든 행을 포함하고, 일치하지 않는 쪽은 NULL로 채움",
+        "아무것도 반환하지 않음"
+      ],
+      "correctOption": "C",
+      "hint": "왼쪽과 오른쪽 결과를 합친다고 생각하면 됩니다.",
+      "explanation": "FULL OUTER JOIN은 LEFT JOIN과 RIGHT JOIN의 결과를 합친 것과 같아, 양쪽 테이블의 모든 행을 포함하며 상대편에 일치하는 값이 없으면 NULL로 채웁니다."
+    }
+  ],
+  "interview": []
+}

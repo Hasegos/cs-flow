@@ -1,0 +1,60 @@
+{
+  "subject": "network",
+  "slug": "proxy-forward-reverse",
+  "title": "포워드 / 리버스 프록시",
+  "templateName": "proxy-forward-reverse",
+  "metaDescription": "포워드·리버스 프록시 CS 지식 정리 — 클라이언트 측 프록시와 서버 측 프록시의 역할 차이를 인터랙티브 시각화로 학습하세요. 개발자 면접 네트워크 핵심 개념.",
+  "published": true,
+  "order": 17,
+  "tags": [
+    "인프라",
+    "리버스프록시",
+    "프록시"
+  ],
+  "visual": {
+    "key": "network/11-20/2d/proxy-forward-reverse",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "displayOrder": 1,
+      "prompt": "포워드 프록시(Forward Proxy)의 역할은?",
+      "options": [
+        "서버 앞에서 요청을 받아 내부 서버로 전달한다",
+        "도메인 이름을 IP로 변환한다",
+        "데이터베이스를 백업한다",
+        "클라이언트를 대신해 외부 서버에 요청을 보내는 서버로, 클라이언트 쪽에 위치한다"
+      ],
+      "correctOption": "D",
+      "hint": "클라이언트의 대리인입니다.",
+      "explanation": "포워드 프록시는 클라이언트를 대신해 외부 서버에 요청을 보냅니다. 클라이언트의 IP를 숨기거나, 접속 제어와 캐싱을 하는 데 쓰입니다."
+    },
+    {
+      "displayOrder": 2,
+      "prompt": "리버스 프록시(Reverse Proxy)의 역할은?",
+      "options": [
+        "사용자의 IP를 숨기려는 클라이언트가 직접 설정하는 프록시다",
+        "서버 앞에서 클라이언트의 요청을 받아 내부 서버로 전달하는 서버다(예: nginx)",
+        "인터넷 접속을 전부 차단한다",
+        "파일 저장 전용 서버다"
+      ],
+      "correctOption": "B",
+      "hint": "클라이언트는 실제 서버를 직접 보지 못합니다.",
+      "explanation": "리버스 프록시는 서버 측에 위치해 클라이언트 요청을 받아 내부의 실제 서버로 전달하고 응답을 돌려줍니다. 클라이언트는 프록시만 보기 때문에 내부 서버 구조가 숨겨집니다."
+    },
+    {
+      "displayOrder": 3,
+      "prompt": "리버스 프록시가 제공할 수 있는 기능의 예로 알맞은 것은?",
+      "options": [
+        "사용자 컴퓨터의 부팅",
+        "이메일 발송",
+        "로드 밸런싱, TLS 종료(HTTPS 처리), 응답 캐싱",
+        "프린터 관리"
+      ],
+      "correctOption": "C",
+      "hint": "서버 앞단에서 대신 처리해 주면 좋은 일들입니다.",
+      "explanation": "리버스 프록시는 여러 서버로 요청을 분산(로드 밸런싱)하고, HTTPS 암호화/복호화를 대신 처리(TLS 종료)하며, 자주 요청되는 응답을 캐싱해 서버 부하를 줄입니다."
+    }
+  ],
+  "interview": []
+}

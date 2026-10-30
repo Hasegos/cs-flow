@@ -1,0 +1,59 @@
+{
+  "subject": "arch",
+  "slug": "bus-architecture",
+  "title": "버스 구조",
+  "templateName": "bus-architecture",
+  "metaDescription": "버스 구조 CS 지식 정리 — Address/Data/Control Bus, 버스 중재(Arbitration), DMA 동작 원리를 인터랙티브 시각화로 학습하세요. 개발자 면접 컴퓨터구조 핵심 개념.",
+  "published": true,
+  "order": 9,
+  "tags": [
+    "버스",
+    "구조"
+  ],
+  "visual": {
+    "key": "arch/1-10/2d/bus-architecture",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "displayOrder": 1,
+      "prompt": "주소 버스(Address Bus)의 역할은?",
+      "options": [
+        "실제 데이터를 전송",
+        "읽거나 쓸 메모리/장치의 위치를 지정",
+        "클럭 신호를 전송",
+        "전원을 공급"
+      ],
+      "correctOption": "B",
+      "hint": "'어디'를 지정하는 버스입니다.",
+      "explanation": "주소 버스는 CPU가 접근하려는 메모리나 I/O 장치의 주소를 전달하는 역할을 합니다. 실제 값 전송은 데이터 버스가 담당합니다."
+    },
+    {
+      "displayOrder": 2,
+      "prompt": "DMA(Direct Memory Access)를 사용하는 이유는?",
+      "options": [
+        "CPU 개입 없이 장치와 메모리 간 데이터를 직접 전송해 CPU 부담을 줄이기 위해",
+        "CPU 속도를 늦추기 위해",
+        "버스를 아예 없애기 위해",
+        "인터럽트를 발생시키지 않기 위해"
+      ],
+      "correctOption": "A",
+      "hint": "CPU가 매번 데이터를 옮기면 비효율적입니다.",
+      "explanation": "DMA 컨트롤러가 CPU를 거치지 않고 장치와 메모리 사이 데이터를 직접 옮겨, CPU는 그동안 다른 작업을 할 수 있습니다."
+    },
+    {
+      "displayOrder": 3,
+      "prompt": "버스 중재(Bus Arbitration)가 필요한 이유는?",
+      "options": [
+        "여러 장치가 동시에 하나의 버스를 쓰려 할 때 충돌을 막기 위해",
+        "버스 속도를 늦추기 위해",
+        "데이터를 암호화하기 위해",
+        "인터럽트를 막기 위해"
+      ],
+      "correctOption": "A",
+      "hint": "버스는 공유 자원이라 동시에 두 장치가 쓸 수 없습니다.",
+      "explanation": "여러 장치가 동시에 버스 사용을 요청할 수 있으므로, 버스 중재기가 누가 먼저 버스를 사용할지 순서를 정해 충돌을 방지합니다."
+    }
+  ],
+  "interview": []
+}

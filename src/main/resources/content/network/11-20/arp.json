@@ -1,0 +1,60 @@
+{
+  "subject": "network",
+  "slug": "arp",
+  "title": "ARP(주소 결정 프로토콜)",
+  "templateName": "arp",
+  "metaDescription": "ARP CS 지식 정리 — IP 주소로 MAC 주소를 알아내는 요청·응답 과정과 ARP 캐시를 인터랙티브 시각화로 학습하세요. 개발자 면접 네트워크 핵심 개념.",
+  "published": true,
+  "order": 11,
+  "tags": [
+    "MAC",
+    "링크계층",
+    "ARP"
+  ],
+  "visual": {
+    "key": "network/11-20/2d/arp",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "displayOrder": 1,
+      "prompt": "ARP(Address Resolution Protocol)의 목적은?",
+      "options": [
+        "도메인 이름을 IP 주소로 변환한다",
+        "IP 주소를 자동으로 할당한다",
+        "IP 주소에 대응하는 MAC 주소를 알아낸다",
+        "패킷을 암호화한다"
+      ],
+      "correctOption": "C",
+      "hint": "같은 네트워크 안에서 프레임을 전달하려면 MAC 주소가 필요합니다.",
+      "explanation": "같은 LAN 안에서는 프레임을 MAC 주소로 전달합니다. ARP는 통신할 상대의 IP 주소만 알 때, 그 IP를 가진 장치의 MAC 주소를 알아내는 프로토콜입니다."
+    },
+    {
+      "displayOrder": 2,
+      "prompt": "ARP 요청(Request) 메시지는 어떤 방식으로 전송될까?",
+      "options": [
+        "같은 네트워크의 모든 호스트에게 브로드캐스트한다",
+        "목적지 호스트에게만 유니캐스트한다",
+        "특정 그룹에게만 멀티캐스트한다",
+        "전송하지 않고 캐시만 확인한다"
+      ],
+      "correctOption": "A",
+      "hint": "상대의 MAC 주소를 모르니 특정 상대에게 보낼 수 없습니다.",
+      "explanation": "상대의 MAC 주소를 아직 모르므로, \"이 IP 주소를 가진 장치는 MAC 주소를 알려달라\"는 요청을 같은 네트워크 전체에 브로드캐스트합니다."
+    },
+    {
+      "displayOrder": 3,
+      "prompt": "ARP 응답(Reply)은 어떻게 전달될까?",
+      "options": [
+        "모든 호스트에게 브로드캐스트한다",
+        "라우터만 받는다",
+        "응답 자체가 없다",
+        "해당 IP를 가진 호스트가 요청한 호스트에게 유니캐스트로 자신의 MAC 주소를 알려준다"
+      ],
+      "correctOption": "D",
+      "hint": "요청자의 MAC 주소는 요청 메시지에 이미 들어 있습니다.",
+      "explanation": "요청에 포함된 요청자의 주소로, 해당 IP의 주인이 자신의 MAC 주소를 유니캐스트로 응답합니다. 요청자는 이 결과를 ARP 캐시에 저장해 재사용합니다."
+    }
+  ],
+  "interview": []
+}

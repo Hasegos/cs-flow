@@ -1,0 +1,60 @@
+{
+  "subject": "os",
+  "slug": "cgroups-namespaces",
+  "title": "cgroups / namespace",
+  "templateName": "cgroups-namespaces",
+  "metaDescription": "cgroups와 namespace CS 지식 정리 — 리눅스 컨테이너의 자원 제한과 격리 원리를 인터랙티브 시각화로 학습하세요. 개발자 면접 운영체제 핵심 개념.",
+  "published": true,
+  "order": 16,
+  "tags": [
+    "namespace",
+    "cgroups",
+    "리눅스"
+  ],
+  "visual": {
+    "key": "os/11-20/2d/cgroups-namespaces",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "displayOrder": 1,
+      "prompt": "리눅스 cgroups(control groups)의 역할은?",
+      "options": [
+        "프로세스 그룹이 사용할 수 있는 CPU·메모리 등의 자원 사용량을 제한하고 측정한다",
+        "프로세스마다 보이는 파일 이름을 바꾼다",
+        "프로그램을 컴파일한다",
+        "네트워크 패킷을 암호화한다"
+      ],
+      "correctOption": "A",
+      "hint": "\"얼마나 쓸 수 있는가\"를 다룹니다.",
+      "explanation": "cgroups는 프로세스 그룹 단위로 CPU, 메모리, I/O 등의 사용량을 제한하고 계측합니다. 컨테이너가 호스트 자원을 독점하지 못하게 하는 기반 기술입니다."
+    },
+    {
+      "displayOrder": 2,
+      "prompt": "리눅스 namespace의 역할은?",
+      "options": [
+        "프로세스가 쓸 수 있는 메모리 양을 제한한다",
+        "프로세스가 볼 수 있는 시스템 자원(프로세스 목록, 네트워크, 마운트 등)의 범위를 분리해 독립된 환경처럼 보이게 한다",
+        "디스크를 정리한다",
+        "CPU 클럭을 조절한다"
+      ],
+      "correctOption": "B",
+      "hint": "\"무엇이 보이는가\"를 다룹니다.",
+      "explanation": "namespace는 PID, 네트워크, 마운트, 호스트명 등 시스템 자원의 \"보이는 범위\"를 프로세스 그룹별로 분리해, 각 컨테이너가 자기만의 독립된 시스템을 쓰는 것처럼 보이게 합니다."
+    },
+    {
+      "displayOrder": 3,
+      "prompt": "컨테이너 안에서 실행 중인 첫 프로세스가 자기 PID를 1로 인식하게 해 주는 기능은?",
+      "options": [
+        "네트워크 namespace",
+        "마운트 namespace",
+        "cgroups의 CPU 제한",
+        "PID namespace"
+      ],
+      "correctOption": "D",
+      "hint": "이름에 \"프로세스 ID\"가 들어 있습니다.",
+      "explanation": "PID namespace는 프로세스 ID 공간을 분리해, 컨테이너 안의 첫 프로세스가 PID 1로 보이게 합니다. 호스트에서는 같은 프로세스가 다른 PID로 보입니다."
+    }
+  ],
+  "interview": []
+}

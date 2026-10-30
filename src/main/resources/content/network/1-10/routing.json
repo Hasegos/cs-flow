@@ -1,0 +1,60 @@
+{
+  "subject": "network",
+  "slug": "routing",
+  "title": "라우팅",
+  "templateName": "routing",
+  "metaDescription": "라우팅 CS 지식 정리 — 정적·동적 라우팅, RIP·OSPF 알고리즘, 라우팅 테이블 갱신 과정을 인터랙티브 시각화로 학습하세요. 개발자 면접 네트워크 핵심 개념.",
+  "published": true,
+  "order": 5,
+  "tags": [
+    "네트워크",
+    "라우팅",
+    "IP"
+  ],
+  "visual": {
+    "key": "network/1-10/2d/routing",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "displayOrder": 1,
+      "prompt": "RIP(Routing Information Protocol)이 최적 경로를 판단하는 기준은?",
+      "options": [
+        "링크 비용(대역폭 등)",
+        "홉(hop) 수",
+        "지리적 거리",
+        "무작위"
+      ],
+      "correctOption": "B",
+      "hint": "거쳐가는 라우터 개수를 셉니다.",
+      "explanation": "RIP은 목적지까지 거치는 라우터 수(홉 수)가 가장 적은 경로를 최적 경로로 선택하는 거리 벡터 기반 프로토콜입니다."
+    },
+    {
+      "displayOrder": 2,
+      "prompt": "OSPF가 RIP보다 대규모 네트워크에 더 적합한 이유는?",
+      "options": [
+        "홉 수만 보기 때문",
+        "링크 비용을 고려해 더 정교한 경로를 계산하고 변화에 빠르게 대응하기 때문",
+        "항상 더 적은 라우터를 쓰기 때문",
+        "암호화를 지원하기 때문"
+      ],
+      "correctOption": "B",
+      "hint": "단순히 개수만 세는 게 아니라 '비용'을 고려합니다.",
+      "explanation": "OSPF는 링크 상태(대역폭 등 비용)를 기반으로 최단 경로를 계산하는 링크 상태 프로토콜로, RIP보다 정교하고 대규모 네트워크에서 수렴 속도도 빠릅니다."
+    },
+    {
+      "displayOrder": 3,
+      "prompt": "라우팅에서 '비용이 싼 링크'를 선호하는 이유는?",
+      "options": [
+        "항상 홉 수가 적기 때문",
+        "대역폭이 넓거나 지연이 적은 경로로 보내 효율을 높이기 위해",
+        "무조건 가까운 거리이기 때문",
+        "비용과 성능은 무관하기 때문"
+      ],
+      "correctOption": "B",
+      "hint": "홉 수는 적어도 느린 회선일 수 있습니다.",
+      "explanation": "홉 수가 적어도 그 구간이 저속 회선이면 오히려 느릴 수 있으므로, OSPF처럼 비용(대역폭, 지연 등)을 반영하는 방식이 실제 성능에 더 유리한 경로를 찾을 수 있습니다."
+    }
+  ],
+  "interview": []
+}

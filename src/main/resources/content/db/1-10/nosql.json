@@ -1,0 +1,60 @@
+{
+  "subject": "db",
+  "slug": "nosql",
+  "title": "NoSQL",
+  "templateName": "nosql",
+  "metaDescription": "NoSQL CS 지식 정리 — Key-Value·Document·Column·Graph 모델 비교, CAP 정리와 BASE 특성을 인터랙티브 시각화로 학습하세요. 개발자 면접 데이터베이스 핵심 개념.",
+  "published": true,
+  "order": 10,
+  "tags": [
+    "DB",
+    "NoSQL",
+    "MongoDB"
+  ],
+  "visual": {
+    "key": "db/1-10/2d/nosql",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "displayOrder": 1,
+      "prompt": "Key-Value 모델의 가장 큰 특징은?",
+      "options": [
+        "키 하나로 값 하나를 저장/조회하는 단순한 구조다",
+        "항상 JOIN을 지원한다",
+        "반드시 고정된 스키마를 가져야 한다",
+        "관계(그래프)를 기본 지원한다"
+      ],
+      "correctOption": "A",
+      "hint": "가장 단순한 저장 모델입니다.",
+      "explanation": "Key-Value는 키 하나로 값 하나를 저장/조회하는 가장 단순한 모델입니다. 빠르지만 여러 키에 걸친 관계 표현은 애플리케이션이 직접 처리해야 합니다."
+    },
+    {
+      "displayOrder": 2,
+      "prompt": "Document 모델이 Key-Value보다 유리한 점은?",
+      "options": [
+        "항상 더 적은 저장 공간을 쓴다",
+        "관련 데이터를 하나의 문서에 중첩해 저장해, 한 번의 조회로 관련 정보를 함께 가져올 수 있다",
+        "관계형 데이터베이스보다 항상 빠르다",
+        "스키마가 반드시 고정되어야 한다"
+      ],
+      "correctOption": "B",
+      "hint": "사용자 정보와 주문 내역을 한 문서에 같이 넣으면?",
+      "explanation": "Document 모델은 관련 데이터를 하나의 문서(JSON 등)에 중첩해서 저장할 수 있어, Key-Value처럼 여러 키를 따로 조회할 필요 없이 문서 하나로 관련 정보를 한 번에 가져올 수 있습니다."
+    },
+    {
+      "displayOrder": 3,
+      "prompt": "Graph DB가 관계 탐색에 강한 이유는?",
+      "options": [
+        "데이터를 테이블 형태로만 저장하기 때문",
+        "데이터를 노드와 관계(엣지)로 표현해, 관계 자체를 미리 저장해두고 따라가기만 하면 되기 때문",
+        "인덱스를 전혀 사용하지 않기 때문",
+        "관계형 데이터베이스와 동일한 구조이기 때문"
+      ],
+      "correctOption": "B",
+      "hint": "RDBMS라면 JOIN으로 계산해야 할 것을, Graph는 미리 저장해둔 관계를 따라갑니다.",
+      "explanation": "Graph DB는 노드(정점)와 관계(엣지)로 데이터를 표현해, \"친구의 친구\" 같은 다단계 관계 탐색을 JOIN 없이 관계를 따라가는 방식으로 빠르게 처리할 수 있습니다."
+    }
+  ],
+  "interview": []
+}

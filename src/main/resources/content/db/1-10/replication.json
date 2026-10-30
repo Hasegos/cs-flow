@@ -1,0 +1,60 @@
+{
+  "subject": "db",
+  "slug": "replication",
+  "title": "복제",
+  "templateName": "replication",
+  "metaDescription": "복제 CS 지식 정리 — Primary-Replica 구조, 동기·비동기 복제, 장애 조치(Failover) 흐름을 인터랙티브 시각화로 학습하세요. 개발자 면접 데이터베이스 핵심 개념.",
+  "published": true,
+  "order": 8,
+  "tags": [
+    "DB",
+    "복제",
+    "가용성"
+  ],
+  "visual": {
+    "key": "db/1-10/2d/replication",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "displayOrder": 1,
+      "prompt": "동기 복제(Synchronous Replication)의 특징은?",
+      "options": [
+        "Replica 확인을 기다리지 않고 즉시 커밋 완료를 알림",
+        "Primary가 Replica의 ack을 받은 뒤에야 클라이언트에 커밋 완료를 알림",
+        "Replica가 아예 존재하지 않음",
+        "항상 데이터가 유실됨"
+      ],
+      "correctOption": "B",
+      "hint": "일관성을 우선하는 대신 지연시간을 감수합니다.",
+      "explanation": "동기 복제는 Primary가 Replica의 쓰기 확인(ack)까지 기다린 후에야 클라이언트에 커밋 완료를 알립니다. 유실 위험은 낮지만 그만큼 응답이 느려집니다."
+    },
+    {
+      "displayOrder": 2,
+      "prompt": "비동기 복제에서 Failover 시 데이터가 유실될 수 있는 이유는?",
+      "options": [
+        "Replica가 Primary보다 항상 빠르기 때문",
+        "Primary가 커밋을 알린 후에도 아직 Replica에 복제되지 않은 데이터가 있을 수 있기 때문",
+        "비동기 복제는 데이터를 저장하지 않기 때문",
+        "Failover는 데이터와 무관하기 때문"
+      ],
+      "correctOption": "B",
+      "hint": "복제 지연(Replication Lag) 동안의 데이터를 떠올려보세요.",
+      "explanation": "비동기 복제는 Primary가 Replica를 기다리지 않고 바로 커밋을 알리므로, 그 사이 Primary에 장애가 나 Replica가 승격되면 아직 복제되지 않았던 최근 쓰기가 유실될 수 있습니다."
+    },
+    {
+      "displayOrder": 3,
+      "prompt": "복제 지연(Replication Lag)이 실무에서 문제가 되는 대표적인 상황은?",
+      "options": [
+        "방금 쓴 데이터를 바로 조회했는데 Replica에서 안 보이는 경우",
+        "Primary에 쓰기가 아예 안 되는 경우",
+        "Replica가 존재하지 않는 경우",
+        "인덱스가 없는 경우"
+      ],
+      "correctOption": "A",
+      "hint": "read-your-writes 문제라고도 부릅니다.",
+      "explanation": "Replica가 아직 Primary의 최신 변경사항을 따라잡지 못한 상태에서 읽기 쿼리가 Replica로 가면, 방금 쓴 데이터가 안 보이는 현상이 발생합니다."
+    }
+  ],
+  "interview": []
+}

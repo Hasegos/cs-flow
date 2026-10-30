@@ -1,0 +1,60 @@
+{
+  "subject": "os",
+  "slug": "os-boot-process",
+  "title": "부팅 과정(BIOS→커널)",
+  "templateName": "os-boot-process",
+  "metaDescription": "부팅 과정 CS 지식 정리 — 전원 인가부터 펌웨어(BIOS/UEFI), 부트로더, 커널 로딩까지의 흐름을 인터랙티브 시각화로 학습하세요. 개발자 면접 운영체제 핵심 개념.",
+  "published": true,
+  "order": 20,
+  "tags": [
+    "커널",
+    "BIOS",
+    "부팅"
+  ],
+  "visual": {
+    "key": "os/11-20/2d/os-boot-process",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "displayOrder": 1,
+      "prompt": "컴퓨터에 전원을 켠 직후 가장 먼저 실행되는 소프트웨어는?",
+      "options": [
+        "웹 브라우저",
+        "펌웨어(BIOS 또는 UEFI)",
+        "사용자 응용 프로그램",
+        "데이터베이스 서버"
+      ],
+      "correctOption": "B",
+      "hint": "메인보드에 저장되어 있는 소프트웨어입니다.",
+      "explanation": "전원이 들어오면 메인보드의 펌웨어(BIOS/UEFI)가 먼저 실행되어 POST(하드웨어 자가 점검)를 수행하고, 부팅 장치에서 부트로더를 찾아 실행합니다."
+    },
+    {
+      "displayOrder": 2,
+      "prompt": "부트로더(예: GRUB)의 역할은?",
+      "options": [
+        "운영체제 커널을 디스크에서 메모리로 적재하고 실행을 넘긴다",
+        "사용자 로그인 화면을 그린다",
+        "네트워크 패킷을 라우팅한다",
+        "프로그램을 컴파일한다"
+      ],
+      "correctOption": "A",
+      "hint": "펌웨어와 커널 사이를 이어주는 다리입니다.",
+      "explanation": "부트로더는 펌웨어로부터 실행 권한을 넘겨받아 커널 이미지를 디스크에서 메모리로 올리고 커널로 제어를 넘깁니다. 여러 OS 중 부팅할 항목을 고르는 메뉴도 제공합니다."
+    },
+    {
+      "displayOrder": 3,
+      "prompt": "리눅스 커널이 초기화를 마친 뒤 사용자 공간에서 처음 실행하는 프로세스(PID 1)는?",
+      "options": [
+        "bash",
+        "sshd",
+        "cron",
+        "init 또는 systemd"
+      ],
+      "correctOption": "D",
+      "hint": "모든 사용자 프로세스의 조상이 되는 프로세스입니다.",
+      "explanation": "커널은 초기화가 끝나면 사용자 공간의 첫 프로세스인 init(현대 배포판에서는 대개 systemd, PID 1)을 실행합니다. 이후 이 프로세스가 서비스와 다른 프로세스들을 시작합니다."
+    }
+  ],
+  "interview": []
+}

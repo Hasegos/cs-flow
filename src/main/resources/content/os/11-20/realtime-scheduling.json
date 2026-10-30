@@ -1,0 +1,60 @@
+{
+  "subject": "os",
+  "slug": "realtime-scheduling",
+  "title": "실시간 스케줄링(RM/EDF)",
+  "templateName": "realtime-scheduling",
+  "metaDescription": "실시간 스케줄링 CS 지식 정리 — Rate Monotonic과 EDF의 우선순위 결정 방식과 데드라인 만족 여부를 인터랙티브 시각화로 학습하세요. 개발자 면접 운영체제 핵심 개념.",
+  "published": true,
+  "order": 19,
+  "tags": [
+    "EDF",
+    "RM",
+    "실시간"
+  ],
+  "visual": {
+    "key": "os/11-20/2d/realtime-scheduling",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "displayOrder": 1,
+      "prompt": "Rate Monotonic(RM) 스케줄링은 우선순위를 어떻게 정할까?",
+      "options": [
+        "나중에 도착한 작업일수록 높은 우선순위",
+        "실행 시간이 긴 작업일수록 높은 우선순위",
+        "주기가 짧은 작업일수록 높은 우선순위(고정 우선순위)",
+        "마감 시간이 가까운 작업일수록 높은 우선순위(동적 우선순위)"
+      ],
+      "correctOption": "C",
+      "hint": "Rate(발생 빈도)가 높은 작업이 우선입니다.",
+      "explanation": "RM은 주기가 짧을수록(자주 실행될수록) 높은 고정 우선순위를 부여합니다. 마감 시간이 가까운 작업에 높은 우선순위를 주는 것은 EDF입니다."
+    },
+    {
+      "displayOrder": 2,
+      "prompt": "EDF(Earliest Deadline First) 스케줄링의 규칙은?",
+      "options": [
+        "항상 가장 먼저 도착한 작업을 실행한다",
+        "항상 가장 오래 걸리는 작업을 실행한다",
+        "무작위로 작업을 선택한다",
+        "마감 시간(deadline)이 가장 가까운 작업에 가장 높은 우선순위를 준다"
+      ],
+      "correctOption": "D",
+      "hint": "이름 그대로 \"가장 이른 마감 우선\"입니다.",
+      "explanation": "EDF는 매 시점마다 마감 시간이 가장 임박한 작업을 먼저 실행하는 동적 우선순위 방식입니다. 작업이 바뀔 때마다 우선순위가 다시 계산됩니다."
+    },
+    {
+      "displayOrder": 3,
+      "prompt": "단일 프로세서에서 EDF가 RM보다 이론적으로 유리한 점은?",
+      "options": [
+        "CPU 이용률이 100% 이하이면 (주기=마감 조건에서) 모든 작업이 마감을 지키는 스케줄을 만들 수 있다",
+        "우선순위를 계산할 필요가 없다",
+        "항상 구현이 더 쉽다",
+        "선점이 필요 없다"
+      ],
+      "correctOption": "A",
+      "hint": "RM은 이용률이 어느 정도 이하일 때만 보장됩니다.",
+      "explanation": "EDF는 주기와 마감이 같은 작업 집합에서 CPU 이용률이 100% 이하이면 마감을 모두 지킬 수 있는 최적 알고리즘입니다. RM은 이용률이 이보다 낮은 한계(작업이 많을 때 약 69%) 이하일 때 보장됩니다."
+    }
+  ],
+  "interview": []
+}

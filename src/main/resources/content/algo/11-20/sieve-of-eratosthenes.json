@@ -1,0 +1,60 @@
+{
+  "subject": "algo",
+  "slug": "sieve-of-eratosthenes",
+  "title": "에라토스테네스의 체",
+  "templateName": "sieve-of-eratosthenes",
+  "metaDescription": "에라토스테네스의 체 CS 지식 정리 — 배수를 지워가며 소수를 구하는 과정과 O(n log log n) 시간 복잡도를 인터랙티브 시각화로 학습하세요. 개발자 면접 알고리즘 핵심 개념.",
+  "published": true,
+  "order": 18,
+  "tags": [
+    "수학",
+    "에라토스테네스",
+    "소수"
+  ],
+  "visual": {
+    "key": "algo/11-20/2d/sieve-of-eratosthenes",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "displayOrder": 1,
+      "prompt": "에라토스테네스의 체의 기본 원리는?",
+      "options": [
+        "각 수를 모든 수로 나누어 본다",
+        "수를 무작위로 골라 소수인지 검사한다",
+        "이진 탐색으로 소수를 찾는다",
+        "2부터 시작해 각 소수의 배수를 차례로 지워 나간다"
+      ],
+      "correctOption": "D",
+      "hint": "지워지지 않고 남는 수가 소수입니다.",
+      "explanation": "2부터 시작해 아직 지워지지 않은 수를 소수로 확정하고, 그 수의 배수를 모두 지웁니다. 이를 반복하면 끝까지 남은 수만 소수가 됩니다."
+    },
+    {
+      "displayOrder": 2,
+      "prompt": "n 이하의 소수를 구할 때 √n 까지의 소수들의 배수만 지워도 되는 이유는?",
+      "options": [
+        "√n을 넘는 수는 소수가 아니기 때문",
+        "합성수는 반드시 √n 이하의 소인수를 가지기 때문",
+        "√n 이상의 수는 계산할 수 없기 때문",
+        "메모리 절약을 위해 임의로 정한 규칙이기 때문"
+      ],
+      "correctOption": "B",
+      "hint": "합성수 n = a × b 에서 두 인수 중 작은 쪽은 √n 이하입니다.",
+      "explanation": "합성수 m은 m = a × b 로 쓸 수 있고 a, b 중 하나는 반드시 √m 이하입니다. 따라서 √n 이하 소수의 배수를 모두 지우면 n 이하의 합성수가 전부 지워집니다."
+    },
+    {
+      "displayOrder": 3,
+      "prompt": "에라토스테네스의 체의 시간 복잡도는?",
+      "options": [
+        "O(n^2)",
+        "O(n!)",
+        "O(n log log n)",
+        "O(2^n)"
+      ],
+      "correctOption": "C",
+      "hint": "소수의 역수의 합이 log log n 정도로 아주 천천히 커집니다.",
+      "explanation": "각 소수 p마다 약 n/p번의 배수 지우기를 하고, 이를 소수들에 대해 합하면 n × (1/2 + 1/3 + 1/5 + ...) ≈ n log log n 이 됩니다. 거의 선형에 가까운 효율입니다."
+    }
+  ],
+  "interview": []
+}

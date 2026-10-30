@@ -1,0 +1,60 @@
+{
+  "subject": "ds",
+  "slug": "fenwick-tree",
+  "title": "펜윅 트리(BIT)",
+  "templateName": "fenwick-tree",
+  "metaDescription": "펜윅 트리 CS 지식 정리 — 비트 연산 기반 구간 합 계산과 갱신(BIT)을 인터랙티브 시각화로 학습하세요. 개발자 면접 자료구조 핵심 개념.",
+  "published": true,
+  "order": 13,
+  "tags": [
+    "BIT",
+    "구간합",
+    "트리"
+  ],
+  "visual": {
+    "key": "ds/11-20/2d/fenwick-tree",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "displayOrder": 1,
+      "prompt": "펜윅 트리(BIT)에서 인덱스 i가 담당하는 구간의 길이를 결정하는 값은?",
+      "options": [
+        "i의 제곱근",
+        "i의 자릿수",
+        "i를 2로 나눈 몫",
+        "i의 최하위 비트(lowbit, i & -i)"
+      ],
+      "correctOption": "D",
+      "hint": "비트 연산으로 구합니다.",
+      "explanation": "펜윅 트리의 i번째 칸은 i의 최하위 1비트(lowbit = i & -i)만큼의 길이를 담당합니다. 예를 들어 i=12(1100)의 lowbit는 4이므로 원소 9~12를 합쳐서 저장합니다."
+    },
+    {
+      "displayOrder": 2,
+      "prompt": "펜윅 트리에서 1부터 i까지의 구간 합을 구하는 시간 복잡도는?",
+      "options": [
+        "O(log n)",
+        "O(n)",
+        "O(1)",
+        "O(n log n)"
+      ],
+      "correctOption": "A",
+      "hint": "i에서 lowbit를 빼며 내려갑니다.",
+      "explanation": "구간 합 쿼리는 i에서 시작해 lowbit를 반복해서 빼며 이동하므로 최대 log n번 반복합니다. 값 갱신도 lowbit를 더하며 올라가므로 O(log n)입니다."
+    },
+    {
+      "displayOrder": 3,
+      "prompt": "펜윅 트리가 세그먼트 트리보다 유리한 점은?",
+      "options": [
+        "구간 최솟값 같은 모든 연산을 쉽게 지원한다",
+        "구현이 간단하고 배열 하나(크기 n)로 메모리를 적게 쓴다",
+        "쿼리가 항상 O(1)이다",
+        "정렬되지 않은 데이터에서도 이진 탐색이 가능하다"
+      ],
+      "correctOption": "B",
+      "hint": "대신 지원하는 연산의 종류에는 제약이 있습니다.",
+      "explanation": "펜윅 트리는 코드가 짧고 크기 n의 배열 하나만 필요해 메모리도 적게 씁니다. 다만 구간 합처럼 역연산이 가능한 연산에 주로 쓰이고, 구간 최솟값 같은 연산은 세그먼트 트리가 더 적합합니다."
+    }
+  ],
+  "interview": []
+}
