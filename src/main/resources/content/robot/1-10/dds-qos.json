@@ -63,5 +63,26 @@
       "explanation": "TRANSIENT_LOCAL로 발행하면 발행자가 최근 depth개의 메시지를 보관하고, 구독자도 TRANSIENT_LOCAL을 요청해야 연결되는 순간 지난 메시지를 받습니다. VOLATILE 구독자는 연결은 되지만 지난 메시지는 받지 못합니다."
     }
   ],
-  "interview": []
+  "interview": [
+    {
+      "id": "robot.dds-qos.q1",
+      "question": "ROS 2에서 QoS가 왜 필요한가요?",
+      "answer": "로봇은 최신 값이 중요한 센서 스트림, 놓치면 안 되는 명령, 한 번 발행하고 유지하는 지도처럼 요구가 다른 데이터를 한 시스템에서 다루고, 네트워크도 유선과 무선처럼 환경이 다릅니다. QoS로 데이터마다 품질 규칙을 선택합니다."
+    },
+    {
+      "id": "robot.dds-qos.q2",
+      "question": "RELIABLE과 BEST_EFFORT의 차이는?",
+      "answer": "RELIABLE은 유실되면 재전송해 전달을 보장하려 하고, BEST_EFFORT는 재전송 없이 보내 유실을 허용하는 대신 지연이 적은 편입니다. TCP와 UDP의 성격 차이와 비슷하게 생각할 수 있지만, ROS 2의 RELIABLE도 실제 전송은 UDP 위에서 구현됩니다."
+    },
+    {
+      "id": "robot.dds-qos.q3",
+      "question": "토픽을 구독했는데 데이터가 안 오면 무엇을 확인하나요?",
+      "answer": "토픽 이름과 메시지 타입이 같은지, 그리고 QoS가 호환되는지 봅니다. ros2 topic info에 --verbose를 붙여 양쪽의 QoS를 비교하고, 센서 발행자가 BEST_EFFORT인데 구독자가 RELIABLE인 경우처럼 요청이 제공보다 강한 조합이 없는지 봅니다."
+    },
+    {
+      "id": "robot.dds-qos.q4",
+      "question": "구독자가 나중에 시작해도 마지막 값을 받게 하려면?",
+      "answer": "발행자와 구독자 모두 내구성을 TRANSIENT_LOCAL로 설정합니다. 발행자가 최근 depth개의 메시지를 보관하다가 늦게 연결한 구독자에게 전달합니다. 지도나 정적 설정 같은 데이터에 씁니다."
+    }
+  ]
 }

@@ -62,5 +62,26 @@
       "explanation": "NVIDIA GPU는 스레드를 32개씩 묶은 워프(Warp) 단위로 같은 명령어를 함께 실행합니다. 한 워프 안에서 분기가 갈리면 성능이 떨어집니다(warp divergence)."
     }
   ],
-  "interview": []
+  "interview": [
+    {
+      "id": "arch.gpu-architecture.q1",
+      "question": "CPU와 GPU의 구조 차이는 무엇인가요?",
+      "answer": "CPU는 큰 캐시와 복잡한 제어로 한 스레드를 빠르게 처리하는 지연 지향이고, GPU는 단순한 코어를 수천 개 두고 같은 연산을 많은 데이터에 동시에 적용하는 처리량 지향입니다."
+    },
+    {
+      "id": "arch.gpu-architecture.q2",
+      "question": "워프와 워프 분기란 무엇인가요?",
+      "answer": "NVIDIA GPU에서 스레드 32개 묶음이 한 번에 같은 명령어를 실행하는 단위가 워프입니다. 한 워프 안에서 조건문으로 경로가 갈리면 각 경로가 차례로 실행되어 성능이 떨어지는 것이 워프 분기입니다."
+    },
+    {
+      "id": "arch.gpu-architecture.q3",
+      "question": "GPU는 메모리 지연을 어떻게 다루나요?",
+      "answer": "GPU에도 캐시가 있지만 지연을 주로 많은 워프를 번갈아 실행해 숨깁니다. 한 워프가 메모리를 기다리는 동안 다른 워프가 계산하므로 연산 유닛이 쉬지 않습니다."
+    },
+    {
+      "id": "arch.gpu-architecture.q4",
+      "question": "GPU에 알맞지 않은 작업은?",
+      "answer": "조건 분기가 많아 스레드마다 경로가 갈리거나 앞 결과에 의존하는 순차 작업, 데이터가 작아 CPU와 GPU 사이 전송 시간이 더 큰 작업입니다."
+    }
+  ]
 }

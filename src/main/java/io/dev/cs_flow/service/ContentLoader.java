@@ -2,6 +2,7 @@ package io.dev.cs_flow.service;
 
 import io.dev.cs_flow.dto.ContentError;
 import io.dev.cs_flow.dto.ContentManifest;
+import io.dev.cs_flow.dto.ContentInterview;
 import io.dev.cs_flow.dto.ContentQuiz;
 import io.dev.cs_flow.dto.ContentSubject;
 import io.dev.cs_flow.dto.ContentTopic;
@@ -237,6 +238,7 @@ public class ContentLoader {
         validateStrings(where, "roles", t.roles());
         validateStrings(where, "exams", t.exams());
         validateQuizzes(where, t);
+        validateInterviews(where, t);
     }
 
     /**
@@ -305,6 +307,34 @@ public class ContentLoader {
             if (q.correctOption() == null || !OPTION.matcher(q.correctOption()).matches()) {
                 errors.add(at + ": correctOption은 A~D 중 하나여야 합니다 - " + q.correctOption());
             }
+        }
+    }
+
+    /**
+     * 면접 질문이 없거나, 있으면 ID 순서(1부터 빠짐없이), 질문 · 답변, 난이도(1~3), 키워드 · 꼬리 질문 값을 검증한다.
+     */
+    private void validateInterviews(String where, ContentTopic t) {
+        List<ContentInterview> interviews = t.interview();
+        if (interviews == null) {
+            return;
+        }
+        for (int i = 0; i < interviews.size(); i++) {
+            ContentInterview q = interviews.get(i);
+            String at = where + " interview[" + i + "]";
+            if (q == null) {
+                errors.add(at + ": null 항목입니다");
+                continue;
+            }
+            if (q.id() == null || !q.id().equals(t.subject() + "." + t.slug() + ".q" + (i + 1))) {
+                errors.add(at + ": id는 {과목}.{slug}.q{순서}여야 합니다 - " + q.id());
+            }
+            checkText(at, "question", q.question(), Integer.MAX_VALUE);
+            checkText(at, "answer", q.answer(), Integer.MAX_VALUE);
+            if (q.level() != null && (q.level() < 1 || q.level() > 3)) {
+                errors.add(at + ": level은 1~3이어야 합니다 - " + q.level());
+            }
+            validateStrings(at, "keywords", q.keywords());
+            validateStrings(at, "followUps", q.followUps());
         }
     }
 
@@ -435,20 +465,25 @@ public class ContentLoader {
     private void validateManifest(ContentManifest m, List<ContentSubject> subjectList, Iterable<ContentTopic> topicList,
                                   int errorCount) {
         Map<String, int[]> actual = new HashMap<>();
-        subjectList.forEach(s -> actual.put(s.slug(), new int[2]));
+        subjectList.forEach(s -> actual.put(s.slug(), new int[3]));
         int topicTotal = 0;
         int quizTotal = 0;
+        int interviewTotal = 0;
         for (ContentTopic t : topicList) {
-            int[] c = actual.computeIfAbsent(String.valueOf(t.subject()), k -> new int[2]);
+            int[] c = actual.computeIfAbsent(String.valueOf(t.subject()), k -> new int[3]);
             int quizzes = t.quizzes() == null ? 0 : t.quizzes().size();
+            int interviews = t.interview() == null ? 0 : t.interview().size();
             c[0]++;
             c[1] += quizzes;
+            c[2] += interviews;
             topicTotal++;
             quizTotal += quizzes;
+            interviewTotal += interviews;
         }
         expect("manifest.subjects", m.subjects(), subjectList.size());
         expect("manifest.topics", m.topics(), topicTotal);
         expect("manifest.quizzes", m.quizzes(), quizTotal);
+        expect("manifest.interviews", m.interviews(), interviewTotal);
         expect("manifest.errors", m.errors(), errorCount);
         if (m.bySubject() == null) {
             errors.add("manifest.bySubject가 없습니다");
@@ -462,6 +497,7 @@ public class ContentLoader {
             }
             expect("manifest." + entry.getKey() + ".topics", expected.topics(), entry.getValue()[0]);
             expect("manifest." + entry.getKey() + ".quizzes", expected.quizzes(), entry.getValue()[1]);
+            expect("manifest." + entry.getKey() + ".interviews", expected.interviews(), entry.getValue()[2]);
         }
         for (String slug : m.bySubject().keySet()) {
             if (!actual.containsKey(slug)) {

@@ -2,6 +2,7 @@ package io.dev.cs_flow.service;
 
 import io.dev.cs_flow.common.exception.NotFoundException;
 import io.dev.cs_flow.common.util.SearchPatterns;
+import io.dev.cs_flow.dto.InterviewQuestionView;
 import io.dev.cs_flow.dto.TagCount;
 import io.dev.cs_flow.dto.TopicIndexItem;
 import io.dev.cs_flow.dto.TopicInfo;
@@ -188,6 +189,16 @@ public class TopicService {
                 .map(e -> new TagCount(e.getKey(), e.getValue()))
                 .sorted(Comparator.comparingLong(TagCount::count).reversed().thenComparing(TagCount::tag))
                 .toList();
+    }
+
+    /**
+     * 토픽의 면접 질문을 순서대로 조회한다.
+     *
+     * @param topicSlug 토픽 영문 식별자
+     * @return 면접 질문 목록, 없으면 빈 리스트 반환
+     */
+    public List<InterviewQuestionView> getInterviewQuestions(String topicSlug){
+        return contentStore.interviews(topicSlug);
     }
 
     /**

@@ -62,5 +62,26 @@
       "explanation": "트리거는 애플리케이션 코드에 보이지 않은 채 자동 실행되어 동작을 추적하기 어렵습니다. 또 데이터 변경마다 추가 작업이 들어가 쓰기 성능이 떨어질 수 있습니다."
     }
   ],
-  "interview": []
+  "interview": [
+    {
+      "id": "db.stored-procedure-trigger.q1",
+      "question": "저장 프로시저란?",
+      "answer": "여러 SQL 문과 제어 흐름을 DB 서버에 저장해 두고 이름으로 호출해 실행하는 기능입니다. 네트워크 왕복을 줄이고 로직을 DB에 모아 둘 수 있습니다."
+    },
+    {
+      "id": "db.stored-procedure-trigger.q2",
+      "question": "트리거란?",
+      "answer": "INSERT, UPDATE, DELETE 같은 이벤트가 일어나면 자동으로 실행되는 DB 객체입니다. 변경 이력 기록이나 값 검증에 씁니다."
+    },
+    {
+      "id": "db.stored-procedure-trigger.q3",
+      "question": "트리거를 남용하면 어떤 문제가 생기나요?",
+      "answer": "코드에서 보이지 않는 숨은 동작이 생겨 추적과 디버깅이 어렵고, 데이터 변경마다 추가 작업이 들어가 쓰기 성능에 영향을 줄 수 있습니다."
+    },
+    {
+      "id": "db.stored-procedure-trigger.q4",
+      "question": "프로시저와 애플리케이션 로직 중 어디에 규칙을 두나요?",
+      "answer": "정해진 답은 없습니다. 여러 앱이 같은 규칙을 써야 하거나 왕복을 줄여야 하면 DB, 다른 DB로 옮길 가능성이 있으면 애플리케이션에 두는 쪽이 유리할 수 있습니다."
+    }
+  ]
 }

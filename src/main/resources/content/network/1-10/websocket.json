@@ -62,5 +62,26 @@
       "explanation": "WebSocket은 한 번 연결을 맺으면 계속 유지되어, 폴링처럼 반복 요청할 필요 없이 이벤트가 발생하는 즉시 데이터를 주고받을 수 있어 실시간성이 중요한 서비스에 적합합니다."
     }
   ],
-  "interview": []
+  "interview": [
+    {
+      "id": "network.websocket.q1",
+      "question": "WebSocket 연결은 어떻게 맺어지나요?",
+      "answer": "클라이언트가 Upgrade: websocket 헤더와 Sec-WebSocket-Key를 담은 HTTP GET을 보내고, 서버가 101 Switching Protocols와 Sec-WebSocket-Accept로 응답하면 같은 TCP 연결이 WebSocket 프레임을 주고받는 채널로 바뀝니다."
+    },
+    {
+      "id": "network.websocket.q2",
+      "question": "폴링, 롱폴링, SSE, WebSocket은 어떻게 고르나요?",
+      "answer": "서버에서 클라이언트로만 알리면 되고 HTTP 위에서 단순하게 가고 싶으면 SSE, 클라이언트와 서버가 자주 양방향으로 주고받으면 WebSocket을 씁니다. 갱신이 드물고 단순하면 폴링도 충분합니다."
+    },
+    {
+      "id": "network.websocket.q3",
+      "question": "서버가 여러 대일 때 메시지를 모든 사용자에게 어떻게 보내나요?",
+      "answer": "사용자 연결이 서로 다른 서버에 붙어 있으므로 서버끼리 메시지를 전달할 통로가 필요합니다. 외부 메시지 브로커(RabbitMQ, ActiveMQ 등)나 Pub/Sub 방식으로 각 서버에 메시지를 퍼뜨리고, 각 서버가 자기 연결에 전달합니다."
+    },
+    {
+      "id": "network.websocket.q4",
+      "question": "연결이 끊긴 것을 어떻게 알아내나요?",
+      "answer": "상대가 정상 종료하면 Close 프레임이 오지만 비정상 종료나 네트워크 단절은 알려지지 않을 수 있습니다. Ping/Pong 프레임이나 애플리케이션 하트비트를 주기적으로 주고받아 응답이 없으면 끊긴 것으로 처리합니다."
+    }
+  ]
 }

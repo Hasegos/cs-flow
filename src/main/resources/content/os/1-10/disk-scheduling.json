@@ -62,5 +62,26 @@
       "explanation": "SCAN은 한쪽 끝까지 이동한 뒤 방향을 바꿔 반대쪽으로 이동하며 처리하고, C-SCAN은 끝에 도달하면 반대편 시작점으로 점프해 항상 같은 방향으로만 처리해 대기시간을 더 균등하게 만듭니다."
     }
   ],
-  "interview": []
+  "interview": [
+    {
+      "id": "os.disk-scheduling.q1",
+      "question": "FCFS, SSTF, SCAN, C-SCAN의 차이는 무엇인가요?",
+      "answer": "FCFS는 도착 순서이고 이동이 많습니다. SSTF는 가까운 요청을 먼저 처리해 이동은 줄지만 기아가 생깁니다. SCAN은 한 방향으로 쓸고 가며 처리하고 끝에서 방향을 바꾸며, C-SCAN은 끝에 닿으면 처음으로 돌아가 한 방향으로만 처리해 대기 시간이 더 고릅니다."
+    },
+    {
+      "id": "os.disk-scheduling.q2",
+      "question": "LOOK은 SCAN과 무엇이 다른가요?",
+      "answer": "SCAN은 디스크 끝까지 가지만 LOOK은 해당 방향에서 마지막 요청까지만 가고 돌아옵니다. 불필요한 이동이 줄어듭니다."
+    },
+    {
+      "id": "os.disk-scheduling.q3",
+      "question": "SSD에도 디스크 스케줄링이 필요한가요?",
+      "answer": "탐색 시간이 없어서 헤드 이동을 줄이는 정렬은 의미가 작습니다. 다만 요청 사이의 공정성이나 지연 상한을 관리하려고 간단한 스케줄러를 둘 수 있습니다."
+    },
+    {
+      "id": "os.disk-scheduling.q4",
+      "question": "디스크 I/O 시간은 무엇으로 구성되나요?",
+      "answer": "탐색 시간, 회전 지연, 전송 시간의 합입니다. HDD에서는 앞의 두 가지가 대부분입니다."
+    }
+  ]
 }

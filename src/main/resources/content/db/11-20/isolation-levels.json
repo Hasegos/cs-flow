@@ -62,5 +62,26 @@
       "explanation": "PostgreSQL의 기본 격리 수준은 Read Committed입니다. 커밋된 데이터만 읽으며, 문장마다 그 시점의 커밋된 최신 스냅샷을 봅니다."
     }
   ],
-  "interview": []
+  "interview": [
+    {
+      "id": "db.isolation-levels.q1",
+      "question": "세 가지 이상 현상을 설명해 보세요.",
+      "answer": "Dirty Read는 미커밋 값을 읽는 것, Non-repeatable Read는 같은 행을 두 번 읽었는데 값이 바뀌는 것, Phantom Read는 같은 조건으로 조회했는데 행이 늘거나 줄어드는 것입니다."
+    },
+    {
+      "id": "db.isolation-levels.q2",
+      "question": "Read Committed와 Repeatable Read의 차이는?",
+      "answer": "PostgreSQL에서 Read Committed는 문장마다 새 스냅샷을 봐서 같은 행을 다시 읽으면 값이 달라질 수 있고, Repeatable Read는 트랜잭션 동안 같은 스냅샷을 봅니다."
+    },
+    {
+      "id": "db.isolation-levels.q3",
+      "question": "PostgreSQL의 기본 격리 수준은?",
+      "answer": "Read Committed입니다. 커밋된 데이터만 읽고 문장마다 그 시점의 최신 커밋 상태를 봅니다."
+    },
+    {
+      "id": "db.isolation-levels.q4",
+      "question": "직렬화 실패가 나면 어떻게 하나요?",
+      "answer": "데이터가 깨진 것이 아니라 동시 실행 순서를 맞추기 위해 한 트랜잭션이 되돌려진 것이므로, 트랜잭션 전체를 새로 시작해 재시도합니다."
+    }
+  ]
 }

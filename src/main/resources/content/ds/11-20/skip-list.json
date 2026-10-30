@@ -62,5 +62,26 @@
       "explanation": "Redis의 Sorted Set(ZSET)은 요소가 많을 때 스킵 리스트와 해시 테이블을 함께 사용해 순위 조회와 범위 조회를 빠르게 처리합니다."
     }
   ],
-  "interview": []
+  "interview": [
+    {
+      "id": "ds.skip-list.q1",
+      "question": "스킵 리스트는 어떻게 O(log n) 탐색을 하나요?",
+      "answer": "정렬된 연결 리스트 위에 점점 성긴 층을 쌓아, 위층에서 크게 건너뛰고 아래층에서 범위를 좁힙니다. 층 수가 log n 정도라 평균 O(log n)입니다."
+    },
+    {
+      "id": "ds.skip-list.q2",
+      "question": "노드의 높이는 어떻게 정하나요?",
+      "answer": "동전을 던져 앞면이면 한 층 올리고 뒷면이면 멈춥니다. 위층으로 갈수록 노드 수가 절반씩 줄어드는 분포가 평균적으로 만들어집니다."
+    },
+    {
+      "id": "ds.skip-list.q3",
+      "question": "균형 트리와 비교하면?",
+      "answer": "구현이 단순하고 삽입이 국소적이라 동시성에 유리합니다. 대신 성능 보장이 확률적입니다."
+    },
+    {
+      "id": "ds.skip-list.q4",
+      "question": "어디에 쓰이나요?",
+      "answer": "Redis의 정렬 집합(Sorted Set)이 원소가 많아지면 스킵 리스트를 쓰고, 자바의 ConcurrentSkipListMap이 동시성을 지원하는 정렬 맵으로 제공됩니다. LevelDB 같은 저장소의 메모리 테이블에도 쓰입니다."
+    }
+  ]
 }

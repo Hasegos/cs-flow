@@ -83,6 +83,7 @@ public class TopicController {
         model.addAttribute("relatedTopics", topicService.getRelatedTopics(topic));
         model.addAttribute("topicErrors", errorEntryService.getVerifiedByTopic(subjectSlug, topicSlug));
         model.addAttribute("quizQuestions", quizService.getQuestions(topicSlug));
+        model.addAttribute("interviewQuestions", topicService.getInterviewQuestions(topicSlug));
         model.addAttribute("liked", visitorId != null && topicLikeService.isLiked(topicSlug, visitorId));
         model.addAttribute("likeCount", topicLikeService.countLikes(topicSlug));
         model.addAttribute("canonicalUrl", canonicalUrl);

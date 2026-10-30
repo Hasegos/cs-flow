@@ -62,5 +62,26 @@
       "explanation": "Spring Boot 2.0부터 기본 커넥션 풀은 HikariCP입니다. 가볍고 빠르며, maximum-pool-size 같은 설정으로 풀 크기를 조정합니다."
     }
   ],
-  "interview": []
+  "interview": [
+    {
+      "id": "db.connection-pool.q1",
+      "question": "커넥션 풀을 쓰는 이유는?",
+      "answer": "DB 연결을 새로 맺는 비용을 줄이려고 미리 만든 연결을 재사용하고, 동시 연결 수를 제한해 DB를 보호하기 위해서입니다."
+    },
+    {
+      "id": "db.connection-pool.q2",
+      "question": "풀 크기를 무작정 크게 잡으면 어떻게 되나요?",
+      "answer": "DB 서버의 자원 부담과 경합이 늘어 성능이 오히려 떨어질 수 있습니다. 코어 수와 쿼리 특성을 고려해 적정 크기를 잡고 측정으로 조정합니다."
+    },
+    {
+      "id": "db.connection-pool.q3",
+      "question": "스프링 부트의 기본 커넥션 풀은?",
+      "answer": "HikariCP입니다. 스프링 부트 2.0부터 기본이고, maximum-pool-size 같은 속성으로 크기를 조정합니다."
+    },
+    {
+      "id": "db.connection-pool.q4",
+      "question": "연결 누수는 왜 위험하고 어떻게 막나요?",
+      "answer": "반납되지 않은 연결이 쌓이면 풀이 비어 새 요청이 실패합니다. try-with-resources 같은 구조로 항상 반납하고, 누수 감지 설정으로 오래 반납되지 않는 연결을 찾습니다."
+    }
+  ]
 }
