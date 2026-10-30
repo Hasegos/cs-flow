@@ -544,6 +544,22 @@
         },
     });
 
+    /* ===================== 3D 전환 ===================== */
+    window.CsFlow.mount3dButton({
+        container: container,
+        parent: toolbar,
+        cls: 'pl__btn pl__btn--primary',
+        label: '3D 세탁소',
+        onOpen: function () {
+            plReset();
+            root.classList.add('pl--hidden');
+        },
+        onExit: function () {
+            root.classList.remove('pl--hidden');
+            resize();
+        }
+    });
+
     /* ===================== 초기화 ===================== */
     setTimeout(resize, 60);
 })();

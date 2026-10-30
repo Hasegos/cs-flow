@@ -162,3 +162,7 @@
   cursor: not-allowed;
   pointer-events: none;
 }
+
+.pl--hidden {
+  display: none;
+}
