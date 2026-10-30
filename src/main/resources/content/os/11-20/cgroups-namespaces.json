@@ -11,12 +11,15 @@
     "cgroups",
     "리눅스"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "os/11-20/2d/cgroups-namespaces",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "os.cgroups-namespaces.quiz1",
       "displayOrder": 1,
       "prompt": "리눅스 cgroups(control groups)의 역할은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "cgroups는 프로세스 그룹 단위로 CPU, 메모리, I/O 등의 사용량을 제한하고 계측합니다. 컨테이너가 호스트 자원을 독점하지 못하게 하는 기반 기술입니다."
     },
     {
+      "id": "os.cgroups-namespaces.quiz2",
       "displayOrder": 2,
       "prompt": "리눅스 namespace의 역할은?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "namespace는 PID, 네트워크, 마운트, 호스트명 등 시스템 자원의 \"보이는 범위\"를 프로세스 그룹별로 분리해, 각 컨테이너가 자기만의 독립된 시스템을 쓰는 것처럼 보이게 합니다."
     },
     {
+      "id": "os.cgroups-namespaces.quiz3",
       "displayOrder": 3,
       "prompt": "컨테이너 안에서 실행 중인 첫 프로세스가 자기 PID를 1로 인식하게 해 주는 기능은?",
       "options": [

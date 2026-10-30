@@ -1,0 +1,29 @@
+{
+  "slug": "python-valueerror-has-host-bits-set",
+  "order": 26,
+  "category": "network",
+  "title": "Python: ValueError: has host bits set (ipaddress) 에러",
+  "errorMessage": "ValueError: 192.168.1.5/24 has host bits set",
+  "envOs": "Windows 10 (재현 환경)",
+  "envDistro": null,
+  "envVersion": "Python 3.14.7 (재현)",
+  "cause": "Python 공식 문서(ipaddress)는 ip_network()의 strict가 True(기본값)일 때 주소에 호스트 비트가 설정되어 있으면 ValueError가 발생하고, strict=False이면 호스트 비트를 가려 네트워크 주소를 구한다고 설명합니다.",
+  "solution": "네트워크 주소(호스트 비트를 0으로 한 값)를 쓰거나, 호스트 주소에서 네트워크 주소를 구하려면 strict=False를 줍니다.\n\n[해결 확인 2026-10-26 · Windows 10 · Python 3.14.7]\n1. ipaddress.ip_network('192.168.1.5/24') 를 실행하면 ValueError: 192.168.1.5/24 has host bits set 이 납니다.\n2. ip_network('192.168.1.5/24', strict=False) 는 192.168.1.0/24 를, ip_network('192.168.1.0/24') 도 192.168.1.0/24 를 출력합니다.",
+  "reproduction": "[재현 완료 2026-10-26 · Windows 10 · Python 3.14.7]\n1. python -c 로 import ipaddress 한 뒤 print(ipaddress.ip_network('192.168.1.5/24')) 를 실행합니다.\n2. 마지막 줄에 ValueError: 192.168.1.5/24 has host bits set 이 출력됩니다.",
+  "createdOn": "2026-10-26",
+  "verifiedOn": "2026-10-26",
+  "verified": true,
+  "sources": [
+    {
+      "label": "Python docs — ipaddress: ip_network, IPv4Network",
+      "url": "https://docs.python.org/3/library/ipaddress.html"
+    },
+    {
+      "label": "python/cpython v3.14.7 — Lib/ipaddress.py (has host bits set)",
+      "url": "https://github.com/python/cpython/blob/v3.14.7/Lib/ipaddress.py#L1540"
+    }
+  ],
+  "topics": [
+    "subnetting-cidr"
+  ]
+}

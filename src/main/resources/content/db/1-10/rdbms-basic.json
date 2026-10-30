@@ -11,12 +11,15 @@
     "관계형",
     "기본키"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "db/1-10/2d/rdbms-basic",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "db.rdbms-basic.quiz1",
       "displayOrder": 1,
       "prompt": "관계형 데이터베이스에서 기본키(Primary Key)의 역할은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "기본키는 테이블의 각 행(레코드)을 유일하게 식별하는 컬럼(또는 컬럼 조합)으로, 중복되거나 비어있을 수 없습니다."
     },
     {
+      "id": "db.rdbms-basic.quiz2",
       "displayOrder": 2,
       "prompt": "외래키(Foreign Key)의 역할은?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "외래키는 다른 테이블의 기본키 값을 참조해 두 테이블 간의 관계(1:N 등)를 표현하고, 참조 무결성을 보장합니다."
     },
     {
+      "id": "db.rdbms-basic.quiz3",
       "displayOrder": 3,
       "prompt": "테이블, 컬럼, 레코드(행)의 관계로 옳은 것은?",
       "options": [

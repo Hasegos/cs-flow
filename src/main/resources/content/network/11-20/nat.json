@@ -11,12 +11,15 @@
     "사설IP",
     "NAT"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "network/11-20/2d/nat",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "network.nat.quiz1",
       "displayOrder": 1,
       "prompt": "NAT(Network Address Translation)의 기본 역할은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "NAT는 내부망의 사설 IP를 외부에서 쓰는 공인 IP로 변환합니다. 덕분에 여러 내부 장치가 하나의 공인 IP를 공유하고, IPv4 주소 부족 문제도 완화됩니다."
     },
     {
+      "id": "network.nat.quiz2",
       "displayOrder": 2,
       "prompt": "PAT(포트 주소 변환, NAPT)의 특징은?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "PAT는 내부 호스트마다 서로 다른 외부 포트 번호를 할당해 변환 테이블에 기록합니다. 그래서 하나의 공인 IP로도 여러 내부 호스트의 연결을 구분해 동시에 처리할 수 있습니다."
     },
     {
+      "id": "network.nat.quiz3",
       "displayOrder": 3,
       "prompt": "NAT 뒤에 있는 내부 서버에 외부에서 접속할 수 있게 하려면?",
       "options": [

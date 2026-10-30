@@ -11,12 +11,15 @@
     "모노토닉",
     "스택"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "algo/11-20/2d/monotonic-stack",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "algo.monotonic-stack.quiz1",
       "displayOrder": 1,
       "prompt": "배열의 각 원소에 대해 오른쪽에서 처음 나오는 더 큰 값(Next Greater Element)을 O(n)에 구하는 데 쓰는 자료구조는?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "아직 더 큰 값을 만나지 못한 원소들의 인덱스를 스택에 쌓아 두고, 새 원소가 스택 top보다 크면 top을 꺼내 답을 확정하는 방식으로 O(n)에 해결합니다."
     },
     {
+      "id": "algo.monotonic-stack.quiz2",
       "displayOrder": 2,
       "prompt": "Next Greater Element를 구하는 모노토닉 스택에서 스택 안의 값은 어떤 순서로 유지될까?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "스택 top보다 큰 값이 오면 그 top의 \"다음 큰 원소\"가 확정되므로 pop합니다. 이 과정 때문에 스택에는 바닥에서 top으로 갈수록 값이 커지지 않는(같은 값은 남을 수 있는 단조 감소) 원소들만 남습니다."
     },
     {
+      "id": "algo.monotonic-stack.quiz3",
       "displayOrder": 3,
       "prompt": "모노토닉 스택 방식이 전체 O(n)인 이유는?",
       "options": [

@@ -11,12 +11,15 @@
     "TCP",
     "혼잡 제어"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "network/1-10/2d/tcp-congestion",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "network.tcp-congestion.quiz1",
       "displayOrder": 1,
       "prompt": "TCP 혼잡 제어에서 Slow Start(SS) 단계의 특징은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "Slow Start는 cwnd를 1부터 시작해 ACK을 받을 때마다 지수적으로 증가시켜 가용 대역폭을 빠르게 탐색합니다."
     },
     {
+      "id": "network.tcp-congestion.quiz2",
       "displayOrder": 2,
       "prompt": "혼잡 회피(Congestion Avoidance, CA) 단계로 전환되는 시점은?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "cwnd가 ssthresh에 도달하면 지수적 증가 대신 선형적으로(RTT마다 1씩) 증가하는 혼잡 회피 단계로 전환해 네트워크 혼잡을 조심스럽게 피합니다."
     },
     {
+      "id": "network.tcp-congestion.quiz3",
       "displayOrder": 3,
       "prompt": "패킷 손실이 감지되면 TCP 혼잡 제어는 일반적으로 어떻게 반응하나요?",
       "options": [

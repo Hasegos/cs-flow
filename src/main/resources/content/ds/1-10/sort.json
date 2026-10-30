@@ -11,12 +11,15 @@
     "정렬",
     "알고리즘"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "ds/1-10/2d/sort",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "ds.sort.quiz1",
       "displayOrder": 1,
       "prompt": "버블 정렬(Bubble Sort)의 평균/최악 시간 복잡도는?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "버블 정렬은 인접 원소를 비교하며 큰 값을 뒤로 보내는 과정을 n번 반복해 평균/최악 시간 복잡도가 O(n^2)입니다."
     },
     {
+      "id": "ds.sort.quiz2",
       "displayOrder": 2,
       "prompt": "병합 정렬(Merge Sort)이 O(n log n)을 보장하는 이유는?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "병합 정렬은 배열을 절반씩 나누는 데 log n단계가 걸리고, 각 단계마다 병합에 O(n)이 걸려 전체 O(n log n)을 보장합니다. 최악의 경우에도 성능이 일정합니다."
     },
     {
+      "id": "ds.sort.quiz3",
       "displayOrder": 3,
       "prompt": "퀵 정렬(Quick Sort)의 최악 시간 복잡도가 O(n^2)이 되는 경우는?",
       "options": [

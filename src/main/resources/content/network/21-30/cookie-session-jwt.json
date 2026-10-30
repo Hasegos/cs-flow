@@ -12,12 +12,15 @@
     "JWT",
     "인증"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "network/21-30/2d/cookie-session-jwt",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "network.cookie-session-jwt.quiz1",
       "displayOrder": 1,
       "prompt": "세션 방식에서 서버가 쿠키에 담아 클라이언트에게 내려 보내는 것은?",
       "options": [
@@ -31,6 +34,7 @@
       "explanation": "세션 방식은 사용자 상태를 서버 저장소에 보관하고, 클라이언트에는 그 상태를 찾는 키인 세션 ID만 쿠키로 줍니다. 요청마다 브라우저가 쿠키를 붙여 보내면 서버가 세션 ID로 저장소를 조회합니다."
     },
     {
+      "id": "network.cookie-session-jwt.quiz2",
       "displayOrder": 2,
       "prompt": "서명된 JWT의 페이로드에 대한 설명으로 옳은 것은?",
       "options": [
@@ -44,6 +48,7 @@
       "explanation": "일반적인 서명 JWT의 페이로드는 암호화가 아니라 Base64url 인코딩입니다. 서명은 내용이 바뀌었는지만 알려 줄 뿐 숨기지 않으므로 비밀번호 같은 민감한 값은 넣으면 안 됩니다."
     },
     {
+      "id": "network.cookie-session-jwt.quiz3",
       "displayOrder": 3,
       "prompt": "서명이 유효하고 만료 시각이 지나지 않은 JWT를 서버가 즉시 무효화하기 어려운 이유는?",
       "options": [

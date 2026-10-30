@@ -1,0 +1,29 @@
+{
+  "slug": "java-arrayindexoutofboundsexception",
+  "order": 10,
+  "category": "algorithm",
+  "title": "Java: ArrayIndexOutOfBoundsException: Index 5 out of bounds for length 3 에러",
+  "errorMessage": "java.lang.ArrayIndexOutOfBoundsException: Index <인덱스> out of bounds for length <길이>",
+  "envOs": "Windows 10 (재현 환경)",
+  "envDistro": null,
+  "envVersion": "OpenJDK 21.0.8 (재현), JDK 21 소스 기준",
+  "cause": "Javadoc은 배열이 잘못된 인덱스로 접근됐을 때 던져지며, 인덱스가 음수이거나 배열 크기 이상인 경우라고 설명합니다. 메시지 형식 \"Index %d out of bounds for length %d\"는 HotSpot 인터프리터 소스(interpreterRuntime.cpp)와 라이브러리 소스(Preconditions.java)에서 확인했습니다.",
+  "solution": "배열에 접근하기 전에 인덱스가 0 이상이고 length보다 작은지 확인하고, 반복문 조건은 k < arr.length 로 씁니다.\n\n[해결 확인 2026-10-26 · Windows 10 · OpenJDK 21.0.8]\n1. int[] arr = new int[3] 에서 arr[5] 를 읽으면 java.lang.ArrayIndexOutOfBoundsException: Index 5 out of bounds for length 3 이 납니다.\n2. i >= 0 && i < arr.length 를 먼저 검사하면 접근하지 않고 범위 밖이라는 문구를 출력하며, k < arr.length 반복문은 인덱스 0, 1, 2 만 읽습니다.",
+  "reproduction": "[재현 완료 2026-10-24 · Windows 10 · OpenJDK 21.0.8]\n1. Aioobe.java 를 만듭니다: public class Aioobe { public static void main(String[] a){ int[] x = new int[3]; System.out.println(x[5]); } }\n2. java Aioobe.java 를 실행합니다.\n3. Exception in thread \"main\" java.lang.ArrayIndexOutOfBoundsException: Index 5 out of bounds for length 3 이 출력됩니다.",
+  "createdOn": "2026-10-24",
+  "verifiedOn": "2026-10-26",
+  "verified": true,
+  "sources": [
+    {
+      "label": "Oracle — Java SE 21 API: ArrayIndexOutOfBoundsException",
+      "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/ArrayIndexOutOfBoundsException.html"
+    },
+    {
+      "label": "openjdk/jdk jdk-21-ga — hotspot/share/interpreter/interpreterRuntime.cpp",
+      "url": "https://github.com/openjdk/jdk/blob/jdk-21-ga/src/hotspot/share/interpreter/interpreterRuntime.cpp"
+    }
+  ],
+  "topics": [
+    "array-linkedlist"
+  ]
+}

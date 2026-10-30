@@ -11,12 +11,15 @@
     "스택",
     "큐"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "ds/1-10/2d/stack-queue",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "ds.stack-queue.quiz1",
       "displayOrder": 1,
       "prompt": "스택(Stack)의 동작 원리는?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "스택은 LIFO(Last In First Out) 구조로, 가장 나중에 push된 데이터가 가장 먼저 pop됩니다."
     },
     {
+      "id": "ds.stack-queue.quiz2",
       "displayOrder": 2,
       "prompt": "큐(Queue)의 동작 원리는?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "큐는 FIFO(First In First Out) 구조로, 가장 먼저 enqueue된 데이터가 가장 먼저 dequeue됩니다."
     },
     {
+      "id": "ds.stack-queue.quiz3",
       "displayOrder": 3,
       "prompt": "함수 호출 스택(call stack)이 '스택' 구조를 쓰는 이유는?",
       "options": [

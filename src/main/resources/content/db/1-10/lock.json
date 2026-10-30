@@ -11,12 +11,15 @@
     "락",
     "동시성"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "db/1-10/2d/lock",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "db.lock.quiz1",
       "displayOrder": 1,
       "prompt": "공유락(Shared Lock)과 배타락(Exclusive Lock)의 차이는?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "공유락(S-Lock)은 읽기용으로 여러 트랜잭션이 동시에 획득할 수 있지만, 배타락(X-Lock)은 쓰기용으로 한 번에 하나의 트랜잭션만 획득할 수 있어 다른 트랜잭션의 읽기/쓰기를 모두 막습니다."
     },
     {
+      "id": "db.lock.quiz2",
       "displayOrder": 2,
       "prompt": "두 트랜잭션이 서로 상대방이 가진 락을 기다리며 영원히 대기하는 상황을 무엇이라 하나요?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "데드락은 두 개 이상의 트랜잭션이 서로 상대가 점유한 락을 기다리며 순환적으로 대기해, 아무도 진행하지 못하는 상황입니다."
     },
     {
+      "id": "db.lock.quiz3",
       "displayOrder": 3,
       "prompt": "락으로 인한 데드락을 완화하는 일반적인 방법은?",
       "options": [

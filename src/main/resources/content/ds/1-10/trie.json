@@ -11,12 +11,15 @@
     "트라이",
     "문자열"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "ds/1-10/2d/trie",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "ds.trie.quiz1",
       "displayOrder": 1,
       "prompt": "트라이(Trie)의 주요 용도는?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "트라이는 문자열을 문자 단위로 트리 경로에 저장해, 공통 접두사를 가진 단어들이 경로를 공유하므로 접두사 검색(자동완성 등)에 효율적입니다."
     },
     {
+      "id": "ds.trie.quiz2",
       "displayOrder": 2,
       "prompt": "트라이에서 'isEnd' 표시가 필요한 이유는?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "isEnd 표시가 없으면 'app'이 저장된 단어인지, 단순히 'apple'의 경로 중간 지점인지 구분할 수 없습니다."
     },
     {
+      "id": "ds.trie.quiz3",
       "displayOrder": 3,
       "prompt": "트라이에서 문자열 검색(contains)의 시간 복잡도는(알파벳 크기 무시 시)?",
       "options": [

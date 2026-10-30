@@ -11,12 +11,15 @@
     "멀티코어",
     "MESI"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "arch/11-20/2d/cache-coherence",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "arch.cache-coherence.quiz1",
       "displayOrder": 1,
       "prompt": "캐시 일관성(Cache Coherence) 문제가 생기는 상황은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "멀티코어에서는 코어마다 개별 캐시가 있어 같은 주소의 데이터가 여러 캐시에 복사될 수 있습니다. 한 코어가 값을 수정하면 다른 캐시의 복사본은 낡은 값이 되므로 이를 맞춰주는 프로토콜이 필요합니다."
     },
     {
+      "id": "arch.cache-coherence.quiz2",
       "displayOrder": 2,
       "prompt": "MESI 프로토콜에서 캐시 라인이 가질 수 있는 네 가지 상태는?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "MESI는 캐시 라인의 상태를 Modified(수정됨), Exclusive(단독 보유), Shared(공유), Invalid(무효)로 나누어 코어 간 캐시 일관성을 유지합니다."
     },
     {
+      "id": "arch.cache-coherence.quiz3",
       "displayOrder": 3,
       "prompt": "MESI에서 한 코어가 Shared 상태의 캐시 라인에 쓰기를 하려 할 때 일어나는 일은?",
       "options": [

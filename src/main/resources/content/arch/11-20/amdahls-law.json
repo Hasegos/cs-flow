@@ -11,12 +11,15 @@
     "병렬처리",
     "속도향상"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "arch/11-20/2d/amdahls-law",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "arch.amdahls-law.quiz1",
       "displayOrder": 1,
       "prompt": "병렬 비율이 p인 프로그램을 코어 N개로 실행할 때, 암달의 법칙에 따른 속도 향상(Speedup) 식은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "직렬로 실행해야 하는 부분 (1-p)는 코어를 늘려도 그대로이고, 병렬화 가능한 부분 p만 N으로 나뉩니다. 그래서 Speedup = 1 / ((1-p) + p/N) 입니다."
     },
     {
+      "id": "arch.amdahls-law.quiz2",
       "displayOrder": 2,
       "prompt": "병렬 비율 p=0.8인 프로그램을 코어를 무한히 늘려 실행할 때, 이론상 최대 속도 향상은?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "N → ∞ 이면 p/N → 0 이므로 Speedup의 상한은 1 / (1-p) 입니다. p=0.8이면 1 / 0.2 = 5배가 한계입니다."
     },
     {
+      "id": "arch.amdahls-law.quiz3",
       "displayOrder": 3,
       "prompt": "암달의 법칙이 주는 교훈으로 옳은 것은?",
       "options": [
@@ -56,6 +61,7 @@
       "explanation": "병렬화할 수 없는 직렬 구간은 코어를 늘려도 시간이 줄지 않으므로, 이 구간의 비율이 전체 속도 향상의 천장이 됩니다. 코어를 더 늘리기 전에 직렬 구간을 줄이는 것이 더 효과적일 수 있습니다."
     },
     {
+      "id": "arch.amdahls-law.quiz4",
       "displayOrder": 4,
       "prompt": "병렬 비율이 0.9인 프로그램을 코어 10개로 실행할 때 속도 향상은 약 얼마일까?",
       "options": [

@@ -13,12 +13,15 @@
     "3-way handshake",
     "전송 계층"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "network/21-30/2d/tcp-vs-udp",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "network.tcp-vs-udp.quiz1",
       "displayOrder": 1,
       "prompt": "TCP가 데이터를 보내기 전에 연결을 수립하는 절차로 올바른 것은?",
       "options": [
@@ -32,6 +35,7 @@
       "explanation": "3-way handshake는 SYN, SYN-ACK, ACK 세 번의 교환입니다. 이 과정에서 양쪽이 서로의 초기 순서 번호를 확인합니다. FIN은 연결을 닫을 때 쓰는 플래그입니다."
     },
     {
+      "id": "network.tcp-vs-udp.quiz2",
       "displayOrder": 2,
       "prompt": "TCP와 UDP의 차이에 대한 설명으로 옳은 것은?",
       "options": [
@@ -45,6 +49,7 @@
       "explanation": "UDP는 연결 수립 없이 데이터그램을 보내고, 순서 번호 · 확인 응답 · 재전송을 제공하지 않습니다. TCP는 바이트 스트림이라 메시지 경계를 유지하지 않고, 헤더도 UDP는 8바이트, TCP는 최소 20바이트로 다릅니다."
     },
     {
+      "id": "network.tcp-vs-udp.quiz3",
       "displayOrder": 3,
       "prompt": "수신 측이 ACK에 window=0을 실어 보냈을 때 송신 측의 동작은?",
       "options": [

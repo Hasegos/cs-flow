@@ -11,12 +11,15 @@
     "CPU",
     "구조"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "arch/1-10/2d/von-neumann",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "arch.von-neumann.quiz1",
       "displayOrder": 1,
       "prompt": "폰 노이만 구조에서 CPU, 메모리, 입출력장치가 공유하는 것은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "폰 노이만 구조는 CPU, 메모리, I/O가 하나의 버스를 공유해 명령어와 데이터를 주고받습니다. 이 때문에 동시에 둘 다 전송할 수 없는 \"폰 노이만 병목\"이 발생합니다."
     },
     {
+      "id": "arch.von-neumann.quiz2",
       "displayOrder": 2,
       "prompt": "폰 노이만 구조의 대표적 한계로 꼽히는 것은?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "명령어 인출과 데이터 접근이 같은 버스를 다퉈야 해서 폰 노이만 병목(bottleneck)이라 부릅니다."
     },
     {
+      "id": "arch.von-neumann.quiz3",
       "displayOrder": 3,
       "prompt": "프로그램 내장 방식(stored-program concept)의 핵심은?",
       "options": [

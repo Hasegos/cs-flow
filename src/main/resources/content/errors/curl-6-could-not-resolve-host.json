@@ -1,0 +1,29 @@
+{
+  "slug": "curl-6-could-not-resolve-host",
+  "order": 13,
+  "category": "network",
+  "title": "curl: (6) Could not resolve host 에러",
+  "errorMessage": "curl: (6) Could not resolve host: <호스트>",
+  "envOs": "Windows 10 (재현 환경)",
+  "envDistro": null,
+  "envVersion": "curl 8.17.0 (재현·소스 기준)",
+  "cause": "curl 공식 문서는 CURLE_COULDNT_RESOLVE_HOST (6)을 \"주어진 원격 호스트를 해석하지 못했다\"는 에러로 설명합니다. 출력의 \"curl: (6)\" 형식은 curl 도구 소스(src/tool_operate.c)가 만들고, \"Could not resolve host: <호스트>\" 문구는 libcurl 소스(lib/hostip.c, lib/url.c)가 만듭니다. 버전에 따라 에러 버퍼가 비었을 때의 기본 문구가 다릅니다(8.17.0은 \"Could not resolve hostname\", 7.88.0은 \"Couldn't resolve host name\").",
+  "solution": "호스트 이름의 철자와 DNS로 해석되는 이름인지 확인하고, 올바른 호스트로 바꿔 요청합니다.\n\n[해결 확인 2026-10-26 · Windows 10 · curl 8.17.0]\n1. curl -sS http://no-such-host.invalid/ 를 실행하면 curl: (6) Could not resolve host: no-such-host.invalid 가 나고 종료 코드는 6입니다.\n2. python -m http.server 59782 --bind 127.0.0.1 로 로컬 서버를 띄우고 curl -sS http://localhost:59782/ 로 요청하면 서버 응답(hello from local server)이 출력됩니다.",
+  "reproduction": "[재현 완료 2026-10-24 · Windows 10 · curl 8.17.0]\n1. curl -sS --max-time 15 https://nonexistent-host-xyz.invalid 를 실행합니다.\n2. curl: (6) Could not resolve host: nonexistent-host-xyz.invalid 가 출력됩니다.",
+  "createdOn": "2026-10-24",
+  "verifiedOn": "2026-10-26",
+  "verified": true,
+  "sources": [
+    {
+      "label": "curl — libcurl-errors: CURLE_COULDNT_RESOLVE_HOST",
+      "url": "https://curl.se/libcurl/c/libcurl-errors.html"
+    },
+    {
+      "label": "curl/curl curl-8_17_0 — lib/hostip.c",
+      "url": "https://github.com/curl/curl/blob/curl-8_17_0/lib/hostip.c"
+    }
+  ],
+  "topics": [
+    "dns"
+  ]
+}

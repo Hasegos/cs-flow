@@ -11,12 +11,15 @@
     "OS",
     "CPU"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "arch/1-10/2d/interrupt",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "arch.interrupt.quiz1",
       "displayOrder": 1,
       "prompt": "인터럽트가 발생했을 때 CPU가 가장 먼저 하는 일은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "인터럽트 발생 시 CPU는 현재 실행 중이던 작업의 상태(레지스터 등)를 저장한 뒤 ISR(인터럽트 서비스 루틴)을 실행하고, 끝나면 저장했던 상태로 복귀합니다."
     },
     {
+      "id": "arch.interrupt.quiz2",
       "displayOrder": 2,
       "prompt": "하드웨어 인터럽트와 소프트웨어 인터럽트의 차이는?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "하드웨어 인터럽트는 키보드, 디스크 같은 외부 장치가 발생시키고, 소프트웨어 인터럽트는 실행 중인 프로그램이 시스템 콜 등을 통해 의도적으로 발생시킵니다."
     },
     {
+      "id": "arch.interrupt.quiz3",
       "displayOrder": 3,
       "prompt": "ISR(Interrupt Service Routine) 실행이 끝난 후 CPU는 어떻게 하나요?",
       "options": [

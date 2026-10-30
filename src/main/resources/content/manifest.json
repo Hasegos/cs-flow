@@ -2,6 +2,7 @@
   "subjects": 7,
   "topics": 128,
   "quizzes": 386,
+  "errors": 28,
   "bySubject": {
     "arch": {
       "topics": 20,

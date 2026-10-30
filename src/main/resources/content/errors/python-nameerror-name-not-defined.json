@@ -1,0 +1,27 @@
+{
+  "slug": "python-nameerror-name-not-defined",
+  "order": 3,
+  "category": "python",
+  "title": "Python: NameError: name is not defined 에러",
+  "errorMessage": "NameError: name '<이름>' is not defined",
+  "envOs": "Windows 10 (재현 환경)",
+  "envDistro": null,
+  "envVersion": "Python 3.14.7 (재현), CPython 3.13 소스 기준",
+  "cause": "Python 공식 튜토리얼(An Informal Introduction to Python)은 정의되지 않은 변수에 접근하면 이 에러가 난다고 보여 줍니다. CPython 소스(Python/ceval_macros.h)의 NAME_ERROR_MSG가 이 문구입니다.",
+  "solution": "이름을 쓰기 전에 값을 대입해 정의하고, 정의한 이름과 철자가 같은지 확인합니다.\n\n[해결 확인 2026-10-26 · Windows 10 · Python 3.14.7]\n1. print(total) 만 실행하면 NameError: name 'total' is not defined 가 납니다.\n2. total = 10 을 먼저 실행한 뒤 print(total) 을 실행하면 10이 출력됩니다.",
+  "reproduction": "[재현 완료 2026-10-24 · Windows 10 · Python 3.14.7]\n1. python -c \"print(n)\" 를 실행합니다.\n2. 마지막 줄에 NameError: name 'n' is not defined 가 출력됩니다.",
+  "createdOn": "2026-10-24",
+  "verifiedOn": "2026-10-26",
+  "verified": true,
+  "sources": [
+    {
+      "label": "Python docs — Tutorial: An Informal Introduction to Python",
+      "url": "https://docs.python.org/3/tutorial/introduction.html"
+    },
+    {
+      "label": "python/cpython 3.13 — Python/ceval_macros.h",
+      "url": "https://github.com/python/cpython/blob/3.13/Python/ceval_macros.h"
+    }
+  ],
+  "topics": []
+}

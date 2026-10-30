@@ -11,12 +11,15 @@
     "IP할당",
     "DHCP"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "network/11-20/2d/dhcp",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "network.dhcp.quiz1",
       "displayOrder": 1,
       "prompt": "DHCP가 IP 주소를 할당하는 4단계의 올바른 순서는?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "클라이언트가 Discover(서버 탐색)를 보내면 서버가 Offer(제안)를 주고, 클라이언트가 Request(요청)로 수락하면 서버가 Acknowledge(확인)로 마무리합니다. 앞 글자를 따 DORA라고 부릅니다."
     },
     {
+      "id": "network.dhcp.quiz2",
       "displayOrder": 2,
       "prompt": "DHCP Discover 메시지의 특징은?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "부팅 직후 클라이언트는 자기 IP도 DHCP 서버 위치도 모르므로, 브로드캐스트로 Discover 메시지를 보내 응답할 서버를 찾습니다."
     },
     {
+      "id": "network.dhcp.quiz3",
       "displayOrder": 3,
       "prompt": "DHCP 서버가 IP 주소 외에 클라이언트에 함께 알려주는 정보는?",
       "options": [

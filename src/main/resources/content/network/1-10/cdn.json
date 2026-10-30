@@ -11,12 +11,15 @@
     "CDN",
     "캐시"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "network/1-10/2d/cdn",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "network.cdn.quiz1",
       "displayOrder": 1,
       "prompt": "CDN(Content Delivery Network)의 기본 원리는?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "CDN은 전 세계 여러 지역에 엣지 서버를 두고 콘텐츠를 캐싱해, 사용자가 물리적으로 가까운 엣지 서버에서 응답을 받아 지연 시간을 줄입니다."
     },
     {
+      "id": "network.cdn.quiz2",
       "displayOrder": 2,
       "prompt": "CDN에서 캐시 미스(cache miss)가 발생하면?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "캐시 미스 시 엣지 서버는 원본 서버로 요청을 전달해 콘텐츠를 가져오고, 이후 요청을 위해 캐싱한 뒤 사용자에게 응답합니다."
     },
     {
+      "id": "network.cdn.quiz3",
       "displayOrder": 3,
       "prompt": "CDN이 원본 서버의 부하를 줄여주는 이유는?",
       "options": [

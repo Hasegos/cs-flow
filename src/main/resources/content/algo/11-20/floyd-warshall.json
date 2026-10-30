@@ -11,12 +11,15 @@
     "전체쌍",
     "최단경로"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "algo/11-20/2d/floyd-warshall",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "algo.floyd-warshall.quiz1",
       "displayOrder": 1,
       "prompt": "플로이드-워셜 알고리즘이 구하는 것은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "플로이드-워셜은 그래프의 모든 정점 쌍(i, j)에 대해 최단 거리를 한 번에 구하는 알고리즘입니다."
     },
     {
+      "id": "algo.floyd-warshall.quiz2",
       "displayOrder": 2,
       "prompt": "플로이드-워셜 알고리즘의 시간 복잡도는? (V: 정점 수)",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "경유지 k, 출발지 i, 도착지 j의 세 겹 반복문으로 모든 조합을 확인하므로 O(V^3)입니다. 정점 수가 크지 않을 때 실용적입니다."
     },
     {
+      "id": "algo.floyd-warshall.quiz3",
       "displayOrder": 3,
       "prompt": "플로이드-워셜의 점화식으로 알맞은 것은? (k를 경유지로 고려할 때)",
       "options": [

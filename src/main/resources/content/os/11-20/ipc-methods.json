@@ -11,12 +11,15 @@
     "파이프",
     "IPC"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "os/11-20/2d/ipc-methods",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "os.ipc-methods.quiz1",
       "displayOrder": 1,
       "prompt": "파이프(pipe)의 특징으로 옳은 것은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "일반 파이프는 한쪽에서 쓰고 다른 쪽에서 읽는 단방향 바이트 스트림이며, 보통 fork로 만든 부모-자식처럼 관련된 프로세스 간에 사용합니다. 관련 없는 프로세스는 이름 있는 파이프(FIFO)를 씁니다."
     },
     {
+      "id": "os.ipc-methods.quiz2",
       "displayOrder": 2,
       "prompt": "공유 메모리(Shared Memory) 방식이 IPC 중 가장 빠른 편인 이유는?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "공유 메모리는 초기 설정 이후에는 커널을 거치지 않고 같은 메모리 영역을 직접 읽고 쓰므로 빠릅니다. 대신 동시 접근에 대한 동기화(세마포어, 뮤텍스 등)는 개발자가 책임져야 합니다."
     },
     {
+      "id": "os.ipc-methods.quiz3",
       "displayOrder": 3,
       "prompt": "서로 다른 컴퓨터에서 실행 중인 프로세스끼리도 통신할 수 있는 IPC 방식은?",
       "options": [

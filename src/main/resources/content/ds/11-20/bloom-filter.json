@@ -11,12 +11,15 @@
     "해시",
     "블룸필터"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "ds/11-20/2d/bloom-filter",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "ds.bloom-filter.quiz1",
       "displayOrder": 1,
       "prompt": "블룸 필터가 \"이 원소는 없다\"라고 답했을 때의 의미는?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "원소를 추가하면 해당 해시 위치의 비트가 켜지므로, 하나라도 꺼진 비트가 있으면 그 원소는 확실히 추가된 적이 없습니다. 그래서 블룸 필터에는 거짓 음성이 없습니다."
     },
     {
+      "id": "ds.bloom-filter.quiz2",
       "displayOrder": 2,
       "prompt": "블룸 필터가 \"이 원소는 있다\"라고 답했을 때의 특징은?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "서로 다른 원소들이 켜둔 비트가 우연히 겹치면, 추가한 적 없는 원소도 모든 비트가 켜진 것으로 보일 수 있습니다. 그래서 \"있다\"는 답에는 거짓 양성 가능성이 있습니다."
     },
     {
+      "id": "ds.bloom-filter.quiz3",
       "displayOrder": 3,
       "prompt": "표준 블룸 필터가 지원하지 않는 연산은?",
       "options": [

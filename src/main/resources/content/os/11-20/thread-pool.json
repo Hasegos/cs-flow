@@ -11,12 +11,15 @@
     "스레드풀",
     "스레드"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "os/11-20/2d/thread-pool",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "os.thread-pool.quiz1",
       "displayOrder": 1,
       "prompt": "스레드 풀(Thread Pool)을 사용하는 주된 이유는?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "스레드 풀은 미리 만들어 둔 스레드를 재사용해 요청마다 스레드를 생성·소멸하는 비용을 줄이고, 스레드 수의 상한을 두어 요청이 몰려도 시스템이 과부하되지 않게 합니다."
     },
     {
+      "id": "os.thread-pool.quiz2",
       "displayOrder": 2,
       "prompt": "스레드 풀의 작업 큐(Task Queue)의 역할은?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "풀의 스레드가 모두 작업 중일 때 들어온 작업은 작업 큐에 쌓여 대기하다가, 스레드가 비면 순서대로 꺼내 실행됩니다."
     },
     {
+      "id": "os.thread-pool.quiz3",
       "displayOrder": 3,
       "prompt": "CPU 연산이 대부분인(CPU 바운드) 작업의 스레드 풀 크기를 정하는 일반적인 기준은?",
       "options": [

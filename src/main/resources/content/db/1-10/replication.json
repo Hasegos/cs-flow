@@ -11,12 +11,15 @@
     "복제",
     "가용성"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "db/1-10/2d/replication",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "db.replication.quiz1",
       "displayOrder": 1,
       "prompt": "동기 복제(Synchronous Replication)의 특징은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "동기 복제는 Primary가 Replica의 쓰기 확인(ack)까지 기다린 후에야 클라이언트에 커밋 완료를 알립니다. 유실 위험은 낮지만 그만큼 응답이 느려집니다."
     },
     {
+      "id": "db.replication.quiz2",
       "displayOrder": 2,
       "prompt": "비동기 복제에서 Failover 시 데이터가 유실될 수 있는 이유는?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "비동기 복제는 Primary가 Replica를 기다리지 않고 바로 커밋을 알리므로, 그 사이 Primary에 장애가 나 Replica가 승격되면 아직 복제되지 않았던 최근 쓰기가 유실될 수 있습니다."
     },
     {
+      "id": "db.replication.quiz3",
       "displayOrder": 3,
       "prompt": "복제 지연(Replication Lag)이 실무에서 문제가 되는 대표적인 상황은?",
       "options": [

@@ -11,12 +11,15 @@
     "OSI",
     "프로토콜"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "network/1-10/2d/osi-model",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "network.osi-model.quiz1",
       "displayOrder": 1,
       "prompt": "OSI 7계층 모델에서 데이터가 송신 측에서 캡슐화될 때 헤더가 추가되는 방향은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "송신 측에서는 응용 계층 데이터가 아래로 내려가며 각 계층이 자신의 헤더를 씌우는 캡슐화가 일어나고, 수신 측에서는 반대로 아래에서 위로 헤더를 벗기는 역캡슐화가 일어납니다."
     },
     {
+      "id": "network.osi-model.quiz2",
       "displayOrder": 2,
       "prompt": "전송 계층(Transport Layer)의 대표 프로토콜은?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "전송 계층은 종단 간(end-to-end) 데이터 전달을 담당하며 대표적으로 TCP(신뢰성)와 UDP(속도)가 있습니다."
     },
     {
+      "id": "network.osi-model.quiz3",
       "displayOrder": 3,
       "prompt": "네트워크 계층(Network Layer)의 주요 역할은?",
       "options": [

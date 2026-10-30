@@ -11,12 +11,15 @@
     "스레드",
     "동시성"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "os/1-10/2d/thread",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "os.thread.quiz1",
       "displayOrder": 1,
       "prompt": "같은 프로세스 내의 스레드들이 공유하는 것은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "같은 프로세스에 속한 스레드들은 코드, 데이터, 힙 등 프로세스 자원을 공유하되, 스택과 레지스터는 각자 독립적으로 가집니다."
     },
     {
+      "id": "os.thread.quiz2",
       "displayOrder": 2,
       "prompt": "여러 스레드가 동시에 같은 변수에 접근할 때 락(Lock)이 필요한 이유는?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "락은 한 번에 하나의 스레드만 공유 자원에 접근하도록 강제해, 경쟁 상태(race condition)로 인한 데이터 불일치를 방지합니다."
     },
     {
+      "id": "os.thread.quiz3",
       "displayOrder": 3,
       "prompt": "멀티스레딩의 주요 장점은?",
       "options": [

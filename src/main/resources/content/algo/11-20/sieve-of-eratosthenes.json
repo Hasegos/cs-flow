@@ -11,12 +11,15 @@
     "에라토스테네스",
     "소수"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "algo/11-20/2d/sieve-of-eratosthenes",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "algo.sieve-of-eratosthenes.quiz1",
       "displayOrder": 1,
       "prompt": "에라토스테네스의 체의 기본 원리는?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "2부터 시작해 아직 지워지지 않은 수를 소수로 확정하고, 그 수의 배수를 모두 지웁니다. 이를 반복하면 끝까지 남은 수만 소수가 됩니다."
     },
     {
+      "id": "algo.sieve-of-eratosthenes.quiz2",
       "displayOrder": 2,
       "prompt": "n 이하의 소수를 구할 때 √n 까지의 소수들의 배수만 지워도 되는 이유는?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "합성수 m은 m = a × b 로 쓸 수 있고 a, b 중 하나는 반드시 √m 이하입니다. 따라서 √n 이하 소수의 배수를 모두 지우면 n 이하의 합성수가 전부 지워집니다."
     },
     {
+      "id": "algo.sieve-of-eratosthenes.quiz3",
       "displayOrder": 3,
       "prompt": "에라토스테네스의 체의 시간 복잡도는?",
       "options": [

@@ -11,12 +11,15 @@
     "데이터표현",
     "엔디언"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "arch/11-20/2d/endianness",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "arch.endianness.quiz1",
       "displayOrder": 1,
       "prompt": "32비트 값 0x12345678을 메모리의 낮은 주소부터 12 34 56 78 순서로 저장하는 방식은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "가장 상위 바이트를 낮은 주소에 먼저 저장하는 방식이 빅 엔디언입니다. 반대로 하위 바이트(78)를 먼저 저장하면 리틀 엔디언입니다."
     },
     {
+      "id": "arch.endianness.quiz2",
       "displayOrder": 2,
       "prompt": "x86 계열 CPU가 사용하는 바이트 저장 순서는?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "x86과 x86-64는 리틀 엔디언을 사용합니다. 그래서 0x12345678을 메모리에 저장하면 낮은 주소부터 78 56 34 12 순서로 놓입니다."
     },
     {
+      "id": "arch.endianness.quiz3",
       "displayOrder": 3,
       "prompt": "네트워크 바이트 순서(Network Byte Order)로 정해진 방식은?",
       "options": [

@@ -11,12 +11,15 @@
     "명령어",
     "CPU"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "arch/1-10/2d/instruction-cycle",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "arch.instruction-cycle.quiz1",
       "displayOrder": 1,
       "prompt": "명령어 사이클의 기본 순서는?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "CPU는 Fetch(인출)→Decode(해독)→Execute(실행) 순서를 반복하며 프로그램을 실행합니다."
     },
     {
+      "id": "arch.instruction-cycle.quiz2",
       "displayOrder": 2,
       "prompt": "Fetch 단계에서 사용되는 레지스터는?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "PC가 가리키는 메모리 주소에서 명령어를 가져오는 것이 Fetch 단계이며, 이후 PC는 다음 명령어를 가리키도록 갱신됩니다."
     },
     {
+      "id": "arch.instruction-cycle.quiz3",
       "displayOrder": 3,
       "prompt": "Decode 단계에서 하는 일은?",
       "options": [

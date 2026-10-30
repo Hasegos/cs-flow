@@ -11,12 +11,15 @@
     "DNS",
     "도메인"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "network/1-10/2d/dns",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "network.dns.quiz1",
       "displayOrder": 1,
       "prompt": "DNS 조회 과정에서 가장 먼저 확인하는 곳은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "DNS 조회는 먼저 로컬 캐시(브라우저, OS, ISP 리졸버)를 확인해 이미 알고 있는 답이 있으면 바로 반환하고, 없을 때만 루트→TLD→권한 네임서버 순으로 재귀 질의합니다."
     },
     {
+      "id": "network.dns.quiz2",
       "displayOrder": 2,
       "prompt": "재귀적 DNS 질의에서 TLD(Top-Level Domain) 네임서버의 역할은?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "TLD 네임서버는 특정 최상위 도메인(.com, .kr 등)을 관리하며, 다음으로 물어봐야 할 권한 있는 네임서버의 주소를 알려주는 역할을 합니다."
     },
     {
+      "id": "network.dns.quiz3",
       "displayOrder": 3,
       "prompt": "DNS가 도메인 이름을 IP 주소로 변환해주는 이유는?",
       "options": [

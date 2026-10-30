@@ -11,12 +11,15 @@
     "CIDR",
     "서브넷"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "network/11-20/2d/subnetting-cidr",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "network.subnetting-cidr.quiz1",
       "displayOrder": 1,
       "prompt": "192.168.1.0/24 네트워크에서 호스트에 할당할 수 있는 주소는 몇 개일까?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "호스트 비트가 8개이므로 2^8 = 256개 주소 중, 네트워크 주소(모든 호스트 비트가 0)와 브로드캐스트 주소(모두 1) 2개를 제외한 254개를 호스트에 할당할 수 있습니다."
     },
     {
+      "id": "network.subnetting-cidr.quiz2",
       "displayOrder": 2,
       "prompt": "CIDR 표기 /26 에 해당하는 서브넷 마스크는?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "/26은 앞 26비트가 1입니다. 마지막 옥텟에서는 상위 2비트가 1이므로 11000000 = 192가 되어 255.255.255.192입니다."
     },
     {
+      "id": "network.subnetting-cidr.quiz3",
       "displayOrder": 3,
       "prompt": "CIDR 표기 10.0.0.0/16 에서 /16의 의미는?",
       "options": [

@@ -11,12 +11,15 @@
     "SQL",
     "JOIN"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "db/1-10/2d/sql-join",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "db.sql-join.quiz1",
       "displayOrder": 1,
       "prompt": "INNER JOIN의 결과는?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "INNER JOIN은 조인 조건이 양쪽 테이블에서 모두 일치하는 행만 결과로 반환합니다."
     },
     {
+      "id": "db.sql-join.quiz2",
       "displayOrder": 2,
       "prompt": "LEFT JOIN에서 오른쪽 테이블에 일치하는 행이 없을 때 결과는?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "LEFT JOIN은 왼쪽 테이블의 모든 행을 유지하며, 오른쪽 테이블에 일치하는 행이 없으면 그 컬럼들을 NULL로 채웁니다."
     },
     {
+      "id": "db.sql-join.quiz3",
       "displayOrder": 3,
       "prompt": "FULL OUTER JOIN의 결과는?",
       "options": [

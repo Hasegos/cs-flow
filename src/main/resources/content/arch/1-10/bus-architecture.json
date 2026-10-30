@@ -10,12 +10,15 @@
     "버스",
     "구조"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "arch/1-10/2d/bus-architecture",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "arch.bus-architecture.quiz1",
       "displayOrder": 1,
       "prompt": "주소 버스(Address Bus)의 역할은?",
       "options": [
@@ -29,6 +32,7 @@
       "explanation": "주소 버스는 CPU가 접근하려는 메모리나 I/O 장치의 주소를 전달하는 역할을 합니다. 실제 값 전송은 데이터 버스가 담당합니다."
     },
     {
+      "id": "arch.bus-architecture.quiz2",
       "displayOrder": 2,
       "prompt": "DMA(Direct Memory Access)를 사용하는 이유는?",
       "options": [
@@ -42,6 +46,7 @@
       "explanation": "DMA 컨트롤러가 CPU를 거치지 않고 장치와 메모리 사이 데이터를 직접 옮겨, CPU는 그동안 다른 작업을 할 수 있습니다."
     },
     {
+      "id": "arch.bus-architecture.quiz3",
       "displayOrder": 3,
       "prompt": "버스 중재(Bus Arbitration)가 필요한 이유는?",
       "options": [

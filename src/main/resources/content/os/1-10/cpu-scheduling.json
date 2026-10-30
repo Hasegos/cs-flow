@@ -11,12 +11,15 @@
     "CPU",
     "스케줄링"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "os/1-10/2d/cpu-scheduling",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "os.cpu-scheduling.quiz1",
       "displayOrder": 1,
       "prompt": "FCFS(First-Come First-Served) 스케줄링의 특징은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "FCFS는 프로세스가 도착한 순서대로 CPU를 할당합니다. 단순하지만 짧은 작업이 긴 작업 뒤에서 오래 기다리는 convoy effect가 생길 수 있습니다."
     },
     {
+      "id": "os.cpu-scheduling.quiz2",
       "displayOrder": 2,
       "prompt": "SJF(Shortest Job First)가 평균 대기시간 측면에서 유리한 이유는?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "SJF는 실행시간이 짧은 작업부터 처리해 이론적으로 평균 대기시간을 최소화하지만, 실행시간을 미리 알아야 한다는 제약이 있습니다."
     },
     {
+      "id": "os.cpu-scheduling.quiz3",
       "displayOrder": 3,
       "prompt": "Round Robin(RR) 스케줄링에서 타임 퀀텀(time quantum)이 너무 작으면?",
       "options": [

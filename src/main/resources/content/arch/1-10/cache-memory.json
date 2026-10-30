@@ -11,12 +11,15 @@
     "캐시",
     "메모리"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "arch/1-10/2d/cache-memory",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "arch.cache-memory.quiz1",
       "displayOrder": 1,
       "prompt": "Direct Mapped 캐시에서 하나의 메모리 블록이 매핑될 수 있는 캐시 라인 개수는?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "Direct Mapped 방식은 메모리 주소의 인덱스에 따라 캐시 라인이 딱 하나로 고정됩니다. 그래서 구현은 단순하지만 충돌(같은 라인을 두고 서로 밀어내는 상황)이 잦을 수 있습니다."
     },
     {
+      "id": "arch.cache-memory.quiz2",
       "displayOrder": 2,
       "prompt": "캐시 히트(hit)와 미스(miss)의 차이는?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "캐시 히트는 원하는 데이터가 캐시에 이미 있어 빠르게 접근하는 경우, 미스는 캐시에 없어 더 느린 메모리까지 가서 가져와야 하는 경우입니다."
     },
     {
+      "id": "arch.cache-memory.quiz3",
       "displayOrder": 3,
       "prompt": "LRU(Least Recently Used) 교체 정책이 캐시가 꽉 찼을 때 내보내는 것은?",
       "options": [

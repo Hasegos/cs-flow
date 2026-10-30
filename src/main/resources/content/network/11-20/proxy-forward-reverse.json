@@ -11,12 +11,15 @@
     "리버스프록시",
     "프록시"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "network/11-20/2d/proxy-forward-reverse",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "network.proxy-forward-reverse.quiz1",
       "displayOrder": 1,
       "prompt": "포워드 프록시(Forward Proxy)의 역할은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "포워드 프록시는 클라이언트를 대신해 외부 서버에 요청을 보냅니다. 클라이언트의 IP를 숨기거나, 접속 제어와 캐싱을 하는 데 쓰입니다."
     },
     {
+      "id": "network.proxy-forward-reverse.quiz2",
       "displayOrder": 2,
       "prompt": "리버스 프록시(Reverse Proxy)의 역할은?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "리버스 프록시는 서버 측에 위치해 클라이언트 요청을 받아 내부의 실제 서버로 전달하고 응답을 돌려줍니다. 클라이언트는 프록시만 보기 때문에 내부 서버 구조가 숨겨집니다."
     },
     {
+      "id": "network.proxy-forward-reverse.quiz3",
       "displayOrder": 3,
       "prompt": "리버스 프록시가 제공할 수 있는 기능의 예로 알맞은 것은?",
       "options": [

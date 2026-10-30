@@ -1,0 +1,29 @@
+{
+  "slug": "python-keyerror",
+  "order": 6,
+  "category": "algorithm",
+  "title": "Python: KeyError: 'x' 에러",
+  "errorMessage": "KeyError: <키의 repr>",
+  "envOs": "Windows 10 (재현 환경)",
+  "envDistro": null,
+  "envVersion": "Python 3.14.7 (재현), CPython 3.13 소스 기준",
+  "cause": "Python 공식 문서는 매핑(딕셔너리)에서 기존 키 집합에 없는 키를 찾았을 때 발생한다고 설명합니다. 메시지에는 키의 repr이 들어가고(문자열 키는 따옴표로 감싸짐), 소스(Objects/exceptions.c)의 KeyError_str이 인수가 하나일 때 repr을 적용합니다.",
+  "solution": "공식 튜토리얼(Data Structures)의 예에서 dict.get(키)는 키가 없으면 예외 대신 None을 돌려줍니다. 그 밖의 방법은 출처에 없습니다.",
+  "reproduction": "[재현 완료 2026-10-24 · Windows 10 · Python 3.14.7]\n1. python -c \"d={}; print(d['x'])\" 를 실행합니다.\n2. 마지막 줄에 KeyError: 'x' 가 출력됩니다.",
+  "createdOn": "2026-10-24",
+  "verifiedOn": "2026-10-24",
+  "verified": true,
+  "sources": [
+    {
+      "label": "Python docs — Tutorial: Data Structures (Dictionaries)",
+      "url": "https://docs.python.org/3.13/tutorial/datastructures.html"
+    },
+    {
+      "label": "python/cpython 3.13 — Objects/exceptions.c",
+      "url": "https://github.com/python/cpython/blob/3.13/Objects/exceptions.c"
+    }
+  ],
+  "topics": [
+    "hash-table"
+  ]
+}

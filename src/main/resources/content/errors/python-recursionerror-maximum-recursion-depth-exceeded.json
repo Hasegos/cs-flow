@@ -1,0 +1,33 @@
+{
+  "slug": "python-recursionerror-maximum-recursion-depth-exceeded",
+  "order": 4,
+  "category": "algorithm",
+  "title": "Python: RecursionError: maximum recursion depth exceeded 에러",
+  "errorMessage": "RecursionError: maximum recursion depth exceeded",
+  "envOs": "Windows 10 (재현 환경)",
+  "envDistro": null,
+  "envVersion": "Python 3.14.7 (재현), CPython 3.13 소스 기준",
+  "cause": "Python 공식 문서는 인터프리터가 최대 재귀 깊이(sys.getrecursionlimit())를 넘었다고 감지했을 때 발생한다고 설명합니다. sys 문서에 따르면 이 한도는 무한 재귀가 C 스택 오버플로를 일으켜 Python이 죽는 것을 막기 위한 것입니다. 소스(Python/ceval.c)에는 메시지 뒤에 호출 위치 문구가 붙는 변형(예: \" while calling a Python object\")도 있습니다.",
+  "solution": "sys.setrecursionlimit()로 한도를 올릴 수 있지만 한도가 너무 높으면 크래시할 수 있다고 공식 문서가 경고합니다. 종료 조건을 점검하거나 반복문으로 바꾸는 방법은 출처에 없습니다.",
+  "reproduction": "[재현 완료 2026-10-24 · Windows 10 · Python 3.14.7]\n1. 아래 코드를 python -c 로 실행합니다.\n   def f(): f()\n   f()\n2. 마지막 줄에 RecursionError: maximum recursion depth exceeded 가 출력됩니다.",
+  "createdOn": "2026-10-24",
+  "verifiedOn": "2026-10-24",
+  "verified": true,
+  "sources": [
+    {
+      "label": "Python docs — Built-in Exceptions: RecursionError",
+      "url": "https://docs.python.org/3.13/library/exceptions.html"
+    },
+    {
+      "label": "python/cpython 3.13 — Python/ceval.c",
+      "url": "https://github.com/python/cpython/blob/3.13/Python/ceval.c"
+    }
+  ],
+  "topics": [
+    "bfs-dfs",
+    "dp-basic",
+    "backtracking",
+    "divide-and-conquer",
+    "recursion-vs-iteration"
+  ]
+}

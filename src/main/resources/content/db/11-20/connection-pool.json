@@ -11,12 +11,15 @@
     "HikariCP",
     "커넥션풀"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "db/11-20/2d/connection-pool",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "db.connection-pool.quiz1",
       "displayOrder": 1,
       "prompt": "커넥션 풀을 사용하는 주된 이유는?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "DB 연결을 새로 맺는 데는 네트워크 핸드셰이크와 인증 등 비용이 듭니다. 커넥션 풀은 미리 만들어 둔 연결을 빌려 쓰고 반납하게 해 이 비용을 줄이고 동시 연결 수도 제한합니다."
     },
     {
+      "id": "db.connection-pool.quiz2",
       "displayOrder": 2,
       "prompt": "커넥션 풀 크기를 무작정 크게 잡으면 생기는 문제는?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "연결이 너무 많으면 DB 서버의 메모리 사용과 컨텍스트 스위칭이 늘고 잠금 경합이 심해져 처리량이 오히려 줄 수 있습니다. DB 서버 코어 수와 쿼리 특성을 고려해 적정 크기를 잡아야 합니다."
     },
     {
+      "id": "db.connection-pool.quiz3",
       "displayOrder": 3,
       "prompt": "스프링 부트가 기본으로 사용하는 커넥션 풀 구현체는?",
       "options": [

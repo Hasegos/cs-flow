@@ -12,12 +12,15 @@
     "발행-구독",
     "로봇"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "robot/1-10/2d/ros2-node-topic",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "robot.ros2-node-topic.quiz1",
       "displayOrder": 1,
       "prompt": "ROS 2 토픽 통신에 대한 설명으로 옳은 것은?",
       "options": [
@@ -31,6 +34,7 @@
       "explanation": "토픽은 이름과 메시지 타입을 가진 단방향 데이터 통로이고, 발행자와 구독자는 서로의 존재를 몰라도 이름과 타입이 맞으면 연결됩니다. 그래서 구독자를 추가해도 발행자 코드는 바뀌지 않습니다. 응답이 필요한 호출은 서비스나 액션을 씁니다."
     },
     {
+      "id": "robot.ros2-node-topic.quiz2",
       "displayOrder": 2,
       "prompt": "토픽 /scan에 발행자는 LaserScan 타입으로, 구독자는 String 타입으로 만들었다. 어떻게 되는가?",
       "options": [
@@ -44,6 +48,7 @@
       "explanation": "토픽 이름이 같아도 메시지 타입이 다르면 발행자와 구독자는 연결되지 않습니다. 오류 없이 데이터만 오지 않는 것처럼 보일 수 있어서, 연결이 안 될 때는 ros2 topic info로 양쪽의 타입을 확인합니다."
     },
     {
+      "id": "robot.ros2-node-topic.quiz3",
       "displayOrder": 3,
       "prompt": "큐 크기(depth)가 3인 구독자의 콜백이 바빠서 메시지 1부터 5까지 연달아 도착했고 아직 하나도 꺼내지 못했다. 큐에 남는 메시지는?",
       "options": [

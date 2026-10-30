@@ -11,12 +11,15 @@
     "BIOS",
     "부팅"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "os/11-20/2d/os-boot-process",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "os.os-boot-process.quiz1",
       "displayOrder": 1,
       "prompt": "컴퓨터에 전원을 켠 직후 가장 먼저 실행되는 소프트웨어는?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "전원이 들어오면 메인보드의 펌웨어(BIOS/UEFI)가 먼저 실행되어 POST(하드웨어 자가 점검)를 수행하고, 부팅 장치에서 부트로더를 찾아 실행합니다."
     },
     {
+      "id": "os.os-boot-process.quiz2",
       "displayOrder": 2,
       "prompt": "부트로더(예: GRUB)의 역할은?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "부트로더는 펌웨어로부터 실행 권한을 넘겨받아 커널 이미지를 디스크에서 메모리로 올리고 커널로 제어를 넘깁니다. 여러 OS 중 부팅할 항목을 고르는 메뉴도 제공합니다."
     },
     {
+      "id": "os.os-boot-process.quiz3",
       "displayOrder": 3,
       "prompt": "리눅스 커널이 초기화를 마친 뒤 사용자 공간에서 처음 실행하는 프로세스(PID 1)는?",
       "options": [

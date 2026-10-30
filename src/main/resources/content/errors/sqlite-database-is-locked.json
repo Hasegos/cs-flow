@@ -1,0 +1,37 @@
+{
+  "slug": "sqlite-database-is-locked",
+  "order": 27,
+  "category": "sqlite",
+  "title": "SQLite: sqlite3.OperationalError: database is locked 에러",
+  "errorMessage": "sqlite3.OperationalError: database is locked",
+  "envOs": "Windows 10 (재현 환경)",
+  "envDistro": null,
+  "envVersion": "Python 3.14.7 sqlite3 · SQLite 3.50.4 (재현), PostgreSQL 등 다른 DB와 메시지가 다를 수 있음",
+  "cause": "SQLite 공식 문서는 SQLITE_BUSY를 다른 연결(주로 다른 프로세스)의 동시 작업 때문에 데이터베이스 파일을 쓸 수 없을 때(경우에 따라 읽을 때도) 돌려주는 결과 코드로 설명하고, SQLite는 한 번에 쓰는 연결을 하나만 허용한다고 합니다. BEGIN IMMEDIATE도 다른 연결이 이미 쓰기 트랜잭션을 열었으면 SQLITE_BUSY로 실패할 수 있습니다. 메시지 database is locked는 SQLite 소스(src/main.c)에서 이 결과 코드에 붙은 문구입니다. Python sqlite3.connect()의 timeout은 기본 5.0초이며, 잠금이 풀리기를 그만큼 기다린 뒤 OperationalError를 발생시킵니다.",
+  "solution": "먼저 쓰기 트랜잭션을 연 연결이 COMMIT(또는 ROLLBACK)해서 잠금을 놓은 뒤에 다른 연결이 씁니다. 기다리는 시간은 connect()의 timeout으로 조절합니다.\n\n[해결 확인 2026-10-26 · Windows 10 · Python 3.14.7 · SQLite 3.50.4]\n1. 연결 a가 BEGIN IMMEDIATE 로 INSERT 를 하고 아직 COMMIT 하지 않은 상태에서 연결 b(timeout=0.1)가 INSERT 하면 sqlite3.OperationalError: database is locked 가 납니다.\n2. 연결 a가 COMMIT 한 뒤에 연결 b가 INSERT 하면 에러 없이 끝나고 SELECT 결과는 [(1,), (2,)] 입니다.",
+  "reproduction": "[재현 완료 2026-10-26 · Windows 10 · Python 3.14.7 · SQLite 3.50.4]\n1. Python sqlite3 로 임시 파일 DB를 만들고 연결 a에서 BEGIN IMMEDIATE 와 INSERT 를 실행해 둔 채(커밋 전), 같은 파일에 연결 b(timeout=0.1)로 INSERT 를 실행합니다.\n2. 마지막 줄에 sqlite3.OperationalError: database is locked 가 출력됩니다.",
+  "createdOn": "2026-10-26",
+  "verifiedOn": "2026-10-26",
+  "verified": true,
+  "sources": [
+    {
+      "label": "SQLite — Result and Error Codes: SQLITE_BUSY",
+      "url": "https://www.sqlite.org/rescode.html#busy"
+    },
+    {
+      "label": "SQLite — BEGIN TRANSACTION (BEGIN IMMEDIATE)",
+      "url": "https://www.sqlite.org/lang_transaction.html"
+    },
+    {
+      "label": "Python docs — sqlite3.connect() timeout",
+      "url": "https://docs.python.org/3/library/sqlite3.html"
+    },
+    {
+      "label": "sqlite/sqlite version-3.50.4 — src/main.c (database is locked)",
+      "url": "https://github.com/sqlite/sqlite/blob/version-3.50.4/src/main.c#L1646"
+    }
+  ],
+  "topics": [
+    "lock"
+  ]
+}

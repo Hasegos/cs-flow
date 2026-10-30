@@ -11,12 +11,15 @@
     "인덱스",
     "B-Tree"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "db/1-10/2d/index",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "db.index.quiz1",
       "displayOrder": 1,
       "prompt": "B-Tree 인덱스가 탐색 속도를 높이는 원리는?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "B-Tree 인덱스는 값을 정렬된 트리 구조로 저장해, 루트에서부터 비교하며 탐색 범위를 매번 좁혀 O(log n)에 가까운 속도로 원하는 데이터를 찾습니다."
     },
     {
+      "id": "db.index.quiz2",
       "displayOrder": 2,
       "prompt": "인덱스를 걸면 항상 조회 성능이 좋아지는 것은 아닌 이유는?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "조건에 맞는 행 비율(선택도)이 높으면 인덱스를 타고 흩어진 행을 일일이 찾아가는 것보다 테이블을 순서대로 읽는 풀 스캔이 더 빠를 수 있습니다."
     },
     {
+      "id": "db.index.quiz3",
       "displayOrder": 3,
       "prompt": "인덱스를 추가할 때 감수해야 하는 비용은?",
       "options": [

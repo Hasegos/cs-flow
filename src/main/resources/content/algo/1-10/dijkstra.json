@@ -11,12 +11,15 @@
     "최단 경로",
     "그래프"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "algo/1-10/2d/dijkstra",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "algo.dijkstra.quiz1",
       "displayOrder": 1,
       "prompt": "다익스트라 알고리즘이 다루는 문제는?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "다익스트라 알고리즘은 음수 가중치가 없는 그래프에서 하나의 출발점으로부터 모든 정점까지의 최단 경로를 구하는 알고리즘입니다."
     },
     {
+      "id": "algo.dijkstra.quiz2",
       "displayOrder": 2,
       "prompt": "다익스트라 알고리즘에서 '확정'된 노드의 의미는?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "다익스트라는 매 단계 가장 거리가 짧은 미확정 노드를 확정 처리하는데, 이후 이 노드의 거리는 더 짧아질 수 없으므로 최종 확정됩니다."
     },
     {
+      "id": "algo.dijkstra.quiz3",
       "displayOrder": 3,
       "prompt": "완화(Relaxation) 연산이 하는 일은?",
       "options": [

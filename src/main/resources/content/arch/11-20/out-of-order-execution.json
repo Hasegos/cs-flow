@@ -11,12 +11,15 @@
     "파이프라인",
     "비순차실행"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "arch/11-20/2d/out-of-order-execution",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "arch.out-of-order-execution.quiz1",
       "displayOrder": 1,
       "prompt": "비순차 실행(Out-of-Order Execution)의 핵심 아이디어는?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "비순차 실행은 앞 명령어가 메모리 응답 등을 기다리는 동안, 서로 의존하지 않는 뒤쪽 명령어를 먼저 실행해 실행 유닛이 노는 시간을 줄이는 기법입니다."
     },
     {
+      "id": "arch.out-of-order-execution.quiz2",
       "displayOrder": 2,
       "prompt": "비순차 실행 CPU에서도 프로그램 결과가 순차 실행과 같게 보이도록 보장하는 장치는?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "명령어는 순서와 상관없이 실행되더라도, 리오더 버퍼(ROB)가 결과를 원래 프로그램 순서대로 확정(commit)하기 때문에 소프트웨어에는 순차 실행처럼 보입니다. 예외 발생 시에도 정확한 지점으로 복귀할 수 있습니다."
     },
     {
+      "id": "arch.out-of-order-execution.quiz3",
       "displayOrder": 3,
       "prompt": "다음 중 앞선 명령어보다 먼저 실행할 수 없는 경우는?",
       "options": [

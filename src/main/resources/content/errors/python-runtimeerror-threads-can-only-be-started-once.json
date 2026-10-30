@@ -1,0 +1,29 @@
+{
+  "slug": "python-runtimeerror-threads-can-only-be-started-once",
+  "order": 23,
+  "category": "python",
+  "title": "Python: RuntimeError: threads can only be started once 에러",
+  "errorMessage": "RuntimeError: threads can only be started once",
+  "envOs": "Windows 10 (재현 환경)",
+  "envDistro": null,
+  "envVersion": "Python 3.14.7 (재현)",
+  "cause": "Python 공식 문서는 Thread.start()를 스레드 객체당 최대 한 번만 호출해야 하며, 같은 객체에 두 번 호출하면 RuntimeError가 발생한다고 설명합니다.",
+  "solution": "스레드는 한 번만 시작할 수 있으므로, 다시 실행하려면 실행마다 새 Thread 객체를 만듭니다.\n\n[해결 확인 2026-10-26 · Windows 10 · Python 3.14.7]\n1. t.start() 와 t.join() 이 끝난 같은 Thread 객체에 t.start() 를 다시 호출하면 RuntimeError: threads can only be started once 가 납니다.\n2. 반복문 안에서 매번 threading.Thread(...) 를 새로 만들어 start() 하면 run 0, run 1 이 에러 없이 출력됩니다.",
+  "reproduction": "[재현 완료 2026-10-26 · Windows 10 · Python 3.14.7]\n1. python -c 로 t = threading.Thread(target=print, args=('hi',)) 를 만들어 t.start(), t.join() 한 뒤 t.start() 를 한 번 더 호출합니다.\n2. hi 가 출력된 뒤 마지막 줄에 RuntimeError: threads can only be started once 가 출력됩니다.",
+  "createdOn": "2026-10-26",
+  "verifiedOn": "2026-10-26",
+  "verified": true,
+  "sources": [
+    {
+      "label": "Python docs — threading: Thread.start()",
+      "url": "https://docs.python.org/3/library/threading.html#threading.Thread.start"
+    },
+    {
+      "label": "python/cpython v3.14.7 — Lib/threading.py (threads can only be started once)",
+      "url": "https://github.com/python/cpython/blob/v3.14.7/Lib/threading.py#L989"
+    }
+  ],
+  "topics": [
+    "thread"
+  ]
+}

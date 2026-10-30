@@ -11,12 +11,15 @@
     "RM",
     "실시간"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "os/11-20/2d/realtime-scheduling",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "os.realtime-scheduling.quiz1",
       "displayOrder": 1,
       "prompt": "Rate Monotonic(RM) 스케줄링은 우선순위를 어떻게 정할까?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "RM은 주기가 짧을수록(자주 실행될수록) 높은 고정 우선순위를 부여합니다. 마감 시간이 가까운 작업에 높은 우선순위를 주는 것은 EDF입니다."
     },
     {
+      "id": "os.realtime-scheduling.quiz2",
       "displayOrder": 2,
       "prompt": "EDF(Earliest Deadline First) 스케줄링의 규칙은?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "EDF는 매 시점마다 마감 시간이 가장 임박한 작업을 먼저 실행하는 동적 우선순위 방식입니다. 작업이 바뀔 때마다 우선순위가 다시 계산됩니다."
     },
     {
+      "id": "os.realtime-scheduling.quiz3",
       "displayOrder": 3,
       "prompt": "단일 프로세서에서 EDF가 RM보다 이론적으로 유리한 점은?",
       "options": [

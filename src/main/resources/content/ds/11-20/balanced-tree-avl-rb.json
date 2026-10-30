@@ -11,12 +11,15 @@
     "AVL",
     "트리"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "ds/11-20/2d/balanced-tree-avl-rb",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "ds.balanced-tree-avl-rb.quiz1",
       "displayOrder": 1,
       "prompt": "AVL 트리가 유지하는 균형 조건은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "AVL 트리는 모든 노드에서 좌우 서브트리의 높이 차이(균형 인수)가 -1, 0, 1 중 하나가 되도록 유지합니다. 삽입·삭제로 이 조건이 깨지면 회전으로 복구합니다."
     },
     {
+      "id": "ds.balanced-tree-avl-rb.quiz2",
       "displayOrder": 2,
       "prompt": "AVL 트리에서 LL 불균형(왼쪽 자식의 왼쪽 서브트리에 삽입되어 생긴 불균형)을 해결하는 회전은?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "LL 불균형은 왼쪽 방향으로 치우쳐 있으므로 불균형 노드를 기준으로 오른쪽 단일 회전을 하면 균형이 복구됩니다. LR 불균형은 왼쪽-오른쪽 이중 회전이 필요합니다."
     },
     {
+      "id": "ds.balanced-tree-avl-rb.quiz3",
       "displayOrder": 3,
       "prompt": "레드-블랙 트리가 AVL 트리보다 삽입·삭제에 유리하다고 평가되는 이유는?",
       "options": [

@@ -11,12 +11,15 @@
     "파일",
     "저장장치"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "os/1-10/2d/file-system",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "os.file-system.quiz1",
       "displayOrder": 1,
       "prompt": "inode 방식에서 파일의 실제 데이터 위치를 찾는 방법은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "inode는 파일의 권한, 크기 등 메타데이터와 함께 실제 데이터가 저장된 블록들의 포인터를 가지고 있어, 이를 따라가며 데이터를 찾습니다."
     },
     {
+      "id": "os.file-system.quiz2",
       "displayOrder": 2,
       "prompt": "FAT(File Allocation Table) 방식에서 파일의 다음 블록을 찾는 방법은?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "FAT 방식은 각 클러스터 항목이 다음 클러스터 번호를 가리키는 연결 리스트 형태로, 파일의 시작 클러스터부터 체인을 따라가며 전체 파일을 찾습니다."
     },
     {
+      "id": "os.file-system.quiz3",
       "displayOrder": 3,
       "prompt": "파일 시스템에서 디렉터리의 역할은?",
       "options": [

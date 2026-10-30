@@ -11,12 +11,15 @@
     "멀티프로세서",
     "NUMA"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "arch/11-20/2d/numa-architecture",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "arch.numa-architecture.quiz1",
       "displayOrder": 1,
       "prompt": "NUMA(Non-Uniform Memory Access)에서 \"Non-Uniform\"이 가리키는 것은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "NUMA에서는 프로세서에 붙어 있는 로컬 메모리 접근은 빠르고, 다른 노드에 붙은 원격 메모리 접근은 더 느립니다. 이처럼 접근 시간이 균일하지 않다는 뜻입니다."
     },
     {
+      "id": "arch.numa-architecture.quiz2",
       "displayOrder": 2,
       "prompt": "NUMA에서 원격 메모리 접근이 로컬 메모리 접근보다 느린 이유는?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "원격 노드의 메모리를 읽으려면 프로세서 간 인터커넥트를 통해 상대 노드의 메모리 컨트롤러까지 요청이 전달되어야 하므로 로컬 접근보다 지연이 큽니다."
     },
     {
+      "id": "arch.numa-architecture.quiz3",
       "displayOrder": 3,
       "prompt": "NUMA 환경에서 성능을 높이기 위한 방법으로 알맞은 것은?",
       "options": [

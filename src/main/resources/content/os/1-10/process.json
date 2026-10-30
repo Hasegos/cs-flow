@@ -11,12 +11,15 @@
     "프로세스",
     "PCB"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "os/1-10/2d/process",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "os.process.quiz1",
       "displayOrder": 1,
       "prompt": "프로세스의 상태 전이 중 'Ready'는 무엇을 의미하나요?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "Ready 상태는 프로세스가 실행될 준비를 마치고 CPU 스케줄러가 자신을 선택해주기를 기다리는 상태입니다."
     },
     {
+      "id": "os.process.quiz2",
       "displayOrder": 2,
       "prompt": "PCB(Process Control Block)에 담기지 않는 정보는?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "PCB는 프로세스 ID, 상태, 프로그램 카운터, 레지스터 값 등 해당 프로세스를 관리하는 데 필요한 정보를 담습니다. 다른 사용자의 정보와는 무관합니다."
     },
     {
+      "id": "os.process.quiz3",
       "displayOrder": 3,
       "prompt": "프로세스가 입출력을 요청하면 어떤 상태로 전이되나요?",
       "options": [

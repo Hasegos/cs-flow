@@ -11,12 +11,15 @@
     "트리",
     "순회"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "ds/1-10/2d/tree",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "ds.tree.quiz1",
       "displayOrder": 1,
       "prompt": "이진 트리에서 각 노드가 최대 몇 개의 자식을 가질 수 있나요?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "이진 트리(Binary Tree)는 각 노드가 최대 2개의 자식(왼쪽, 오른쪽)만 가질 수 있는 트리 구조입니다."
     },
     {
+      "id": "ds.tree.quiz2",
       "displayOrder": 2,
       "prompt": "중위 순회(In-order Traversal)의 순서는?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "중위 순회는 왼쪽 서브트리→루트→오른쪽 서브트리 순서로 방문합니다. 이진 탐색 트리에서는 이 순서로 순회하면 정렬된 결과를 얻을 수 있습니다."
     },
     {
+      "id": "ds.tree.quiz3",
       "displayOrder": 3,
       "prompt": "전위 순회(Pre-order)와 후위 순회(Post-order)의 차이는?",
       "options": [

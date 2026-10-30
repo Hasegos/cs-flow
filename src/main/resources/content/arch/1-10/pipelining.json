@@ -11,12 +11,15 @@
     "성능",
     "CPU"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "arch/1-10/2d/pipelining",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "arch.pipelining.quiz1",
       "displayOrder": 1,
       "prompt": "파이프라이닝의 목적은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "파이프라이닝은 IF/ID/EX/MEM/WB 같은 단계를 겹쳐 실행해, 명령어 하나가 끝나길 기다리지 않고 처리량(throughput)을 높입니다."
     },
     {
+      "id": "arch.pipelining.quiz2",
       "displayOrder": 2,
       "prompt": "파이프라인 해저드(hazard) 중 이전 명령어 결과를 기다려야 하는 것은?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "데이터 해저드는 이전 명령어의 연산 결과가 아직 준비되지 않았는데 다음 명령어가 그 값을 필요로 할 때 발생합니다."
     },
     {
+      "id": "arch.pipelining.quiz3",
       "displayOrder": 3,
       "prompt": "분기(branch) 명령어로 인해 발생하는 해저드는?",
       "options": [
