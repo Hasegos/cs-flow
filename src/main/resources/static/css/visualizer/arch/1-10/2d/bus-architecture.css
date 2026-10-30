@@ -164,3 +164,8 @@
   opacity: 0.35;
   cursor: not-allowed;
 }
+
+/* === .bus-viz--hidden — 3D 도로를 여는 동안 2D 숨김 === */
+.bus-viz--hidden {
+  display: none;
+}
