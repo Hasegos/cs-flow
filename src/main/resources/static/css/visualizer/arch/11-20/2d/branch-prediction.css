@@ -193,3 +193,8 @@
     padding: 8px 16px;
   }
 }
+
+/* === .bp-viz--hidden — 3D 전환 시 2D 화면 숨김 === */
+.bp-viz--hidden {
+  display: none;
+}
