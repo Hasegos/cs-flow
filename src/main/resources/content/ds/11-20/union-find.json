@@ -1,0 +1,66 @@
+{
+  "subject": "ds",
+  "slug": "union-find",
+  "title": "분리집합(Union-Find)",
+  "templateName": "union-find",
+  "metaDescription": "분리 집합 CS 지식 정리 — Union-Find의 find, union 연산과 경로 압축·랭크 최적화를 인터랙티브 시각화로 학습하세요. 개발자 면접 자료구조 핵심 개념.",
+  "published": true,
+  "order": 14,
+  "seq": 94,
+  "tags": [
+    "Union-Find",
+    "그래프",
+    "분리집합"
+  ],
+  "roles": [],
+  "exams": [],
+  "visual": {
+    "key": "ds/11-20/2d/union-find",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "id": "ds.union-find.quiz1",
+      "displayOrder": 1,
+      "prompt": "Union-Find(분리 집합)의 두 가지 핵심 연산은?",
+      "options": [
+        "push와 pop",
+        "insert와 delete",
+        "find(원소가 속한 집합의 대표 찾기)와 union(두 집합 합치기)",
+        "enqueue와 dequeue"
+      ],
+      "correctOption": "C",
+      "hint": "이름에 연산이 그대로 들어 있습니다.",
+      "explanation": "find는 원소가 속한 집합의 대표(루트)를 찾고, union은 두 원소가 속한 집합을 하나로 합칩니다. 서로소 집합의 관리에 쓰입니다."
+    },
+    {
+      "id": "ds.union-find.quiz2",
+      "displayOrder": 2,
+      "prompt": "경로 압축(Path Compression)의 효과는?",
+      "options": [
+        "find 중 지나간 노드들을 루트에 직접 연결해, 이후의 find가 훨씬 빨라진다",
+        "집합의 개수를 늘린다",
+        "루트를 삭제한다",
+        "모든 원소를 정렬한다"
+      ],
+      "correctOption": "A",
+      "hint": "같은 경로를 다음에 또 걷지 않게 해줍니다.",
+      "explanation": "find로 루트를 찾아가는 동안 거친 모든 노드의 부모를 루트로 바꿔 트리를 납작하게 만듭니다. 랭크(또는 크기) 기반 합치기와 함께 쓰면 연산이 거의 상수 시간에 가까워집니다."
+    },
+    {
+      "id": "ds.union-find.quiz3",
+      "displayOrder": 3,
+      "prompt": "크루스칼(Kruskal) 최소 신장 트리 알고리즘에서 Union-Find의 용도는?",
+      "options": [
+        "간선을 가중치로 정렬한다",
+        "간선 추가 시 두 정점이 이미 같은 집합인지(사이클이 생기는지) 판별한다",
+        "정점의 개수를 센다",
+        "그래프를 인접 행렬로 바꾼다"
+      ],
+      "correctOption": "B",
+      "hint": "이미 연결된 두 정점을 또 연결하면 사이클이 됩니다.",
+      "explanation": "크루스칼은 가중치가 작은 간선부터 추가하되, 두 끝점이 이미 같은 집합이면 사이클이 생기므로 건너뜁니다. 이 판별을 find로, 합치기를 union으로 처리합니다."
+    }
+  ],
+  "interview": []
+}

@@ -1,0 +1,66 @@
+{
+  "subject": "algo",
+  "slug": "bfs-dfs",
+  "title": "BFS / DFS",
+  "templateName": "bfs-dfs",
+  "metaDescription": "BFS·DFS CS 지식 정리 — 너비 우선·깊이 우선 탐색 순서, 큐·스택·재귀 구현을 인터랙티브 시각화로 학습하세요. 개발자 면접 알고리즘 핵심 개념.",
+  "published": true,
+  "order": 4,
+  "seq": 44,
+  "tags": [
+    "알고리즘",
+    "그래프",
+    "탐색"
+  ],
+  "roles": [],
+  "exams": [],
+  "visual": {
+    "key": "algo/1-10/2d/bfs-dfs",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "id": "algo.bfs-dfs.quiz1",
+      "displayOrder": 1,
+      "prompt": "BFS와 DFS 중 큐(Queue)를 사용하는 탐색은?",
+      "options": [
+        "BFS",
+        "DFS",
+        "둘 다",
+        "둘 다 아님"
+      ],
+      "correctOption": "A",
+      "hint": "가까운 노드부터 순서대로 방문하려면 큐가 적합합니다.",
+      "explanation": "BFS(너비 우선 탐색)는 큐를 사용해 가까운 노드부터 레벨 단위로 방문하고, DFS(깊이 우선 탐색)는 스택(또는 재귀)을 사용해 한 방향으로 깊이 들어갑니다."
+    },
+    {
+      "id": "algo.bfs-dfs.quiz2",
+      "displayOrder": 2,
+      "prompt": "최단 경로(간선 가중치가 동일한 그래프)를 찾을 때 더 적합한 탐색은?",
+      "options": [
+        "BFS",
+        "DFS",
+        "둘 다 무관",
+        "정렬"
+      ],
+      "correctOption": "A",
+      "hint": "레벨 단위로 퍼져나가는 특성이 최단 거리와 맞아떨어집니다.",
+      "explanation": "BFS는 가까운 노드부터 순서대로 방문하므로, 가중치가 동일한 그래프에서 목적지에 처음 도달했을 때가 곧 최단 경로가 됩니다."
+    },
+    {
+      "id": "algo.bfs-dfs.quiz3",
+      "displayOrder": 3,
+      "prompt": "DFS가 스택(또는 재귀)을 사용하는 이유는?",
+      "options": [
+        "가까운 노드부터 순서대로 방문하기 위해",
+        "한 경로를 끝까지 깊이 들어갔다가 막히면 되돌아오기(백트래킹) 위해",
+        "정렬을 하기 위해",
+        "메모리를 아예 쓰지 않기 위해"
+      ],
+      "correctOption": "B",
+      "hint": "'막히면 가장 최근 갈림길로 돌아간다'는 동작이 스택과 잘 맞습니다.",
+      "explanation": "DFS는 한 경로를 끝까지 탐색하다 막히면 가장 최근에 방문했던 갈림길로 되돌아가야 하는데, 이 '가장 최근 것부터'라는 특성이 스택(LIFO)과 정확히 일치합니다."
+    }
+  ],
+  "interview": []
+}

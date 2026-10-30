@@ -1,0 +1,33 @@
+{
+  "slug": "java-rejectedexecutionexception",
+  "order": 25,
+  "category": "java",
+  "title": "Java: java.util.concurrent.RejectedExecutionException 에러",
+  "errorMessage": "java.util.concurrent.RejectedExecutionException: Task java.util.concurrent.FutureTask@... rejected from java.util.concurrent.ThreadPoolExecutor@...[Terminated, pool size = 0, active threads = 0, queued tasks = 0, completed tasks = 0]",
+  "envOs": "Windows 10 (재현 환경)",
+  "envDistro": null,
+  "envVersion": "OpenJDK 21.0.8 (재현)",
+  "cause": "Java 공식 문서(ThreadPoolExecutor의 Rejected tasks)는 Executor가 종료된 뒤 제출한 작업은 거부되고, 스레드 수와 큐가 모두 유한한데 포화 상태일 때도 거부되며, 기본 정책인 AbortPolicy는 거부 시 RejectedExecutionException을 던진다고 설명합니다. 메시지의 Task ... rejected from ... 형식과 풀 상태 표시([Terminated, pool size = ...])는 Javadoc이 아니라 OpenJDK 21 소스(ThreadPoolExecutor의 AbortPolicy와 toString())에서 만들어지는 구현 세부라 JDK 버전에 따라 다를 수 있습니다. 거부 시 예외를 던지는 것은 기본 정책일 때이며 다른 정책은 동작이 다릅니다. 재현에서는 submit()으로 낸 작업이라 Task 뒤에 FutureTask 표시가 나왔습니다.",
+  "solution": "작업은 shutdown() 전에 제출하고, 종료된 풀에는 제출하지 않습니다. isShutdown()으로 상태를 확인할 수 있습니다.\n\n[해결 확인 2026-10-26 · Windows 10 · OpenJDK 21.0.8]\n1. Executors.newFixedThreadPool(1) 로 만든 풀을 shutdown() 한 뒤 submit() 하면 java.util.concurrent.RejectedExecutionException 이 납니다.\n2. 작업을 shutdown() 전에 제출해 f.get() 으로 끝나기를 기다리고, 종료 후에는 isShutdown() 이 true 일 때 제출하지 않도록 하면 task 와 shutdown: no more submits 가 에러 없이 출력됩니다.",
+  "reproduction": "[재현 완료 2026-10-26 · Windows 10 · OpenJDK 21.0.8]\n1. java Rj1.java 로 Executors.newFixedThreadPool(1) 을 만들고 shutdown() 한 뒤 submit() 을 호출하는 프로그램을 실행합니다.\n2. Exception in thread \"main\" java.util.concurrent.RejectedExecutionException: Task java.util.concurrent.FutureTask@... rejected from java.util.concurrent.ThreadPoolExecutor@...[Terminated, pool size = 0, active threads = 0, queued tasks = 0, completed tasks = 0] 가 출력됩니다.",
+  "createdOn": "2026-10-26",
+  "verifiedOn": "2026-10-26",
+  "verified": true,
+  "sources": [
+    {
+      "label": "Java SE 21 API — ThreadPoolExecutor (Rejected tasks)",
+      "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/ThreadPoolExecutor.html"
+    },
+    {
+      "label": "Java SE 21 API — RejectedExecutionException",
+      "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/RejectedExecutionException.html"
+    },
+    {
+      "label": "openjdk/jdk jdk-21-ga — ThreadPoolExecutor.java (AbortPolicy)",
+      "url": "https://github.com/openjdk/jdk/blob/jdk-21-ga/src/java.base/share/classes/java/util/concurrent/ThreadPoolExecutor.java#L2079"
+    }
+  ],
+  "topics": [
+    "thread-pool"
+  ]
+}

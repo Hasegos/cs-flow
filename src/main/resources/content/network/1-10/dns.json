@@ -1,0 +1,66 @@
+{
+  "subject": "network",
+  "slug": "dns",
+  "title": "DNS",
+  "templateName": "dns",
+  "metaDescription": "DNS CS 지식 정리 — 재귀 질의·반복 질의, DNS 캐시, 루트·TLD·권한 네임서버 동작 원리를 인터랙티브 시각화로 학습하세요. 개발자 면접 네트워크 핵심 개념.",
+  "published": true,
+  "order": 4,
+  "seq": 24,
+  "tags": [
+    "네트워크",
+    "DNS",
+    "도메인"
+  ],
+  "roles": [],
+  "exams": [],
+  "visual": {
+    "key": "network/1-10/2d/dns",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "id": "network.dns.quiz1",
+      "displayOrder": 1,
+      "prompt": "DNS 조회 과정에서 가장 먼저 확인하는 곳은?",
+      "options": [
+        "루트 네임서버",
+        "로컬(브라우저/OS/ISP) 캐시",
+        "TLD 네임서버",
+        "권한 있는(Authoritative) 네임서버"
+      ],
+      "correctOption": "B",
+      "hint": "이미 알고 있는 답이 있으면 다시 물어볼 필요가 없습니다.",
+      "explanation": "DNS 조회는 먼저 로컬 캐시(브라우저, OS, ISP 리졸버)를 확인해 이미 알고 있는 답이 있으면 바로 반환하고, 없을 때만 루트→TLD→권한 네임서버 순으로 재귀 질의합니다."
+    },
+    {
+      "id": "network.dns.quiz2",
+      "displayOrder": 2,
+      "prompt": "재귀적 DNS 질의에서 TLD(Top-Level Domain) 네임서버의 역할은?",
+      "options": [
+        "최종 IP 주소를 직접 저장",
+        "다음에 물어볼 권한 네임서버 주소를 알려줌",
+        "브라우저 캐시를 관리",
+        "방화벽 역할"
+      ],
+      "correctOption": "B",
+      "hint": "루트와 권한 네임서버 사이의 중간 단계입니다.",
+      "explanation": "TLD 네임서버는 특정 최상위 도메인(.com, .kr 등)을 관리하며, 다음으로 물어봐야 할 권한 있는 네임서버의 주소를 알려주는 역할을 합니다."
+    },
+    {
+      "id": "network.dns.quiz3",
+      "displayOrder": 3,
+      "prompt": "DNS가 도메인 이름을 IP 주소로 변환해주는 이유는?",
+      "options": [
+        "사람이 기억하기 쉬운 이름을 실제 통신에 필요한 IP 주소로 바꾸기 위해",
+        "보안을 위해 도메인을 숨기기 위해",
+        "속도를 늦추기 위해",
+        "HTTP를 대체하기 위해"
+      ],
+      "correctOption": "A",
+      "hint": "www.example.com은 사람을 위한 이름이고, 통신은 IP로 이뤄집니다.",
+      "explanation": "네트워크 통신은 IP 주소로 이뤄지지만 사람은 도메인 이름을 더 잘 기억하므로, DNS가 이름을 실제 IP 주소로 변환해주는 역할을 합니다."
+    }
+  ],
+  "interview": []
+}

@@ -4,8 +4,8 @@ import io.dev.cs_flow.common.util.BreadcrumbLd;
 import io.dev.cs_flow.common.util.OgImages;
 import io.dev.cs_flow.common.util.PageRangeUtil;
 import io.dev.cs_flow.dto.ErrorCategoryCount;
+import io.dev.cs_flow.dto.ErrorEntryView;
 import io.dev.cs_flow.dto.TopicSearchCondition;
-import io.dev.cs_flow.model.ErrorEntry;
 import io.dev.cs_flow.service.ErrorEntryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -83,7 +83,7 @@ public class ErrorEntryController {
         log.info("에러 사전 목록 요청 - category: {}, condition: {}, page: {}", category, condition, page);
 
         ErrorCategoryCount current = category == null ? null : errorEntryService.getCategory(category);
-        Page<ErrorEntry> entryPage = errorEntryService.search(category, condition, Math.max(0, page), PAGE_SIZE);
+        Page<ErrorEntryView> entryPage = errorEntryService.search(category, condition, Math.max(0, page), PAGE_SIZE);
         String basePath = category == null ? "/errors" : "/errors/category/" + category;
 
         model.addAttribute("ogImage", OgImages.url("errors", category == null ? "_index" : "_category-" + category));
@@ -131,18 +131,18 @@ public class ErrorEntryController {
     public String detail(@PathVariable String slug, Model model) {
         log.info("에러 사전 상세 요청 - slug: {}", slug);
 
-        ErrorEntry entry = errorEntryService.getEntry(slug);
+        ErrorEntryView entry = errorEntryService.getEntry(slug);
         String canonicalUrl = BASE_URL + "/" + URLEncoder.encode(slug, StandardCharsets.UTF_8);
 
         model.addAttribute("entry", entry);
-        model.addAttribute("noindex", !entry.isVerified());
+        model.addAttribute("noindex", !entry.verified());
         model.addAttribute("ogImage", OgImages.url("errors", slug));
         model.addAttribute("ldJson", errorEntryService.buildLdJson(entry, canonicalUrl));
         model.addAttribute("breadcrumbLd", BreadcrumbLd.build(List.of(
                 new BreadcrumbLd.Crumb("에러 사전", BASE_URL),
-                new BreadcrumbLd.Crumb(entry.getTitle(), canonicalUrl))));
+                new BreadcrumbLd.Crumb(entry.title(), canonicalUrl))));
         model.addAttribute("currentSection", "errors");
-        model.addAttribute("pageTitle", entry.getTitle() + " 원인과 해결 | CS Flow 에러 사전");
+        model.addAttribute("pageTitle", entry.title() + " 원인과 해결 | CS Flow 에러 사전");
         model.addAttribute("pageDescription", errorEntryService.describe(entry));
         model.addAttribute("canonicalUrl", canonicalUrl);
         return "errors/detail";

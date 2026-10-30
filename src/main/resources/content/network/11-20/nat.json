@@ -1,0 +1,66 @@
+{
+  "subject": "network",
+  "slug": "nat",
+  "title": "NAT",
+  "templateName": "nat",
+  "metaDescription": "NAT CS 지식 정리 — 사설 IP와 공인 IP 변환, 포트 기반 주소 변환(PAT) 과정을 인터랙티브 시각화로 학습하세요. 개발자 면접 네트워크 핵심 개념.",
+  "published": true,
+  "order": 13,
+  "seq": 83,
+  "tags": [
+    "공인IP",
+    "사설IP",
+    "NAT"
+  ],
+  "roles": [],
+  "exams": [],
+  "visual": {
+    "key": "network/11-20/2d/nat",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "id": "network.nat.quiz1",
+      "displayOrder": 1,
+      "prompt": "NAT(Network Address Translation)의 기본 역할은?",
+      "options": [
+        "사설 IP 주소와 공인 IP 주소를 서로 변환한다",
+        "도메인 이름을 IP 주소로 바꾼다",
+        "파일을 압축한다",
+        "패킷의 순서를 재정렬한다"
+      ],
+      "correctOption": "A",
+      "hint": "집 공유기가 하는 일 중 하나입니다.",
+      "explanation": "NAT는 내부망의 사설 IP를 외부에서 쓰는 공인 IP로 변환합니다. 덕분에 여러 내부 장치가 하나의 공인 IP를 공유하고, IPv4 주소 부족 문제도 완화됩니다."
+    },
+    {
+      "id": "network.nat.quiz2",
+      "displayOrder": 2,
+      "prompt": "PAT(포트 주소 변환, NAPT)의 특징은?",
+      "options": [
+        "포트 번호를 모두 삭제한다",
+        "IP 주소만 바꾸고 포트는 그대로 둔다",
+        "IP 주소와 함께 포트 번호까지 변환해 하나의 공인 IP로 여러 내부 호스트가 동시에 통신할 수 있게 한다",
+        "라우팅 테이블을 갱신한다"
+      ],
+      "correctOption": "C",
+      "hint": "같은 공인 IP를 쓰는 여러 연결을 구분하려면 무엇이 더 필요할까요?",
+      "explanation": "PAT는 내부 호스트마다 서로 다른 외부 포트 번호를 할당해 변환 테이블에 기록합니다. 그래서 하나의 공인 IP로도 여러 내부 호스트의 연결을 구분해 동시에 처리할 수 있습니다."
+    },
+    {
+      "id": "network.nat.quiz3",
+      "displayOrder": 3,
+      "prompt": "NAT 뒤에 있는 내부 서버에 외부에서 접속할 수 있게 하려면?",
+      "options": [
+        "서버를 재부팅한다",
+        "포트 포워딩으로 공인 IP의 특정 포트를 내부 서버의 IP와 포트에 연결해 둔다",
+        "아무 설정 없이 자동으로 가능하다",
+        "서버의 MAC 주소를 바꾼다"
+      ],
+      "correctOption": "B",
+      "hint": "외부에서 시작하는 연결은 어느 내부 장치로 가야 할지 NAT가 모릅니다.",
+      "explanation": "NAT는 내부에서 시작한 연결에 대해서만 변환 정보를 만들므로, 외부에서 먼저 들어오는 연결은 포트 포워딩 규칙으로 목적지를 미리 지정해야 합니다."
+    }
+  ],
+  "interview": []
+}

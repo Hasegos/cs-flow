@@ -1,0 +1,66 @@
+{
+  "subject": "algo",
+  "slug": "dijkstra",
+  "title": "다익스트라",
+  "templateName": "dijkstra",
+  "metaDescription": "다익스트라 CS 지식 정리 — 최단 경로 거리 갱신 과정과 우선순위 큐 활용 원리를 인터랙티브 시각화로 학습하세요. 개발자 면접 알고리즘 핵심 개념.",
+  "published": true,
+  "order": 5,
+  "seq": 45,
+  "tags": [
+    "알고리즘",
+    "최단 경로",
+    "그래프"
+  ],
+  "roles": [],
+  "exams": [],
+  "visual": {
+    "key": "algo/1-10/2d/dijkstra",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "id": "algo.dijkstra.quiz1",
+      "displayOrder": 1,
+      "prompt": "다익스트라 알고리즘이 다루는 문제는?",
+      "options": [
+        "음수 가중치가 있는 최단 경로",
+        "음수 가중치가 없는 그래프에서의 단일 출발점 최단 경로",
+        "최소 신장 트리",
+        "정렬"
+      ],
+      "correctOption": "B",
+      "hint": "음수 간선이 있으면 다익스트라는 정확하지 않을 수 있습니다.",
+      "explanation": "다익스트라 알고리즘은 음수 가중치가 없는 그래프에서 하나의 출발점으로부터 모든 정점까지의 최단 경로를 구하는 알고리즘입니다."
+    },
+    {
+      "id": "algo.dijkstra.quiz2",
+      "displayOrder": 2,
+      "prompt": "다익스트라 알고리즘에서 '확정'된 노드의 의미는?",
+      "options": [
+        "아직 방문하지 않은 노드",
+        "최단 거리가 더 이상 갱신되지 않을 것으로 확정된 노드",
+        "삭제된 노드",
+        "가중치가 0인 노드"
+      ],
+      "correctOption": "B",
+      "hint": "한 번 확정되면 그 값이 최종 최단 거리입니다.",
+      "explanation": "다익스트라는 매 단계 가장 거리가 짧은 미확정 노드를 확정 처리하는데, 이후 이 노드의 거리는 더 짧아질 수 없으므로 최종 확정됩니다."
+    },
+    {
+      "id": "algo.dijkstra.quiz3",
+      "displayOrder": 3,
+      "prompt": "완화(Relaxation) 연산이 하는 일은?",
+      "options": [
+        "이웃 노드까지의 거리가 현재 기록보다 짧으면 갱신",
+        "모든 거리를 무한대로 초기화",
+        "그래프의 간선을 삭제",
+        "노드 순서를 무작위로 섞음"
+      ],
+      "correctOption": "A",
+      "hint": "'더 짧은 경로를 찾으면 업데이트한다'는 개념입니다.",
+      "explanation": "완화는 현재 확정된 노드를 거쳐 이웃 노드로 가는 거리가 기존에 기록된 거리보다 짧다면 그 값으로 갱신하는 연산입니다."
+    }
+  ],
+  "interview": []
+}

@@ -1,0 +1,66 @@
+{
+  "subject": "ds",
+  "slug": "stack-queue",
+  "title": "스택 / 큐",
+  "templateName": "stack-queue",
+  "metaDescription": "스택·큐 CS 지식 정리 — Push·Pop, Enqueue·Dequeue 동작 원리와 활용 사례를 인터랙티브 시각화로 학습하세요. 개발자 면접 자료구조 핵심 개념.",
+  "published": true,
+  "order": 2,
+  "seq": 32,
+  "tags": [
+    "자료구조",
+    "스택",
+    "큐"
+  ],
+  "roles": [],
+  "exams": [],
+  "visual": {
+    "key": "ds/1-10/2d/stack-queue",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "id": "ds.stack-queue.quiz1",
+      "displayOrder": 1,
+      "prompt": "스택(Stack)의 동작 원리는?",
+      "options": [
+        "FIFO(선입선출)",
+        "LIFO(후입선출)",
+        "무작위 순서",
+        "우선순위 기반"
+      ],
+      "correctOption": "B",
+      "hint": "마지막에 넣은 것을 가장 먼저 꺼냅니다.",
+      "explanation": "스택은 LIFO(Last In First Out) 구조로, 가장 나중에 push된 데이터가 가장 먼저 pop됩니다."
+    },
+    {
+      "id": "ds.stack-queue.quiz2",
+      "displayOrder": 2,
+      "prompt": "큐(Queue)의 동작 원리는?",
+      "options": [
+        "LIFO",
+        "FIFO(선입선출)",
+        "무작위",
+        "항상 정렬됨"
+      ],
+      "correctOption": "B",
+      "hint": "줄을 서는 것처럼 먼저 온 사람이 먼저 나갑니다.",
+      "explanation": "큐는 FIFO(First In First Out) 구조로, 가장 먼저 enqueue된 데이터가 가장 먼저 dequeue됩니다."
+    },
+    {
+      "id": "ds.stack-queue.quiz3",
+      "displayOrder": 3,
+      "prompt": "함수 호출 스택(call stack)이 '스택' 구조를 쓰는 이유는?",
+      "options": [
+        "가장 최근에 호출된 함수가 가장 먼저 반환되어야 하므로",
+        "호출 순서와 무관하게 아무거나 반환해도 되므로",
+        "큐가 더 느리기 때문",
+        "메모리를 아끼기 위해"
+      ],
+      "correctOption": "A",
+      "hint": "A가 B를 호출하고 B가 C를 호출하면, C가 가장 먼저 끝나야 합니다.",
+      "explanation": "함수 호출은 가장 최근에 호출된 함수가 가장 먼저 실행을 마치고 반환되는 LIFO 순서를 따르므로 스택 구조가 자연스럽게 맞습니다."
+    }
+  ],
+  "interview": []
+}

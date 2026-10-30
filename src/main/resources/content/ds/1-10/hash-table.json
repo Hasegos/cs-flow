@@ -1,0 +1,66 @@
+{
+  "subject": "ds",
+  "slug": "hash-table",
+  "title": "해시 테이블",
+  "templateName": "hash-table",
+  "metaDescription": "해시 테이블 CS 지식 정리 — 해시 함수, 체이닝·오픈 어드레싱 충돌 해결, 적재율 동작 원리를 인터랙티브 시각화로 학습하세요. 개발자 면접 자료구조 핵심 개념.",
+  "published": true,
+  "order": 3,
+  "seq": 33,
+  "tags": [
+    "자료구조",
+    "해시",
+    "충돌 해결"
+  ],
+  "roles": [],
+  "exams": [],
+  "visual": {
+    "key": "ds/1-10/2d/hash-table",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "id": "ds.hash-table.quiz1",
+      "displayOrder": 1,
+      "prompt": "해시 테이블에서 해시 함수의 역할은?",
+      "options": [
+        "데이터를 정렬",
+        "키를 배열 인덱스(버킷)로 변환",
+        "데이터를 암호화",
+        "메모리를 늘림"
+      ],
+      "correctOption": "B",
+      "hint": "키를 어디에 저장할지 계산합니다.",
+      "explanation": "해시 함수는 입력된 키를 특정 규칙에 따라 배열의 인덱스(버킷 위치)로 변환해, 평균 O(1)의 빠른 조회를 가능하게 합니다."
+    },
+    {
+      "id": "ds.hash-table.quiz2",
+      "displayOrder": 2,
+      "prompt": "체이닝(Chaining) 방식이 해시 충돌을 해결하는 방법은?",
+      "options": [
+        "충돌 시 다른 빈 버킷을 찾아 이동",
+        "같은 버킷에 연결 리스트로 여러 데이터를 저장",
+        "충돌하면 데이터를 버림",
+        "해시 테이블을 삭제"
+      ],
+      "correctOption": "B",
+      "hint": "한 버킷에 여러 개를 매달아 둡니다.",
+      "explanation": "체이닝은 같은 버킷에 해시된 데이터들을 연결 리스트 형태로 이어붙여 저장해 충돌을 처리합니다."
+    },
+    {
+      "id": "ds.hash-table.quiz3",
+      "displayOrder": 3,
+      "prompt": "오픈 어드레싱(Open Addressing) 방식과 체이닝의 차이는?",
+      "options": [
+        "오픈 어드레싱은 충돌 시 다른 빈 슬롯을 탐사해서 저장",
+        "오픈 어드레싱은 연결 리스트를 사용",
+        "둘은 동일한 방식이다",
+        "오픈 어드레싱은 해시 함수를 쓰지 않는다"
+      ],
+      "correctOption": "A",
+      "hint": "'주소를 연다'는 이름처럼 다른 자리를 찾아봅니다.",
+      "explanation": "오픈 어드레싱은 충돌이 나면 정해진 규칙(선형 탐사 등)에 따라 테이블 내 다른 빈 슬롯을 찾아 저장하는 방식으로, 별도의 연결 리스트가 필요 없습니다."
+    }
+  ],
+  "interview": []
+}

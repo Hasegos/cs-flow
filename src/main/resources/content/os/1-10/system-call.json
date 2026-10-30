@@ -1,0 +1,66 @@
+{
+  "subject": "os",
+  "slug": "system-call",
+  "title": "시스템 콜",
+  "templateName": "system-call",
+  "metaDescription": "시스템 콜 CS 지식 정리 — 유저 모드·커널 모드 전환, 트랩(Trap) 동작 원리, fork·exec·read·write 시스템 콜을 인터랙티브 시각화로 학습하세요. 개발자 면접 운영체제 핵심 개념.",
+  "published": true,
+  "order": 10,
+  "seq": 20,
+  "tags": [
+    "OS",
+    "커널",
+    "인터페이스"
+  ],
+  "roles": [],
+  "exams": [],
+  "visual": {
+    "key": "os/1-10/2d/system-call",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "id": "os.system-call.quiz1",
+      "displayOrder": 1,
+      "prompt": "시스템 콜이 필요한 이유는?",
+      "options": [
+        "유저 프로그램이 하드웨어에 직접 접근하는 걸 막고 커널을 통해서만 접근하도록 하기 위해",
+        "프로그램 속도를 늦추기 위해",
+        "컴파일 시간을 줄이기 위해",
+        "네트워크를 끊기 위해"
+      ],
+      "correctOption": "A",
+      "hint": "보안과 안정성을 위해 하드웨어 접근을 커널이 대신 해줍니다.",
+      "explanation": "유저 프로그램이 파일, 디바이스 등에 직접 접근하면 위험하므로, 시스템 콜을 통해 커널에 요청하고 커널이 대신 처리하도록 합니다."
+    },
+    {
+      "id": "os.system-call.quiz2",
+      "displayOrder": 2,
+      "prompt": "유저 모드에서 커널 모드로 전환이 일어나는 시점은?",
+      "options": [
+        "프로그램이 계산만 할 때",
+        "시스템 콜을 호출하거나 인터럽트가 발생할 때",
+        "변수를 선언할 때",
+        "반복문을 실행할 때"
+      ],
+      "correctOption": "B",
+      "hint": "커널의 도움이 필요한 순간입니다.",
+      "explanation": "시스템 콜 호출이나 하드웨어 인터럽트가 발생하면 CPU는 유저 모드에서 커널 모드로 전환해 특권 작업을 수행합니다."
+    },
+    {
+      "id": "os.system-call.quiz3",
+      "displayOrder": 3,
+      "prompt": "커널 모드가 유저 모드보다 가지는 특징은?",
+      "options": [
+        "더 적은 권한을 가진다",
+        "하드웨어 자원에 대한 제한 없는 접근 권한을 가진다",
+        "프로그램을 실행할 수 없다",
+        "항상 더 느리다"
+      ],
+      "correctOption": "B",
+      "hint": "커널은 시스템 전체를 관리해야 합니다.",
+      "explanation": "커널 모드는 하드웨어와 시스템 자원에 제한 없이 접근할 수 있는 특권 모드로, 유저 모드보다 강력한 권한을 가집니다."
+    }
+  ],
+  "interview": []
+}

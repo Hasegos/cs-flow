@@ -188,3 +188,7 @@ border-color: var(--color-purple);
   opacity: 0.35;
   cursor: not-allowed;
 }
+
+.ic-viz--hidden {
+  display: none;
+}

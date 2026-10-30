@@ -1,0 +1,66 @@
+{
+  "subject": "os",
+  "slug": "zombie-orphan-process",
+  "title": "좀비 / 고아 프로세스",
+  "templateName": "zombie-orphan-process",
+  "metaDescription": "좀비·고아 프로세스 CS 지식 정리 — 종료 후 회수되지 않는 좀비와 부모를 잃은 고아 프로세스의 생성과 처리 과정을 인터랙티브 시각화로 학습하세요. 개발자 면접 운영체제 핵심 개념.",
+  "published": true,
+  "order": 17,
+  "seq": 77,
+  "tags": [
+    "고아",
+    "좀비",
+    "프로세스"
+  ],
+  "roles": [],
+  "exams": [],
+  "visual": {
+    "key": "os/11-20/2d/zombie-orphan-process",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "id": "os.zombie-orphan-process.quiz1",
+      "displayOrder": 1,
+      "prompt": "좀비 프로세스(Zombie Process)란?",
+      "options": [
+        "부모가 먼저 종료되어 부모가 없는 프로세스",
+        "CPU를 100% 사용하는 프로세스",
+        "메모리를 가장 많이 쓰는 프로세스",
+        "실행은 끝났지만 부모가 종료 상태를 회수하지 않아 프로세스 테이블에 항목이 남아 있는 프로세스"
+      ],
+      "correctOption": "D",
+      "hint": "이미 끝났는데 완전히 정리되지 않은 상태입니다.",
+      "explanation": "자식 프로세스가 종료돼도 부모가 wait() 등으로 종료 상태를 읽어 가기 전까지 커널은 그 정보를 프로세스 테이블에 남겨둡니다. 이 상태의 프로세스가 좀비입니다."
+    },
+    {
+      "id": "os.zombie-orphan-process.quiz2",
+      "displayOrder": 2,
+      "prompt": "좀비 프로세스가 사라지게 하는 방법은?",
+      "options": [
+        "kill -9 로 좀비 프로세스에 신호를 보낸다",
+        "컴퓨터를 절전 모드로 둔다",
+        "부모가 wait()/waitpid()로 종료 상태를 회수하거나, 부모가 종료되어 init(systemd)이 대신 회수하게 한다",
+        "메모리를 늘린다"
+      ],
+      "correctOption": "C",
+      "hint": "이미 끝난 프로세스에게 신호를 보내도 소용이 없습니다.",
+      "explanation": "좀비는 이미 종료된 상태라 kill로 없앨 수 없습니다. 부모가 wait()/waitpid()로 종료 상태를 회수하면 정리되고, 부모가 종료되면 init(PID 1)이 자식들을 입양해 회수합니다."
+    },
+    {
+      "id": "os.zombie-orphan-process.quiz3",
+      "displayOrder": 3,
+      "prompt": "고아 프로세스(Orphan Process)가 생긴 뒤 운영체제가 처리하는 방식은?",
+      "options": [
+        "즉시 강제 종료한다",
+        "init(PID 1, 현대 리눅스에서는 systemd)이 새 부모가 되어 입양한다",
+        "디스크에 저장해 둔다",
+        "새로운 프로세스로 복사한다"
+      ],
+      "correctOption": "B",
+      "hint": "부모를 잃은 프로세스도 부모가 필요합니다.",
+      "explanation": "부모가 먼저 종료된 프로세스는 고아가 되며, init(PID 1)이 자동으로 새 부모가 되어 입양합니다. 이후 그 프로세스가 종료되면 init이 종료 상태를 회수해 좀비가 남지 않게 합니다."
+    }
+  ],
+  "interview": []
+}

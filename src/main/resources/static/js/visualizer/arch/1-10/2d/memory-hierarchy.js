@@ -48,66 +48,19 @@
     container.appendChild(root);
 
     /* ===================== 3D 팝업북 전환 ===================== */
-    function webglAvailable() {
-        try {
-            const gl = document.createElement('canvas').getContext('webgl');
-            if (!gl) return false;
-            const lose = gl.getExtension('WEBGL_lose_context');
-            if (lose) lose.loseContext();
-            return true;
-        } catch (e) {
-            return false;
-        }
-    }
-
-    function loadScript(src) {
-        return new Promise(function (resolve, reject) {
-            const s = document.createElement('script');
-            s.src = src;
-            s.addEventListener('load', resolve);
-            s.addEventListener('error', reject);
-            document.head.appendChild(s);
-        });
-    }
-
-    let loading3d = null;
-
-    function ensure3d() {
-        if (window.CsFlow.memHier3d) return Promise.resolve();
-        if (!loading3d) {
-            loading3d = loadScript(container.dataset.threeSrc)
-                .then(function () { return loadScript(container.dataset.viz3dSrc); })
-                .catch(function (err) {
-                    loading3d = null;
-                    throw err;
-                });
-        }
-        return loading3d;
-    }
-
     function show2d() {
         root.classList.remove('mem-hier--hidden');
         resize();
     }
 
-    if (container.dataset.threeSrc && container.dataset.viz3dSrc && webglAvailable()) {
-        const btn3d = el('button', 'mem-hier__btn mem-hier__btn--primary', '3D 팝업북');
-        btn3d.type = 'button';
-        btn3d.addEventListener('click', function () {
-            btn3d.disabled = true;
-            btn3d.textContent = '불러오는 중…';
-            ensure3d().then(function () {
-                root.classList.add('mem-hier--hidden');
-                window.CsFlow.memHier3d.open(container, show2d);
-            }).catch(function () {
-                if (window.CsFlow.showToast) window.CsFlow.showToast('3D 화면을 불러오지 못했습니다');
-            }).then(function () {
-                btn3d.disabled = false;
-                btn3d.textContent = '3D 팝업북';
-            });
-        });
-        tbRight.appendChild(btn3d);
-    }
+    window.CsFlow.mount3dButton({
+        container: container,
+        parent: tbRight,
+        cls: 'mem-hier__btn mem-hier__btn--primary',
+        label: '3D 팝업북',
+        onOpen: function () { root.classList.add('mem-hier--hidden'); },
+        onExit: show2d
+    });
 
     /* ===================== 캔버스 ===================== */
     const ctx = canvas.getContext('2d');

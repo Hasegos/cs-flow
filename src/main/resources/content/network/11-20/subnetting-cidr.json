@@ -1,0 +1,66 @@
+{
+  "subject": "network",
+  "slug": "subnetting-cidr",
+  "title": "서브네팅 / CIDR",
+  "templateName": "subnetting-cidr",
+  "metaDescription": "서브네팅과 CIDR CS 지식 정리 — 서브넷 마스크, 네트워크·호스트 주소 계산과 CIDR 표기법을 인터랙티브 시각화로 학습하세요. 개발자 면접 네트워크 핵심 개념.",
+  "published": true,
+  "order": 14,
+  "seq": 84,
+  "tags": [
+    "IP",
+    "CIDR",
+    "서브넷"
+  ],
+  "roles": [],
+  "exams": [],
+  "visual": {
+    "key": "network/11-20/2d/subnetting-cidr",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "id": "network.subnetting-cidr.quiz1",
+      "displayOrder": 1,
+      "prompt": "192.168.1.0/24 네트워크에서 호스트에 할당할 수 있는 주소는 몇 개일까?",
+      "options": [
+        "256개",
+        "255개",
+        "128개",
+        "254개"
+      ],
+      "correctOption": "D",
+      "hint": "호스트 비트 수는 32 - 24 = 8 입니다. 전부를 쓸 수는 없습니다.",
+      "explanation": "호스트 비트가 8개이므로 2^8 = 256개 주소 중, 네트워크 주소(모든 호스트 비트가 0)와 브로드캐스트 주소(모두 1) 2개를 제외한 254개를 호스트에 할당할 수 있습니다."
+    },
+    {
+      "id": "network.subnetting-cidr.quiz2",
+      "displayOrder": 2,
+      "prompt": "CIDR 표기 /26 에 해당하는 서브넷 마스크는?",
+      "options": [
+        "255.255.255.0",
+        "255.255.255.192",
+        "255.255.255.224",
+        "255.255.255.128"
+      ],
+      "correctOption": "B",
+      "hint": "/24 에서 2비트를 더 네트워크로 가져옵니다.",
+      "explanation": "/26은 앞 26비트가 1입니다. 마지막 옥텟에서는 상위 2비트가 1이므로 11000000 = 192가 되어 255.255.255.192입니다."
+    },
+    {
+      "id": "network.subnetting-cidr.quiz3",
+      "displayOrder": 3,
+      "prompt": "CIDR 표기 10.0.0.0/16 에서 /16의 의미는?",
+      "options": [
+        "호스트가 16개라는 뜻",
+        "서브넷이 16개라는 뜻",
+        "IP 주소의 앞 16비트가 네트워크 부분이라는 뜻",
+        "IP 주소의 뒤 16비트가 네트워크 부분이라는 뜻"
+      ],
+      "correctOption": "C",
+      "hint": "슬래시 뒤 숫자는 1로 채워진 서브넷 마스크 비트 수입니다.",
+      "explanation": "/n은 서브넷 마스크에서 앞쪽 n비트가 1이라는 뜻이며, IP 주소의 앞 n비트가 네트워크 부분을 나타냅니다. 나머지 비트는 호스트 부분입니다."
+    }
+  ],
+  "interview": []
+}

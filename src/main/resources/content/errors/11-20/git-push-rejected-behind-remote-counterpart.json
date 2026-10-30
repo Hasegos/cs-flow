@@ -1,0 +1,27 @@
+{
+  "slug": "git-push-rejected-behind-remote-counterpart",
+  "order": 17,
+  "category": "git",
+  "title": "Git: error: failed to push some refs (tip of your current branch is behind) 에러",
+  "errorMessage": "error: failed to push some refs to '<원격 URL>'\nhint: Updates were rejected because the tip of your current branch is behind\nhint: its remote counterpart. If you want to integrate the remote changes,\nhint: use 'git pull' before pushing again.\nhint: See the 'Note about fast-forwards' in 'git push --help' for details.",
+  "envOs": "Windows 10 (재현 환경)",
+  "envDistro": null,
+  "envVersion": "Git 2.52.0 (재현), Git 2.56.0 소스 기준",
+  "cause": "Git 소스(builtin/push.c)는 현재 브랜치의 끝이 원격의 대응 브랜치보다 뒤처져 있어 업데이트가 거부되면 이 안내를 냅니다. hint 줄은 advice.pushNonFFCurrent와 advice.pushUpdateRejected 설정이 켜져 있을 때만 출력됩니다. 원격에 로컬에 없는 작업이 있는 경우에는 \"Updates were rejected because the remote contains work that you do not have locally\" 문구가 나옵니다.",
+  "solution": "메시지의 안내는 원격 변경을 통합하려면 git pull 한 뒤 다시 push 하라는 것입니다 (\"If you want to integrate the remote changes\" 조건부 문구).",
+  "reproduction": "[재현 완료 2026-10-24 · Windows 10 · Git 2.52.0]\n1. 빈 bare 저장소를 만들고 작업 디렉터리 x1, x2로 clone 합니다.\n2. x1에서 커밋하고 push, x2에서 fetch 해 같은 브랜치를 받습니다.\n3. x1에서 커밋을 하나 더 만들어 push 하고, x2에서 다른 커밋을 만든 뒤 git fetch origin 후 git push origin <브랜치> 를 실행합니다.\n4. ! [rejected] <브랜치> -> <브랜치> (non-fast-forward) 다음에 위 error 줄과 hint 4줄이 출력되고 종료 코드가 1입니다.",
+  "createdOn": "2026-10-24",
+  "verifiedOn": "2026-10-24",
+  "verified": true,
+  "sources": [
+    {
+      "label": "git/git v2.56.0 — builtin/push.c",
+      "url": "https://github.com/git/git/blob/v2.56.0/builtin/push.c"
+    },
+    {
+      "label": "git/git v2.56.0 — advice.c",
+      "url": "https://github.com/git/git/blob/v2.56.0/advice.c"
+    }
+  ],
+  "topics": []
+}

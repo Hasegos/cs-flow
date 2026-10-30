@@ -1,0 +1,66 @@
+{
+  "subject": "arch",
+  "slug": "cache-memory",
+  "title": "캐시 메모리",
+  "templateName": "cache-memory",
+  "metaDescription": "캐시 메모리 CS 지식 정리 — 캐시 히트·미스, LRU 교체 정책, L1·L2·L3 캐시 계층 동작 원리를 인터랙티브 시각화로 학습하세요. 개발자 면접 컴퓨터구조 핵심 개념.",
+  "published": true,
+  "order": 5,
+  "seq": 5,
+  "tags": [
+    "성능",
+    "캐시",
+    "메모리"
+  ],
+  "roles": [],
+  "exams": [],
+  "visual": {
+    "key": "arch/1-10/2d/cache-memory",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "id": "arch.cache-memory.quiz1",
+      "displayOrder": 1,
+      "prompt": "Direct Mapped 캐시에서 하나의 메모리 블록이 매핑될 수 있는 캐시 라인 개수는?",
+      "options": [
+        "캐시 전체",
+        "정확히 1개",
+        "2개",
+        "태그와 무관하게 랜덤"
+      ],
+      "correctOption": "B",
+      "hint": "'Direct'라는 이름처럼 갈 곳이 하나로 정해져 있습니다.",
+      "explanation": "Direct Mapped 방식은 메모리 주소의 인덱스에 따라 캐시 라인이 딱 하나로 고정됩니다. 그래서 구현은 단순하지만 충돌(같은 라인을 두고 서로 밀어내는 상황)이 잦을 수 있습니다."
+    },
+    {
+      "id": "arch.cache-memory.quiz2",
+      "displayOrder": 2,
+      "prompt": "캐시 히트(hit)와 미스(miss)의 차이는?",
+      "options": [
+        "히트는 데이터가 캐시에 있어 빠르게 찾은 경우, 미스는 없어서 메모리까지 가야 하는 경우",
+        "둘 다 같은 의미",
+        "히트는 항상 느리다",
+        "미스는 캐시가 고장난 상태"
+      ],
+      "correctOption": "A",
+      "hint": "찾으려는 데이터가 캐시 안에 있는지 여부입니다.",
+      "explanation": "캐시 히트는 원하는 데이터가 캐시에 이미 있어 빠르게 접근하는 경우, 미스는 캐시에 없어 더 느린 메모리까지 가서 가져와야 하는 경우입니다."
+    },
+    {
+      "id": "arch.cache-memory.quiz3",
+      "displayOrder": 3,
+      "prompt": "LRU(Least Recently Used) 교체 정책이 캐시가 꽉 찼을 때 내보내는 것은?",
+      "options": [
+        "가장 최근에 사용한 데이터",
+        "가장 오랫동안 사용되지 않은 데이터",
+        "무작위 데이터",
+        "가장 큰 데이터"
+      ],
+      "correctOption": "B",
+      "hint": "'가장 최근에 안 쓰인'이라는 이름 그대로입니다.",
+      "explanation": "LRU는 가장 오랫동안 사용되지 않은(Least Recently Used) 데이터를 캐시에서 내보내, 앞으로도 다시 쓰일 가능성이 낮은 데이터부터 제거합니다."
+    }
+  ],
+  "interview": []
+}

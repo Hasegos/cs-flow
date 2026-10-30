@@ -1,0 +1,347 @@
+/* 3D 시각화 공용 UI (툴바, 스테이지, 자막, 컨트롤). viz3d-common.js가 만든다 */
+
+/* === 최상위 컨테이너 === */
+.viz3d {
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  min-height: 480px;
+}
+
+/* === 툴바 === */
+.viz3d__toolbar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.viz3d__toolbar-left,
+.viz3d__toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.viz3d__title {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-purple);
+}
+
+.viz3d__badge {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  padding: 4px 12px;
+  border-radius: 20px;
+  border: 1px solid rgba(108, 99, 255, 0.3);
+  color: var(--color-text-muted);
+  letter-spacing: 0.08em;
+  transition: all 0.25s ease;
+}
+
+.viz3d__badge--active {
+  border-color: var(--color-purple);
+  color: var(--color-purple);
+  background: rgba(108, 99, 255, 0.1);
+}
+
+.viz3d__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  padding: 4px 6px 4px 10px;
+  border-radius: 20px;
+  border: 1px solid var(--color-border-hover);
+  color: var(--color-text-sub);
+  letter-spacing: 0.08em;
+}
+
+.viz3d__qmark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid var(--color-purple);
+  border-radius: 50%;
+  background: var(--color-purple-dim);
+  color: var(--color-purple);
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: help;
+}
+
+.viz3d__tip {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 20px;
+  z-index: 10;
+  flex-direction: column;
+  gap: 6px;
+  width: min(340px, calc(100% - 40px));
+  padding: 12px 14px;
+  border: 2px solid var(--color-purple);
+  border-radius: 10px;
+  background: var(--color-surface);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: 0.8rem;
+  letter-spacing: 0;
+  line-height: 1.6;
+  text-transform: none;
+}
+
+.viz3d__tip b {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+}
+
+.viz3d__tip-fix {
+  color: var(--color-text-sub);
+}
+
+.viz3d__tag:hover .viz3d__tip,
+.viz3d__tag:focus-within .viz3d__tip,
+.viz3d__tag.is-open .viz3d__tip {
+  display: flex;
+}
+
+.viz3d__tag[hidden] {
+  display: none;
+}
+
+.viz3d__speed-label {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  color: var(--color-text-muted);
+}
+
+/* === 스테이지 === */
+.viz3d__stage {
+  position: relative;
+  height: clamp(340px, 56vw, 560px);
+  background: var(--color-bg);
+  flex-shrink: 0;
+}
+
+.viz3d__stage::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  box-shadow: inset 0 0 56px 10px var(--color-bg);
+}
+
+.viz3d__canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  cursor: grab;
+  touch-action: none;
+}
+
+.viz3d__canvas.is-grabbing {
+  cursor: grabbing;
+}
+
+.viz3d__fail {
+  position: absolute;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  z-index: 2;
+  text-align: center;
+  line-height: 1.6;
+}
+
+.viz3d__fail.is-on {
+  display: flex;
+}
+
+/* === 자막 === */
+.viz3d__caption {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  z-index: 2;
+  transform: translateX(-50%);
+  max-width: min(92%, 720px);
+  padding: 7px 16px;
+  border: 1px solid var(--color-border-hover);
+  border-radius: 6px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  background: var(--color-surface);
+  background: color-mix(in srgb, var(--color-purple) 14%, var(--color-surface));
+  color: var(--color-text);
+  font-size: 0.92rem;
+  line-height: 1.5;
+  text-align: center;
+  pointer-events: none;
+}
+
+.viz3d__caption:empty {
+  display: none;
+}
+
+.viz3d__caption b {
+  margin-right: 4px;
+  color: var(--color-purple);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* === 컨트롤 === */
+.viz3d__controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  border-top: 1px solid rgba(108, 99, 255, 0.1);
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.viz3d__dots {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0 6px;
+}
+
+.viz3d__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--color-border);
+  transition: all 0.3s ease;
+}
+
+.viz3d__dot.is-on {
+  width: 16px;
+  background: var(--color-purple);
+}
+
+.viz3d__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  padding: 8px 16px;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  letter-spacing: 0.06em;
+  transition: all 0.2s ease;
+}
+
+.viz3d__btn:hover {
+  border-color: var(--color-purple);
+  color: var(--color-purple);
+}
+
+.viz3d__btn--primary {
+  border-color: var(--color-purple);
+  color: var(--color-purple);
+}
+
+.viz3d__btn--primary:hover {
+  background: var(--color-purple);
+  color: var(--color-bg);
+}
+
+.viz3d__btn--speed {
+  padding: 6px 10px;
+}
+
+.viz3d__btn--speed.is-active {
+  border-color: var(--color-purple);
+  color: var(--color-purple);
+  background: rgba(108, 99, 255, 0.1);
+}
+
+.viz3d__btn--icon {
+  width: 38px;
+  height: 34px;
+  padding: 0;
+}
+
+.viz3d__btn--icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.viz3d__btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.viz3d__zoom {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.viz3d__hint {
+  flex: 1;
+  min-width: 0;
+  margin: 0 8px;
+  color: var(--color-text-sub);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  line-height: 1.4;
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+  .viz3d__toolbar,
+  .viz3d__controls {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .viz3d__caption {
+    bottom: 10px;
+    padding: 5px 12px;
+    font-size: 0.8rem;
+  }
+
+  .viz3d__hint {
+    order: 5;
+    flex-basis: 100%;
+    margin: 4px 0 0;
+  }
+}

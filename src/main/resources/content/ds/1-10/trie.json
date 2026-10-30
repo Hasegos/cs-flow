@@ -1,0 +1,66 @@
+{
+  "subject": "ds",
+  "slug": "trie",
+  "title": "트라이",
+  "templateName": "trie",
+  "metaDescription": "트라이 CS 지식 정리 — 문자열 삽입·검색 동작 원리와 자동 완성 구현 구조를 인터랙티브 시각화로 학습하세요. 개발자 면접 자료구조 핵심 개념.",
+  "published": true,
+  "order": 8,
+  "seq": 38,
+  "tags": [
+    "자료구조",
+    "트라이",
+    "문자열"
+  ],
+  "roles": [],
+  "exams": [],
+  "visual": {
+    "key": "ds/1-10/2d/trie",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "id": "ds.trie.quiz1",
+      "displayOrder": 1,
+      "prompt": "트라이(Trie)의 주요 용도는?",
+      "options": [
+        "숫자 정렬",
+        "문자열 접두사 기반 검색",
+        "그래프 최단 경로",
+        "이미지 압축"
+      ],
+      "correctOption": "B",
+      "hint": "같은 접두사를 가진 문자열들이 경로를 공유합니다.",
+      "explanation": "트라이는 문자열을 문자 단위로 트리 경로에 저장해, 공통 접두사를 가진 단어들이 경로를 공유하므로 접두사 검색(자동완성 등)에 효율적입니다."
+    },
+    {
+      "id": "ds.trie.quiz2",
+      "displayOrder": 2,
+      "prompt": "트라이에서 'isEnd' 표시가 필요한 이유는?",
+      "options": [
+        "트리의 색깔을 구분하기 위해",
+        "어떤 노드가 실제 단어의 끝인지 구분하기 위해",
+        "메모리를 아끼기 위해",
+        "필요 없다"
+      ],
+      "correctOption": "B",
+      "hint": "'app'과 'apple'을 둘 다 저장하면 'app' 경로 중간에 단어 끝 표시가 필요합니다.",
+      "explanation": "isEnd 표시가 없으면 'app'이 저장된 단어인지, 단순히 'apple'의 경로 중간 지점인지 구분할 수 없습니다."
+    },
+    {
+      "id": "ds.trie.quiz3",
+      "displayOrder": 3,
+      "prompt": "트라이에서 문자열 검색(contains)의 시간 복잡도는(알파벳 크기 무시 시)?",
+      "options": [
+        "O(1)",
+        "O(문자열 길이)",
+        "O(트라이에 저장된 전체 단어 수)",
+        "O(n^2)"
+      ],
+      "correctOption": "B",
+      "hint": "한 글자씩 경로를 따라 내려갑니다.",
+      "explanation": "트라이 검색은 찾으려는 문자열의 길이만큼 경로를 따라 내려가면 되므로, 저장된 단어 개수와 무관하게 O(문자열 길이)입니다."
+    }
+  ],
+  "interview": []
+}

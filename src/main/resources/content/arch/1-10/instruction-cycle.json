@@ -1,0 +1,66 @@
+{
+  "subject": "arch",
+  "slug": "instruction-cycle",
+  "title": "명령어 사이클",
+  "templateName": "instruction-cycle",
+  "metaDescription": "명령어 사이클 CS 지식 정리 — Fetch, Decode, Execute 명령어 사이클 동작 원리를 인터랙티브 시각화로 학습하세요. 개발자 면접 컴퓨터구조 핵심 개념.",
+  "published": true,
+  "order": 3,
+  "seq": 3,
+  "tags": [
+    "사이클",
+    "명령어",
+    "CPU"
+  ],
+  "roles": [],
+  "exams": [],
+  "visual": {
+    "key": "arch/1-10/2d/instruction-cycle",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "id": "arch.instruction-cycle.quiz1",
+      "displayOrder": 1,
+      "prompt": "명령어 사이클의 기본 순서는?",
+      "options": [
+        "Execute→Fetch→Decode",
+        "Fetch→Decode→Execute",
+        "Decode→Execute→Fetch",
+        "순서 없음"
+      ],
+      "correctOption": "B",
+      "hint": "먼저 명령어를 가져와야(Fetch) 해석(Decode)할 수 있습니다.",
+      "explanation": "CPU는 Fetch(인출)→Decode(해독)→Execute(실행) 순서를 반복하며 프로그램을 실행합니다."
+    },
+    {
+      "id": "arch.instruction-cycle.quiz2",
+      "displayOrder": 2,
+      "prompt": "Fetch 단계에서 사용되는 레지스터는?",
+      "options": [
+        "PC(프로그램 카운터)",
+        "ALU 결과 레지스터만",
+        "디스크 컨트롤러",
+        "GPU 레지스터"
+      ],
+      "correctOption": "A",
+      "hint": "다음에 실행할 명령어의 주소를 담고 있는 레지스터입니다.",
+      "explanation": "PC가 가리키는 메모리 주소에서 명령어를 가져오는 것이 Fetch 단계이며, 이후 PC는 다음 명령어를 가리키도록 갱신됩니다."
+    },
+    {
+      "id": "arch.instruction-cycle.quiz3",
+      "displayOrder": 3,
+      "prompt": "Decode 단계에서 하는 일은?",
+      "options": [
+        "명령어를 실행해 결과를 저장",
+        "가져온 명령어를 해석해 어떤 연산인지 판별",
+        "메모리에 데이터를 씀",
+        "인터럽트를 처리"
+      ],
+      "correctOption": "B",
+      "hint": "명령어 비트 패턴을 보고 무엇을 할지 알아내는 단계입니다.",
+      "explanation": "Decode 단계는 Fetch한 명령어(opcode, operand)를 해석해 어떤 연산과 어떤 데이터가 필요한지 판별합니다."
+    }
+  ],
+  "interview": []
+}

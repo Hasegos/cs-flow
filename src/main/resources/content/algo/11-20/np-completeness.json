@@ -1,0 +1,66 @@
+{
+  "subject": "algo",
+  "slug": "np-completeness",
+  "title": "P vs NP / NP-완전",
+  "templateName": "np-completeness",
+  "metaDescription": "P와 NP, NP-완전 CS 지식 정리 — 다항 시간 검증과 환원의 개념, 대표적인 NP-완전 문제를 인터랙티브 시각화로 학습하세요. 개발자 면접 알고리즘 핵심 개념.",
+  "published": true,
+  "order": 20,
+  "seq": 110,
+  "tags": [
+    "이론",
+    "복잡도",
+    "NP"
+  ],
+  "roles": [],
+  "exams": [],
+  "visual": {
+    "key": "algo/11-20/2d/np-completeness",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "id": "algo.np-completeness.quiz1",
+      "displayOrder": 1,
+      "prompt": "NP(Nondeterministic Polynomial) 문제의 정의는?",
+      "options": [
+        "풀 수 없는 문제",
+        "해(답)가 주어졌을 때 그 해가 맞는지 다항 시간 안에 검증할 수 있는 문제",
+        "지수 시간이 걸리는 모든 문제",
+        "항상 O(n) 안에 풀리는 문제"
+      ],
+      "correctOption": "B",
+      "hint": "\"풀기\"가 아니라 \"검증하기\"가 다항 시간입니다.",
+      "explanation": "NP는 어떤 답이 주어졌을 때 그 답이 정답인지 다항 시간 안에 확인할 수 있는 결정 문제들의 집합입니다. 답을 찾는 것이 어렵더라도 검증이 쉬우면 NP에 속합니다."
+    },
+    {
+      "id": "algo.np-completeness.quiz2",
+      "displayOrder": 2,
+      "prompt": "NP-완전(NP-Complete) 문제란?",
+      "options": [
+        "NP에 속하면서, 모든 NP 문제가 다항 시간에 이 문제로 환원되는(NP에서 가장 어려운) 문제",
+        "답이 없는 문제",
+        "P에 속하지 않는 모든 문제",
+        "컴퓨터로 풀 수 없는 문제"
+      ],
+      "correctOption": "A",
+      "hint": "\"NP 안에서 가장 어려운 문제들\"입니다.",
+      "explanation": "NP-완전 문제는 NP에 속하면서, 모든 NP 문제가 다항 시간 환원으로 이 문제로 바뀔 수 있는 문제입니다. SAT, 외판원 문제의 결정 버전 등이 대표적입니다."
+    },
+    {
+      "id": "algo.np-completeness.quiz3",
+      "displayOrder": 3,
+      "prompt": "어떤 NP-완전 문제 하나를 다항 시간에 풀 수 있음이 증명된다면 의미하는 것은?",
+      "options": [
+        "P ≠ NP 이다",
+        "모든 NP 문제가 다항 시간에 풀리므로 P = NP 이다",
+        "컴퓨터가 더 이상 필요 없다",
+        "해당 문제만 쉬워지고 다른 문제는 변화가 없다"
+      ],
+      "correctOption": "B",
+      "hint": "모든 NP 문제가 그 문제로 환원될 수 있다는 점을 떠올려 보세요.",
+      "explanation": "모든 NP 문제는 NP-완전 문제로 다항 시간에 환원됩니다. 따라서 NP-완전 문제 하나라도 다항 시간에 풀리면 모든 NP 문제가 다항 시간에 풀려 P = NP가 됩니다."
+    }
+  ],
+  "interview": []
+}

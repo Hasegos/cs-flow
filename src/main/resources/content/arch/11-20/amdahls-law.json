@@ -1,0 +1,80 @@
+{
+  "subject": "arch",
+  "slug": "amdahls-law",
+  "title": "암달의 법칙",
+  "templateName": "amdahls-law",
+  "metaDescription": "암달의 법칙 CS 지식 정리 — 병렬 비율과 코어 수에 따른 속도 향상 한계, 수확 체감을 인터랙티브 시각화로 학습하세요. 개발자 면접 컴퓨터 구조 핵심 개념.",
+  "published": true,
+  "order": 11,
+  "seq": 61,
+  "tags": [
+    "성능",
+    "병렬처리",
+    "속도향상"
+  ],
+  "roles": [],
+  "exams": [],
+  "visual": {
+    "key": "arch/11-20/2d/amdahls-law",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "id": "arch.amdahls-law.quiz1",
+      "displayOrder": 1,
+      "prompt": "병렬 비율이 p인 프로그램을 코어 N개로 실행할 때, 암달의 법칙에 따른 속도 향상(Speedup) 식은?",
+      "options": [
+        "1 / (p + (1 - p) / N)",
+        "1 / ((1 - p) + p / N)",
+        "N × p",
+        "(1 - p) + p × N"
+      ],
+      "correctOption": "B",
+      "hint": "코어를 늘려도 나눠지지 않는 부분은 어느 쪽일까요?",
+      "explanation": "직렬로 실행해야 하는 부분 (1-p)는 코어를 늘려도 그대로이고, 병렬화 가능한 부분 p만 N으로 나뉩니다. 그래서 Speedup = 1 / ((1-p) + p/N) 입니다."
+    },
+    {
+      "id": "arch.amdahls-law.quiz2",
+      "displayOrder": 2,
+      "prompt": "병렬 비율 p=0.8인 프로그램을 코어를 무한히 늘려 실행할 때, 이론상 최대 속도 향상은?",
+      "options": [
+        "4배",
+        "8배",
+        "5배",
+        "제한 없음"
+      ],
+      "correctOption": "C",
+      "hint": "N이 무한대가 되면 p/N은 0에 가까워집니다.",
+      "explanation": "N → ∞ 이면 p/N → 0 이므로 Speedup의 상한은 1 / (1-p) 입니다. p=0.8이면 1 / 0.2 = 5배가 한계입니다."
+    },
+    {
+      "id": "arch.amdahls-law.quiz3",
+      "displayOrder": 3,
+      "prompt": "암달의 법칙이 주는 교훈으로 옳은 것은?",
+      "options": [
+        "코어 수에 비례해 성능이 계속 선형으로 늘어난다",
+        "병렬 비율은 성능에 영향을 주지 않는다",
+        "코어를 늘릴수록 직렬로 실행되는 부분도 함께 줄어든다",
+        "직렬로 실행되는 부분이 전체 속도 향상의 상한을 결정한다"
+      ],
+      "correctOption": "D",
+      "hint": "코어를 계속 늘려도 남는 부분이 있습니다.",
+      "explanation": "병렬화할 수 없는 직렬 구간은 코어를 늘려도 시간이 줄지 않으므로, 이 구간의 비율이 전체 속도 향상의 천장이 됩니다. 코어를 더 늘리기 전에 직렬 구간을 줄이는 것이 더 효과적일 수 있습니다."
+    },
+    {
+      "id": "arch.amdahls-law.quiz4",
+      "displayOrder": 4,
+      "prompt": "병렬 비율이 0.9인 프로그램을 코어 10개로 실행할 때 속도 향상은 약 얼마일까?",
+      "options": [
+        "약 5.3배",
+        "10배",
+        "9배",
+        "약 1.9배"
+      ],
+      "correctOption": "A",
+      "hint": "1 / ((1 - 0.9) + 0.9 / 10) 를 계산해 보세요.",
+      "explanation": "1 / (0.1 + 0.09) = 1 / 0.19 ≈ 5.26배입니다. 코어가 10개여도 직렬 10%가 남아 있어 10배에는 한참 못 미칩니다."
+    }
+  ],
+  "interview": []
+}

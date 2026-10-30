@@ -1,0 +1,66 @@
+{
+  "subject": "ds",
+  "slug": "sort",
+  "title": "정렬 알고리즘",
+  "templateName": "sort",
+  "metaDescription": "정렬 알고리즘 CS 지식 정리 — Bubble, Merge, Quick 정렬 단계별 동작 원리와 시간 복잡도 비교를 인터랙티브 시각화로 학습하세요. 개발자 면접 자료구조 핵심 개념.",
+  "published": true,
+  "order": 9,
+  "seq": 39,
+  "tags": [
+    "자료구조",
+    "정렬",
+    "알고리즘"
+  ],
+  "roles": [],
+  "exams": [],
+  "visual": {
+    "key": "ds/1-10/2d/sort",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "id": "ds.sort.quiz1",
+      "displayOrder": 1,
+      "prompt": "버블 정렬(Bubble Sort)의 평균/최악 시간 복잡도는?",
+      "options": [
+        "O(n log n)",
+        "O(n^2)",
+        "O(n)",
+        "O(log n)"
+      ],
+      "correctOption": "B",
+      "hint": "인접한 두 원소를 계속 비교/교환하며 전체를 여러 번 훑습니다.",
+      "explanation": "버블 정렬은 인접 원소를 비교하며 큰 값을 뒤로 보내는 과정을 n번 반복해 평균/최악 시간 복잡도가 O(n^2)입니다."
+    },
+    {
+      "id": "ds.sort.quiz2",
+      "displayOrder": 2,
+      "prompt": "병합 정렬(Merge Sort)이 O(n log n)을 보장하는 이유는?",
+      "options": [
+        "항상 이미 정렬된 데이터만 다루기 때문",
+        "반으로 나누는 과정(log n)과 합치는 과정(n)을 결합하기 때문",
+        "무작위로 섞기 때문",
+        "비교를 하지 않기 때문"
+      ],
+      "correctOption": "B",
+      "hint": "분할 정복(Divide and Conquer) 방식입니다.",
+      "explanation": "병합 정렬은 배열을 절반씩 나누는 데 log n단계가 걸리고, 각 단계마다 병합에 O(n)이 걸려 전체 O(n log n)을 보장합니다. 최악의 경우에도 성능이 일정합니다."
+    },
+    {
+      "id": "ds.sort.quiz3",
+      "displayOrder": 3,
+      "prompt": "퀵 정렬(Quick Sort)의 최악 시간 복잡도가 O(n^2)이 되는 경우는?",
+      "options": [
+        "피벗이 항상 중간값으로 선택될 때",
+        "피벗이 항상 최솟값 또는 최댓값으로 선택되어 한쪽으로 치우칠 때",
+        "배열이 무작위일 때",
+        "항상 O(n log n)이다"
+      ],
+      "correctOption": "B",
+      "hint": "분할이 균등하지 않으면 재귀 깊이가 깊어집니다.",
+      "explanation": "퀵 정렬은 피벗을 기준으로 분할하는데, 피벗이 계속 최솟값/최댓값으로 뽑혀 한쪽 파티션에 거의 모든 원소가 몰리면 최악의 경우 O(n^2)까지 나빠질 수 있습니다."
+    }
+  ],
+  "interview": []
+}

@@ -1,0 +1,66 @@
+{
+  "subject": "network",
+  "slug": "http",
+  "title": "HTTP",
+  "templateName": "http",
+  "metaDescription": "HTTP CS 지식 정리 — 요청·응답 사이클, 상태 코드, HTTP/1.1 vs HTTP/2 차이를 인터랙티브 시각화로 학습하세요. 개발자 면접 네트워크 핵심 개념.",
+  "published": true,
+  "order": 3,
+  "seq": 23,
+  "tags": [
+    "네트워크",
+    "HTTP",
+    "웹"
+  ],
+  "roles": [],
+  "exams": [],
+  "visual": {
+    "key": "network/1-10/2d/http",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "id": "network.http.quiz1",
+      "displayOrder": 1,
+      "prompt": "HTTP/1.1의 성능 한계로 자주 언급되는 것은?",
+      "options": [
+        "Head-of-Line Blocking(HOL) — 요청이 순차 처리되며 지연",
+        "암호화를 지원하지 않음",
+        "상태 코드가 없음",
+        "헤더를 사용할 수 없음"
+      ],
+      "correctOption": "A",
+      "hint": "한 연결에서 여러 요청을 동시에 처리하지 못해 생기는 문제입니다.",
+      "explanation": "HTTP/1.1은 한 커넥션에서 요청이 순서대로 처리되어야 해, 앞선 요청이 느리면 뒤 요청까지 막히는 Head-of-Line Blocking이 발생할 수 있습니다."
+    },
+    {
+      "id": "network.http.quiz2",
+      "displayOrder": 2,
+      "prompt": "HTTP/2의 멀티플렉싱(Multiplexing)이 해결한 문제는?",
+      "options": [
+        "하나의 연결에서 여러 요청/응답을 동시에 주고받을 수 있게 해 HOL 블로킹 완화",
+        "암호화를 추가함",
+        "요청을 아예 없앰",
+        "서버를 여러 개로 나눔"
+      ],
+      "correctOption": "A",
+      "hint": "여러 스트림을 하나의 연결에 겹쳐 보냅니다.",
+      "explanation": "HTTP/2는 하나의 TCP 연결 위에서 여러 요청/응답 스트림을 동시에 주고받는 멀티플렉싱을 지원해, HTTP/1.1의 순차 처리 한계를 완화합니다."
+    },
+    {
+      "id": "network.http.quiz3",
+      "displayOrder": 3,
+      "prompt": "HTTP는 기본적으로 어떤 특성을 가진 프로토콜인가요?",
+      "options": [
+        "Stateful(상태 유지)",
+        "Stateless(무상태) — 각 요청이 독립적",
+        "항상 암호화됨",
+        "연결을 계속 유지해야만 동작"
+      ],
+      "correctOption": "B",
+      "hint": "서버는 기본적으로 이전 요청을 기억하지 않습니다.",
+      "explanation": "HTTP는 기본적으로 무상태(stateless) 프로토콜로, 각 요청이 독립적으로 처리됩니다. 로그인 상태 유지 등은 쿠키/세션 같은 별도 메커니즘으로 구현합니다."
+    }
+  ],
+  "interview": []
+}

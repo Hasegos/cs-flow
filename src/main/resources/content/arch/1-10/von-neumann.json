@@ -1,0 +1,66 @@
+{
+  "subject": "arch",
+  "slug": "von-neumann",
+  "title": "폰 노이만 구조",
+  "templateName": "von-neumann",
+  "metaDescription": "폰 노이만 구조 CS 지식 정리 — 프로그램 내장 방식, 폰 노이만 병목, 하버드 구조 차이를 인터랙티브 시각화로 학습하세요. 개발자 면접 컴퓨터구조 핵심 개념.",
+  "published": true,
+  "order": 1,
+  "seq": 1,
+  "tags": [
+    "메모리",
+    "CPU",
+    "구조"
+  ],
+  "roles": [],
+  "exams": [],
+  "visual": {
+    "key": "arch/1-10/2d/von-neumann",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "id": "arch.von-neumann.quiz1",
+      "displayOrder": 1,
+      "prompt": "폰 노이만 구조에서 CPU, 메모리, 입출력장치가 공유하는 것은?",
+      "options": [
+        "각자 독립된 저장 공간",
+        "하나의 버스(주소/데이터/제어)",
+        "별도의 클럭",
+        "개별 전원"
+      ],
+      "correctOption": "B",
+      "hint": "명령어와 데이터가 같은 통로를 지나갑니다.",
+      "explanation": "폰 노이만 구조는 CPU, 메모리, I/O가 하나의 버스를 공유해 명령어와 데이터를 주고받습니다. 이 때문에 동시에 둘 다 전송할 수 없는 \"폰 노이만 병목\"이 발생합니다."
+    },
+    {
+      "id": "arch.von-neumann.quiz2",
+      "displayOrder": 2,
+      "prompt": "폰 노이만 구조의 대표적 한계로 꼽히는 것은?",
+      "options": [
+        "병렬 계산이 항상 불가능하다",
+        "명령어와 데이터가 같은 버스를 쓰는 병목현상",
+        "메모리를 사용할 수 없다",
+        "프로그램을 저장할 수 없다"
+      ],
+      "correctOption": "B",
+      "hint": "버스가 하나뿐이라 생기는 문제입니다.",
+      "explanation": "명령어 인출과 데이터 접근이 같은 버스를 다퉈야 해서 폰 노이만 병목(bottleneck)이라 부릅니다."
+    },
+    {
+      "id": "arch.von-neumann.quiz3",
+      "displayOrder": 3,
+      "prompt": "프로그램 내장 방식(stored-program concept)의 핵심은?",
+      "options": [
+        "프로그램을 하드웨어 회로로 직접 구현",
+        "프로그램과 데이터를 같은 메모리에 저장",
+        "프로그램을 매번 종이테이프로 입력",
+        "CPU 없이 실행"
+      ],
+      "correctOption": "B",
+      "hint": "폰 노이만 구조 이전엔 프로그램을 배선으로 바꿔야 했습니다.",
+      "explanation": "프로그램 내장 방식은 명령어(프로그램)를 데이터와 동일하게 메모리에 저장해두고 CPU가 순차적으로 읽어 실행합니다. 이 덕분에 프로그램 변경이 배선 재구성 없이 가능해졌습니다."
+    }
+  ],
+  "interview": []
+}

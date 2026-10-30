@@ -1,0 +1,32 @@
+{
+  "slug": "java-stackoverflowerror",
+  "order": 9,
+  "category": "algorithm",
+  "title": "Java: java.lang.StackOverflowError 에러",
+  "errorMessage": "java.lang.StackOverflowError",
+  "envOs": "Windows 10 (재현 환경)",
+  "envDistro": null,
+  "envVersion": "OpenJDK 21.0.8 (재현), JDK 21 소스 기준",
+  "cause": "Javadoc은 애플리케이션이 너무 깊이 재귀해서 스택 오버플로가 났을 때 던져진다고 설명합니다. 일반적으로 상세 메시지는 없고 클래스 이름만 출력됩니다(HotSpot 소스는 지연(delayed) 경로에서만 메시지를 설정).",
+  "solution": "재귀에 종료 조건(기저 사례)을 두거나 반복문으로 바꿉니다.\n\n[해결 확인 2026-10-26 · Windows 10 · OpenJDK 21.0.8]\n1. static int depth(int n) { return depth(n + 1); } 처럼 종료 조건이 없는 재귀를 java So1.java 로 실행하면 java.lang.StackOverflowError 가 납니다.\n2. n >= 10000 이면 n을 반환하도록 종료 조건을 넣은 재귀는 10000을 출력하고, 같은 일을 하는 while 반복문은 1000000을 출력합니다. 재귀로 가능한 깊이는 JVM 스택 크기 설정에 따라 다릅니다.",
+  "reproduction": "[재현 완료 2026-10-24 · Windows 10 · OpenJDK 21.0.8]\n1. Soe.java 를 만듭니다: public class Soe { static void f(){ f(); } public static void main(String[] a){ f(); } }\n2. java Soe.java 를 실행합니다.\n3. Exception in thread \"main\" java.lang.StackOverflowError 가 출력됩니다.",
+  "createdOn": "2026-10-24",
+  "verifiedOn": "2026-10-26",
+  "verified": true,
+  "sources": [
+    {
+      "label": "Oracle — Java SE 21 API: StackOverflowError",
+      "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/StackOverflowError.html"
+    },
+    {
+      "label": "openjdk/jdk jdk-21-ga — hotspot/share/runtime/sharedRuntime.cpp",
+      "url": "https://github.com/openjdk/jdk/blob/jdk-21-ga/src/hotspot/share/runtime/sharedRuntime.cpp"
+    }
+  ],
+  "topics": [
+    "bfs-dfs",
+    "dp-basic",
+    "divide-and-conquer",
+    "recursion-vs-iteration"
+  ]
+}

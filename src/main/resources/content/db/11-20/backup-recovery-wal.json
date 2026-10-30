@@ -1,0 +1,66 @@
+{
+  "subject": "db",
+  "slug": "backup-recovery-wal",
+  "title": "백업 / 복구(WAL)",
+  "templateName": "backup-recovery-wal",
+  "metaDescription": "백업과 복구(WAL) CS 지식 정리 — 쓰기 전 로그(WAL)로 장애 후 복구하고 특정 시점으로 되돌리는 원리를 인터랙티브 시각화로 학습하세요. 개발자 면접 데이터베이스 핵심 개념.",
+  "published": true,
+  "order": 18,
+  "seq": 118,
+  "tags": [
+    "WAL",
+    "복구",
+    "백업"
+  ],
+  "roles": [],
+  "exams": [],
+  "visual": {
+    "key": "db/11-20/2d/backup-recovery-wal",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "id": "db.backup-recovery-wal.quiz1",
+      "displayOrder": 1,
+      "prompt": "WAL(Write-Ahead Logging)의 핵심 원칙은?",
+      "options": [
+        "데이터 파일을 변경하기 전에, 변경 내용을 먼저 로그에 기록한다",
+        "로그를 기록하지 않는다",
+        "데이터를 변경한 뒤 로그를 나중에 지운다",
+        "로그와 데이터를 서로 다른 서버에 저장한다"
+      ],
+      "correctOption": "A",
+      "hint": "\"Ahead\" — 먼저 기록한다는 뜻입니다.",
+      "explanation": "WAL은 데이터 페이지를 디스크에 쓰기 전에 그 변경 내용을 로그에 먼저 기록합니다. 장애가 나도 로그를 보고 변경을 다시 적용하거나 취소할 수 있습니다."
+    },
+    {
+      "id": "db.backup-recovery-wal.quiz2",
+      "displayOrder": 2,
+      "prompt": "WAL 덕분에 가능해지는 것은?",
+      "options": [
+        "쿼리를 자동으로 더 빠르게 만든다",
+        "테이블을 자동으로 정규화한다",
+        "장애 후 로그를 재생(redo)해 커밋된 변경을 복구할 수 있다",
+        "인덱스를 삭제한다"
+      ],
+      "correctOption": "C",
+      "hint": "디스크에 반영되지 못한 커밋 내용은 로그에는 남아 있습니다.",
+      "explanation": "커밋된 변경은 WAL에 먼저 기록되어 있으므로, 서버가 비정상 종료돼도 재시작 시 로그를 재생해 커밋된 내용을 복구할 수 있습니다."
+    },
+    {
+      "id": "db.backup-recovery-wal.quiz3",
+      "displayOrder": 3,
+      "prompt": "PITR(Point-In-Time Recovery)이란?",
+      "options": [
+        "항상 최신 상태로만 복구하는 방식",
+        "베이스 백업과 WAL 아카이브를 이용해 원하는 특정 시점의 상태로 복구하는 방식",
+        "데이터베이스를 처음부터 다시 설치하는 방식",
+        "일부 테이블만 삭제하는 방식"
+      ],
+      "correctOption": "B",
+      "hint": "\"잘못된 DELETE 실행 직전 시각으로 되돌리기\"가 대표적인 사용 예입니다.",
+      "explanation": "정기적인 베이스 백업에 이후의 WAL 로그를 이어서 재생하되, 원하는 시점에서 멈추면 그 시점의 상태로 복구할 수 있습니다. 사람의 실수로 인한 데이터 손실 복구에 유용합니다."
+    }
+  ],
+  "interview": []
+}

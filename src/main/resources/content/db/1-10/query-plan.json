@@ -1,0 +1,80 @@
+{
+  "subject": "db",
+  "slug": "query-plan",
+  "title": "쿼리 실행 계획",
+  "templateName": "query-plan",
+  "metaDescription": "쿼리 실행 계획 CS 지식 정리 — Full Scan vs Index Scan, Nested Loop·Hash·Merge Join 비용 비교를 인터랙티브 시각화로 학습하세요. 개발자 면접 데이터베이스 핵심 개념.",
+  "published": true,
+  "order": 7,
+  "seq": 57,
+  "tags": [
+    "DB",
+    "쿼리",
+    "실행 계획"
+  ],
+  "roles": [],
+  "exams": [],
+  "visual": {
+    "key": "db/1-10/2d/query-plan",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "id": "db.query-plan.quiz1",
+      "displayOrder": 1,
+      "prompt": "PostgreSQL의 EXPLAIN이 보여주는 것은 무엇입니까?",
+      "options": [
+        "쿼리가 실제로 걸린 시간",
+        "옵티마이저가 선택한 실행 계획(Seq Scan / Index Scan 등)",
+        "테이블의 전체 용량",
+        "SQL 문법 오류 여부"
+      ],
+      "correctOption": "B",
+      "hint": "EXPLAIN은 실행 전 \"예상\" 계획을 보여줍니다. 실제 실행 시간까지 보려면 EXPLAIN ANALYZE를 씁니다.",
+      "explanation": "PostgreSQL의 EXPLAIN은 옵티마이저가 선택한 노드(Seq Scan, Index Scan, Bitmap Heap Scan 등)와 예상 비용(cost), 예상 행 수(rows)를 보여줍니다."
+    },
+    {
+      "id": "db.query-plan.quiz2",
+      "displayOrder": 2,
+      "prompt": "선택도(Selectivity)가 낮다는 것은 어떤 의미입니까?",
+      "options": [
+        "조건에 맞는 행이 전체의 대부분을 차지한다",
+        "조건에 맞는 행이 매우 드물다(적다)",
+        "인덱스가 아예 없다",
+        "테이블에 행이 하나도 없다"
+      ],
+      "correctOption": "B",
+      "hint": "VIP 등급처럼 희귀한 값일수록 선택도가 낮습니다.",
+      "explanation": "선택도 = 조건에 맞는 행 수 / 전체 행 수. 값이 작을수록(희귀할수록) Index Scan이 유리해집니다. 반대로 선택도가 높으면(흔한 값) Seq Scan이 더 쌀 수 있습니다."
+    },
+    {
+      "id": "db.query-plan.quiz3",
+      "displayOrder": 3,
+      "prompt": "PostgreSQL EXPLAIN 결과에서 Seq Scan이 나타나는 경우로 가장 적절한 것은?",
+      "options": [
+        "인덱스가 없거나, 있어도 옵티마이저가 인덱스보다 전체 스캔이 더 싸다고 판단한 경우",
+        "SQL 문법에 오류가 있는 경우",
+        "테이블이 비어있는 경우에만",
+        "인덱스가 반드시 삭제된 경우"
+      ],
+      "correctOption": "A",
+      "hint": "인덱스가 있어도 조건에 맞는 행이 너무 많으면(선택도가 높으면) 옵티마이저가 Seq Scan을 선택할 수 있습니다.",
+      "explanation": "Seq Scan은 \"인덱스가 없다\"는 뜻이 아닙니다. 인덱스가 있어도 조건에 맞는 행 비율(선택도)이 높으면, 여기저기 흩어진 행을 인덱스로 찾아가는 것보다 테이블을 처음부터 순서대로 읽는 게 더 빠르다고 옵티마이저가 판단한 것입니다."
+    },
+    {
+      "id": "db.query-plan.quiz4",
+      "displayOrder": 4,
+      "prompt": "PostgreSQL에서 옵티마이저 판단이 의심될 때, 통계를 최신 상태로 갱신하는 방법은?",
+      "options": [
+        "FORCE INDEX 실행",
+        "ANALYZE 실행",
+        "DROP INDEX 실행",
+        "VACUUM FULL 실행"
+      ],
+      "correctOption": "B",
+      "hint": "옵티마이저의 비용 계산은 테이블 통계(pg_statistic)에 기반합니다.",
+      "explanation": "PostgreSQL은 MySQL의 FORCE INDEX 같은 인덱스 힌트 문법을 지원하지 않습니다(옵티마이저 판단을 신뢰하는 설계 철학). 대신 ANALYZE users;로 통계를 갱신해 옵티마이저가 더 정확히 판단하도록 돕는 것이 정석입니다."
+    }
+  ],
+  "interview": []
+}

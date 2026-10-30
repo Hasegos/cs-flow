@@ -1,0 +1,66 @@
+{
+  "subject": "network",
+  "slug": "tcp-ip",
+  "title": "TCP/IP",
+  "templateName": "tcp-ip",
+  "metaDescription": "TCP/IP CS 지식 정리 — 3-way handshake, 4-way termination, 흐름 제어, 오류 검출 동작 원리를 인터랙티브 시각화로 학습하세요. 개발자 면접 네트워크 핵심 개념.",
+  "published": true,
+  "order": 2,
+  "seq": 22,
+  "tags": [
+    "네트워크",
+    "TCP",
+    "핸드셰이크"
+  ],
+  "roles": [],
+  "exams": [],
+  "visual": {
+    "key": "network/1-10/2d/tcp-ip",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "id": "network.tcp-ip.quiz1",
+      "displayOrder": 1,
+      "prompt": "TCP 3-way Handshake의 순서는?",
+      "options": [
+        "SYN → SYN-ACK → ACK",
+        "ACK → SYN → FIN",
+        "SYN → FIN → ACK",
+        "FIN → ACK → SYN"
+      ],
+      "correctOption": "A",
+      "hint": "연결을 요청하고, 승인하고, 확인합니다.",
+      "explanation": "클라이언트가 SYN을 보내면 서버가 SYN-ACK으로 응답하고, 클라이언트가 다시 ACK을 보내 연결이 수립됩니다(3-way Handshake)."
+    },
+    {
+      "id": "network.tcp-ip.quiz2",
+      "displayOrder": 2,
+      "prompt": "TCP 연결 종료가 4단계(4-way)인 이유는?",
+      "options": [
+        "양쪽이 각자 독립적으로 FIN과 ACK을 주고받아야 하기 때문",
+        "3-way와 동일해서",
+        "종료는 원래 1단계다",
+        "UDP이기 때문"
+      ],
+      "correctOption": "A",
+      "hint": "연결은 양방향이라 양쪽 다 종료 의사를 밝혀야 합니다.",
+      "explanation": "TCP는 양방향 연결이라 클라이언트와 서버가 각자 FIN을 보내고 상대의 ACK을 받아야 완전히 종료되므로 총 4단계가 필요합니다."
+    },
+    {
+      "id": "network.tcp-ip.quiz3",
+      "displayOrder": 3,
+      "prompt": "TCP가 UDP보다 신뢰성이 높은 이유로 가장 적절한 것은?",
+      "options": [
+        "TCP는 순서 보장과 재전송, 흐름/혼잡 제어를 수행하기 때문",
+        "TCP는 헤더가 없기 때문",
+        "UDP가 더 느리기 때문",
+        "차이가 없다"
+      ],
+      "correctOption": "A",
+      "hint": "TCP는 '연결형', UDP는 '비연결형'입니다.",
+      "explanation": "TCP는 세그먼트 순서를 보장하고 손실된 데이터를 재전송하며 흐름/혼잡 제어까지 수행해 신뢰성을 보장하지만, 그만큼 오버헤드가 있습니다. UDP는 이런 보장 없이 빠르게 보냅니다."
+    }
+  ],
+  "interview": []
+}

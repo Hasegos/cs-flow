@@ -68,6 +68,22 @@
     root.appendChild(controls);
     container.appendChild(root);
 
+    /* ===================== 3D 도로 전환 ===================== */
+    window.CsFlow.mount3dButton({
+        container: container,
+        parent: toolbar,
+        cls: 'bus-viz__btn bus-viz__btn--primary',
+        label: '3D 버스 도로',
+        onOpen: function () {
+            vizReset();
+            root.classList.add('bus-viz--hidden');
+        },
+        onExit: function () {
+            root.classList.remove('bus-viz--hidden');
+            resize();
+        }
+    });
+
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
     function GW() { return canvas.width / dpr; }

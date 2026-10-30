@@ -1,0 +1,66 @@
+{
+  "subject": "arch",
+  "slug": "io-methods",
+  "title": "입출력 방식",
+  "templateName": "io-methods",
+  "metaDescription": "I/O 방식 CS 지식 정리 — Programmed I/O(폴링), Interrupt-Driven I/O, DMA, 사이클 스틸링 동작 원리를 인터랙티브 시각화로 학습하세요. 개발자 면접 컴퓨터구조 핵심 개념.",
+  "published": true,
+  "order": 10,
+  "seq": 10,
+  "tags": [
+    "버스",
+    "OS",
+    "입출력"
+  ],
+  "roles": [],
+  "exams": [],
+  "visual": {
+    "key": "arch/1-10/2d/io-methods",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "id": "arch.io-methods.quiz1",
+      "displayOrder": 1,
+      "prompt": "Programmed I/O 방식의 특징은?",
+      "options": [
+        "CPU가 입출력 완료를 계속 확인(polling)하며 대기",
+        "CPU 개입 없이 자동 전송",
+        "인터럽트만으로 동작",
+        "디스크가 필요 없음"
+      ],
+      "correctOption": "A",
+      "hint": "CPU가 계속 상태를 '물어보는' 방식입니다.",
+      "explanation": "Programmed I/O는 CPU가 busy-waiting(polling)하며 입출력 장치의 상태를 반복 확인하기 때문에, 그동안 CPU가 다른 작업을 못 해 비효율적입니다."
+    },
+    {
+      "id": "arch.io-methods.quiz2",
+      "displayOrder": 2,
+      "prompt": "인터럽트 기반 I/O가 Programmed I/O보다 나은 점은?",
+      "options": [
+        "CPU가 대기하지 않고 다른 작업을 하다가 완료 시 알림을 받음",
+        "항상 더 느리다",
+        "하드웨어가 필요 없다",
+        "DMA와 동일하다"
+      ],
+      "correctOption": "A",
+      "hint": "폴링 대신 '완료되면 알려줘' 방식입니다.",
+      "explanation": "인터럽트 기반 I/O는 CPU가 입출력이 끝날 때까지 기다리지 않고 다른 작업을 하다가, 장치가 인터럽트로 완료를 알리면 처리합니다."
+    },
+    {
+      "id": "arch.io-methods.quiz3",
+      "displayOrder": 3,
+      "prompt": "DMA 방식이 인터럽트 기반 I/O와 다른 점은?",
+      "options": [
+        "데이터 전송 자체를 CPU 없이 컨트롤러가 직접 수행",
+        "인터럽트를 전혀 사용하지 않는다",
+        "CPU가 매 바이트를 직접 옮긴다",
+        "차이가 없다"
+      ],
+      "correctOption": "A",
+      "hint": "'Direct Memory Access'라는 이름 그대로입니다.",
+      "explanation": "인터럽트 기반 I/O는 완료 시점만 CPU에 알리지만 전송은 CPU가 하는 경우가 많고, DMA는 데이터 전송 자체를 컨트롤러가 대신 수행해 CPU 부담을 더 줄입니다(완료 시 인터럽트는 여전히 사용)."
+    }
+  ],
+  "interview": []
+}

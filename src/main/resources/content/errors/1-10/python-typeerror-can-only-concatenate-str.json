@@ -1,0 +1,27 @@
+{
+  "slug": "python-typeerror-can-only-concatenate-str",
+  "order": 2,
+  "category": "python",
+  "title": "Python: TypeError: can only concatenate str (not \"int\") to str 에러",
+  "errorMessage": "TypeError: can only concatenate str (not \"<타입 이름>\") to str",
+  "envOs": "Windows 10 (재현 환경)",
+  "envDistro": null,
+  "envVersion": "Python 3.14.7 (재현), CPython 3.13 소스 기준",
+  "cause": "CPython 소스(Objects/unicodeobject.c)의 PyUnicode_Concat은 오른쪽 피연산자가 str이 아니면 이 메시지로 TypeError를 냅니다. 공식 튜토리얼(Errors and Exceptions)은 '2' + 2 예시에서 같은 메시지를 보여 줍니다.",
+  "solution": "문자열과 숫자를 + 로 이으려면 숫자를 str()로 문자열로 바꿉니다.\n\n[해결 확인 2026-10-26 · Windows 10 · Python 3.14.7]\n1. python -c 'print(\"count: \" + 3)' 를 실행하면 TypeError: can only concatenate str (not \"int\") to str 가 납니다.\n2. print(\"count: \" + str(3)) 로 고치면 count: 3 이 출력됩니다.",
+  "reproduction": "[재현 완료 2026-10-24 · Windows 10 · Python 3.14.7]\n1. python -c \"print('2' + 2)\" 를 실행합니다.\n2. 마지막 줄에 TypeError: can only concatenate str (not \"int\") to str 가 출력됩니다.",
+  "createdOn": "2026-10-24",
+  "verifiedOn": "2026-10-26",
+  "verified": true,
+  "sources": [
+    {
+      "label": "Python docs — Tutorial: Errors and Exceptions",
+      "url": "https://docs.python.org/3/tutorial/errors.html"
+    },
+    {
+      "label": "python/cpython 3.13 — Objects/unicodeobject.c",
+      "url": "https://github.com/python/cpython/blob/3.13/Objects/unicodeobject.c"
+    }
+  ],
+  "topics": []
+}

@@ -1,0 +1,25 @@
+{
+  "slug": "sqlite-ambiguous-column-name",
+  "order": 28,
+  "category": "sqlite",
+  "title": "SQLite: sqlite3.OperationalError: ambiguous column name 에러",
+  "errorMessage": "sqlite3.OperationalError: ambiguous column name: id",
+  "envOs": "Windows 10 (재현 환경)",
+  "envDistro": null,
+  "envVersion": "Python 3.14.7 sqlite3 · SQLite 3.50.4 (재현), PostgreSQL 등 다른 DB와 메시지가 다를 수 있음",
+  "cause": "SQLite 소스(src/resolve.c) 기준으로, 한정자 없는 열 이름이 FROM의 여러 테이블에서 둘 이상 일치하면 ambiguous column name 뒤에 열 이름을 붙인 오류가 납니다(FULL, NATURAL, USING 조인 등 일부 경우는 예외로 처리됩니다). 공식 SQL 문서에는 이 오류 문구를 설명하는 문장이 없습니다.",
+  "solution": "열 이름 앞에 테이블 이름을 붙여 어느 테이블의 열인지 정합니다.\n\n[해결 확인 2026-10-26 · Windows 10 · Python 3.14.7 · SQLite 3.50.4]\n1. users 와 orders 가 모두 id 열을 가질 때 SELECT id FROM users JOIN orders ON users.id = orders.user_id 를 실행하면 sqlite3.OperationalError: ambiguous column name: id 가 납니다.\n2. SELECT users.id, orders.id FROM users JOIN orders ON users.id = orders.user_id 로 고치면 [(1, 10)] 이 출력됩니다.",
+  "reproduction": "[재현 완료 2026-10-26 · Windows 10 · Python 3.14.7 · SQLite 3.50.4]\n1. Python sqlite3 로 id 열이 있는 users 와 orders 테이블을 만들고 행을 하나씩 넣습니다.\n2. SELECT id FROM users JOIN orders ON users.id = orders.user_id 를 실행하면 sqlite3.OperationalError: ambiguous column name: id 가 출력됩니다.",
+  "createdOn": "2026-10-26",
+  "verifiedOn": "2026-10-26",
+  "verified": true,
+  "sources": [
+    {
+      "label": "sqlite/sqlite version-3.50.4 — src/resolve.c (ambiguous column name)",
+      "url": "https://github.com/sqlite/sqlite/blob/version-3.50.4/src/resolve.c#L781"
+    }
+  ],
+  "topics": [
+    "sql-join"
+  ]
+}

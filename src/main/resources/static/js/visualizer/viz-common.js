@@ -454,3 +454,92 @@ window.CsFlow.createVizLifecycle = function (options) {
         });
     }
 };
+
+/* ===================== 3D 전환 버튼 ===================== */
+(function () {
+    let loading = null;
+
+    /**
+     * 하드웨어 가속 여부와 상관없이 WebGL 컨텍스트를 만들 수 있는지 확인한다.
+     *
+     * @returns 만들 수 있으면 true
+     */
+    function webglAvailable() {
+        try {
+            const gl = document.createElement('canvas').getContext('webgl');
+            if (!gl) return false;
+            const lose = gl.getExtension('WEBGL_lose_context');
+            if (lose) lose.loseContext();
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    /**
+     * 스크립트를 불러온다.
+     *
+     * @param src 스크립트 주소
+     * @returns 로드가 끝나면 풀리는 Promise
+     */
+    function loadScript(src) {
+        return new Promise(function (resolve, reject) {
+            const s = document.createElement('script');
+            s.src = src;
+            s.addEventListener('load', resolve);
+            s.addEventListener('error', reject);
+            document.head.appendChild(s);
+        });
+    }
+
+    /**
+     * three.js, 공용 엔진, 토픽 3D 파일을 이 순서대로 한 번만 불러온다. 실패하면 다음 클릭에서 다시 시도한다.
+     *
+     * @param container data-three-src, data-viz3d-common-src, data-viz3d-src를 가진 시각화 컨테이너
+     * @returns 로드가 끝나면 풀리는 Promise
+     */
+    function ensure3d(container) {
+        if (window.CsFlow.viz3d && window.CsFlow.viz3d.active) return Promise.resolve();
+        if (!loading) {
+            loading = loadScript(container.dataset.threeSrc)
+                .then(function () { return loadScript(container.dataset.viz3dCommonSrc); })
+                .then(function () { return loadScript(container.dataset.viz3dSrc); })
+                .catch(function (err) {
+                    loading = null;
+                    throw err;
+                });
+        }
+        return loading;
+    }
+
+    /**
+     * 2D 시각화 툴바에 3D 전환 버튼을 붙인다. 컨테이너에 3D 주소가 없거나 WebGL을 쓸 수 없으면 붙이지 않는다.
+     * 누르면 3D 스크립트를 불러온 뒤 2D를 숨기고 3D 화면을 연다.
+     *
+     * @param opts container(시각화 컨테이너), parent(버튼을 붙일 요소), cls(버튼 클래스), label(버튼 문구),
+     *             onOpen(3D를 열기 직전에 2D를 숨기는 함수), onExit(3D에서 2D로 돌아올 때 호출할 함수)
+     */
+    window.CsFlow.mount3dButton = function (opts) {
+        const d = opts.container.dataset;
+        if (!d.threeSrc || !d.viz3dCommonSrc || !d.viz3dSrc || !webglAvailable()) return;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = opts.cls;
+        btn.textContent = opts.label;
+        btn.addEventListener('click', function () {
+            btn.disabled = true;
+            btn.textContent = '불러오는 중…';
+            ensure3d(opts.container).then(function () {
+                if (!window.CsFlow.viz3d.active) throw new Error('3D controller missing');
+                opts.onOpen();
+                window.CsFlow.viz3d.active.open(opts.container, opts.onExit);
+            }).catch(function () {
+                if (window.CsFlow.showToast) window.CsFlow.showToast('3D 화면을 불러오지 못했습니다');
+            }).then(function () {
+                btn.disabled = false;
+                btn.textContent = opts.label;
+            });
+        });
+        opts.parent.appendChild(btn);
+    };
+})();

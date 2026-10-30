@@ -1,0 +1,66 @@
+{
+  "subject": "network",
+  "slug": "tcp-congestion",
+  "title": "TCP 혼잡 제어",
+  "templateName": "tcp-congestion",
+  "metaDescription": "TCP 혼잡 제어 CS 지식 정리 — Slow Start, AIMD, Fast Retransmit, Fast Recovery 동작 원리를 인터랙티브 시각화로 학습하세요. 개발자 면접 네트워크 핵심 개념.",
+  "published": true,
+  "order": 6,
+  "seq": 26,
+  "tags": [
+    "네트워크",
+    "TCP",
+    "혼잡 제어"
+  ],
+  "roles": [],
+  "exams": [],
+  "visual": {
+    "key": "network/1-10/2d/tcp-congestion",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "id": "network.tcp-congestion.quiz1",
+      "displayOrder": 1,
+      "prompt": "TCP 혼잡 제어에서 Slow Start(SS) 단계의 특징은?",
+      "options": [
+        "cwnd를 매 RTT마다 지수적으로 증가",
+        "cwnd를 매번 절반으로 감소",
+        "cwnd를 고정",
+        "아무 것도 하지 않음"
+      ],
+      "correctOption": "A",
+      "hint": "처음엔 조심스럽게 시작하지만 점점 빠르게 늘립니다.",
+      "explanation": "Slow Start는 cwnd를 1부터 시작해 ACK을 받을 때마다 지수적으로 증가시켜 가용 대역폭을 빠르게 탐색합니다."
+    },
+    {
+      "id": "network.tcp-congestion.quiz2",
+      "displayOrder": 2,
+      "prompt": "혼잡 회피(Congestion Avoidance, CA) 단계로 전환되는 시점은?",
+      "options": [
+        "연결이 시작될 때",
+        "cwnd가 ssthresh(임계값)에 도달했을 때",
+        "패킷 손실이 전혀 없을 때만",
+        "항상 SS 단계만 유지"
+      ],
+      "correctOption": "B",
+      "hint": "일정 지점을 넘으면 증가 속도를 늦춥니다.",
+      "explanation": "cwnd가 ssthresh에 도달하면 지수적 증가 대신 선형적으로(RTT마다 1씩) 증가하는 혼잡 회피 단계로 전환해 네트워크 혼잡을 조심스럽게 피합니다."
+    },
+    {
+      "id": "network.tcp-congestion.quiz3",
+      "displayOrder": 3,
+      "prompt": "패킷 손실이 감지되면 TCP 혼잡 제어는 일반적으로 어떻게 반응하나요?",
+      "options": [
+        "cwnd를 오히려 늘린다",
+        "ssthresh와 cwnd를 줄이고 필요 시 Slow Start를 다시 시작",
+        "연결을 즉시 끊는다",
+        "아무 변화 없음"
+      ],
+      "correctOption": "B",
+      "hint": "혼잡이 감지됐으니 속도를 줄여야 합니다.",
+      "explanation": "패킷 손실은 네트워크 혼잡의 신호로 간주되어, TCP는 ssthresh를 낮추고 cwnd를 줄인 뒤(또는 Slow Start부터 재시작) 다시 조심스럽게 전송 속도를 늘려갑니다."
+    }
+  ],
+  "interview": []
+}

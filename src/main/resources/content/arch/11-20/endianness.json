@@ -1,0 +1,66 @@
+{
+  "subject": "arch",
+  "slug": "endianness",
+  "title": "엔디언(빅/리틀)",
+  "templateName": "endianness",
+  "metaDescription": "엔디언 CS 지식 정리 — 빅 엔디언과 리틀 엔디언의 바이트 저장 순서와 네트워크 바이트 순서를 인터랙티브 시각화로 학습하세요. 개발자 면접 컴퓨터 구조 핵심 개념.",
+  "published": true,
+  "order": 20,
+  "seq": 70,
+  "tags": [
+    "바이트순서",
+    "데이터표현",
+    "엔디언"
+  ],
+  "roles": [],
+  "exams": [],
+  "visual": {
+    "key": "arch/11-20/2d/endianness",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "id": "arch.endianness.quiz1",
+      "displayOrder": 1,
+      "prompt": "32비트 값 0x12345678을 메모리의 낮은 주소부터 12 34 56 78 순서로 저장하는 방식은?",
+      "options": [
+        "리틀 엔디언",
+        "미들 엔디언",
+        "빅 엔디언",
+        "패리티 방식"
+      ],
+      "correctOption": "C",
+      "hint": "가장 큰 자릿수(MSB) 바이트가 먼저 옵니다.",
+      "explanation": "가장 상위 바이트를 낮은 주소에 먼저 저장하는 방식이 빅 엔디언입니다. 반대로 하위 바이트(78)를 먼저 저장하면 리틀 엔디언입니다."
+    },
+    {
+      "id": "arch.endianness.quiz2",
+      "displayOrder": 2,
+      "prompt": "x86 계열 CPU가 사용하는 바이트 저장 순서는?",
+      "options": [
+        "빅 엔디언",
+        "리틀 엔디언",
+        "매번 무작위",
+        "엔디언 개념이 없다"
+      ],
+      "correctOption": "B",
+      "hint": "낮은 자릿수 바이트가 낮은 주소에 옵니다.",
+      "explanation": "x86과 x86-64는 리틀 엔디언을 사용합니다. 그래서 0x12345678을 메모리에 저장하면 낮은 주소부터 78 56 34 12 순서로 놓입니다."
+    },
+    {
+      "id": "arch.endianness.quiz3",
+      "displayOrder": 3,
+      "prompt": "네트워크 바이트 순서(Network Byte Order)로 정해진 방식은?",
+      "options": [
+        "빅 엔디언",
+        "리틀 엔디언",
+        "송신 호스트마다 다르다",
+        "미들 엔디언"
+      ],
+      "correctOption": "A",
+      "hint": "호스트 순서와 네트워크 순서를 바꿔주는 htons, htonl 함수가 있습니다.",
+      "explanation": "네트워크 프로토콜은 통신 상대의 CPU 종류와 무관하게 빅 엔디언을 표준 바이트 순서로 사용합니다. 리틀 엔디언 호스트는 전송 전에 htons/htonl 같은 함수로 변환합니다."
+    }
+  ],
+  "interview": []
+}

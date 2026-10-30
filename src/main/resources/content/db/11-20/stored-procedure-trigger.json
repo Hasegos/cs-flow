@@ -1,0 +1,66 @@
+{
+  "subject": "db",
+  "slug": "stored-procedure-trigger",
+  "title": "저장 프로시저 / 트리거",
+  "templateName": "stored-procedure-trigger",
+  "metaDescription": "저장 프로시저와 트리거 CS 지식 정리 — DB 안에 로직을 두는 방식과 이벤트 발생 시 자동 실행되는 트리거의 동작을 인터랙티브 시각화로 학습하세요. 개발자 면접 데이터베이스 핵심 개념.",
+  "published": true,
+  "order": 17,
+  "seq": 117,
+  "tags": [
+    "SQL",
+    "트리거",
+    "프로시저"
+  ],
+  "roles": [],
+  "exams": [],
+  "visual": {
+    "key": "db/11-20/2d/stored-procedure-trigger",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "id": "db.stored-procedure-trigger.quiz1",
+      "displayOrder": 1,
+      "prompt": "저장 프로시저(Stored Procedure)란?",
+      "options": [
+        "DB의 백업 파일",
+        "DB 안에 저장해 두고 이름으로 호출해 실행하는 SQL(절차) 묶음",
+        "테이블의 다른 이름",
+        "인덱스의 한 종류"
+      ],
+      "correctOption": "B",
+      "hint": "함수처럼 미리 만들어 두고 호출합니다.",
+      "explanation": "저장 프로시저는 여러 SQL 문과 제어 흐름을 DB 서버에 저장해 두고 이름으로 호출해 실행하는 기능입니다. 네트워크 왕복을 줄이고 로직을 DB에 모아둘 수 있습니다."
+    },
+    {
+      "id": "db.stored-procedure-trigger.quiz2",
+      "displayOrder": 2,
+      "prompt": "트리거(Trigger)란?",
+      "options": [
+        "사용자가 직접 호출해야만 실행되는 함수",
+        "테이블을 삭제하는 명령",
+        "INSERT, UPDATE, DELETE 같은 이벤트가 발생하면 자동으로 실행되는 DB 객체",
+        "인덱스를 만드는 명령"
+      ],
+      "correctOption": "C",
+      "hint": "\"방아쇠\" — 특정 이벤트가 당기는 순간 실행됩니다.",
+      "explanation": "트리거는 지정한 테이블의 INSERT/UPDATE/DELETE 같은 이벤트가 일어날 때 자동으로 실행됩니다. 변경 이력 기록이나 값 검증 등에 사용합니다."
+    },
+    {
+      "id": "db.stored-procedure-trigger.quiz3",
+      "displayOrder": 3,
+      "prompt": "트리거를 남용했을 때 생길 수 있는 문제는?",
+      "options": [
+        "쿼리가 항상 빨라진다",
+        "테이블이 자동으로 삭제된다",
+        "코드에서는 보이지 않는 숨은 동작이 생겨 추적과 디버깅이 어렵고, 쓰기 성능에도 영향을 줄 수 있다",
+        "인덱스가 필요 없어진다"
+      ],
+      "correctOption": "C",
+      "hint": "애플리케이션 코드에는 나타나지 않는 동작입니다.",
+      "explanation": "트리거는 애플리케이션 코드에 보이지 않은 채 자동 실행되어 동작을 추적하기 어렵습니다. 또 데이터 변경마다 추가 작업이 들어가 쓰기 성능이 떨어질 수 있습니다."
+    }
+  ],
+  "interview": []
+}

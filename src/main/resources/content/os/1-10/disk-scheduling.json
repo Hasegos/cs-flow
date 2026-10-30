@@ -1,0 +1,66 @@
+{
+  "subject": "os",
+  "slug": "disk-scheduling",
+  "title": "디스크 스케줄링",
+  "templateName": "disk-scheduling",
+  "metaDescription": "디스크 스케줄링 CS 지식 정리 — FCFS, SSTF, SCAN, C-SCAN 헤드 이동 애니메이션으로 학습하세요. 개발자 면접 운영체제 핵심 개념.",
+  "published": true,
+  "order": 9,
+  "seq": 19,
+  "tags": [
+    "OS",
+    "디스크",
+    "스케줄링"
+  ],
+  "roles": [],
+  "exams": [],
+  "visual": {
+    "key": "os/1-10/2d/disk-scheduling",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "id": "os.disk-scheduling.quiz1",
+      "displayOrder": 1,
+      "prompt": "FCFS 디스크 스케줄링의 단점은?",
+      "options": [
+        "항상 가장 빠르다",
+        "요청 순서만 따르므로 헤드 이동 거리가 비효율적일 수 있다",
+        "헤드가 절대 움직이지 않는다",
+        "우선순위를 반영한다"
+      ],
+      "correctOption": "B",
+      "hint": "요청이 도착한 순서대로만 처리합니다.",
+      "explanation": "FCFS는 디스크 요청을 들어온 순서대로 처리해 헤드가 불필요하게 왔다갔다 하며 이동 거리가 길어질 수 있습니다."
+    },
+    {
+      "id": "os.disk-scheduling.quiz2",
+      "displayOrder": 2,
+      "prompt": "SSTF(Shortest Seek Time First)의 방식은?",
+      "options": [
+        "요청 순서대로 처리",
+        "현재 헤드 위치에서 가장 가까운 요청을 우선 처리",
+        "항상 끝에서 끝으로 이동",
+        "무작위 처리"
+      ],
+      "correctOption": "B",
+      "hint": "'Shortest Seek Time', 탐색 시간이 가장 짧은 것부터 처리합니다.",
+      "explanation": "SSTF는 현재 헤드 위치에서 가장 가까운 트랙 요청을 먼저 처리해 평균 탐색 시간을 줄이지만, 특정 요청이 계속 밀리는 기아(starvation) 문제가 생길 수 있습니다."
+    },
+    {
+      "id": "os.disk-scheduling.quiz3",
+      "displayOrder": 3,
+      "prompt": "SCAN(엘리베이터) 알고리즘과 C-SCAN의 차이는?",
+      "options": [
+        "완전히 동일하다",
+        "SCAN은 끝까지 갔다가 반대로 오며 처리하고, C-SCAN은 끝에 도달하면 반대편 끝으로 이동해 한 방향으로만 처리",
+        "C-SCAN은 헤드를 움직이지 않는다",
+        "SCAN만 실제로 쓰인다"
+      ],
+      "correctOption": "B",
+      "hint": "'C'는 Circular(순환)를 의미합니다.",
+      "explanation": "SCAN은 한쪽 끝까지 이동한 뒤 방향을 바꿔 반대쪽으로 이동하며 처리하고, C-SCAN은 끝에 도달하면 반대편 시작점으로 점프해 항상 같은 방향으로만 처리해 대기시간을 더 균등하게 만듭니다."
+    }
+  ],
+  "interview": []
+}

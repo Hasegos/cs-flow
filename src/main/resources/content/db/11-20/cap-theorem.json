@@ -1,0 +1,66 @@
+{
+  "subject": "db",
+  "slug": "cap-theorem",
+  "title": "CAP 이론",
+  "templateName": "cap-theorem",
+  "metaDescription": "CAP 정리 CS 지식 정리 — 일관성·가용성·분단 내성의 트레이드오프와 CP·AP 시스템 선택 기준을 인터랙티브 시각화로 학습하세요. 개발자 면접 데이터베이스 핵심 개념.",
+  "published": true,
+  "order": 14,
+  "seq": 114,
+  "tags": [
+    "일관성",
+    "분산",
+    "CAP"
+  ],
+  "roles": [],
+  "exams": [],
+  "visual": {
+    "key": "db/11-20/2d/cap-theorem",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "id": "db.cap-theorem.quiz1",
+      "displayOrder": 1,
+      "prompt": "CAP 정리의 세 가지 속성은?",
+      "options": [
+        "Cache, Availability, Performance",
+        "Consistency, Availability, Partition tolerance",
+        "Concurrency, Atomicity, Persistence",
+        "Capacity, Access, Privacy"
+      ],
+      "correctOption": "B",
+      "hint": "일관성, 가용성, 분단 내성입니다.",
+      "explanation": "CAP은 Consistency(일관성), Availability(가용성), Partition tolerance(분단 내성)의 머리글자입니다."
+    },
+    {
+      "id": "db.cap-theorem.quiz2",
+      "displayOrder": 2,
+      "prompt": "네트워크 분단(Partition)이 실제로 발생했을 때 분산 시스템이 택해야 하는 것은?",
+      "options": [
+        "일관성과 가용성 중 하나",
+        "세 가지를 모두 완벽히 만족",
+        "성능과 비용 중 하나",
+        "아무것도 선택할 필요 없다"
+      ],
+      "correctOption": "A",
+      "hint": "분단이 일어나면 노드끼리 서로 확인할 수 없습니다.",
+      "explanation": "네트워크 분단 때는 최신 데이터임을 보장하려고 일부 요청을 거부(일관성)하거나, 오래된 데이터라도 응답(가용성)하는 둘 중 하나를 골라야 합니다."
+    },
+    {
+      "id": "db.cap-theorem.quiz3",
+      "displayOrder": 3,
+      "prompt": "CP 시스템의 특성으로 알맞은 것은?",
+      "options": [
+        "분단 중에도 모든 요청에 항상 응답하고, 데이터가 오래됐을 수 있다",
+        "분단을 절대 허용하지 않는다",
+        "분단이 발생하면 일관성을 지키기 위해 일부 요청을 거부하거나 지연시킬 수 있다",
+        "일관성을 포기한다"
+      ],
+      "correctOption": "C",
+      "hint": "C(일관성)를 우선하는 쪽입니다.",
+      "explanation": "CP 시스템은 분단 상황에서 데이터 일관성을 우선해, 일관성을 보장할 수 없는 요청은 거부하거나 지연시킵니다. 반대로 AP는 가용성을 우선해 응답하되 최신이 아닐 수 있습니다."
+    }
+  ],
+  "interview": []
+}

@@ -7,3 +7,7 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: true
+
+cs-flow:
+  content:
+    show-unpublished: true

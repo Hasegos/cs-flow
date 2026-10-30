@@ -1,0 +1,29 @@
+{
+  "slug": "java-unknownhostexception",
+  "order": 12,
+  "category": "network",
+  "title": "Java: java.net.UnknownHostException 에러",
+  "errorMessage": "java.net.UnknownHostException: <호스트명>",
+  "envOs": "Windows 10 (재현 환경)",
+  "envDistro": null,
+  "envVersion": "OpenJDK 21.0.8 (재현), JDK 21 소스 기준",
+  "cause": "Javadoc은 호스트의 IP 주소를 결정할 수 없었음을 알리는 예외라고 설명합니다. 메시지에는 대개 조회한 호스트명이 들어갑니다(InetAddress 소스의 new UnknownHostException(host)). hosts 파일 리졸버 경로에는 \"Unable to resolve host ...\" 같은 다른 형식의 메시지도 있습니다.",
+  "solution": "호스트 이름의 철자와 DNS로 해석되는 이름인지 확인하고, 해석되는 이름으로 바꿉니다.\n\n[해결 확인 2026-10-26 · Windows 10 · OpenJDK 21.0.8]\n1. InetAddress.getByName(\"no-such-host.invalid\") 를 실행하면 java.net.UnknownHostException 이 납니다. .invalid 최상위 도메인은 RFC 2606이 확실히 유효하지 않은 도메인 이름을 만드는 용도로 예약한 이름입니다.\n2. InetAddress.getByName(\"localhost\") 로 바꾸면 localhost/127.0.0.1 이 출력됩니다.",
+  "reproduction": "[재현 완료 2026-10-24 · Windows 10 · OpenJDK 21.0.8]\n1. Uhe.java 를 만듭니다: public class Uhe { public static void main(String[] a) throws Exception { new java.net.URL(\"http://nonexistent-host-xyz.invalid\").openStream(); } }\n2. java Uhe.java 를 실행합니다 (URL(String) deprecation 경고는 무시).\n3. Exception in thread \"main\" java.net.UnknownHostException: nonexistent-host-xyz.invalid 가 출력됩니다.",
+  "createdOn": "2026-10-24",
+  "verifiedOn": "2026-10-26",
+  "verified": true,
+  "sources": [
+    {
+      "label": "Oracle — Java SE 21 API: UnknownHostException",
+      "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/net/UnknownHostException.html"
+    },
+    {
+      "label": "openjdk/jdk jdk-21-ga — java.base/java/net/InetAddress.java",
+      "url": "https://github.com/openjdk/jdk/blob/jdk-21-ga/src/java.base/share/classes/java/net/InetAddress.java"
+    }
+  ],
+  "topics": [
+    "dns"
+  ]
+}

@@ -1,0 +1,66 @@
+{
+  "subject": "arch",
+  "slug": "pipelining",
+  "title": "파이프라이닝",
+  "templateName": "pipelining",
+  "metaDescription": "파이프라이닝 CS 지식 정리 — IF, ID, EX, MEM, WB 파이프라인 단계와 해저드 해결법을 인터랙티브 시각화로 학습하세요. 개발자 면접 컴퓨터구조 핵심 개념.",
+  "published": true,
+  "order": 4,
+  "seq": 4,
+  "tags": [
+    "명령어",
+    "성능",
+    "CPU"
+  ],
+  "roles": [],
+  "exams": [],
+  "visual": {
+    "key": "arch/1-10/2d/pipelining",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "id": "arch.pipelining.quiz1",
+      "displayOrder": 1,
+      "prompt": "파이프라이닝의 목적은?",
+      "options": [
+        "명령어를 하나씩 순차적으로만 처리",
+        "여러 명령어를 단계별로 겹쳐 처리해 처리량 향상",
+        "메모리 용량 증가",
+        "전력 소비 증가"
+      ],
+      "correctOption": "B",
+      "hint": "공장의 조립 라인처럼 여러 단계를 동시에 돌립니다.",
+      "explanation": "파이프라이닝은 IF/ID/EX/MEM/WB 같은 단계를 겹쳐 실행해, 명령어 하나가 끝나길 기다리지 않고 처리량(throughput)을 높입니다."
+    },
+    {
+      "id": "arch.pipelining.quiz2",
+      "displayOrder": 2,
+      "prompt": "파이프라인 해저드(hazard) 중 이전 명령어 결과를 기다려야 하는 것은?",
+      "options": [
+        "구조적 해저드",
+        "데이터 해저드",
+        "제어 해저드",
+        "없음"
+      ],
+      "correctOption": "B",
+      "hint": "한 명령어의 결과를 다음 명령어가 바로 써야 할 때 생깁니다.",
+      "explanation": "데이터 해저드는 이전 명령어의 연산 결과가 아직 준비되지 않았는데 다음 명령어가 그 값을 필요로 할 때 발생합니다."
+    },
+    {
+      "id": "arch.pipelining.quiz3",
+      "displayOrder": 3,
+      "prompt": "분기(branch) 명령어로 인해 발생하는 해저드는?",
+      "options": [
+        "구조적 해저드",
+        "데이터 해저드",
+        "제어 해저드",
+        "캐시 해저드"
+      ],
+      "correctOption": "C",
+      "hint": "다음에 실행할 명령어 주소가 분기 결과에 따라 바뀝니다.",
+      "explanation": "제어 해저드는 분기문 때문에 다음에 어떤 명령어를 가져와야 할지 불확실해질 때 발생하며, 분기 예측 등으로 완화합니다."
+    }
+  ],
+  "interview": []
+}

@@ -1,30 +1,24 @@
 package io.dev.cs_flow.service;
 
 import io.dev.cs_flow.common.exception.NotFoundException;
+import io.dev.cs_flow.dto.ContentVisual;
+import io.dev.cs_flow.dto.SubjectView;
+import io.dev.cs_flow.dto.TopicInfo;
 import io.dev.cs_flow.dto.TopicViewPath;
-import io.dev.cs_flow.model.Topic;
-import io.dev.cs_flow.model.Visualizer;
-import io.dev.cs_flow.repository.VisualizerRepository;
 import org.junit.jupiter.api.Test;
 
-import java.util.Optional;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 class VisualizerServiceTest {
 
     private TopicViewPath resolve(String jsFileKey, String subject) {
-        Topic topic = mock(Topic.class);
-        when(topic.getTopicId()).thenReturn(1L);
-        when(topic.getTemplateName()).thenReturn("branch-prediction");
-        Visualizer visualizer = mock(Visualizer.class);
-        when(visualizer.getJsFileKey()).thenReturn(jsFileKey);
-        VisualizerRepository repository = mock(VisualizerRepository.class);
-        when(repository.findByTopicId(1L)).thenReturn(Optional.of(visualizer));
-        return new VisualizerService(repository).resolveTopicView(topic, subject);
+        TopicInfo topic = new TopicInfo("branch-prediction", "분기 예측", "branch-prediction", null,
+                new SubjectView("arch", "컴퓨터 구조", "#6c63ff"), List.of(),
+                new ContentVisual(jsFileKey, false), 1, 1, 0, 0);
+        return new VisualizerService().resolveTopicView(topic, subject);
     }
 
     @Test

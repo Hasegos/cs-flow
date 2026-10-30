@@ -182,6 +182,11 @@
   opacity: 0.35;
   cursor: not-allowed;
 }
+
+.vn-viz--hidden {
+  display: none;
+}
+
 .vn__speed-btn:disabled {
   opacity: 0.3;
   cursor: not-allowed;

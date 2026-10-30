@@ -1,0 +1,29 @@
+{
+  "slug": "java-outofmemoryerror-java-heap-space",
+  "order": 8,
+  "category": "java",
+  "title": "Java: java.lang.OutOfMemoryError: Java heap space 에러",
+  "errorMessage": "java.lang.OutOfMemoryError: Java heap space",
+  "envOs": "Windows 10 (재현 환경)",
+  "envDistro": null,
+  "envVersion": "OpenJDK 21.0.8 (재현), Java SE 21 문서 기준",
+  "cause": "Oracle 문서는 상세 메시지(Detail Message) \"Java heap space\"를 객체를 힙에 할당할 수 없다는 뜻으로 설명합니다. 이 메시지가 항상 메모리 누수를 뜻하지는 않고, 힙 크기(-Xms, -Xmx, 기본값 포함)가 애플리케이션에 부족한 설정 문제일 수 있다고 합니다. 애플리케이션이 객체 참조를 불필요하게 잡고 있거나 finalizer를 과하게 쓰면 힙이 찰 수 있다고도 합니다. 전체 출력 한 줄은 Oracle 페이지에 그대로 나오지 않고, Throwable.toString() 규칙(클래스 이름 + \": \" + 메시지)으로 조합한 것입니다.",
+  "solution": "힙 크기를 늘립니다(-Xms, -Xmx 옵션, 문서 원문 \"Try increasing the Java heap size.\"). 누수가 의심되면 힙 라이브 셋을 모니터링하고 객체 참조를 점검합니다 (문서는 JConsole과 JDK Mission Control을 언급).",
+  "reproduction": "[재현 완료 2026-10-24 · Windows 10 · OpenJDK 21.0.8]\n1. Oom.java 를 만듭니다: public class Oom { public static void main(String[] a){ byte[] b = new byte[200_000_000]; System.out.println(b.length); } }\n2. java -Xmx16m Oom.java 를 실행합니다.\n3. Exception in thread \"main\" java.lang.OutOfMemoryError: Java heap space 가 출력됩니다.",
+  "createdOn": "2026-10-24",
+  "verifiedOn": "2026-10-24",
+  "verified": true,
+  "sources": [
+    {
+      "label": "Oracle — Java SE 21 Troubleshooting Guide: Troubleshoot Memory Leaks",
+      "url": "https://docs.oracle.com/en/java/javase/21/troubleshoot/troubleshooting-memory-leaks.html"
+    },
+    {
+      "label": "Oracle — Java SE 21 API: OutOfMemoryError",
+      "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/OutOfMemoryError.html"
+    }
+  ],
+  "topics": [
+    "memory-management"
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "subject": "network",
+  "slug": "cookie-session-jwt",
+  "title": "쿠키 · 세션 · JWT",
+  "templateName": "cookie-session-jwt",
+  "metaDescription": "쿠키·세션·JWT CS 지식 정리 — 세션 ID 쿠키 방식과 서명한 토큰 방식의 로그인 유지 원리, 로그아웃·폐기 차이를 인터랙티브 시각화로 학습하세요. 개발자 면접 네트워크 핵심 개념.",
+  "published": true,
+  "order": 21,
+  "seq": 126,
+  "tags": [
+    "쿠키",
+    "세션",
+    "JWT",
+    "인증"
+  ],
+  "roles": [],
+  "exams": [],
+  "visual": {
+    "key": "network/21-30/2d/cookie-session-jwt",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "id": "network.cookie-session-jwt.quiz1",
+      "displayOrder": 1,
+      "prompt": "세션 방식에서 서버가 쿠키에 담아 클라이언트에게 내려 보내는 것은?",
+      "options": [
+        "사용자의 이름과 권한 정보 전체",
+        "서버의 서명용 비밀키",
+        "서버 저장소에서 세션을 찾는 세션 ID",
+        "사용자의 비밀번호"
+      ],
+      "correctOption": "C",
+      "hint": "사용자 정보는 서버 쪽에 있고, 클라이언트는 번호표만 갖습니다.",
+      "explanation": "세션 방식은 사용자 상태를 서버 저장소에 보관하고, 클라이언트에는 그 상태를 찾는 키인 세션 ID만 쿠키로 줍니다. 요청마다 브라우저가 쿠키를 붙여 보내면 서버가 세션 ID로 저장소를 조회합니다."
+    },
+    {
+      "id": "network.cookie-session-jwt.quiz2",
+      "displayOrder": 2,
+      "prompt": "서명된 JWT의 페이로드에 대한 설명으로 옳은 것은?",
+      "options": [
+        "암호화돼 있어 서버의 비밀키 없이는 읽을 수 없다",
+        "Base64url로 인코딩됐을 뿐이라 누구나 읽을 수 있다",
+        "브라우저가 자동으로 복호화해서 보여 준다",
+        "서명이 있으면 내용도 숨겨진다"
+      ],
+      "correctOption": "B",
+      "hint": "서명은 변조를 막는 장치입니다. 내용을 가리는 장치는 아닙니다.",
+      "explanation": "일반적인 서명 JWT의 페이로드는 암호화가 아니라 Base64url 인코딩입니다. 서명은 내용이 바뀌었는지만 알려 줄 뿐 숨기지 않으므로 비밀번호 같은 민감한 값은 넣으면 안 됩니다."
+    },
+    {
+      "id": "network.cookie-session-jwt.quiz3",
+      "displayOrder": 3,
+      "prompt": "서명이 유효하고 만료 시각이 지나지 않은 JWT를 서버가 즉시 무효화하기 어려운 이유는?",
+      "options": [
+        "JWT는 서명이 풀려 있기 때문이다",
+        "브라우저가 토큰을 영구 저장하기 때문이다",
+        "쿠키에 담아 보내면 서버가 삭제할 수 없기 때문이다",
+        "서버가 토큰을 저장하지 않고 서명과 만료 시각만 검증하기 때문이다"
+      ],
+      "correctOption": "D",
+      "hint": "세션 방식에서는 서버 저장소의 항목을 지우면 끝났습니다. JWT 방식에는 지울 항목이 있나요?",
+      "explanation": "JWT 방식의 서버는 발급한 토큰을 기억하지 않고 서명과 만료 시각만 확인합니다. 그래서 만료 전에는 서명이 맞는 한 유효합니다. 만료를 짧게 하고 갱신 토큰을 쓰거나, 폐기한 토큰의 ID를 차단 목록에 저장해 검사하는 방법으로 보완합니다."
+    }
+  ],
+  "interview": []
+}

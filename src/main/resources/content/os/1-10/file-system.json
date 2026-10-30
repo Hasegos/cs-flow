@@ -1,0 +1,66 @@
+{
+  "subject": "os",
+  "slug": "file-system",
+  "title": "파일 시스템",
+  "templateName": "file-system",
+  "metaDescription": "파일 시스템 CS 지식 정리 — 디렉토리 구조, inode, FAT, 파일 할당 방식(연속·연결·인덱스)을 인터랙티브 시각화로 학습하세요. 개발자 면접 운영체제 핵심 개념.",
+  "published": true,
+  "order": 8,
+  "seq": 18,
+  "tags": [
+    "OS",
+    "파일",
+    "저장장치"
+  ],
+  "roles": [],
+  "exams": [],
+  "visual": {
+    "key": "os/1-10/2d/file-system",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "id": "os.file-system.quiz1",
+      "displayOrder": 1,
+      "prompt": "inode 방식에서 파일의 실제 데이터 위치를 찾는 방법은?",
+      "options": [
+        "파일 이름으로 직접 디스크 주소 계산",
+        "inode에 저장된 블록 포인터를 따라감",
+        "항상 순차 검색",
+        "네트워크 조회"
+      ],
+      "correctOption": "B",
+      "hint": "inode는 파일의 메타데이터와 데이터 블록 위치를 담고 있습니다.",
+      "explanation": "inode는 파일의 권한, 크기 등 메타데이터와 함께 실제 데이터가 저장된 블록들의 포인터를 가지고 있어, 이를 따라가며 데이터를 찾습니다."
+    },
+    {
+      "id": "os.file-system.quiz2",
+      "displayOrder": 2,
+      "prompt": "FAT(File Allocation Table) 방식에서 파일의 다음 블록을 찾는 방법은?",
+      "options": [
+        "inode 포인터 배열",
+        "FAT 테이블에서 현재 블록 항목이 다음 블록 번호를 가리키는 체인을 따라감",
+        "파일 이름 순 정렬",
+        "무작위 접근"
+      ],
+      "correctOption": "B",
+      "hint": "테이블 안에서 클러스터들이 사슬처럼 연결되어 있습니다.",
+      "explanation": "FAT 방식은 각 클러스터 항목이 다음 클러스터 번호를 가리키는 연결 리스트 형태로, 파일의 시작 클러스터부터 체인을 따라가며 전체 파일을 찾습니다."
+    },
+    {
+      "id": "os.file-system.quiz3",
+      "displayOrder": 3,
+      "prompt": "파일 시스템에서 디렉터리의 역할은?",
+      "options": [
+        "파일의 실제 데이터를 저장",
+        "파일 이름과 해당 파일의 메타데이터(inode 등) 위치를 매핑",
+        "CPU 스케줄링 담당",
+        "네트워크 패킷 라우팅"
+      ],
+      "correctOption": "B",
+      "hint": "디렉터리는 '이름표' 역할을 합니다.",
+      "explanation": "디렉터리는 파일 이름을 해당 파일의 inode 번호(또는 FAT 시작 클러스터)와 매핑해, 이름으로 파일을 찾을 수 있게 해줍니다."
+    }
+  ],
+  "interview": []
+}

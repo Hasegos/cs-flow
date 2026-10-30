@@ -1,0 +1,66 @@
+{
+  "subject": "arch",
+  "slug": "memory-hierarchy",
+  "title": "메모리 계층 구조",
+  "templateName": "memory-hierarchy",
+  "metaDescription": "메모리 계층 구조 CS 지식 정리 — 레지스터, 캐시, RAM, SSD 계층 구조와 지역성 원리를 인터랙티브 시각화로 학습하세요. 개발자 면접 컴퓨터구조 핵심 개념.",
+  "published": true,
+  "order": 6,
+  "seq": 6,
+  "tags": [
+    "구조",
+    "캐시",
+    "메모리"
+  ],
+  "roles": [],
+  "exams": [],
+  "visual": {
+    "key": "arch/1-10/2d/memory-hierarchy",
+    "has3d": true
+  },
+  "quizzes": [
+    {
+      "id": "arch.memory-hierarchy.quiz1",
+      "displayOrder": 1,
+      "prompt": "메모리 계층 구조에서 레지스터에 가까울수록 일반적으로 어떤 특징을 가지나요?",
+      "options": [
+        "느리고 용량이 크다",
+        "빠르고 용량이 작다",
+        "속도와 용량 모두 작다",
+        "속도와 용량 모두 크다"
+      ],
+      "correctOption": "B",
+      "hint": "레지스터→캐시→메모리→SSD로 갈수록 반대 경향이 나타납니다.",
+      "explanation": "메모리 계층은 레지스터에 가까울수록 빠르지만 용량이 작고 비싸며, SSD/HDD에 가까울수록 느리지만 용량이 크고 저렴합니다."
+    },
+    {
+      "id": "arch.memory-hierarchy.quiz2",
+      "displayOrder": 2,
+      "prompt": "메모리 계층 구조를 두는 근본적인 이유는?",
+      "options": [
+        "속도와 비용 사이의 트레이드오프를 절충하기 위해",
+        "프로그램을 암호화하기 위해",
+        "네트워크 대역폭을 절약하기 위해",
+        "전력을 더 많이 쓰기 위해"
+      ],
+      "correctOption": "A",
+      "hint": "빠른 저장장치는 비싸고 용량이 작습니다.",
+      "explanation": "빠르지만 비싸고 작은 저장장치(레지스터, 캐시)와 느리지만 싸고 큰 저장장치(SSD, HDD)를 계층적으로 배치해 성능과 비용의 균형을 맞춥니다."
+    },
+    {
+      "id": "arch.memory-hierarchy.quiz3",
+      "displayOrder": 3,
+      "prompt": "지역성(locality)의 원리가 메모리 계층에서 중요한 이유는?",
+      "options": [
+        "데이터가 무작위로 접근되기 때문",
+        "최근/근처에 접근한 데이터가 다시 쓰일 가능성이 높아 캐싱 효과가 크기 때문",
+        "지역성은 계층 구조와 무관하기 때문",
+        "항상 모든 데이터를 캐싱해야 하기 때문"
+      ],
+      "correctOption": "B",
+      "hint": "시간적 지역성, 공간적 지역성을 떠올려보세요.",
+      "explanation": "최근에 접근한 데이터(시간적 지역성)나 그 근처 데이터(공간적 지역성)는 다시 쓰일 확률이 높아, 이를 캐시에 올려두면 적중률이 높아집니다."
+    }
+  ],
+  "interview": []
+}
