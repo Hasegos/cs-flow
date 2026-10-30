@@ -142,3 +142,7 @@
   cursor: not-allowed;
   pointer-events: none;
 }
+
+.cpu--hidden {
+  display: none;
+}

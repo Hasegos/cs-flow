@@ -68,6 +68,21 @@
     root.appendChild(controls);
     container.appendChild(root);
 
+    window.CsFlow.mount3dButton({
+        container: container,
+        parent: toolbar,
+        cls: 'cpu__btn cpu__btn--primary',
+        label: '3D 공장 단면',
+        onOpen: function () {
+            vizReset();
+            root.classList.add('cpu--hidden');
+        },
+        onExit: function () {
+            root.classList.remove('cpu--hidden');
+            resize();
+        }
+    });
+
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
     function GW() { return canvas.width / dpr; }
