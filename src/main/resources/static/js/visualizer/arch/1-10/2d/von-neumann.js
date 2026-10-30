@@ -68,6 +68,22 @@
     root.appendChild(controls);
     container.appendChild(root);
 
+    /* ===================== 3D 외길 다리 전환 ===================== */
+    window.CsFlow.mount3dButton({
+        container: container,
+        parent: toolbar,
+        cls: 'vn__btn vn__btn--primary',
+        label: '3D 외길 다리',
+        onOpen: function () {
+            vizReset();
+            root.classList.add('vn--hidden');
+        },
+        onExit: function () {
+            root.classList.remove('vn--hidden');
+            resize();
+        }
+    });
+
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
     function GW() { return canvas.width / dpr; }
@@ -221,6 +237,8 @@
     ];
 
     /* ===================== 상태 ===================== */
+    window.CsFlow.vnData = { MEM: MEM_INIT, STEPS: STEPS };
+
     /* ===================== 툴팁 데이터 ===================== */
     var TIPS = {
         'PC':  'Program Counter\n다음에 실행할 명령어의 메모리 주소를 보관',
