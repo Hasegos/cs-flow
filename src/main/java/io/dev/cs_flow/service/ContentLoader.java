@@ -63,6 +63,7 @@ public class ContentLoader {
                          @Value("${cs-flow.content.location:classpath:content}") String location) {
         String base = location.endsWith("/") ? location.substring(0, location.length() - 1) : location;
         JsonMapper mapper = JsonMapper.builder()
+                .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
                 .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS)
                 .enable(StreamReadFeature.STRICT_DUPLICATE_DETECTION)
                 .build();
@@ -134,7 +135,14 @@ public class ContentLoader {
      */
     private <T> T parse(Resource resource, JsonMapper mapper, TypeReference<T> type) {
         try (InputStream in = resource.getInputStream()) {
-            return mapper.readValue(in, type);
+            T value = mapper.readValue(in, type);
+            if (value == null) {
+                errors.add(describe(resource) + ": 내용이 비어 있습니다 (null)");
+            } else if (value instanceof List<?> list && list.contains(null)) {
+                errors.add(describe(resource) + ": 목록에 null 항목이 있습니다");
+                return null;
+            }
+            return value;
         } catch (Exception e) {
             errors.add(describe(resource) + ": JSON을 읽지 못했습니다 - " + firstLine(e.getMessage()));
             return null;
@@ -237,6 +245,10 @@ public class ContentLoader {
         for (int i = 0; i < quizzes.size(); i++) {
             ContentQuiz q = quizzes.get(i);
             String at = where + " quizzes[" + i + "]";
+            if (q == null) {
+                errors.add(at + ": null 항목입니다");
+                continue;
+            }
             if (q.displayOrder() == null || q.displayOrder() != i + 1) {
                 errors.add(at + ": displayOrder는 " + (i + 1) + "여야 합니다 (1부터 빠짐없이)");
             }
@@ -320,12 +332,18 @@ public class ContentLoader {
         }
     }
 
+    /**
+     * 값이 null이면 오류로 기록한다.
+     */
     private void require(String where, String field, Object value) {
         if (value == null) {
             errors.add(where + ": " + field + "가 없습니다");
         }
     }
 
+    /**
+     * 문자열이 비어 있거나 최대 길이를 넘으면 오류로 기록한다.
+     */
     private void checkText(String where, String field, String value, int max) {
         if (value == null || value.isBlank()) {
             errors.add(where + ": " + field + "가 비어 있습니다");
@@ -334,6 +352,9 @@ public class ContentLoader {
         }
     }
 
+    /**
+     * slug가 비어 있지 않고 소문자 · 숫자 · 하이픈 형식인지 검증한다.
+     */
     private void checkSlug(String where, String field, String value, int max) {
         checkText(where, field, value, max);
         if (value != null && !value.isBlank() && !SLUG.matcher(value).matches()) {
@@ -354,6 +375,9 @@ public class ContentLoader {
                 + String.join("\n - ", shown) + more);
     }
 
+    /**
+     * 리소스의 URL 경로를 돌려준다. 읽지 못하면 설명 문자열을 쓴다.
+     */
     private static String pathOf(Resource resource) {
         try {
             return resource.getURL().getPath();
@@ -362,6 +386,9 @@ public class ContentLoader {
         }
     }
 
+    /**
+     * 오류 메시지용으로 {@code 과목폴더/파일이름} 형태의 짧은 이름을 만든다.
+     */
     private static String describe(Resource resource) {
         String path = pathOf(resource);
         String[] parts = path.split("/");
@@ -369,6 +396,9 @@ public class ContentLoader {
         return n >= 2 ? parts[n - 2] + "/" + parts[n - 1] : path;
     }
 
+    /**
+     * 예외 메시지의 첫 줄만 돌려준다.
+     */
     private static String firstLine(String message) {
         if (message == null) {
             return "알 수 없는 오류";
