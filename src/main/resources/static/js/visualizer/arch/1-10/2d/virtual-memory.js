@@ -68,6 +68,22 @@
     root.appendChild(controls);
     container.appendChild(root);
 
+    /* ===================== 3D 도서관 전환 ===================== */
+    window.CsFlow.mount3dButton({
+        container: container,
+        parent: toolbar,
+        cls: 'virt-mem__btn virt-mem__btn--primary',
+        label: '3D 도서관',
+        onOpen: function () {
+            vizReset();
+            root.classList.add('virt-mem--hidden');
+        },
+        onExit: function () {
+            root.classList.remove('virt-mem--hidden');
+            resize();
+        }
+    });
+
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
     function GW() { return canvas.width / dpr; }
