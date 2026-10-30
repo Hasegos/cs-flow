@@ -68,6 +68,22 @@
     root.appendChild(controls);
     container.appendChild(root);
 
+    /* ===================== 3D 주방 전환 ===================== */
+    window.CsFlow.mount3dButton({
+        container: container,
+        parent: toolbar,
+        cls: 'ic__btn ic__btn--primary',
+        label: '3D 주방',
+        onOpen: function () {
+            vizReset();
+            root.classList.add('ic-viz--hidden');
+        },
+        onExit: function () {
+            root.classList.remove('ic-viz--hidden');
+            resize();
+        }
+    });
+
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
     function GW() { return canvas.width / dpr; }
