@@ -82,4 +82,22 @@ public class StudyPlan {
         this.createdAt = now;
         this.updatedAt = now;
     }
+
+    /**
+     * 면접일과 학습 조건을 바꾼다. 시작일과 seed는 그대로 둔다.
+     *
+     * @param role         직무
+     * @param targetDate   면접일
+     * @param restWeekdays 쉬는 요일
+     * @param dailyMinutes 하루 학습 시간(분)
+     * @param now          변경 시각
+     */
+    public void changeConditions(PlanRole role, LocalDate targetDate, String restWeekdays, int dailyMinutes,
+                                 LocalDateTime now) {
+        this.role = role;
+        this.targetDate = targetDate;
+        this.restWeekdays = restWeekdays;
+        this.dailyMinutes = dailyMinutes;
+        this.updatedAt = now;
+    }
 }
