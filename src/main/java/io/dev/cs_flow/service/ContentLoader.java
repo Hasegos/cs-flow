@@ -32,7 +32,7 @@ import java.util.regex.Pattern;
 /**
  * 콘텐츠 JSON(`content/`)을 기동할 때 읽고 검증한다.
  * <p>
- * 파일 구성은 {@code subjects.json}, {@code manifest.json}, {@code {과목}/{묶음}/{토픽slug}.json}, {@code errors/{slug}.json}이다.
+ * 파일 구성은 {@code subjects.json}, {@code manifest.json}, {@code {과목}/{묶음}/{토픽slug}.json}, {@code errors/{묶음}/{slug}.json}이다.
  * 문법 오류, 모르는 필드, 필수 값 누락, 중복, 개수 불일치가 하나라도 있으면 {@link IllegalStateException}으로
  * 빈 생성을 실패시켜 앱이 뜨지 않게 한다. 지금은 검증만 하고 읽기 경로는 아직 DB를 쓴다.
  * </p>
@@ -130,6 +130,9 @@ public class ContentLoader {
             errors.add("토픽 파일이 없습니다: " + base + "/{과목}/{묶음}/{slug}.json");
         }
         for (Resource resource : resources) {
+            if (describe(resource).startsWith("errors/")) {
+                continue;
+            }
             ContentTopic topic = parse(resource, mapper, new TypeReference<ContentTopic>() { });
             if (topic != null) {
                 result.put(resource, topic);
@@ -139,12 +142,12 @@ public class ContentLoader {
     }
 
     /**
-     * 에러 사전 JSON({@code errors/*.json})을 모두 읽는다. 없으면 빈 맵이고, 개수는 manifest가 대조한다.
+     * 에러 사전 JSON({@code errors/{묶음}/*.json})을 모두 읽는다. 없으면 빈 맵이고, 개수는 manifest가 대조한다.
      */
     private Map<Resource, ContentError> readErrors(ResourcePatternResolver resolver, JsonMapper mapper, String base) {
         Map<Resource, ContentError> result = new LinkedHashMap<>();
         try {
-            for (Resource resource : resolver.getResources(base + "/errors/*.json")) {
+            for (Resource resource : resolver.getResources(base + "/errors/*/*.json")) {
                 ContentError entry = parse(resource, mapper, new TypeReference<ContentError>() { });
                 if (entry != null) {
                     result.put(resource, entry);
@@ -328,8 +331,12 @@ public class ContentLoader {
             ContentError e = entry.getValue();
             String where = describe(entry.getKey());
             checkSlug(where, "slug", e.slug(), 100);
-            if (e.slug() != null && !pathOf(entry.getKey()).endsWith("/errors/" + e.slug() + ".json")) {
-                errors.add(where + ": 파일 이름이 slug와 다릅니다");
+            if (e.slug() != null && e.order() != null && e.order() >= 1) {
+                int low = (e.order() - 1) / 10 * 10 + 1;
+                String folder = "/errors/" + low + "-" + (low + 9) + "/" + e.slug() + ".json";
+                if (!pathOf(entry.getKey()).endsWith(folder)) {
+                    errors.add(where + ": 폴더 · 파일 이름이 order와 slug에 맞지 않습니다 (기대 위치 errors" + folder.substring(7) + ")");
+                }
             }
             if (e.slug() != null && !slugs.add(e.slug())) {
                 errors.add(where + ": slug가 겹칩니다");

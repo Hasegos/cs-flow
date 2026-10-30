@@ -4,7 +4,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 /**
- * 콘텐츠 JSON의 에러 사전 항목 한 건 (`content/errors/{slug}.json`).
+ * 콘텐츠 JSON의 에러 사전 항목 한 건 (`content/errors/{묶음}/{slug}.json`, 묶음은 order 10개 단위 1-10, 11-20…).
  *
  * @param slug         항목 slug (파일 이름과 같아야 한다)
  * @param order        목록 순서 (1부터, 기존 error_id 오름차순)
