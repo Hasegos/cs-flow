@@ -12,11 +12,9 @@
     const V = THREE.Vector3;
 
     /* ===================== 상수 ===================== */
-    const SERIF = '"Noto Serif KR", serif';
-    const HAND = 'Caveat, cursive';
-    const INK = '#1f1b17';
-    const FONT_CSS = 'https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Noto+Serif+KR:wght@500;700&display=swap';
-    const FONT_TIMEOUT = 4000;
+    const SERIF = window.CsFlow.viz3d.kit.SERIF;
+    const HAND = window.CsFlow.viz3d.kit.HAND;
+    const INK = window.CsFlow.viz3d.kit.INK;
     const NDOT = 24;
     const DOT_OFFSETS = Array.from({ length: NDOT }, function (_, k) { return k * 0.026 + Math.floor(k / 8) * 0.1; });
     const HOP_MS = [2600, 1500, 850, 650, 500, 380];
@@ -55,39 +53,6 @@
         coverSub: '데이터가 흐르는 책',
         timerLabel: 'x 한 번 읽는 데 걸린 시간'
     };
-
-    let fontsPromise = null;
-
-
-    /* ===================== 글꼴 ===================== */
-    /**
-     * 캔버스 텍스처에 쓸 글꼴을 한글 글리프까지 불러온다. 시간 안에 못 불러오면 대체 글꼴로 그린다.
-     *
-     * @returns 완료 Promise
-     */
-    function loadFonts() {
-        if (fontsPromise) return fontsPromise;
-        fontsPromise = new Promise(function (resolve) {
-            const link = document.createElement('link');
-            link.rel = 'stylesheet';
-            link.href = FONT_CSS;
-            const sheetReady = new Promise(function (res) {
-                link.addEventListener('load', res);
-                link.addEventListener('error', res);
-            });
-            document.head.appendChild(link);
-            const sample = fontSample();
-            const work = sheetReady.then(function () {
-                return Promise.all([
-                    document.fonts.load('700 40px Caveat', '0123456789.<>~ nsμB'),
-                    document.fonts.load('700 40px "Noto Serif KR"', sample),
-                    document.fonts.load('500 40px "Noto Serif KR"', sample)
-                ]);
-            });
-            Promise.race([work, new Promise(function (r) { setTimeout(r, FONT_TIMEOUT); })]).then(resolve, resolve);
-        });
-        return fontsPromise;
-    }
 
     /**
      * 캔버스에 그리는 모든 문구를 모아 글꼴 로드용 샘플로 돌려준다.
@@ -135,7 +100,7 @@
         badges: STEP_BADGES,
         canvasLabel: '메모리 계층을 책 위의 유리병 6개로 보여 주는 3D 장면. 아래 장면 버튼으로 데이터 흐름을 따라갑니다.',
         home: { p: [1.6, 4.6, 5.2], t: [1.7, 0.4, 0] },
-        load: loadFonts,
+        load: function () { return window.CsFlow.viz3d.kit.loadFonts(fontSample()); },
         createWorld: createWorld
     });
     const state = v3.state;
@@ -166,38 +131,13 @@
         scene.background = new THREE.Color(0xd9d2c4);
         scene.fog = new THREE.Fog(0xd9d2c4, 12, 26);
 
-        /**
-         * 종이 해칭 텍스처를 만든다.
-         */
-        function hatch(base, alpha, count, repeat) {
-            const [c, x] = canvas2d(256, 256);
-            x.fillStyle = base;
-            x.fillRect(0, 0, 256, 256);
-            for (let i = 0; i < count; i++) {
-                x.strokeStyle = 'rgba(50,44,38,' + (alpha * (0.4 + Math.random() * 0.6)) + ')';
-                x.lineWidth = 0.6 + Math.random() * 0.8;
-                const o = Math.random() * 256;
-                x.beginPath();
-                x.moveTo(o, 0);
-                x.lineTo(o + (Math.random() - 0.5) * 3, 256);
-                x.stroke();
-            }
-            const t = texture(c);
-            t.wrapS = t.wrapT = THREE.RepeatWrapping;
-            t.repeat.set(repeat, repeat);
-            return t;
-        }
-
+        const hatch = eng.hatch;
+        const inkM = eng.inkM;
+        const ink = eng.ink;
+        const glow = eng.glow;
+        const wrapText = window.CsFlow.viz3d.kit.wrapText;
+        const roundRect = window.CsFlow.viz3d.kit.roundRect;
         const paperM = new THREE.MeshLambertMaterial({ map: hatch('#f3efe6', 0.32, 90, 2) });
-        const inkM = new THREE.LineBasicMaterial({ color: 0x2a2622, transparent: true, opacity: 0.82 });
-
-        /**
-         * 메시에 잉크 외곽선을 붙인다.
-         */
-        function ink(m, threshold) {
-            m.add(new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry, threshold || 25), inkM));
-            return m;
-        }
 
         /**
          * 잉크 외곽선이 있는 종이 상자를 만든다.
@@ -206,24 +146,6 @@
             const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), paperM);
             m.castShadow = m.receiveShadow = true;
             return ink(m);
-        }
-
-        const [glowC, glowX] = canvas2d(64, 64);
-        const glowGrad = glowX.createRadialGradient(32, 32, 0, 32, 32, 32);
-        glowGrad.addColorStop(0, 'rgba(255,255,255,1)');
-        glowGrad.addColorStop(0.3, 'rgba(255,255,255,0.45)');
-        glowGrad.addColorStop(1, 'rgba(255,255,255,0)');
-        glowX.fillStyle = glowGrad;
-        glowX.fillRect(0, 0, 64, 64);
-        const glowTex = new THREE.CanvasTexture(glowC);
-
-        /**
-         * 반짝이는 스프라이트를 만든다.
-         */
-        function glow(color, size) {
-            const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: color, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
-            sp.scale.set(size, size, 1);
-            return sp;
         }
 
         const hemi = new THREE.HemisphereLight(0xfffaf0, 0x8c9a8e, 0.66);
@@ -283,39 +205,6 @@
         const edgeM = new THREE.MeshLambertMaterial({ map: edgeTex });
 
         const curve = function (u) { return 0.05 * (1 - Math.pow(1 - Math.max(0, Math.min(1, u)), 3)); };
-
-        /**
-         * 줄 바꿈하며 문단을 그린다.
-         */
-        function wrapText(x, t, X, Y, W, lh) {
-            let line = '';
-            let y = Y;
-            for (const ch of t) {
-                const s = line + ch;
-                if (x.measureText(s).width > W && line) {
-                    x.fillText(line, X, y);
-                    line = ch;
-                    y += lh;
-                } else {
-                    line = s;
-                }
-            }
-            x.fillText(line, X, y);
-            return y + lh;
-        }
-
-        /**
-         * 둥근 사각형 경로를 만든다.
-         */
-        function roundRect(x, X, Y, W, H, r) {
-            x.beginPath();
-            x.moveTo(X + r, Y);
-            x.arcTo(X + W, Y, X + W, Y + H, r);
-            x.arcTo(X + W, Y + H, X, Y + H, r);
-            x.arcTo(X, Y + H, X, Y, r);
-            x.arcTo(X, Y, X + W, Y, r);
-            x.closePath();
-        }
 
         /**
          * 책 한 쪽의 바탕 캔버스를 만든다. 책등 쪽에 그림자를 깐다.
