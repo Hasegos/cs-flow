@@ -131,7 +131,6 @@
 
     /* ===================== 3D 컨트롤러 ===================== */
     const v3 = window.CsFlow.viz3d.create({
-        prefix: 'mem-hier3d',
         title: 'Memory Hierarchy 3D',
         badges: STEP_BADGES,
         canvasLabel: '메모리 계층을 책 위의 유리병 6개로 보여 주는 3D 장면. 아래 장면 버튼으로 데이터 흐름을 따라갑니다.',
@@ -969,5 +968,4 @@
 
     v3.setSteps(STEPS);
 
-    window.CsFlow.memHier3d = { open: v3.open, close: v3.close };
 })();

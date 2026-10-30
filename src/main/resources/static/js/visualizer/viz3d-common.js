@@ -16,6 +16,8 @@
     const THREE = window.THREE;
     if (!window.CsFlow || !THREE) return;
 
+    window.CsFlow.viz3d = { create: create, isLight: isLight, active: null };
+
     const V = THREE.Vector3;
 
     /* ===================== 상수 ===================== */
@@ -134,7 +136,7 @@
      * 렌더러, 카메라, 렌더 루프, 포인터 조작을 만든다. 장면은 토픽이 eng.scene에 채운 뒤 attach로 연결한다.
      *
      * @param stage 캔버스를 넣을 요소
-     * @param opts  prefix(클래스 접두사), label(캔버스 접근성 이름), home({p, t} 처음 카메라 위치와 시선), onFail(실패 안내 함수)
+     * @param opts  label(캔버스 접근성 이름), home({p, t} 처음 카메라 위치와 시선), onFail(실패 안내 함수)
      * @returns 엔진 API
      */
     function createEngine(stage, opts) {
@@ -177,7 +179,7 @@
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
         renderer.toneMappingExposure = 1.05;
         const dom = renderer.domElement;
-        dom.className = opts.prefix + '__canvas';
+        dom.className = 'viz3d__canvas';
         dom.setAttribute('role', 'img');
         dom.setAttribute('aria-label', opts.label);
         stage.insertBefore(dom, stage.firstChild);
@@ -563,12 +565,12 @@
      * 토픽 하나의 3D 화면(UI, 월드, 장면 진행, 생명주기)을 관리하는 컨트롤러를 만든다.
      * 탭을 벗어나면 GPU 자원을 모두 해제하고, 돌아오면 같은 단계에서 다시 만든다.
      *
-     * @param cfg prefix(클래스 접두사), title(툴바 제목), badges(장면별 배지 문구), canvasLabel(캔버스 접근성 이름),
+     * @param cfg title(툴바 제목), badges(장면별 배지 문구), canvasLabel(캔버스 접근성 이름),
      *            home(처음 카메라 {p, t}), load(월드를 만들기 전 준비 함수, Promise 반환), createWorld(eng)(장면 생성 함수)
-     * @returns open, close, setSteps, setCaption, alive, wait, state
+     * @returns open, close, setSteps, setCaption, alive, wait, state. 같은 객체를 window.CsFlow.viz3d.active에도 둔다(2D의 3D 버튼이 연다)
      */
     function create(cfg) {
-        const B = cfg.prefix + '__';
+        const B = 'viz3d__';
         const state = {
             wanted: false,
             world: null,
@@ -598,7 +600,7 @@
          * @returns UI 요소 참조 모음
          */
         function buildUi(container) {
-            const root = mk('div', cfg.prefix);
+            const root = mk('div', 'viz3d');
 
             const toolbar = mk('div', B + 'toolbar');
             const left = mk('div', B + 'toolbar-left');
@@ -610,10 +612,10 @@
             const qmark = mk('button', B + 'qmark', '?');
             qmark.type = 'button';
             qmark.setAttribute('aria-label', 'CPU 렌더링 설명');
-            qmark.setAttribute('aria-describedby', cfg.prefix + '-cpu-tip');
+            qmark.setAttribute('aria-describedby', 'viz3d-cpu-tip');
             qmark.addEventListener('click', function () { cpuTag.classList.toggle('is-open'); });
             const tip = mk('span', B + 'tip');
-            tip.id = cfg.prefix + '-cpu-tip';
+            tip.id = 'viz3d-cpu-tip';
             tip.setAttribute('role', 'tooltip');
             tip.appendChild(mk('b', '', CPU_TIP.title));
             tip.appendChild(mk('span', '', CPU_TIP.body));
@@ -749,7 +751,7 @@
          * @returns 월드 API
          */
         function createWorld(stage) {
-            const eng = createEngine(stage, { prefix: cfg.prefix, label: cfg.canvasLabel, home: cfg.home, onFail: showFail });
+            const eng = createEngine(stage, { label: cfg.canvasLabel, home: cfg.home, onFail: showFail });
             const topic = cfg.createWorld(eng);
             eng.attach(topic);
             return Object.assign({}, eng.api, topic);
@@ -910,8 +912,9 @@
             state.world = null;
         });
 
-        return { state: state, open: open, close: close, setSteps: setSteps, setCaption: setCaption, alive: alive, wait: wait };
+        const api = { state: state, open: open, close: close, setSteps: setSteps, setCaption: setCaption, alive: alive, wait: wait };
+        window.CsFlow.viz3d.active = api;
+        return api;
     }
 
-    window.CsFlow.viz3d = { create: create, isLight: isLight };
 })();
