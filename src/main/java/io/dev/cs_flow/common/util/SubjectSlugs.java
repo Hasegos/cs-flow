@@ -11,6 +11,9 @@ public final class SubjectSlugs {
 
     public static final String PATTERN = "arch|os|network|ds|algo|db|robot";
 
+    /**
+     * 인스턴스 생성을 막는다.
+     */
     private SubjectSlugs() {
     }
 }

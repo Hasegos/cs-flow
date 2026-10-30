@@ -1,6 +1,6 @@
 package io.dev.cs_flow.dto;
 
-import io.dev.cs_flow.model.PlanRole;
+import io.dev.cs_flow.model.enums.PlanRole;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;

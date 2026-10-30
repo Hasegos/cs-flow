@@ -25,6 +25,15 @@ public class HostValidationInterceptor implements HandlerInterceptor {
             "localhost:8082"
     );
 
+    /**
+     * 요청의 Host 헤더가 허용 목록에 없으면 400으로 응답하고 요청을 막는다.
+     *
+     * @param request  현재 HTTP 요청
+     * @param response 현재 HTTP 응답
+     * @param handler  실행될 핸들러
+     * @return 허용된 Host면 true, 아니면 false
+     * @throws Exception 오류 응답을 보내지 못했을 때
+     */
     @Override
     public boolean preHandle(
             HttpServletRequest request,

@@ -1,8 +1,8 @@
 package io.dev.cs_flow.service;
 
 import io.dev.cs_flow.model.PlanAnswer;
-import io.dev.cs_flow.model.PlanPhase;
-import io.dev.cs_flow.model.PlanRole;
+import io.dev.cs_flow.model.enums.PlanPhase;
+import io.dev.cs_flow.model.enums.PlanRole;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -42,6 +42,9 @@ public final class PlanEngine {
     private static final int WEAK_SUBJECT_BOTTOM = 2;
     private static final long MOCK_SALT = 0x5DEECE66DL;
 
+    /**
+     * 인스턴스 생성을 막는다.
+     */
     private PlanEngine() {
     }
 
@@ -203,6 +206,19 @@ public final class PlanEngine {
         return new Schedule(new ArrayList<>(days.values()), dropped, weak);
     }
 
+    /**
+     * 학습일에 질문을 배정한다. 오늘 이전 날의 못 푼 질문은 오늘부터 남은 학습일에 고르게 다시 나누고, 하루 문항 수의 1.5배를 넘으면 우선순위가 낮은 질문부터 뺀다.
+     *
+     * @param days       날짜별 일정을 채울 맵
+     * @param learnDates 학습일 목록
+     * @param eff         일정 계산 기준일
+     * @param daily       하루 문항 수
+     * @param weights     과목별 비중
+     * @param pool        과목별 후보 질문(우선순위 정렬)
+     * @param learned     이미 학습 단계에서 답한 질문 ID
+     * @param priority    질문 우선순위 비교자
+     * @return 뺀 질문 수
+     */
     private static int layLearnDays(Map<LocalDate, Day> days, List<LocalDate> learnDates, LocalDate eff, int daily,
                                     Map<String, Integer> weights, Map<String, List<Question>> pool,
                                     Set<String> learned, Comparator<Question> priority) {
@@ -262,6 +278,19 @@ public final class PlanEngine {
         return dropped;
     }
 
+    /**
+     * 약점 보충일에 질문을 배정한다. 적중률 50% 미만 질문, 그 꼬리 질문, 약한 과목의 아직 안 푼 필수 질문 순으로 하루 문항 수만큼 채운다.
+     *
+     * @param days        날짜별 일정을 채울 맵
+     * @param reviewDates 약점 보충일 목록
+     * @param eff         일정 계산 기준일
+     * @param daily       하루 문항 수
+     * @param weak        약한 과목
+     * @param latest      질문별 최신 답변
+     * @param byId        질문 ID별 질문
+     * @param pool        과목별 후보 질문
+     * @param priority    질문 우선순위 비교자
+     */
     private static void layReviewDays(Map<LocalDate, Day> days, List<LocalDate> reviewDates, LocalDate eff, int daily,
                                       List<String> weak, Map<String, PlanAnswer> latest, Map<String, Question> byId,
                                       Map<String, List<Question>> pool, Comparator<Question> priority) {
@@ -306,6 +335,16 @@ public final class PlanEngine {
         }
     }
 
+    /**
+     * 모의 면접 질문 10개를 고른다. 직무 비중대로 뽑되 약한 과목에서 최대 3개 넣고, 하루짜리 계획이면 필수 질문을 먼저 쓴다.
+     *
+     * @param seed     문항 선택 순서를 정하는 값
+     * @param coreOnly 필수 질문을 먼저 쓸지 여부
+     * @param weights  과목별 비중
+     * @param pool     과목별 후보 질문
+     * @param weak     약한 과목
+     * @return 질문 ID 목록
+     */
     private static List<String> pickMock(long seed, boolean coreOnly, Map<String, Integer> weights,
                                          Map<String, List<Question>> pool, List<String> weak) {
         long salt = seed ^ MOCK_SALT;
@@ -341,6 +380,15 @@ public final class PlanEngine {
         return ids(picked);
     }
 
+    /**
+     * 학습일마다 풀 질문을 정한다. 학습일이 6일 이상이면 하루 한 과목, 아니면 과목을 섞어서 나눈다.
+     *
+     * @param days    학습일 수
+     * @param daily   하루 문항 수
+     * @param weights 과목별 비중
+     * @param pool    과목별 후보 질문(우선순위 정렬)
+     * @return 학습일별 과목과 질문
+     */
     private static List<Block> layoutLearn(int days, int daily, Map<String, Integer> weights,
                                            Map<String, List<Question>> pool) {
         List<Block> blocks = new ArrayList<>();
@@ -388,6 +436,11 @@ public final class PlanEngine {
     /**
      * 약한 과목. 최신 답변 기준 키워드 적중률이 60% 미만이거나 적중률 하위 2개 과목이다.
      * 키워드가 없는 질문은 자기 평가(KNOW 100%, UNSURE 50%, DONT 0%)로 대신한다.
+     *
+     * @param latest  질문별 최신 답변
+     * @param byId    질문 ID별 질문
+     * @param weights 과목별 비중
+     * @return 약한 과목, 적중률이 낮은 순
      */
     private static List<String> weakSubjects(Map<String, PlanAnswer> latest, Map<String, Question> byId,
                                              Map<String, Integer> weights) {
@@ -417,6 +470,12 @@ public final class PlanEngine {
         return weak;
     }
 
+    /**
+     * 답변 하나의 적중 수와 전체 수를 구한다. 키워드가 없으면 자기 평가로 대신한다.
+     *
+     * @param a 답변 기록
+     * @return {적중 수, 전체 수}, 점수를 낼 수 없으면 null
+     */
     private static int[] hitTotal(PlanAnswer a) {
         if (a.getTotalCount() > 0) {
             return new int[]{a.getHitCount(), a.getTotalCount()};
@@ -431,6 +490,12 @@ public final class PlanEngine {
         };
     }
 
+    /**
+     * 답변 하나의 적중률을 구한다.
+     *
+     * @param a 답변 기록
+     * @return 0~1 사이 적중률, 점수를 낼 수 없으면 null
+     */
     private static Double rate(PlanAnswer a) {
         int[] ht = hitTotal(a);
         return ht == null ? null : (double) ht[0] / ht[1];
@@ -439,6 +504,11 @@ public final class PlanEngine {
     /**
      * 비중대로 정수를 나눈다(최대잉여법). 상한에 걸린 과목의 몫은 남은 과목이 비중대로 나눠 가진다.
      * 합이 total보다 작을 수 있다(상한 합이 모자랄 때).
+     *
+     * @param total   나눌 정수
+     * @param weights 과목별 비중
+     * @param caps    과목별 상한
+     * @return 과목별로 나눈 몫
      */
     static Map<String, Integer> apportion(int total, Map<String, Integer> weights, Map<String, Integer> caps) {
         Map<String, Integer> out = new LinkedHashMap<>();
@@ -481,16 +551,35 @@ public final class PlanEngine {
         return out;
     }
 
+    /**
+     * 질문 우선순위 비교자를 만든다. 필수 질문, 낮은 난이도, seed 해시 순이다.
+     *
+     * @param seed 문항 선택 순서를 정하는 값
+     * @return 질문 비교자
+     */
     private static Comparator<Question> priority(long seed) {
         return Comparator.<Question, Boolean>comparing(q -> !q.core())
                 .thenComparingInt(Question::level)
                 .thenComparing(shuffle(seed));
     }
 
+    /**
+     * seed와 질문 ID의 해시로 질문을 섞는 비교자를 만든다. 질문 목록의 순서와 상관없이 같은 결과가 나온다.
+     *
+     * @param seed 섞는 순서를 정하는 값
+     * @return 질문 비교자
+     */
     private static Comparator<Question> shuffle(long seed) {
         return Comparator.<Question>comparingLong(q -> mix(seed, q.id())).thenComparing(Question::id);
     }
 
+    /**
+     * seed와 질문 ID를 섞어 64비트 해시를 만든다(SplitMix64 방식).
+     *
+     * @param seed 섞는 순서를 정하는 값
+     * @param id   질문 ID
+     * @return 해시 값
+     */
     private static long mix(long seed, String id) {
         long z = seed + 0x9E3779B97F4A7C15L * (id.hashCode() + 1L);
         z = (z ^ (z >>> 30)) * 0xBF58476D1CE4E5B9L;
@@ -498,6 +587,13 @@ public final class PlanEngine {
         return z ^ (z >>> 31);
     }
 
+    /**
+     * 목록을 순서대로 이어서 거의 같은 크기의 조각으로 나눈다. 남는 항목은 앞 조각부터 하나씩 더 받는다.
+     *
+     * @param items 나눌 목록
+     * @param parts 조각 수
+     * @return 조각 목록
+     */
     private static <T> List<List<T>> split(List<T> items, int parts) {
         List<List<T>> out = new ArrayList<>();
         int base = items.size() / parts;
@@ -511,13 +607,32 @@ public final class PlanEngine {
         return out;
     }
 
+    /**
+     * 질문 목록을 질문 ID 목록으로 바꾼다.
+     *
+     * @param questions 질문 목록
+     * @return 질문 ID 목록
+     */
     private static List<String> ids(List<Question> questions) {
         return questions.stream().map(Question::id).toList();
     }
 
+    /**
+     * 학습일 하루에 배정한 과목과 질문.
+     *
+     * @param subject   한 과목만 다루면 그 과목 slug, 아니면 null
+     * @param questions 그날의 질문
+     */
     private record Block(String subject, List<Question> questions) {
     }
 
+    /**
+     * 여러 과목을 섞을 때 질문의 상대 위치.
+     *
+     * @param pos      과목 안에서의 상대 위치(0~1)
+     * @param order    과목 순서
+     * @param question 질문
+     */
     private record Slot(double pos, int order, Question question) {
     }
 }

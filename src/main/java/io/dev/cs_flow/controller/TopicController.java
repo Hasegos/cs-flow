@@ -49,6 +49,7 @@ public class TopicController {
      *
      * @param subjectSlug 과목 영문 식별자
      * @param topicSlug   토픽 영문 식별자
+     * @param request     방문자 ID와 User-Agent를 읽기 위한 현재 요청
      * @param model       뷰에 전달할 데이터 모델
      * @return 토픽 학습 페이지 뷰 이름 (topics/{subjectSlug}/{assetGroup}/{templateName})
      */

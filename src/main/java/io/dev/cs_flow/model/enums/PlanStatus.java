@@ -1,4 +1,4 @@
-package io.dev.cs_flow.model;
+package io.dev.cs_flow.model.enums;
 
 /**
  * 계획의 진행 상태.

@@ -102,6 +102,10 @@ public class TopicService {
 
     /**
      * 같은 과목 안에서 기준 토픽에서 offset만큼 떨어진 토픽을 요약으로 돌려준다.
+     *
+     * @param topic  기준 토픽
+     * @param offset 기준 토픽에서 떨어진 칸 수(이전은 음수, 다음은 양수)
+     * @return 이웃 토픽 요약, 과목의 처음이나 끝을 벗어나면 null
      */
     private TopicIndexItem neighbor(TopicInfo topic, int offset){
         List<TopicInfo> siblings = contentStore.topicsOf(topic.subject().slug());
@@ -158,6 +162,10 @@ public class TopicService {
 
     /**
      * 정렬 기준에 맞는 비교자를 만든다. 동점이면 먼저 그 수에 도달한 토픽, 그다음 전체 순서(seq) 순이다.
+     *
+     * @param sort  정렬 기준({@code view}, {@code like}, 그 외는 전체 순서)
+     * @param stats 토픽 slug별 조회수 · 추천수 통계
+     * @return 토픽 비교자
      */
     private static Comparator<TopicInfo> comparator(String sort, Map<String, TopicStat> stats){
         Comparator<TopicInfo> bySeq = Comparator.comparingInt(TopicInfo::seq);

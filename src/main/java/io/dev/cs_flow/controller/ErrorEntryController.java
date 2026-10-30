@@ -150,6 +150,10 @@ public class ErrorEntryController {
 
     /**
      * 링크 뒤에 붙일 "&name=value" 문자열을 만든다. 값이 null이면 빈 문자열을 반환한다.
+     *
+     * @param name  쿼리 파라미터 이름
+     * @param value 쿼리 파라미터 값, null이면 붙이지 않는다
+     * @return {@code &name=value} 문자열(값은 UTF-8로 URL 인코딩), 값이 null이면 빈 문자열
      */
     private static String queryString(String name, String value) {
         if (value == null) {

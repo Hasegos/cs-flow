@@ -9,10 +9,10 @@ import io.dev.cs_flow.dto.PlanTaskView;
 import io.dev.cs_flow.dto.PlanUpdateRequest;
 import io.dev.cs_flow.dto.PlanView;
 import io.dev.cs_flow.model.PlanAnswer;
-import io.dev.cs_flow.model.PlanPhase;
-import io.dev.cs_flow.model.PlanRole;
-import io.dev.cs_flow.model.PlanStatus;
-import io.dev.cs_flow.model.PlanType;
+import io.dev.cs_flow.model.enums.PlanPhase;
+import io.dev.cs_flow.model.enums.PlanRole;
+import io.dev.cs_flow.model.enums.PlanStatus;
+import io.dev.cs_flow.model.enums.PlanType;
 import io.dev.cs_flow.model.StudyPlan;
 import io.dev.cs_flow.repository.PlanAnswerRepository;
 import io.dev.cs_flow.repository.StudyPlanRepository;
@@ -188,6 +188,13 @@ public class StudyPlanService {
         return view(plan, planAnswerRepository.findByPlanIdOrderByIdAsc(plan.getId()));
     }
 
+    /**
+     * 토큰으로 계획을 찾는다. 형식이 틀린 토큰과 없는 토큰을 구분하지 않고 똑같이 실패시킨다.
+     *
+     * @param token 계획 공개 토큰
+     * @return 계획
+     * @throws NotFoundException 토큰에 해당하는 계획이 없을 때
+     */
     private StudyPlan find(String token) {
         if (token == null || !TOKEN.matcher(token).matches()) {
             throw new NotFoundException("존재하지 않는 계획입니다.");
@@ -196,6 +203,13 @@ public class StudyPlanService {
                 .orElseThrow(() -> new NotFoundException("존재하지 않는 계획입니다."));
     }
 
+    /**
+     * 계획과 답변 기록으로 일정을 계산해 조회 결과를 만든다.
+     *
+     * @param plan    계획
+     * @param answers 계획의 답변 기록
+     * @return 달력, 오늘 할 일, 약한 과목을 담은 조회 결과
+     */
     private PlanView view(StudyPlan plan, List<PlanAnswer> answers) {
         LocalDate today = today();
         PlanEngine.Schedule schedule = schedule(plan, today, answers);
@@ -225,12 +239,28 @@ public class StudyPlanService {
                 schedule.droppedCount());
     }
 
+    /**
+     * 계획 조건으로 엔진을 실행한다.
+     *
+     * @param plan    계획
+     * @param today   오늘 날짜
+     * @param answers 계획의 답변 기록
+     * @return 계산된 일정
+     */
     private PlanEngine.Schedule schedule(StudyPlan plan, LocalDate today, List<PlanAnswer> answers) {
         PlanEngine.Spec spec = new PlanEngine.Spec(plan.getStartDate(), plan.getTargetDate(), plan.getRole(),
                 restDays(plan.getRestWeekdays()), plan.getDailyMinutes(), plan.getSeed());
         return PlanEngine.compute(spec, today, contentStore.planQuestions(), answers);
     }
 
+    /**
+     * 학습 시간과 기간을 검증한다.
+     *
+     * @param start   시작일
+     * @param target  면접일
+     * @param minutes 하루 학습 시간(분)
+     * @throws IllegalArgumentException 학습 시간이 지원 값이 아니거나 기간이 올바르지 않을 때
+     */
     private void validatePeriod(LocalDate start, LocalDate target, int minutes) {
         PlanEngine.dailyCount(minutes);
         if (!target.isAfter(start)) {
@@ -241,6 +271,13 @@ public class StudyPlanService {
         }
     }
 
+    /**
+     * 쉬는 요일을 중복 없이 요일 순서대로 쉼표로 이어 붙인다.
+     *
+     * @param restWeekdays 쉬는 요일, null이면 쉬지 않는다
+     * @return 요일 이름을 쉼표로 이은 문자열, 쉬지 않으면 빈 문자열
+     * @throws IllegalArgumentException 목록에 null이 있을 때
+     */
     private String joinRest(List<DayOfWeek> restWeekdays) {
         if (restWeekdays == null) {
             return "";
@@ -251,6 +288,13 @@ public class StudyPlanService {
         return restWeekdays.stream().distinct().sorted().map(DayOfWeek::name).collect(Collectors.joining(","));
     }
 
+    /**
+     * 저장된 쉬는 요일 문자열을 요일 집합으로 바꾼다.
+     *
+     * @param restWeekdays 요일 이름을 쉼표로 이은 문자열
+     * @return 쉬는 요일 집합
+     * @throws IllegalArgumentException 요일 이름이 올바르지 않을 때
+     */
     private Set<DayOfWeek> restDays(String restWeekdays) {
         Set<DayOfWeek> out = EnumSet.noneOf(DayOfWeek.class);
         for (String s : restWeekdays.split(",")) {
@@ -261,6 +305,11 @@ public class StudyPlanService {
         return out;
     }
 
+    /**
+     * 한국 시간 기준 오늘 날짜를 돌려준다.
+     *
+     * @return 오늘 날짜
+     */
     private LocalDate today() {
         return LocalDate.now(KST);
     }
