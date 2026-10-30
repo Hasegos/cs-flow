@@ -199,29 +199,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">정수가 2의 거듭제곱인지 비트로 판별하려면?</h3>
-                            <p class="overview-card__desc">n &gt; 0이고 (n &amp; (n - 1)) == 0이면 2의 거듭제곱입니다. 2의 거듭제곱은 1이 하나뿐이고, n - 1은 그 1을 0으로 바꾸고 아래 비트를 모두 1로 만들기 때문입니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">한 번만 나타나는 원소를 O(n) 시간 O(1) 공간으로 찾으려면?</h3>
-                            <p class="overview-card__desc">나머지가 모두 두 번씩 나온다면 모든 원소를 XOR합니다. 같은 값끼리 XOR하면 0이 되고 0과의 XOR은 그대로이므로 한 번 나온 값만 남습니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">정수에서 1인 비트의 개수는 어떻게 세나요?</h3>
-                            <p class="overview-card__desc">n &amp;= n - 1을 n이 0이 될 때까지 반복하며 횟수를 셉니다. 1의 개수만큼만 반복합니다. 자바에는 Integer.bitCount가 있습니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">집합의 모든 부분집합을 비트로 어떻게 열거하나요?</h3>
-                            <p class="overview-card__desc">원소가 n개이면 0부터 (1 &lt;&lt; n) - 1까지의 정수 하나하나가 부분집합 하나이고, 정수의 i번 비트가 1이면 i번째 원소가 들어 있습니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">

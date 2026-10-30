@@ -188,29 +188,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">방화벽은 무엇이고 어떻게 동작하나요?</h3>
-                            <p class="overview-card__desc">네트워크 트래픽을 규칙에 따라 허용하거나 차단하는 장치입니다. 패킷 필터링 방화벽은 패킷 헤더의 IP 주소, 포트, 프로토콜을 규칙과 위에서부터 비교해 처음 일치한 규칙을 적용합니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">상태 기반 방화벽은 무엇이 다른가요?</h3>
-                            <p class="overview-card__desc">연결 상태 표를 유지해, 허용된 연결에 대한 응답 패킷을 별도 규칙 없이 통과시킵니다. 상태를 보지 않는 필터보다 규칙을 단순하고 안전하게 만들 수 있습니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">기본 정책은 어떻게 정하는 게 좋은가요?</h3>
-                            <p class="overview-card__desc">기본 거부(default deny)가 권장됩니다. 필요한 트래픽만 명시적으로 허용하면 규칙에서 빠뜨린 트래픽이 자동으로 차단되어, 실수가 구멍이 되지 않습니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">방화벽과 NAT는 어떻게 다른가요?</h3>
-                            <p class="overview-card__desc">NAT는 주소를 바꾸는 기술이고 방화벽은 트래픽을 허용하거나 차단하는 정책 장치입니다. NAT 때문에 외부 접속이 막히는 효과가 있어도 접근 제어의 용도는 아닙니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">

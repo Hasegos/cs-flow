@@ -192,29 +192,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">0.1 + 0.2가 0.3과 다른 이유는?</h3>
-                            <p class="overview-card__desc">0.1, 0.2, 0.3이 2진수로 무한히 반복되는 소수라 각각 가장 가까운 근사값으로 저장되고, 그 근사값들을 더한 결과가 0.3의 근사값과 마지막 자리에서 다르기 때문입니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">float과 double의 비트 구성은?</h3>
-                            <p class="overview-card__desc">float은 부호 1, 지수 8, 가수 23비트로 32비트이고 double은 부호 1, 지수 11, 가수 52비트로 64비트입니다. 지수 바이어스는 각각 127과 1023입니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">실수는 어떻게 비교해야 하나요?</h3>
-                            <p class="overview-card__desc">== 대신 두 값의 차이의 절댓값이 허용 오차보다 작은지 확인합니다. 값이 크거나 작을 때는 절대 오차 대신 상대 오차를 쓰고, 언어가 제공하는 비교 함수(예: 파이썬의 math.isclose)가 있으면 활용합니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">돈 계산에 double을 써도 되나요?</h3>
-                            <p class="overview-card__desc">이진 부동소수점은 0.1 같은 십진 소수를 정확히 저장하지 못하므로, 정확한 십진 계산이 필요하면 십진 타입(자바의 BigDecimal, 파이썬의 decimal)이나 최소 단위의 정수로 계산합니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">

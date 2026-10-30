@@ -199,29 +199,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">플로이드-워셜의 점화식은?</h3>
-                            <p class="overview-card__desc">d[i][j] = min(d[i][j], d[i][k] + d[k][j])입니다. 경유지 k를 하나씩 늘려 가며 "k를 거치는 경로가 더 짧은가"를 모든 칸에서 확인하는 동적 계획법입니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">시간·공간 복잡도는?</h3>
-                            <p class="overview-card__desc">시간은 O(V³), 공간은 O(V²)입니다. 경유지, 출발지, 도착지 세 겹 반복문과 V × V 행렬 하나가 그 이유입니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">다익스트라, 벨만-포드와는 언제 구분해 쓰나요?</h3>
-                            <p class="overview-card__desc">한 출발점에서의 거리만 필요하면 다익스트라(음수 간선이 없을 때)나 벨만-포드(음수 간선이 있을 때)를 씁니다. 모든 쌍이 필요하고 정점 수가 크지 않으면 플로이드-워셜이 간단합니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">음수 사이클은 어떻게 알 수 있나요?</h3>
-                            <p class="overview-card__desc">계산이 끝난 뒤 대각선 d[i][i]에 음수가 있으면 그래프에 음수 사이클이 있습니다. i에서 출발해 i로 돌아오는 경로의 합이 0보다 작아졌다는 뜻이고 그 경로는 음수 사이클을 포함합니다. 음수가 나온 정점이 꼭 그 사이클 위에 있는 것은 아닙니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">

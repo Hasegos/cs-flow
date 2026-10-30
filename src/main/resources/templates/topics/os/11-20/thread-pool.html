@@ -185,29 +185,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">스레드 풀을 왜 쓰나요?</h3>
-                            <p class="overview-card__desc">스레드를 요청마다 만들고 없애는 비용을 줄이고, 동시에 실행되는 스레드 수에 상한을 두어 요청이 몰려도 과부하가 되지 않게 하기 위해서입니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">작업 큐는 무슨 역할을 하나요?</h3>
-                            <p class="overview-card__desc">풀의 스레드가 모두 일하는 동안 들어온 작업을 순서대로 보관합니다. 스레드가 비면 보통 먼저 들어온 작업부터 꺼내 실행합니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">풀 크기는 어떻게 정하나요?</h3>
-                            <p class="overview-card__desc">CPU 바운드 작업은 코어 수 안팎으로, I/O 바운드 작업은 코어 수 × (1 + 대기 시간/계산 시간) 정도를 출발점으로 잡고 실제 부하를 측정해 조정합니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">큐가 가득 차면 어떻게 되나요?</h3>
-                            <p class="overview-card__desc">스레드가 상한에 닿고 큐도 가득 차면 거부 정책이 동작합니다. 예외를 던지거나, 호출한 스레드가 직접 실행하거나, 작업을 버리는 방식 가운데 선택합니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">

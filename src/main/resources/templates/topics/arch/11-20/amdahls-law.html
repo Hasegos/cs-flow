@@ -179,29 +179,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">병렬 비율 90%인 프로그램을 8코어에서 돌리면 속도 향상은 얼마인가요?</h3>
-                            <p class="overview-card__desc">1 / ((1 − 0.9) + 0.9 / 8) = 1 / 0.2125 ≈ 4.71배입니다. 코어를 무한히 늘려도 1 / 0.1 = 10배를 넘을 수 없다는 점까지 말하면 좋습니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">암달의 법칙과 구스타프슨의 법칙은 무엇이 다른가요?</h3>
-                            <p class="overview-card__desc">암달의 법칙은 문제 크기를 고정하고 같은 일을 얼마나 빨리 끝내는지(강한 확장성)를 봅니다. 구스타프슨의 법칙은 코어가 늘면 문제 크기도 키워 같은 시간에 더 많은 일을 하는 것(약한 확장성)을 봅니다. 같은 현상을 서로 다른 전제에서 본 것입니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">성능을 개선할 부분을 어떻게 고르나요?</h3>
-                            <p class="overview-card__desc">전체 실행 시간에서 차지하는 비율이 큰 부분부터 개선합니다. 비율이 작은 부분은 아무리 빠르게 만들어도 전체 이득이 작기 때문에, 먼저 프로파일링으로 시간이 어디에 쓰이는지 측정합니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">직렬 부분이 생기는 대표적인 이유는 무엇인가요?</h3>
-                            <p class="overview-card__desc">한 번에 하나의 스레드만 실행할 수 있는 임계 구역(락으로 보호한 구간), 작업을 나누고 결과를 합치는 단계, 다른 작업과 겹치지 못하는 입출력 대기 같은 것이 직렬 부분이 될 수 있습니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">

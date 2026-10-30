@@ -188,29 +188,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">임계 구역 문제의 해결 조건 세 가지는 무엇인가요?</h3>
-                            <p class="overview-card__desc">상호 배제는 한 번에 하나만 들어가는 것, 진행은 들어갈 수 있는데도 아무도 못 들어가는 일이 없게 하는 것, 한정 대기는 기다리는 시간에 상한이 있어 기아가 없게 하는 것입니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">Mutex와 Semaphore는 어떻게 다른가요?</h3>
-                            <p class="overview-card__desc">Mutex는 상호 배제를 위한 락으로 잡은 스레드가 소유자가 되어 풀어야 합니다. Semaphore는 카운터로 동시에 접근할 수 있는 수를 제한하거나 스레드 사이에 신호를 전달하는 데 쓰고 소유자 개념이 없습니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">Spinlock은 언제 쓰나요?</h3>
-                            <p class="overview-card__desc">락을 기다리는 동안 CPU를 쓰며 반복 확인하므로, 기다리는 시간이 컨텍스트 스위치 비용보다 짧을 때 유리하고 멀티코어에서 의미가 있습니다. 대기가 길면 스레드를 재우는 블로킹 락이 낫습니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">락 없이 동기화할 수 있나요?</h3>
-                            <p class="overview-card__desc">하드웨어가 제공하는 원자 명령인 CAS로 값을 비교하고 바꾸는 락 프리 방식이 있습니다. Java의 AtomicInteger가 대표적이고, 실패하면 다시 시도하는 반복이 필요합니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">

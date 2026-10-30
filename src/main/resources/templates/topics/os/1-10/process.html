@@ -188,29 +188,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">프로세스와 프로그램의 차이는 무엇인가요?</h3>
-                            <p class="overview-card__desc">프로그램은 디스크에 있는 정적인 코드이고, 프로세스는 메모리에 올라가 실행 중인 상태입니다. 프로세스는 주소 공간, PCB, 열린 파일 같은 실행 환경을 함께 가집니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">PCB에는 무엇이 들어 있나요?</h3>
-                            <p class="overview-card__desc">PID, 프로세스 상태, 프로그램 카운터와 레지스터 값, 메모리 관리 정보, 스케줄링 정보, 열린 파일과 입출력 상태 같은 정보가 들어 있습니다. 컨텍스트 스위칭 때 이 정보로 실행 상태를 저장하고 복원합니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">fork와 exec은 어떻게 쓰이나요?</h3>
-                            <p class="overview-card__desc">fork는 호출한 프로세스를 복제해 자식을 만들고, exec은 그 프로세스의 메모리를 새 프로그램으로 바꿉니다. 셸이 명령을 실행할 때 fork로 자식을 만들고 자식에서 exec을 호출하는 방식이 대표적입니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">좀비 프로세스와 고아 프로세스는 어떻게 다른가요?</h3>
-                            <p class="overview-card__desc">좀비는 종료했지만 부모가 아직 종료 상태를 수거하지 않은 자식입니다. 고아는 부모가 먼저 종료되어 부모를 잃은 살아 있는 자식이고, init이나 subreaper가 입양해 나중에 수거합니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">

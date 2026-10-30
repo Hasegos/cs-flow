@@ -198,29 +198,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">Range 파티셔닝의 대표적인 예는?</h3>
-                            <p class="overview-card__desc">날짜 범위로 나누는 경우입니다. 월별이나 연도별 파티션으로 나누면 오래된 기간을 파티션 단위로 보관하거나 삭제하기 쉽습니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">파티션 프루닝이란?</h3>
-                            <p class="overview-card__desc">WHERE 조건으로 읽을 필요가 없는 파티션을 계획 수립 또는 실행 중에 제외하는 최적화입니다. 파티션 키 조건이 있어야 동작합니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">파티셔닝과 샤딩은 어떻게 다른가요?</h3>
-                            <p class="overview-card__desc">파티셔닝은 보통 한 데이터베이스 인스턴스 안에서 테이블을 나누고, 샤딩은 데이터를 여러 서버에 나눠 저장합니다. 샤딩은 서버를 늘려 용량과 처리량을 키울 수 있지만 라우팅과 샤드 간 조인 같은 부담이 따릅니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">파티션 키는 어떻게 고르나요?</h3>
-                            <p class="overview-card__desc">자주 쓰는 WHERE 조건과 데이터 보관 정책에 맞는 열을 고릅니다. 시간 기반 데이터는 날짜 열을 Range 키로 쓰는 경우가 많습니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">활용 분야</h2>
                     <div class="overview-points">

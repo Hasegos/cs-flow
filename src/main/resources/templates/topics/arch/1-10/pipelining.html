@@ -186,29 +186,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">5단계 파이프라인에서 명령어 100개를 실행하면 몇 사이클이 걸리나요?</h3>
-                            <p class="overview-card__desc">해저드가 없다고 하면 N + k − 1 = 100 + 5 − 1 = 104사이클입니다. 파이프라인이 없으면 100 × 5 = 500사이클이므로 약 4.8배 빠릅니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">데이터 해저드는 어떻게 해결하나요?</h3>
-                            <p class="overview-card__desc">세 가지입니다. 결과가 준비될 때까지 버블을 넣고 기다리는 스톨, 결과를 레지스터에 쓰기 전에 다음 명령어의 EX 단계로 바로 보내는 포워딩, 컴파일러가 의존성이 있는 명령어를 떨어뜨려 배치하는 명령어 스케줄링입니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">RISC가 파이프라인에 유리한 이유는 무엇인가요?</h3>
-                            <p class="overview-card__desc">명령어 길이가 일정하고 형식이 단순해 해석이 쉽고, 메모리 접근이 LOAD와 STORE로 한정되어 주소 계산(EX)과 메모리 접근(MEM)을 서로 다른 단계로 나눌 수 있습니다. 그래서 모든 명령어를 같은 5단계 순서에 넣기 쉽습니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">제어 해저드를 줄이는 방법은 무엇인가요?</h3>
-                            <p class="overview-card__desc">분기가 확정될 때까지 기다리는 스톨, 결과를 미리 맞혀 보는 분기 예측, 분기 바로 뒤의 명령어를 분기와 상관없이 실행하는 분기 지연 슬롯이 있습니다. 현대 CPU는 보통 분기 예측을 씁니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">

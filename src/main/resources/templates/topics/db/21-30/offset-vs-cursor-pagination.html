@@ -187,29 +187,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">OFFSET 페이지네이션의 문제점은 무엇인가요?</h3>
-                            <p class="overview-card__desc">OFFSET만큼의 행을 DB가 거쳐 건너뛰어야 해서 뒤쪽 페이지일수록 느려지고, 페이지를 넘기는 사이 앞쪽 데이터가 추가나 삭제되면 같은 글이 중복되거나 어떤 글이 누락됩니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">커서 방식은 어떻게 동작하고 단점은 무엇인가요?</h3>
-                            <p class="overview-card__desc">마지막으로 받은 행의 정렬 키를 where 조건으로 넘겨 그 뒤 행만 인덱스로 읽습니다. 정렬 기준에 맞는 인덱스가 있으면 위치와 무관하게 읽는 행 수가 같고 변경에 강하지만, 임의 페이지로 바로 이동할 수 없고 전체 개수는 별도 COUNT로 구해야 합니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">정렬 기준이 중복되면 커서를 어떻게 만드나요?</h3>
-                            <p class="overview-card__desc">고유한 키를 정렬 기준에 덧붙여 (작성 시각, id) 같은 복합 기준으로 정렬하고, 커서도 그 두 값을 담아 where (created_at, id) &lt; (값1, 값2)처럼 사전순으로 비교합니다. 복합 인덱스가 있으면 효율적으로 읽습니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">무한 스크롤 피드에는 어떤 방식이 맞나요?</h3>
-                            <p class="overview-card__desc">새 글이 계속 올라오고 사용자가 순서대로만 내려가므로 커서 방식이 잘 맞습니다. 변경에도 중복이 없고 깊은 곳까지 일정한 비용으로 읽을 수 있습니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">

@@ -187,29 +187,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">gRPC와 REST의 차이는 무엇인가요?</h3>
-                            <p class="overview-card__desc">REST는 보통 HTTP/1.1과 JSON으로 자원을 주고받고, gRPC는 HTTP/2와 Protocol Buffers로 함수 호출을 주고받습니다. gRPC는 스키마가 엄격하고 스트리밍을 지원하며, REST는 사람이 읽기 쉽고 브라우저에서 바로 쓸 수 있습니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">Protocol Buffers가 JSON보다 작은 이유는?</h3>
-                            <p class="overview-card__desc">필드 이름 대신 .proto에서 정한 필드 번호를 보내고, 정수를 가변 길이로 인코딩하며, 따옴표나 구분 기호 같은 텍스트 요소가 없기 때문입니다. 대신 양쪽이 같은 스키마를 가져야 합니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">gRPC의 스트리밍은 왜 가능한가요?</h3>
-                            <p class="overview-card__desc">HTTP/2가 한 연결 안에서 독립된 스트림을 여럿 열고 각 스트림에 메시지를 이어서 실을 수 있기 때문입니다. 호출 하나가 스트림 하나에 대응해 메시지 여러 개를 주고받을 수 있습니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">gRPC를 쓰기 좋은 곳과 어려운 곳은?</h3>
-                            <p class="overview-card__desc">서비스 사이의 내부 통신, 지연이 중요한 호출, 스트리밍이 필요한 곳에 좋습니다. 브라우저가 직접 호출하는 공개 API나 사람이 읽고 디버깅해야 하는 환경에서는 불편할 수 있습니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">

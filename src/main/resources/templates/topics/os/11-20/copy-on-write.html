@@ -185,29 +185,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">Copy-on-Write가 무엇인가요?</h3>
-                            <p class="overview-card__desc">fork 때 메모리를 복사하지 않고 부모와 자식이 같은 물리 페이지를 읽기 전용으로 공유하다가, 쓰기가 일어나는 순간 그 페이지만 복사하는 기법입니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">쓰기 시 어떤 일이 일어나나요?</h3>
-                            <p class="overview-card__desc">읽기 전용 페이지에 쓰기를 시도하면 페이지 폴트가 발생하고, 커널이 그 페이지를 새 프레임에 복사해 쓰는 프로세스에 전용 복사본을 준 뒤 쓰기를 허용합니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">fork 뒤 exec에서 COW가 왜 유리한가요?</h3>
-                            <p class="overview-card__desc">exec이 자식의 메모리를 새 프로그램으로 교체하므로 fork 때 전체를 복사하면 낭비입니다. COW는 복사를 미뤄 이 낭비를 없앱니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">COW의 단점은?</h3>
-                            <p class="overview-card__desc">쓰기가 많으면 페이지 복사와 폴트 처리 비용이 생깁니다. 페이지 테이블 복제 비용도 남습니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">

@@ -188,29 +188,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">ARP는 무엇이고 왜 필요한가요?</h3>
-                            <p class="overview-card__desc">IP 주소를 알 때 같은 네트워크 안의 그 장치의 MAC 주소를 알아내는 프로토콜입니다. LAN에서 프레임은 MAC 주소로 전달되므로 IP 통신 전에 MAC 주소가 필요합니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">ARP 요청은 왜 브로드캐스트인가요?</h3>
-                            <p class="overview-card__desc">상대의 MAC 주소를 모르기 때문에 특정 장치에게 보낼 수 없고, 같은 네트워크 모두에게 묻습니다. 자기 IP가 맞는 장치만 응답합니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">다른 네트워크의 서버에 접속할 때 ARP는 어떻게 동작하나요?</h3>
-                            <p class="overview-card__desc">목적지 IP가 같은 서브넷 밖이면 기본 게이트웨이로 보내야 하므로 게이트웨이의 IP에 대한 MAC 주소를 ARP로 알아냅니다. 프레임의 목적지 MAC은 게이트웨이이고, IP 목적지는 최종 서버입니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">ARP 스푸핑이란 무엇인가요?</h3>
-                            <p class="overview-card__desc">공격자가 다른 장치의 IP에 자기 MAC을 대응시키는 거짓 ARP 응답을 보내 캐시를 오염시키는 공격입니다. 트래픽이 공격자를 거치게 되어 도청이나 변조에 쓰일 수 있고, 스위치의 동적 ARP 검사 같은 기능으로 막습니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">

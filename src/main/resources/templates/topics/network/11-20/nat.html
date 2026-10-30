@@ -188,29 +188,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">NAT는 무엇이고 왜 쓰나요?</h3>
-                            <p class="overview-card__desc">사설 IP와 공인 IP를 서로 변환하는 기술입니다. 여러 내부 장치가 하나의 공인 IP를 공유해 IPv4 주소 부족을 완화하고, 내부 주소 체계가 외부에 드러나지 않는 부수 효과도 있습니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">PAT는 어떻게 여러 연결을 구분하나요?</h3>
-                            <p class="overview-card__desc">연결마다 서로 다른 외부 포트를 할당하고 "내부 주소:포트 ↔ 외부 포트"를 변환 표에 기록합니다. 응답이 오면 목적지 포트로 표를 찾아 원래 내부 호스트로 되돌립니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">NAT 뒤의 서버에 외부에서 접속하려면?</h3>
-                            <p class="overview-card__desc">NAT는 내부에서 시작한 연결만 변환 표에 기록하므로, 외부에서 먼저 들어오는 접속은 포트 포워딩으로 공인 IP의 포트와 내부 서버의 주소 · 포트를 미리 연결해 두어야 합니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">NAT의 단점은 무엇인가요?</h3>
-                            <p class="overview-card__desc">연결 추적 때문에 장비에 상태와 부담이 생기고, 외부에서 내부로 직접 연결하기 어려우며, IP 주소를 페이로드에 넣는 일부 프로토콜은 추가 처리가 필요합니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">

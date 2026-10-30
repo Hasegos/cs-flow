@@ -178,29 +178,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">그리디가 맞는지 어떻게 확인하나요?</h3>
-                            <p class="overview-card__desc">그리디로 고른 선택을 최적해에도 포함시킬 수 있다는 것(그리디 선택 속성)과, 선택 후 남은 문제도 같은 구조라는 것(최적 부분 구조)을 보입니다. 보통 교환 논법으로 증명합니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">거스름돈에서 그리디가 안 되는 반례를 들어 보세요.</h3>
-                            <p class="overview-card__desc">동전이 500, 400, 100원이고 800원을 줄 때 그리디는 4개(500 + 100 × 3), 최적은 400원 2개입니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">활동 선택에서 왜 종료 시간이 빠른 순인가요?</h3>
-                            <p class="overview-card__desc">일찍 끝나는 활동을 고르면 이후에 쓸 수 있는 시간이 가장 많이 남습니다. 시작이 빠른 활동은 길게 이어져 뒤의 여러 활동을 막을 수 있습니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">분할 가능 배낭은 그리디로 풀리는데 0/1 배낭은 왜 안 되나요?</h3>
-                            <p class="overview-card__desc">분할 가능하면 무게 대비 가치가 높은 순으로 담다가 마지막에 쪼갤 수 있어서 최적입니다. 0/1은 쪼갤 수 없어 남는 용량이 낭비될 수 있고, 그래서 DP가 필요합니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">

@@ -182,29 +182,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">힙과 이진 탐색 트리의 차이는 무엇인가요?</h3>
-                            <p class="overview-card__desc">힙은 부모와 자식의 대소만 보장해 최댓값 접근이 O(1)이고 배열로 표현됩니다. BST는 왼쪽 < 현재 < 오른쪽을 보장해 정렬된 순회와 임의 값 탐색이 가능합니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">Build-Heap이 O(n)인 이유는 무엇인가요?</h3>
-                            <p class="overview-card__desc">아래쪽 노드는 내려갈 거리가 짧습니다. 높이가 h인 노드는 최대 h번 내려가는데 그런 노드의 수가 n/2^(h+1) 정도라서 전체 합이 O(n)으로 수렴합니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">스트림에서 중앙값을 실시간으로 구하려면 어떻게 하나요?</h3>
-                            <p class="overview-card__desc">작은 쪽 절반을 최대 힙에, 큰 쪽 절반을 최소 힙에 넣고 두 힙의 크기를 맞춥니다. 두 힙의 루트로 중앙값을 O(1)에 읽고, 값을 추가하는 삽입은 O(log n)입니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">힙 정렬이 퀵 정렬보다 느린 경우가 많은 이유는 무엇인가요?</h3>
-                            <p class="overview-card__desc">힙 정렬은 부모와 자식 사이를 오가며 메모리를 건너뛰어 읽어서 캐시 효율이 떨어지는 편이라, 보통 잘 구현한 퀵 정렬보다 느리다고 알려져 있습니다. 최악의 경우 O(n log n)이 보장되는 점은 장점입니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">

@@ -202,29 +202,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">재귀와 반복의 차이는?</h3>
-                            <p class="overview-card__desc">재귀는 자기 호출로 문제를 줄이며 호출마다 스택 프레임을 쓰고, 반복은 반복문으로 변수를 갱신합니다. 같은 계산이면 반복의 추가 공간이 보통 더 작습니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">스택 오버플로우는 왜 나고 어떻게 피하나요?</h3>
-                            <p class="overview-card__desc">깊은 재귀나 기저 사례 누락으로 프레임이 호출 스택을 가득 채우기 때문입니다. 반복문이나 명시적 스택으로 바꾸고, 가능하면 깊이를 줄입니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">재귀 피보나치가 비효율적인 이유와 개선은?</h3>
-                            <p class="overview-card__desc">같은 부분 문제를 중복 계산해 호출 수가 지수적으로 늘어납니다. 메모이제이션으로 저장하거나 반복문으로 이전 두 값만 들고 가면 덧셈을 상수 시간으로 볼 때 n에 비례합니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">꼬리 호출 최적화란?</h3>
-                            <p class="overview-card__desc">재귀 호출이 함수의 마지막 연산이면 호출 뒤에 할 일이 없으므로 이전 프레임을 재사용해 스택을 늘리지 않는 최적화입니다. 자바는 지원하지 않습니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">활용 분야</h2>
                     <div class="overview-points">

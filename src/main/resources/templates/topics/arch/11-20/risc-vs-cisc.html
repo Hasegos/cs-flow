@@ -188,29 +188,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">RISC와 CISC의 차이는 무엇인가요?</h3>
-                            <p class="overview-card__desc">RISC는 단순하고 길이가 일정한 명령어를 쓰고 연산은 레지스터끼리 하며 메모리 접근은 load/store가 맡습니다. CISC는 복잡한 명령어와 가변 길이를 쓰고 연산 명령어가 메모리 피연산자를 다룰 수 있습니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">대표적인 예와 오늘날의 경계는?</h3>
-                            <p class="overview-card__desc">ARM과 RISC-V가 RISC, x86이 CISC의 대표입니다. 다만 현대 x86 CPU는 복잡한 명령어를 마이크로 연산으로 바꿔 실행하므로 두 방식의 경계가 예전보다 흐려졌습니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">RISC가 파이프라인에 유리하다고 하는 이유는?</h3>
-                            <p class="overview-card__desc">명령어 길이가 같고 형식이 단순해 해독이 쉽고, 메모리 접근이 load/store로 분리되어 단계별 동작이 규칙적이기 때문입니다. 그래서 파이프라인 구현이 단순해집니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">성능은 어떻게 비교하나요?</h3>
-                            <p class="overview-card__desc">CPU 시간 = 명령어 수 × CPI × 사이클 시간 식으로 비교합니다. 명령어 수만 보거나 클럭만 봐서는 부족하고, 같은 프로그램에서 세 요소를 곱해 봐야 합니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">

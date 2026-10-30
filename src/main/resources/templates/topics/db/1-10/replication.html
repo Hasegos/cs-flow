@@ -167,29 +167,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">복제 지연이 있을 때 사용자가 방금 쓴 글이 안 보이는 문제는 어떻게 해결하나요?</h3>
-                            <p class="overview-card__desc">자신이 쓴 데이터를 읽을 때만 Primary에서 읽게 하거나(read-your-writes), 쓴 직후 일정 시간은 Primary로 읽기를 보냅니다. 같은 사용자의 읽기를 항상 같은 Replica로 보내면 시간이 거꾸로 흐르는 것처럼 보이는 문제도 줄일 수 있습니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">동기, 비동기, 반동기 복제를 비교해 보세요.</h3>
-                            <p class="overview-card__desc">동기는 Replica 확인까지 기다려 유실 위험이 낮지만 느리고, 비동기는 기다리지 않아 빠르지만 장애 시 최근 데이터를 잃을 수 있습니다. 반동기는 Replica 한 곳이 받았다는 확인만 기다리는 절충안으로 일부 DB가 지원합니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">스플릿 브레인이란 무엇인가요?</h3>
-                            <p class="overview-card__desc">네트워크 단절 등으로 둘 이상의 노드가 자신이 Primary라고 믿어 서로 다른 쓰기를 받는 상황입니다. 데이터가 갈라지므로, 과반수 투표나 이전 Primary 격리(펜싱) 같은 방법으로 막습니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">복제와 샤딩은 무엇이 다른가요?</h3>
-                            <p class="overview-card__desc">복제는 같은 데이터를 여러 서버에 복사해 읽기 확장과 장애 대비를 얻고, 샤딩은 데이터를 나눠서 서버마다 일부만 저장해 용량과 쓰기를 확장합니다. 두 가지를 함께 쓰는 구성도 있습니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">

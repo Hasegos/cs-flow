@@ -178,29 +178,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">스택 두 개로 큐를 만들려면 어떻게 하나요?</h3>
-                            <p class="overview-card__desc">한 스택에 넣고, 꺼낼 때 두 번째 스택이 비어 있으면 첫 스택의 원소를 모두 옮긴 뒤 두 번째에서 꺼냅니다. 각 원소는 첫 스택에 한 번 넣어지고, 옮겨질 때 한 번 꺼내져 두 번째 스택에 넣어지며, 두 번째에서 한 번 꺼내집니다. n번 연산의 총비용이 O(n)이라 연산당 분할 상환 O(1)입니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">괄호 유효성 검사를 어떻게 하나요?</h3>
-                            <p class="overview-card__desc">여는 괄호는 스택에 넣고, 닫는 괄호를 만나면 꼭대기와 짝이 맞는지 확인하며 꺼냅니다. 끝에 스택이 비어 있어야 올바른 문자열입니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">스택 오버플로는 언제 발생하나요?</h3>
-                            <p class="overview-card__desc">스택 용량이 찼는데 push할 때입니다. 함수 호출 스택에서는 재귀가 너무 깊어질 때 발생하고, Java는 StackOverflowError를 던집니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">우선순위 큐는 어떻게 구현하나요?</h3>
-                            <p class="overview-card__desc">보통 힙으로 구현해 삽입과 최솟값 꺼내기가 O(log n)이고 최솟값 조회는 O(1)입니다. Java의 PriorityQueue도 힙 기반입니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">

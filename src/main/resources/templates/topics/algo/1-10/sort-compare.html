@@ -179,29 +179,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">안정 정렬이 왜 필요한가요?</h3>
-                            <p class="overview-card__desc">같은 키를 가진 원소의 원래 순서를 유지해야 하는 경우에 필요합니다. 예를 들어 이름순으로 정렬한 목록을 학년으로 다시 정렬할 때 안정 정렬이면 같은 학년 안에서 이름순이 유지됩니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">퀵 정렬의 최악을 피하는 방법은 무엇인가요?</h3>
-                            <p class="overview-card__desc">피벗을 무작위로 고르거나 첫·중간·끝 세 값의 중간값으로 고르면 정렬된 입력에서의 최악을 피할 수 있습니다. 이미 정렬된 입력에 항상 끝 값을 피벗으로 쓰는 구현이 최악의 전형입니다. 다만 중간값 방식만으로 최악 O(n²)이 없어지는 것은 아닙니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">병합 정렬과 힙 정렬 중 언제 무엇을 쓰나요?</h3>
-                            <p class="overview-card__desc">병합 정렬은 안정적이고 항상 O(n log n)이지만 임시 공간 O(n)이 듭니다. 힙 정렬은 제자리로 최악에도 O(n log n)이지만 안정 정렬이 아니고 메모리 접근이 흩어집니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">비교 정렬은 O(n log n)보다 빨라질 수 없나요?</h3>
-                            <p class="overview-card__desc">원소끼리 비교만으로 정렬하는 알고리즘은 최악의 경우 Ω(n log n)이 필요합니다. 계수 정렬처럼 비교를 쓰지 않는 정렬은 입력의 범위 같은 조건이 있으면 이보다 빠를 수 있습니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">

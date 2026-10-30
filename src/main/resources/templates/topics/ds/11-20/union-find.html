@@ -187,29 +187,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">Union-Find는 어떤 자료구조인가요?</h3>
-                            <p class="overview-card__desc">서로소 집합을 트리로 표현해, 원소가 속한 집합의 대표를 찾는 find와 두 집합을 합치는 union을 지원합니다. parent 배열(크기 기준 합치기를 쓰면 크기 배열 포함)로 구현하고, 같은 집합인지는 두 원소의 루트가 같은지로 판단합니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">경로 압축과 크기 기준 합치기는 무엇인가요?</h3>
-                            <p class="overview-card__desc">경로 압축은 find 중에 지나간 노드를 루트에 직접 연결하고, 크기 기준 합치기는 작은 트리를 큰 트리 밑에 붙입니다. 둘 다 트리를 낮게 유지해 find를 빠르게 합니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">크루스칼에서 왜 Union-Find를 쓰나요?</h3>
-                            <p class="overview-card__desc">간선을 추가할 때 두 끝점이 이미 같은 집합이면 사이클이 생기므로 건너뛰어야 합니다. 이 판별을 find로 거의 상수 시간에 하고, 채택한 간선은 union으로 합칩니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">시간 복잡도는 어떻게 되나요?</h3>
-                            <p class="overview-card__desc">두 최적화를 함께 쓰면 연산 m번의 총 비용이 O(m α(n))이고, α는 역 아커만 함수라서 사실상 상수입니다. 최적화가 없으면 find 한 번이 최악에 O(n)입니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">

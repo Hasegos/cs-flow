@@ -199,29 +199,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">벨만-포드가 다익스트라와 다른 점은?</h3>
-                            <p class="overview-card__desc">음수 가중치 간선을 처리하고 음수 사이클을 탐지합니다. 다익스트라는 거리를 확정하며 진행해서 음수 간선이 있으면 틀릴 수 있습니다. 대신 벨만-포드는 O(VE)로 더 느립니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">왜 V-1번만 반복하면 되나요?</h3>
-                            <p class="overview-card__desc">음수 사이클이 없으면 최단 경로는 정점을 중복해서 지나지 않아 간선을 많아야 V-1개 씁니다. 라운드를 i번 돌리면 간선 i개 이하의 최단 경로가 반영되므로 V-1번이면 모든 최단 거리가 확정됩니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">음수 사이클은 어떻게 찾나요?</h3>
-                            <p class="overview-card__desc">V-1번 완화한 뒤 한 번 더 모든 간선을 완화해 봅니다. 거리가 갱신되는 간선이 있으면 출발 정점에서 닿을 수 있는 음수 사이클이 있다는 뜻입니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">환율 차익거래(arbitrage)를 찾으려면?</h3>
-                            <p class="overview-card__desc">환율에 로그를 취하고 부호를 바꾼 값을 간선 가중치로 두면 환율의 곱이 1보다 큰 순환이 가중치 합이 음수인 사이클이 됩니다. 벨만-포드의 음수 사이클 탐지로 찾습니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">

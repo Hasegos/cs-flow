@@ -157,29 +157,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">폰 노이만 구조의 핵심 특징은 무엇인가요?</h3>
-                            <p class="overview-card__desc">프로그램 내장 방식(명령어와 데이터를 같은 메모리에 저장), 명령어의 순차 실행(분기 명령어만 순서를 바꿈), CPU·메모리·입출력 장치·버스로 이루어진 구성입니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">폰 노이만 병목이란 무엇이고 어떻게 줄이나요?</h3>
-                            <p class="overview-card__desc">CPU와 메모리 사이의 단일 통로가 처리량을 제한하는 현상입니다. 자주 쓰는 데이터를 CPU 가까이 두는 캐시 메모리, L1 명령어·데이터 캐시 분리, 파이프라이닝 등으로 완화합니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">하버드 구조와는 무엇이 다른가요?</h3>
-                            <p class="overview-card__desc">하버드 구조는 명령어 메모리와 데이터 메모리(그리고 버스)를 물리적으로 분리해 명령어와 데이터를 동시에 가져올 수 있습니다. 대신 구조가 복잡해져 마이크로컨트롤러 같은 곳에서 주로 쓰입니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">프로그램 내장 방식의 장단점은 무엇인가요?</h3>
-                            <p class="overview-card__desc">메모리 내용만 바꾸면 다른 프로그램을 실행할 수 있고, 운영체제가 프로그램을 데이터처럼 메모리에 적재할 수 있습니다. 반대로 데이터가 코드로 실행될 수 있어 실행 권한 제어(NX)가 필요합니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">

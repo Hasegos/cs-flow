@@ -182,29 +182,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">배열과 연결 리스트의 차이를 설명해 주세요.</h3>
-                            <p class="overview-card__desc">배열은 연속 메모리라 인덱스로 O(1) 접근이 되지만 중간 삽입·삭제는 원소를 밀어야 해서 O(n)입니다. 연결 리스트는 포인터로 이어져 노드 위치만 알면 삽입·삭제가 O(1)이지만 임의 접근은 O(n)입니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">동적 배열의 append가 왜 분할 상환 O(1)인가요?</h3>
-                            <p class="overview-card__desc">용량이 찰 때만 O(n) 복사가 일어나지만 용량을 일정 배율로 늘리면 그 복사가 드물게 일어나서, n번 추가하는 전체 비용을 n으로 나누면 상수가 됩니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">ArrayList와 LinkedList 중 무엇을 쓰나요?</h3>
-                            <p class="overview-card__desc">대부분의 경우 ArrayList가 낫습니다. LinkedList는 양쪽 끝에서 자주 넣고 빼는 Deque 용도에서 쓸 수 있지만, 같은 용도라면 ArrayDeque가 더 빠르다고 Java 문서가 설명합니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">이중 연결 리스트의 장점은 무엇인가요?</h3>
-                            <p class="overview-card__desc">prev 포인터가 있어 양방향 순회가 되고, 삭제할 노드를 알면 앞 노드를 따로 찾지 않고 O(1)에 지울 수 있습니다. 대신 노드마다 포인터가 하나 더 듭니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">

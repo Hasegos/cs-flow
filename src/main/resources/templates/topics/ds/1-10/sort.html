@@ -183,29 +183,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">버블 정렬을 개선할 수 있나요?</h3>
-                            <p class="overview-card__desc">한 번의 패스에서 교환이 한 번도 없었다면 이미 정렬된 것이므로 그 시점에 멈춥니다. 이 개선을 넣으면 이미 정렬된 입력에서는 O(n)에 끝나지만(개선이 없는 기본형은 정렬된 입력에서도 O(n²)), 평균과 최악은 여전히 O(n²)입니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">계수 정렬은 언제 쓰나요?</h3>
-                            <p class="overview-card__desc">정수처럼 값의 범위 k가 n에 비해 크지 않을 때 O(n + k)에 정렬할 수 있습니다. 범위가 크면 카운트 배열의 메모리와 시간이 커져서 맞지 않습니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">안정 정렬이 필요한 예를 들어 보세요.</h3>
-                            <p class="overview-card__desc">이름순으로 정렬된 목록을 학년으로 다시 정렬할 때 같은 학년 안에서 이름순을 유지하려면 안정 정렬이어야 합니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">실무에서는 어떤 정렬을 쓰나요?</h3>
-                            <p class="overview-card__desc">여러 알고리즘을 섞은 정렬을 씁니다. 파이썬은 Timsort를 쓰고, 작은 구간은 이진 삽입 정렬로 처리한다고 CPython 문서에 설명되어 있습니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">

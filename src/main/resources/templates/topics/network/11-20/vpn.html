@@ -184,29 +184,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">VPN이 무엇이고 왜 쓰나요?</h3>
-                            <p class="overview-card__desc">공용 인터넷 위에 암호화된 터널을 만들어 사설망처럼 안전하게 통신하게 하는 기술입니다. 원격 근무자가 회사 내부 자원에 안전하게 접속하고, 지사끼리 네트워크를 이을 때 씁니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">터널링(캡슐화)이란 무엇인가요?</h3>
-                            <p class="overview-card__desc">원래의 패킷을 다른 패킷 안에 넣어 전달하는 것입니다. VPN에서는 내부 패킷을 암호화해 새 IP 헤더를 붙여 보내고, 도착한 끝점이 바깥 헤더를 벗기고 복호화해 원래 패킷을 꺼냅니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">원격 접속 VPN과 사이트 간 VPN의 차이는?</h3>
-                            <p class="overview-card__desc">원격 접속은 개별 기기가 회사 게이트웨이와 터널을 만드는 방식이고, 사이트 간은 본사와 지사의 게이트웨이끼리 터널을 만들어 두 네트워크를 잇는 방식입니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">VPN만 있으면 안전한가요?</h3>
-                            <p class="overview-card__desc">아닙니다. VPN은 터널 구간의 도청과 변조를 막을 뿐입니다. 접속 후의 접근 권한 관리, 기기 보안, 사내망 안의 보안은 따로 필요합니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">

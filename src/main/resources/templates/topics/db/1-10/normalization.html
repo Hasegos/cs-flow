@@ -182,29 +182,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">제2정규형과 제3정규형은 무엇이 다른가요?</h3>
-                            <p class="overview-card__desc">후보키가 하나인 경우를 기준으로 설명합니다. 2NF는 키의 일부에만 의존하는 컬럼(부분 함수 종속)을 없앱니다. 3NF는 키가 아닌 컬럼을 거쳐 다른 키가 아닌 컬럼이 결정되는 관계(이행 종속)를 없앱니다. 둘 다 키에 속하지 않는 컬럼이 키 전체에 직접 의존하게 만드는 과정입니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">정규화를 하는 이유와 하지 않는 경우를 말해 보세요.</h3>
-                            <p class="overview-card__desc">이상 현상(갱신·삽입·삭제)을 막고 중복을 줄이기 위해서입니다. 읽기가 대부분이고 JOIN 비용이 성능 문제일 때, 또는 분석용 데이터처럼 변경이 거의 없을 때 반정규화를 쓰기도 합니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">BCNF는 3NF와 무엇이 다른가요?</h3>
-                            <p class="overview-card__desc">3NF는 후보키에 속한 컬럼(주 속성)이 결정되는 경우를 허용하지만, BCNF는 자명하지 않은 모든 종속의 결정자가 슈퍼키일 것을 요구합니다. 그래서 BCNF가 3NF보다 엄격합니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">반정규화는 어떻게 안전하게 하나요?</h3>
-                            <p class="overview-card__desc">정규화된 구조를 기준으로 두고 필요한 부분에만 중복 컬럼이나 요약 테이블을 추가합니다. 중복한 값이 서로 어긋나지 않게 하는 방법이 함께 필요합니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">

@@ -186,29 +186,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">인터럽트, 예외, 트랩은 어떻게 다른가요?</h3>
-                            <p class="overview-card__desc">인터럽트는 외부 장치가 비동기로 보내는 신호이고, 예외는 명령어 실행 중 CPU가 감지한 오류 상황으로 동기로 발생합니다. 트랩은 프로그램이 의도적으로 일으키는 소프트웨어 인터럽트로 시스템 콜이 대표적입니다. 책마다 용어를 묶는 방식이 조금씩 다릅니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">인터럽트가 발생하면 CPU는 무엇을 하나요?</h3>
-                            <p class="overview-card__desc">현재 명령어를 끝낸 뒤 복귀에 필요한 상태(32비트 보호 모드에서는 EIP, CS, EFLAGS이고, 권한 수준이 바뀌면 SS:ESP도, 일부 예외는 에러 코드도)를 스택에 저장하고, 벡터 번호로 IDT를 찾아 ISR로 점프합니다. ISR이 끝나면 IRET으로 저장한 상태를 복원해 원래 흐름으로 돌아갑니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">ISR 안에서 다른 인터럽트가 오면 어떻게 되나요?</h3>
-                            <p class="overview-card__desc">x86에서 인터럽트 게이트로 진입하면 CPU가 인터럽트 플래그(IF)를 꺼서 마스커블 인터럽트를 막습니다. ISR이 IF를 다시 켜면 더 높은 우선순위의 인터럽트를 받는 중첩이 가능합니다. 방식은 구조와 운영체제마다 다릅니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">폴링과 인터럽트는 언제 무엇을 쓰나요?</h3>
-                            <p class="overview-card__desc">이벤트가 드물고 언제 올지 모르면 인터럽트가 CPU 시간을 아낍니다. 이벤트가 매우 자주 오거나 응답 지연을 극단적으로 줄여야 하면 폴링이 나을 수 있습니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">

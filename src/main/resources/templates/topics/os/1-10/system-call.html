@@ -178,29 +178,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">시스템 콜이 호출되면 어떤 일이 일어나나요?</h3>
-                            <p class="overview-card__desc">프로그램이 번호와 인수를 레지스터에 넣고 syscall 같은 특수 명령을 실행하면 CPU가 커널 모드로 전환되어 커널의 진입점으로 갑니다. 커널이 번호로 처리 함수를 찾아 실행하고 결과를 레지스터에 담아 유저 모드로 돌아옵니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">유저 모드와 커널 모드를 왜 나누나요?</h3>
-                            <p class="overview-card__desc">프로그램의 오류나 악의적인 동작이 커널과 다른 프로세스를 망가뜨리지 못하게 하기 위해서입니다. 하드웨어 접근 같은 특권 명령은 커널 모드에서만 실행할 수 있습니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">라이브러리 함수와 시스템 콜의 차이는 무엇인가요?</h3>
-                            <p class="overview-card__desc">라이브러리 함수는 유저 모드의 코드이고 그 안에서 필요하면 시스템 콜을 호출합니다. 예를 들어 fopen은 라이브러리 함수이고 내부에서 open이나 openat 시스템 콜을 부릅니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">시스템 콜 횟수를 줄이려면 어떻게 하나요?</h3>
-                            <p class="overview-card__desc">작은 읽기와 쓰기를 버퍼에 모아 한 번에 처리하고, vDSO가 제공하는 호출은 커널 진입 없이 처리하며, 여러 I/O를 한꺼번에 제출하는 io_uring 같은 인터페이스를 쓸 수 있습니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">

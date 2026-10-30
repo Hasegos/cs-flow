@@ -181,29 +181,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">프로그램 I/O, 인터럽트 구동 I/O, DMA를 비교해 보세요.</h3>
-                            <p class="overview-card__desc">프로그램 I/O는 CPU가 완료까지 폴링해 구현이 단순하지만 CPU를 낭비합니다. 인터럽트 구동 I/O는 완료를 인터럽트로 받아 그동안 다른 일을 하지만 데이터 이동은 CPU가 합니다. DMA는 데이터 이동까지 DMA 컨트롤러가 해서 대용량 전송에 유리합니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">메모리 맵드 I/O와 포트 맵드 I/O는 무엇이 다른가요?</h3>
-                            <p class="overview-card__desc">메모리 맵드 I/O는 장치 레지스터를 메모리 주소 공간에 두고 일반 메모리 명령으로 접근합니다. 포트 맵드 I/O는 별도의 I/O 주소 공간을 쓰고 x86의 IN, OUT 같은 전용 명령으로 접근합니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">DMA의 단점이나 주의할 점은 무엇인가요?</h3>
-                            <p class="overview-card__desc">DMA가 버스를 쓰는 동안 CPU와 경쟁이 생기고, DMA가 바꾼 메모리와 CPU 캐시가 어긋날 수 있어 운영체제가 처리해야 합니다. 또 전송이 작으면 설정 비용이 이득보다 클 수 있습니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">폴링이 더 나은 경우도 있나요?</h3>
-                            <p class="overview-card__desc">이벤트가 아주 자주 와서 인터럽트 처리 비용이 크거나, 응답 지연을 최소화해야 하는 경우입니다. 리눅스 네트워크 드라이버는 부하가 높을 때 폴링으로 바꾸는 NAPI를 씁니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">

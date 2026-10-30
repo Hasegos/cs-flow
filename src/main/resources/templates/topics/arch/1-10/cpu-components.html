@@ -165,29 +165,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">PC와 IR의 차이는 무엇인가요?</h3>
-                            <p class="overview-card__desc">PC는 다음에 실행할 명령어의 주소를 담고, IR은 지금 실행 중인 명령어 자체를 담습니다. Fetch 단계에서 PC가 가리키는 주소의 명령어를 IR로 가져오고 PC는 다음 명령어를 가리키도록 바뀝니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">레지스터와 메모리(RAM)는 어떻게 다른가요?</h3>
-                            <p class="overview-card__desc">레지스터는 CPU 내부에 있어 훨씬 빠르지만 개수가 수십 개 수준으로 적고, 명령어에서 이름으로 지정합니다. 메모리는 CPU 바깥에 있어 용량이 크고 주소로 접근하며 상대적으로 느립니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">MAR과 MDR은 왜 필요한가요?</h3>
-                            <p class="overview-card__desc">교재 모델에서 CPU 내부 버스와 메모리 쪽 버스를 이어 주는 인터페이스 레지스터입니다. 접근할 주소를 MAR에, 주고받을 데이터를 MDR에 잡아 두고 메모리와 통신합니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">하드와이어드와 마이크로프로그램 제어 장치는 무엇이 다른가요?</h3>
-                            <p class="overview-card__desc">하드와이어드는 논리 회로로 제어 신호를 만들어 빠르지만 명령어를 바꾸려면 회로를 고쳐야 하고, 마이크로프로그램은 제어 기억장치의 마이크로명령어를 실행해 신호를 만들기 때문에 유연하지만 한 단계가 더 듭니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">

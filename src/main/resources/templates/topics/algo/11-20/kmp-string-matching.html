@@ -199,29 +199,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">KMP 알고리즘의 핵심 아이디어는?</h3>
-                            <p class="overview-card__desc">불일치가 났을 때 이미 맞춘 글자의 정보를 실패 함수로 재사용해, 텍스트 위치를 되돌리지 않고 패턴만 이동하는 것입니다. 그래서 같은 글자를 처음부터 다시 비교하지 않습니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">실패 함수(π 배열)는 무엇인가요?</h3>
-                            <p class="overview-card__desc">π[i]는 패턴의 앞 i+1글자에서 접두사이면서 접미사인 가장 긴 (자기 자신을 제외한) 문자열의 길이입니다. 불일치 때 패턴을 얼마나 되돌려 이어 비교할 수 있는지를 알려 줍니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">시간 복잡도가 O(n + m)인 이유는?</h3>
-                            <p class="overview-card__desc">텍스트 위치 i는 앞으로만 가고, j는 한 칸씩 늘어나며 줄어드는 양이 늘어난 양을 넘을 수 없습니다. 그래서 검색의 총 이동이 O(n)이고, 같은 논리로 실패 함수 계산은 O(m)입니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">문자열이 어떤 단위의 반복인지 알아내려면?</h3>
-                            <p class="overview-card__desc">길이 n인 문자열의 마지막 π 값을 뺀 n − π[n-1]이 후보 단위의 길이이고, n이 그 값으로 나누어떨어지고 그 값이 n보다 작으면 그 단위가 반복된 문자열입니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">활용 분야와 확장</h2>
                     <div class="overview-points">
