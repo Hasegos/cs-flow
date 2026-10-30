@@ -132,6 +132,13 @@ public class ContentStore {
     }
 
     /**
+     * 토픽 slug(전역 유일)로 보이는 토픽을 찾는다.
+     */
+    public Optional<TopicInfo> topic(String topicSlug) {
+        return Optional.ofNullable(topicBySlug.get(topicSlug));
+    }
+
+    /**
      * 과목 slug와 토픽 slug로 토픽을 찾는다.
      */
     public Optional<TopicInfo> topic(String subjectSlug, String topicSlug) {

@@ -2,10 +2,9 @@ package io.dev.cs_flow.service;
 
 import io.dev.cs_flow.common.exception.NotFoundException;
 import io.dev.cs_flow.dto.LikeResult;
-import io.dev.cs_flow.model.Topic;
 import io.dev.cs_flow.model.TopicLike;
 import io.dev.cs_flow.repository.TopicLikeRepository;
-import io.dev.cs_flow.repository.TopicRepository;
+import io.dev.cs_flow.repository.TopicStatRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -27,29 +26,30 @@ import java.util.Optional;
 public class TopicLikeService {
 
     private final TopicLikeRepository topicLikeRepository;
-    private final TopicRepository topicRepository;
+    private final TopicStatRepository topicStatRepository;
+    private final ContentStore contentStore;
 
     /**
      * 토픽에 대한 방문자의 추천 여부를 조회한다.
      *
-     * @param topicId   기준 토픽 ID
+     * @param topicSlug 기준 토픽 영문 식별자
      * @param visitorId 익명 방문자 식별자
      * @return 추천했으면 {@code true}
      */
     @Transactional(readOnly = true)
-    public boolean isLiked(Long topicId, String visitorId){
-        return topicLikeRepository.findByTopic_TopicIdAndVisitorId(topicId, visitorId).isPresent();
+    public boolean isLiked(String topicSlug, String visitorId){
+        return topicLikeRepository.findByTopicSlugAndVisitorId(topicSlug, visitorId).isPresent();
     }
 
     /**
      * 토픽의 추천 수를 조회한다.
      *
-     * @param topicId 기준 토픽 ID
+     * @param topicSlug 기준 토픽 영문 식별자
      * @return 추천 수
      */
     @Transactional(readOnly = true)
-    public long countLikes(Long topicId){
-        return topicLikeRepository.countByTopic_TopicId(topicId);
+    public long countLikes(String topicSlug){
+        return topicLikeRepository.countByTopicSlug(topicSlug);
     }
 
     /**
@@ -63,25 +63,25 @@ public class TopicLikeService {
      */
     @Transactional
     public LikeResult toggleLike(String topicSlug, String visitorId){
-        Topic topic = topicRepository.findBySlugAndIsPublishedTrue(topicSlug)
+        contentStore.topic(topicSlug)
                 .orElseThrow(() -> new NotFoundException("존재하지 않는 토픽입니다. slug: " + topicSlug));
 
-        Optional<TopicLike> existing = topicLikeRepository.findByTopic_TopicIdAndVisitorId(topic.getTopicId(), visitorId);
+        Optional<TopicLike> existing = topicLikeRepository.findByTopicSlugAndVisitorId(topicSlug, visitorId);
 
         boolean liked;
         if (existing.isPresent()) {
             topicLikeRepository.delete(existing.get());
-            topicRepository.decrementLikeCount(topic.getTopicId());
+            topicStatRepository.decrementLikeCount(topicSlug);
             liked = false;
             log.info("추천 취소 - topicSlug: {}, visitorId: {}", topicSlug, visitorId);
         } else {
-            topicLikeRepository.save(new TopicLike(topic, visitorId, LocalDateTime.now()));
-            topicRepository.incrementLikeCount(topic.getTopicId());
+            topicLikeRepository.save(new TopicLike(topicSlug, visitorId, LocalDateTime.now()));
+            topicStatRepository.incrementLikeCount(topicSlug);
             liked = true;
             log.info("추천 등록 - topicSlug: {}, visitorId: {}", topicSlug, visitorId);
         }
 
-        long count = topicLikeRepository.countByTopic_TopicId(topic.getTopicId());
+        long count = topicLikeRepository.countByTopicSlug(topicSlug);
         return new LikeResult(liked, count);
     }
 }

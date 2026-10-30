@@ -24,9 +24,8 @@ public class TopicLike {
     @Column(name = "id")
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "topic_id", nullable = false)
-    private Topic topic;
+    @Column(name = "topic_slug", nullable = false, length = 100)
+    private String topicSlug;
 
     @Column(name = "visitor_id", nullable = false, length = 36)
     private String visitorId;
@@ -34,8 +33,8 @@ public class TopicLike {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    public TopicLike(Topic topic, String visitorId, LocalDateTime createdAt) {
-        this.topic = topic;
+    public TopicLike(String topicSlug, String visitorId, LocalDateTime createdAt) {
+        this.topicSlug = topicSlug;
         this.visitorId = visitorId;
         this.createdAt = createdAt;
     }

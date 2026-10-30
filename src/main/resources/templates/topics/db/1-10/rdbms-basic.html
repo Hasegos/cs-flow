@@ -228,7 +228,7 @@
                     <div class="overview-points">
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
-                            <span><strong>이 사이트의 태그</strong> — 토픽의 태그는 topic 테이블에 쉼표로 이어 붙이지 않고 topic_tag 테이블로 나누고, topic_id를 외래키로 topic에 연결했습니다. 한 토픽에 태그가 여러 개인 1:N 관계입니다.</span>
+                            <span><strong>이 사이트의 태그</strong> — 한 토픽에 태그가 여러 개인 1:N 관계입니다. 이 사이트는 콘텐츠를 JSON 파일로 두어 토픽 파일 안의 태그 배열로 표현하지만, 관계형 DB라면 태그를 쉼표로 이어 붙이지 않고 별도 테이블로 나누어 토픽 ID를 외래키로 연결합니다.</span>
                         </div>
                         <div class="overview-point">
                             <span class="overview-point__dot"></span>
