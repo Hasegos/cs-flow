@@ -76,6 +76,7 @@
         if (window.CsFlow.memHier3d) return Promise.resolve();
         if (!loading3d) {
             loading3d = loadScript(container.dataset.threeSrc)
+                .then(function () { return loadScript(container.dataset.viz3dCommonSrc); })
                 .then(function () { return loadScript(container.dataset.viz3dSrc); })
                 .catch(function (err) {
                     loading3d = null;
@@ -90,7 +91,7 @@
         resize();
     }
 
-    if (container.dataset.threeSrc && container.dataset.viz3dSrc && webglAvailable()) {
+    if (container.dataset.threeSrc && container.dataset.viz3dCommonSrc && container.dataset.viz3dSrc && webglAvailable()) {
         const btn3d = el('button', 'mem-hier__btn mem-hier__btn--primary', '3D 팝업북');
         btn3d.type = 'button';
         btn3d.addEventListener('click', function () {

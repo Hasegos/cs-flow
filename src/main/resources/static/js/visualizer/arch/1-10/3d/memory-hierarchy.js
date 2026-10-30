@@ -1,14 +1,13 @@
 /**
  * 메모리 계층 구조 3D 팝업북 시각화 (Three.js r128)
- * 2D 시각화의 "3D 팝업북" 버튼을 누를 때만 로드된다.
- * 작동 원리 탭을 벗어나거나 2D로 돌아가면 GPU 자원(컨텍스트, 텍스처, 지오메트리)을 모두 해제하고,
- * 탭으로 돌아오면 같은 단계에서 다시 만든다.
+ * 2D 시각화의 "3D 팝업북" 버튼을 누를 때만 로드된다. 공용 엔진 viz3d-common.js가 먼저 로드돼 있어야 한다.
+ * 렌더러 · 카메라 · UI · 생명주기는 공용 엔진이 맡고, 이 파일은 책 위의 유리병 장면과 장면 진행만 만든다.
  */
 (function () {
     'use strict';
 
     const THREE = window.THREE;
-    if (!window.CsFlow || !THREE) return;
+    if (!window.CsFlow || !THREE || !window.CsFlow.viz3d) return;
 
     const V = THREE.Vector3;
 
@@ -24,9 +23,6 @@
     const OVERVIEW = { p: [0, 6.3, 5.3], t: [0, 0.3, 0.15] };
     const STEP_BADGES = ['OVERVIEW', 'CACHE MISS', 'L1 HIT', 'CACHE LINE', 'PAGE FAULT'];
     const CPU_INDEX = 6;
-    const SPEEDS = [1, 2, 3];
-    const ZOOM_MIN = 0.35;
-    const ZOOM_MAX = 1.8;
     const THEMES = {
         dark: { bg: 0x0f0f1a, table: 0x62607a, felt: 0x35453f, hemi: 0.4, sun: 0.95, exposure: 1.0 },
         light: { bg: 0xd9d2c4, table: 0xffffff, felt: 0x8ea597, hemi: 0.66, sun: 1.25, exposure: 1.05 }
@@ -60,94 +56,8 @@
         timerLabel: 'x 한 번 읽는 데 걸린 시간'
     };
 
-    const CPU_TIP = {
-        title: 'CPU로 그리는 중',
-        body: '브라우저의 하드웨어 가속이 꺼져 있어 3D를 CPU로 그립니다. 화면은 같지만 CPU 사용률이 높고 덜 부드러울 수 있습니다.',
-        fix: '해결: Chrome 설정 > 시스템 > 가능한 경우 그래픽 가속 사용을 켜고 브라우저를 다시 시작하세요.'
-    };
-
-    const state = {
-        wanted: false,
-        world: null,
-        ui: null,
-        gen: 0,
-        step: 0,
-        speed: 1,
-        auto: false,
-        exit: null
-    };
-
     let fontsPromise = null;
 
-    /* ===================== DOM 유틸 ===================== */
-    /**
-     * 요소를 만든다.
-     *
-     * @param tag  태그 이름
-     * @param cls  클래스 이름
-     * @param text 텍스트 내용
-     * @returns 만든 요소
-     */
-    function mk(tag, cls, text) {
-        const e = document.createElement(tag);
-        if (cls) e.className = cls;
-        if (text) e.textContent = text;
-        return e;
-    }
-
-    /**
-     * 24x24 SVG 아이콘 버튼을 만든다.
-     *
-     * @param cls   클래스 이름
-     * @param label 접근성 이름
-     * @param d     path 데이터
-     * @param fill  채움 아이콘 여부
-     * @returns 버튼 요소
-     */
-    function iconButton(cls, label, d, fill) {
-        const btn = mk('button', cls);
-        btn.type = 'button';
-        btn.setAttribute('aria-label', label);
-        btn.appendChild(iconSvg(d, fill));
-        return btn;
-    }
-
-    /**
-     * SVG 아이콘을 만든다.
-     *
-     * @param d    path 데이터
-     * @param fill 채움 아이콘 여부
-     * @returns svg 요소
-     */
-    function iconSvg(d, fill) {
-        const ns = 'http://www.w3.org/2000/svg';
-        const svg = document.createElementNS(ns, 'svg');
-        svg.setAttribute('viewBox', '0 0 24 24');
-        svg.setAttribute('aria-hidden', 'true');
-        if (fill) {
-            svg.setAttribute('fill', 'currentColor');
-        } else {
-            svg.setAttribute('fill', 'none');
-            svg.setAttribute('stroke', 'currentColor');
-            svg.setAttribute('stroke-width', '2');
-            svg.setAttribute('stroke-linecap', 'round');
-            svg.setAttribute('stroke-linejoin', 'round');
-        }
-        const path = document.createElementNS(ns, 'path');
-        path.setAttribute('d', d);
-        svg.appendChild(path);
-        return svg;
-    }
-
-    const ICON = {
-        play: 'M8 5v14l11-7z',
-        pause: 'M6 5h4v14H6zM14 5h4v14h-4z',
-        prev: 'M15 6l-6 6 6 6',
-        next: 'M9 6l6 6-6 6',
-        rewind: 'M3 12a9 9 0 1 0 3-6.7M3 4v5h5',
-        zoomIn: 'M12 5v14M5 12h14',
-        zoomOut: 'M5 12h14'
-    };
 
     /* ===================== 글꼴 ===================== */
     /**
@@ -158,7 +68,7 @@
     function loadFonts() {
         if (fontsPromise) return fontsPromise;
         fontsPromise = new Promise(function (resolve) {
-            const link = mk('link');
+            const link = document.createElement('link');
             link.rel = 'stylesheet';
             link.href = FONT_CSS;
             const sheetReady = new Promise(function (res) {
@@ -219,267 +129,43 @@
         return (ns / 1000).toFixed(1) + ' μs';
     }
 
-    /**
-     * 사이트가 라이트 테마인지 확인한다.
-     *
-     * @returns 라이트 테마면 true
-     */
-    function isLight() {
-        return document.documentElement.getAttribute('data-theme') === 'light';
-    }
+    /* ===================== 3D 컨트롤러 ===================== */
+    const v3 = window.CsFlow.viz3d.create({
+        prefix: 'mem-hier3d',
+        title: 'Memory Hierarchy 3D',
+        badges: STEP_BADGES,
+        canvasLabel: '메모리 계층을 책 위의 유리병 6개로 보여 주는 3D 장면. 아래 장면 버튼으로 데이터 흐름을 따라갑니다.',
+        home: { p: [1.6, 4.6, 5.2], t: [1.7, 0.4, 0] },
+        load: loadFonts,
+        createWorld: createWorld
+    });
+    const state = v3.state;
+    const alive = v3.alive;
+    const wait = v3.wait;
+    const setCaption = v3.setCaption;
 
-    /* ===================== UI 구성 ===================== */
-    /**
-     * 3D 시각화 UI(툴바, 스테이지, 로그, 컨트롤)를 컨테이너에 만든다.
-     *
-     * @param container 시각화 컨테이너
-     * @returns UI 요소 참조 모음
-     */
-    function buildUi(container) {
-        const root = mk('div', 'mem-hier3d');
-
-        const toolbar = mk('div', 'mem-hier3d__toolbar');
-        const left = mk('div', 'mem-hier3d__toolbar-left');
-        left.appendChild(mk('span', 'mem-hier3d__title', 'Memory Hierarchy 3D'));
-        const badge = mk('span', 'mem-hier3d__badge', STEP_BADGES[0]);
-        left.appendChild(badge);
-        const cpuTag = mk('span', 'mem-hier3d__tag', 'CPU 렌더링');
-        cpuTag.hidden = true;
-        const qmark = mk('button', 'mem-hier3d__qmark', '?');
-        qmark.type = 'button';
-        qmark.setAttribute('aria-label', 'CPU 렌더링 설명');
-        qmark.setAttribute('aria-describedby', 'mem-hier3d-cpu-tip');
-        qmark.addEventListener('click', function () { cpuTag.classList.toggle('is-open'); });
-        const tip = mk('span', 'mem-hier3d__tip');
-        tip.id = 'mem-hier3d-cpu-tip';
-        tip.setAttribute('role', 'tooltip');
-        tip.appendChild(mk('b', '', CPU_TIP.title));
-        tip.appendChild(mk('span', '', CPU_TIP.body));
-        tip.appendChild(mk('span', 'mem-hier3d__tip-fix', CPU_TIP.fix));
-        cpuTag.appendChild(qmark);
-        cpuTag.appendChild(tip);
-        left.appendChild(cpuTag);
-        toolbar.appendChild(left);
-
-        const right = mk('div', 'mem-hier3d__toolbar-right');
-        right.appendChild(mk('span', 'mem-hier3d__speed-label', 'SPEED'));
-        const speedBtns = SPEEDS.map(function (s) {
-            const b = mk('button', 'mem-hier3d__btn mem-hier3d__btn--speed', s + 'x');
-            b.type = 'button';
-            b.addEventListener('click', function () { setSpeed(s); });
-            right.appendChild(b);
-            return b;
-        });
-        const exitBtn = mk('button', 'mem-hier3d__btn', '2D로 보기');
-        exitBtn.type = 'button';
-        exitBtn.addEventListener('click', function () { leave(); });
-        right.appendChild(exitBtn);
-        toolbar.appendChild(right);
-        root.appendChild(toolbar);
-
-        const stage = mk('div', 'mem-hier3d__stage');
-        const fail = mk('div', 'mem-hier3d__fail');
-        const failMsg = mk('span', 'mem-hier3d__fail-msg');
-        const retry = mk('button', 'mem-hier3d__btn mem-hier3d__btn--primary', '다시 시작');
-        retry.type = 'button';
-        retry.addEventListener('click', function () { restart(); });
-        const toFlat = mk('button', 'mem-hier3d__btn', '2D로 보기');
-        toFlat.type = 'button';
-        toFlat.addEventListener('click', function () { leave(); });
-        fail.appendChild(failMsg);
-        fail.appendChild(retry);
-        fail.appendChild(toFlat);
-        stage.appendChild(fail);
-        const touch = window.matchMedia('(pointer: coarse)').matches;
-        const hint = mk('span', 'mem-hier3d__hint', touch ? '한 손가락 회전 · 두 손가락 이동·확대' : '드래그 회전 · 우클릭 또는 휠 클릭 드래그 이동 · 누른 채 휠 확대 · 더블클릭 원위치');
-        root.appendChild(stage);
-
-        const log = mk('div', 'mem-hier3d__caption');
-        log.setAttribute('aria-live', 'polite');
-        stage.appendChild(log);
-
-        const controls = mk('div', 'mem-hier3d__controls');
-        const prev = iconButton('mem-hier3d__btn mem-hier3d__btn--icon', '이전 장면', ICON.prev, false);
-        const play = iconButton('mem-hier3d__btn mem-hier3d__btn--icon mem-hier3d__btn--primary', '재생', ICON.play, true);
-        const next = iconButton('mem-hier3d__btn mem-hier3d__btn--icon', '다음 장면', ICON.next, false);
-        const rewindBtn = iconButton('mem-hier3d__btn mem-hier3d__btn--icon', '처음으로 되감기', ICON.rewind, false);
-        const zoomOutBtn = iconButton('mem-hier3d__btn mem-hier3d__btn--icon', '축소', ICON.zoomOut, false);
-        const zoomInBtn = iconButton('mem-hier3d__btn mem-hier3d__btn--icon', '확대', ICON.zoomIn, false);
-        const zoomBox = mk('span', 'mem-hier3d__zoom');
-        zoomBox.appendChild(zoomOutBtn);
-        zoomBox.appendChild(zoomInBtn);
-        const dots = mk('span', 'mem-hier3d__dots');
-        const dotEls = STEP_BADGES.map(function () {
-            const d = mk('span', 'mem-hier3d__dot');
-            dots.appendChild(d);
-            return d;
-        });
-        prev.addEventListener('click', function () { go(Math.max(0, state.step - 1)); });
-        next.addEventListener('click', function () { go(Math.min(STEP_BADGES.length - 1, state.step + 1)); });
-        play.addEventListener('click', function () { togglePlay(); });
-        rewindBtn.addEventListener('click', function () { rewind(); });
-        zoomOutBtn.addEventListener('click', function () { if (state.world) state.world.zoomBy(1.25); });
-        zoomInBtn.addEventListener('click', function () { if (state.world) state.world.zoomBy(0.8); });
-        [prev, play, next, dots, rewindBtn, hint, zoomBox].forEach(function (c) { controls.appendChild(c); });
-        root.appendChild(controls);
-
-        container.appendChild(root);
-        return { root: root, hint: hint, cpuTag: cpuTag, stage: stage, badge: badge, log: log, fail: fail, failMsg: failMsg, prev: prev, play: play, next: next, dotEls: dotEls, speedBtns: speedBtns };
-    }
-
-    /**
-     * 로그 바에 "라벨: 문장" 형식으로 설명을 쓴다.
-     *
-     * @param label 굵게 보일 라벨
-     * @param text  설명 문장
-     */
-    function setCaption(label, text) {
-        const ui = state.ui;
-        if (!ui) return;
-        ui.log.textContent = '';
-        ui.log.appendChild(mk('b', '', label + ': '));
-        ui.log.appendChild(document.createTextNode(text));
-    }
-
-    /**
-     * 현재 단계와 재생 상태를 UI에 반영한다.
-     */
-    function syncUi() {
-        const ui = state.ui;
-        if (!ui) return;
-        ui.badge.textContent = STEP_BADGES[state.step];
-        ui.badge.classList.toggle('mem-hier3d__badge--active', state.step > 0);
-        ui.dotEls.forEach(function (d, i) { d.classList.toggle('is-on', i === state.step); });
-        ui.prev.disabled = state.step === 0;
-        ui.next.disabled = state.step === STEP_BADGES.length - 1;
-        ui.speedBtns.forEach(function (b, i) { b.classList.toggle('is-active', SPEEDS[i] === state.speed); });
-        const label = state.auto ? '일시정지' : '재생';
-        ui.play.setAttribute('aria-label', label);
-        ui.play.replaceChild(iconSvg(state.auto ? ICON.pause : ICON.play, true), ui.play.firstChild);
-    }
-
-    /**
-     * 배속을 바꾼다.
-     *
-     * @param s 배속
-     */
-    function setSpeed(s) {
-        state.speed = s;
-        syncUi();
-    }
-
-    /**
-     * 실패 안내를 보여 준다.
-     *
-     * @param msg 사용자에게 보일 이유
-     */
-    function showFail(msg) {
-        if (!state.ui) return;
-        state.ui.failMsg.textContent = msg;
-        state.ui.fail.classList.add('is-on');
-    }
 
     /* ===================== 월드(씬) ===================== */
     /**
-     * 하드웨어 가속 WebGL을 쓸 수 있는지 렌더러 밖에서 먼저 확인한다.
-     * Three.js가 컨텍스트 생성에 실패하면 콘솔에 오류를 남기므로, 실패를 거기서 겪지 않게 한다.
-     *
-     * @returns 소프트웨어 렌더링이 아니고 WebGL을 쓸 수 있으면 true
-     */
-    function hasHardwareGl() {
-        const probe = document.createElement('canvas');
-        const opts = { failIfMajorPerformanceCaveat: true };
-        const gl = probe.getContext('webgl2', opts) || probe.getContext('webgl', opts);
-        if (!gl) return false;
-        const lose = gl.getExtension('WEBGL_lose_context');
-        if (lose) lose.loseContext();
-        return true;
-    }
-
-    /**
      * Three.js 씬을 만든다. 책상, 책, 유리병 6개, CPU, 타이머 카드와 점 흐름을 포함한다.
      *
-     * @param stage 캔버스를 넣을 요소
-     * @returns 월드 API
+     * @param eng 공용 엔진
+     * @returns 월드 API와 렌더 훅(frame, busy, applyTheme, release)
      */
-    function createWorld(stage) {
-        const mobile = window.matchMedia('(max-width: 768px), (pointer: coarse)').matches;
-        const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        const lowEnd = mobile && ((navigator.deviceMemory || 8) <= 3 || (navigator.hardwareConcurrency || 8) <= 4);
-        const soft = !hasHardwareGl();
-        const renderer = new THREE.WebGLRenderer({ antialias: !lowEnd, powerPreference: 'high-performance' });
-        const minGap = 12;
-        const slowGap = 28;
-        const prMin = soft ? 0.5 : 0.75;
-        const texScale = lowEnd ? 1 : 1.25;
-        const canvases = [];
-        const tweens = [];
+    function createWorld(eng) {
+        const scene = eng.scene;
+        const canvas2d = eng.canvas2d;
+        const texture = eng.texture;
+        const tween = eng.tween;
+        const invalidate = eng.invalidate;
+        const lowEnd = eng.lowEnd;
+        const texScale = eng.texScale;
         let streams = [];
-        let running = false;
-        let last = 0;
-        let follow = null;
-        let userYaw = 0;
-        let userPitch = 0;
-        let zoom = 1;
-        let zoomGoal = 1;
-        let pinch = 0;
-        const pan = new V();
-        const panGoal = new V();
-        const camRight = new V();
-        const camUp = new V();
-        const look = new V();
-        let disposed = false;
-        const pointers = new Map();
         let curLevelTimeNs = 0;
         let timerKey = '';
 
-        let pr = Math.min(window.devicePixelRatio || 1, mobile ? (lowEnd ? 1.25 : 2) : 1.5);
-        let slow = 0;
-        renderer.setPixelRatio(pr);
-        renderer.shadowMap.enabled = true;
-        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-        renderer.outputEncoding = THREE.sRGBEncoding;
-        renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 1.05;
-        const dom = renderer.domElement;
-        dom.className = 'mem-hier3d__canvas';
-        dom.setAttribute('role', 'img');
-        dom.setAttribute('aria-label', '메모리 계층을 책 위의 유리병 6개로 보여 주는 3D 장면. 아래 장면 버튼으로 데이터 흐름을 따라갑니다.');
-        stage.insertBefore(dom, stage.firstChild);
-        dom.addEventListener('webglcontextlost', function (e) {
-            e.preventDefault();
-            showFail('GPU가 이 3D 화면을 멈췄습니다. 다시 시작하거나 2D로 보세요.');
-        });
-
-        const scene = new THREE.Scene();
         scene.background = new THREE.Color(0xd9d2c4);
         scene.fog = new THREE.Fog(0xd9d2c4, 12, 26);
-        const cam = new THREE.PerspectiveCamera(32, 1, 0.05, 60);
-        const maxAniso = Math.min(4, renderer.capabilities.getMaxAnisotropy());
-
-        const cur = { p: new V(1.6, 4.6, 5.2), t: new V(1.7, 0.4, 0) };
-        const dst = { p: cur.p.clone(), t: cur.t.clone() };
-
-        /**
-         * 오프스크린 2D 캔버스를 만든다. 해제할 때 한꺼번에 비운다.
-         */
-        function canvas2d(w, h) {
-            const c = document.createElement('canvas');
-            c.width = w;
-            c.height = h;
-            canvases.push(c);
-            return [c, c.getContext('2d')];
-        }
-
-        /**
-         * 캔버스를 sRGB 텍스처로 바꾼다.
-         */
-        function texture(c) {
-            const t = new THREE.CanvasTexture(c);
-            t.encoding = THREE.sRGBEncoding;
-            t.anisotropy = maxAniso;
-            return t;
-        }
 
         /**
          * 종이 해칭 텍스처를 만든다.
@@ -1054,7 +740,7 @@
          * 점 흐름을 모두 지운다.
          */
         function clearStreams() {
-            tweens.splice(0).forEach(function (w) { w.res(); });
+            eng.clearTweens();
             streams.forEach(function (s) {
                 scene.remove(s.im, s.guide);
                 s.im.dispose();
@@ -1117,369 +803,75 @@
             invalidate();
         }
 
-        /**
-         * 지정한 시간 동안 값을 0에서 1로 바꾸는 트윈을 등록한다.
-         */
-        function tween(d, fn, ease, delay) {
-            return new Promise(function (res) {
-                tweens.push({ s: performance.now() + (delay || 0), d: d, fn: fn, ease: ease || easeOut, res: res });
-                invalidate();
-            });
-        }
-
-        const easeOut = function (p) { return 1 - Math.pow(1 - p, 3); };
-        const easeInOut = function (p) { return p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2; };
-        const easeBack = function (p) { const c = 1.6; return 1 + (c + 1) * Math.pow(p - 1, 3) + c * Math.pow(p - 1, 2); };
-
-        /**
-         * 카메라 목표 위치와 시선을 정한다.
-         */
-        function shot(p, t) {
-            follow = null;
-            dst.p.set(p[0], p[1], p[2]);
-            dst.t.set(t[0], t[1], t[2]);
-            panGoal.set(0, 0, 0);
-            invalidate();
-        }
-
-        /**
-         * 확대 배율 목표를 정한다. 범위를 벗어나면 잘라 낸다.
-         */
-        function setZoom(z) {
-            zoomGoal = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, z));
-            invalidate();
-        }
-
-        /**
-         * 확대 배율 목표에 비율을 곱한다. 1보다 작으면 확대, 크면 축소다.
-         */
-        function zoomBy(f) {
-            setZoom(zoomGoal * f);
-        }
-
-        /**
-         * 드래그로 돌린 시점과 확대를 원래대로 돌린다.
-         */
-        function resetView() {
-            userYaw = 0;
-            userPitch = 0;
-            panGoal.set(0, 0, 0);
-            setZoom(1);
-        }
-
-        /**
-         * 스테이지 크기에 맞춰 렌더러와 카메라를 조정한다.
-         */
-        function resize() {
-            const w = stage.clientWidth;
-            const h = stage.clientHeight;
-            if (!w || !h) return;
-            renderer.setSize(w, h);
-            cam.aspect = w / h;
-            cam.fov = w < 520 ? 46 : 32;
-            cam.updateProjectionMatrix();
-        }
-
-        const off = new V();
-        const sph = new THREE.Spherical();
         const glowers = jars.concat([cpuNode]);
 
         /**
-         * 지금 움직이는 것이 남았는지 확인한다. 없으면 렌더 루프를 멈춰 CPU를 쓰지 않는다.
+         * 움직이는 점이나 빛나는 병이 남았는지 확인한다.
          */
         function busy() {
-            if (tweens.length || pointers.size) return true;
             if (streams.some(function (s) { return !s.done; })) return true;
-            if (zoom !== zoomGoal || pan.distanceToSquared(panGoal) > 0) return true;
-            if (cur.p.distanceToSquared(dst.p) > 0 || cur.t.distanceToSquared(dst.t) > 0) return true;
-            if (follow && dst.t.distanceToSquared(follow.tip) > 0) return true;
             return glowers.some(function (j) { return j.pulse > 0; });
         }
 
         /**
-         * 한 프레임을 그린다. 움직이는 것이 남았을 때만 다음 프레임을 예약한다.
+         * 매 프레임 점 흐름을 갱신하고 병의 발광과 반짝임을 그린다.
          */
         function frame(t) {
-            if (!running) return;
-            if (last && t - last < minGap) {
-                requestAnimationFrame(frame);
-                return;
-            }
-            try {
-                const gap = t - (last || t);
-                const dt = Math.min(250, gap);
-                last = t;
-                slow = gap > slowGap && gap < 3000 ? slow + (gap > 120 ? 5 : 1) : Math.max(0, slow - 1);
-                if (slow > 20 && pr > prMin) {
-                    pr = Math.max(prMin, pr - (gap > 120 ? 0.35 : 0.2));
-                    renderer.setPixelRatio(pr);
-                    resize();
-                    slow = 0;
-                }
-                for (let k = tweens.length - 1; k >= 0; k--) {
-                    const w = tweens[k];
-                    const p = (t - w.s) / w.d;
-                    if (p < 0) continue;
-                    const q = Math.min(1, p);
-                    w.fn(w.ease(q));
-                    if (q >= 1) {
-                        tweens.splice(k, 1);
-                        w.res();
-                    }
-                }
-                updateStreams(t);
-                if (follow) {
-                    dst.t.lerp(follow.tip, 0.05);
-                    if (dst.t.distanceToSquared(follow.tip) < 1e-5) dst.t.copy(follow.tip);
-                    dst.p.copy(dst.t).add(follow.off);
-                }
-                const kf = reduced ? 1 : 1 - Math.exp(-dt / 1000 * 1.8);
-                cur.p.lerp(dst.p, kf);
-                cur.t.lerp(dst.t, kf);
-                if (cur.p.distanceToSquared(dst.p) < 1e-5) cur.p.copy(dst.p);
-                if (cur.t.distanceToSquared(dst.t) < 1e-5) cur.t.copy(dst.t);
-                zoom += (zoomGoal - zoom) * (reduced ? 1 : 1 - Math.exp(-dt / 1000 * 12));
-                if (Math.abs(zoomGoal - zoom) < 0.002) zoom = zoomGoal;
-                pan.lerp(panGoal, kf);
-                if (pan.distanceToSquared(panGoal) < 1e-6) pan.copy(panGoal);
-                off.copy(cur.p).sub(cur.t);
-                sph.setFromVector3(off);
-                sph.theta += userYaw;
-                const basePhi = sph.phi;
-                sph.phi = Math.max(0.12, Math.min(1.5, basePhi + userPitch));
-                userPitch = sph.phi - basePhi;
-                sph.radius *= zoom;
-                off.setFromSpherical(sph);
-                look.copy(cur.t).add(pan);
-                cam.position.copy(look).add(off);
-                cam.lookAt(look);
-                glowers.forEach(function (j) {
-                    j.pulse *= 0.93;
-                    if (j.pulse < 0.01) j.pulse = 0;
-                    j.glowSprite.material.opacity = j.pulse * 0.9;
-                    j.glowSprite.scale.setScalar((j === cpuNode ? 1.1 : 0.7) * (1 + j.pulse * 0.4));
-                });
-                jars.forEach(function (j) {
-                    j.sparkle.material.opacity = 0.4 + 0.45 * Math.abs(Math.sin(t / 300 + j.x * 7));
-                    j.sparkle.rotation.y = t / 2000;
-                });
-                renderer.render(scene, cam);
-            } catch (e) {
-                running = false;
-                showFail('렌더링 중 오류가 났습니다: ' + e.message);
-                return;
-            }
-            if (busy()) requestAnimationFrame(frame);
-            else running = false;
-        }
-
-        /**
-         * 렌더 루프를 시작한다. 이미 돌고 있거나 해제됐으면 무시한다.
-         */
-        function start() {
-            if (running || disposed) return;
-            running = true;
-            last = 0;
-            requestAnimationFrame(frame);
-        }
-
-        /**
-         * 화면을 다시 그려야 할 때 부른다. 멈춰 있던 루프를 깨운다.
-         */
-        function invalidate() {
-            start();
-        }
-
-        /**
-         * 렌더 루프를 멈춘다.
-         */
-        function stop() {
-            running = false;
+            updateStreams(t);
+            glowers.forEach(function (j) {
+                j.pulse *= 0.93;
+                if (j.pulse < 0.01) j.pulse = 0;
+                j.glowSprite.material.opacity = j.pulse * 0.9;
+                j.glowSprite.scale.setScalar((j === cpuNode ? 1.1 : 0.7) * (1 + j.pulse * 0.4));
+            });
+            jars.forEach(function (j) {
+                j.sparkle.material.opacity = 0.4 + 0.45 * Math.abs(Math.sin(t / 300 + j.x * 7));
+                j.sparkle.rotation.y = t / 2000;
+            });
         }
 
         /**
          * 사이트 테마에 맞춰 배경, 안개, 책상, 조명을 바꾼다. 책은 두 테마 모두 종이색을 유지한다.
          */
         function applyTheme() {
-            const th = isLight() ? THEMES.light : THEMES.dark;
+            const th = window.CsFlow.viz3d.isLight() ? THEMES.light : THEMES.dark;
             scene.background.setHex(th.bg);
             scene.fog.color.setHex(th.bg);
             tableM.color.setHex(th.table);
             feltM.color.setHex(th.felt);
             hemi.intensity = th.hemi;
             sun.intensity = th.sun;
-            renderer.toneMappingExposure = th.exposure;
-            invalidate();
+            eng.renderer.toneMappingExposure = th.exposure;
         }
 
         /**
-         * 두 포인터 사이의 거리를 돌려준다.
+         * 월드가 쥔 점 흐름과 점 자원을 해제한다.
          */
-        function pinchDist() {
-            const p = Array.from(pointers.values());
-            return Math.hypot(p[0][0] - p[1][0], p[0][1] - p[1][1]);
-        }
-
-        /**
-         * 두 포인터의 중점을 돌려준다.
-         */
-        function pinchMid() {
-            const p = Array.from(pointers.values());
-            return [(p[0][0] + p[1][0]) / 2, (p[0][1] + p[1][1]) / 2];
-        }
-
-        /**
-         * 화면에서 끈 만큼 시점을 옮긴다. 카메라 거리에 비례해 장면이 손가락을 따라온다.
-         */
-        function panBy(dx, dy) {
-            const k = 2 * Math.tan(cam.fov * Math.PI / 360) * off.length() / (stage.clientHeight || 1);
-            camRight.setFromMatrixColumn(cam.matrixWorld, 0);
-            camUp.setFromMatrixColumn(cam.matrixWorld, 1);
-            panGoal.addScaledVector(camRight, -dx * k).addScaledVector(camUp, dy * k);
-            if (panGoal.length() > 5) panGoal.setLength(5);
-            pan.copy(panGoal);
-            invalidate();
-        }
-
-        dom.addEventListener('pointerdown', function (e) {
-            if (e.pointerType === 'mouse' && e.button > 2) return;
-            pointers.set(e.pointerId, [e.clientX, e.clientY, e.button > 0 || e.shiftKey ? 1 : 0]);
-            dom.setPointerCapture(e.pointerId);
-            dom.classList.add('is-grabbing');
-            pinch = pointers.size === 2 ? pinchDist() : 0;
-            invalidate();
-        });
-        dom.addEventListener('pointermove', function (e) {
-            const p = pointers.get(e.pointerId);
-            if (!p) return;
-            if (pointers.size === 2) {
-                const before = pinchMid();
-                p[0] = e.clientX;
-                p[1] = e.clientY;
-                const after = pinchMid();
-                const d = pinchDist();
-                if (pinch && d) setZoom(zoomGoal * pinch / d);
-                pinch = d;
-                panBy(after[0] - before[0], after[1] - before[1]);
-                return;
-            }
-            if (p[2]) {
-                panBy(e.clientX - p[0], e.clientY - p[1]);
-            } else {
-                userYaw -= (e.clientX - p[0]) * 0.006;
-                userPitch = Math.max(-2, Math.min(2, userPitch - (e.clientY - p[1]) * 0.006));
-            }
-            p[0] = e.clientX;
-            p[1] = e.clientY;
-            invalidate();
-        });
-        const endPointer = function (e) {
-            pointers.delete(e.pointerId);
-            pinch = 0;
-            if (!pointers.size) dom.classList.remove('is-grabbing');
-            invalidate();
-        };
-        dom.addEventListener('pointerup', endPointer);
-        dom.addEventListener('pointercancel', endPointer);
-        dom.addEventListener('contextmenu', function (e) { e.preventDefault(); });
-        dom.addEventListener('mousedown', function (e) { if (e.button === 1) e.preventDefault(); });
-        dom.addEventListener('dblclick', resetView);
-        dom.addEventListener('wheel', function (e) {
-            if (!e.ctrlKey && !(e.buttons & 3)) return;
-            e.preventDefault();
-            const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
-            setZoom(zoomGoal * Math.exp(dy * 0.0015));
-        }, { passive: false });
-
-        const resizeObs = new ResizeObserver(function () {
-            resize();
-            invalidate();
-        });
-        resizeObs.observe(stage);
-        const viewObs = new IntersectionObserver(function (entries) {
-            if (entries[0].isIntersecting) invalidate();
-            else stop();
-        });
-        viewObs.observe(stage);
-        window.addEventListener('csflow-theme-change', applyTheme);
-
-        renderer.shadowMap.autoUpdate = false;
-        renderer.shadowMap.needsUpdate = true;
-        applyTheme();
-        resize();
-
-        /**
-         * 월드가 쥐고 있는 모든 GPU 자원과 오프스크린 캔버스를 해제한다.
-         */
-        function dispose() {
-            disposed = true;
-            running = false;
-            window.removeEventListener('csflow-theme-change', applyTheme);
-            resizeObs.disconnect();
-            viewObs.disconnect();
-            tweens.splice(0).forEach(function (w) { w.res(); });
+        function release() {
             clearStreams();
-            scene.traverse(function (o) {
-                if (o.geometry) o.geometry.dispose();
-                const mats = o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : [];
-                mats.forEach(function (m) {
-                    if (m.map) m.map.dispose();
-                    m.dispose();
-                });
-            });
             dotGeo.dispose();
             dotMat.dispose();
-            renderer.dispose();
-            renderer.forceContextLoss();
-            if (dom.parentNode) dom.parentNode.removeChild(dom);
-            canvases.forEach(function (c) {
-                c.width = 0;
-                c.height = 0;
-            });
-            canvases.length = 0;
         }
+
+        eng.renderer.shadowMap.autoUpdate = false;
+        eng.renderer.shadowMap.needsUpdate = true;
 
         return {
             jars: jars,
-            easeInOut: easeInOut,
-            easeBack: easeBack,
-            soft: soft,
-            tween: tween,
-            shot: shot,
             setLevels: setLevels,
             setTime: setTime,
             getTimeNs: function () { return curLevelTimeNs; },
             clearStreams: clearStreams,
             startStream: startStream,
-            chase: function (tip) { follow = { tip: tip, off: new V(-0.7, 1.5, 2.8) }; invalidate(); },
-            resetView: resetView,
-            zoomBy: zoomBy,
-            start: start,
-            dispose: dispose
+            frame: frame,
+            busy: busy,
+            applyTheme: applyTheme,
+            release: release
         };
     }
 
+
     /* ===================== 장면 진행 ===================== */
-    /**
-     * 현재 진행 중인 장면이 아직 유효한지 확인한다.
-     *
-     * @param g 장면 시작 시점의 세대 번호
-     * @returns 유효하면 true
-     */
-    function alive(g) {
-        return g === state.gen && state.world !== null;
-    }
-
-    /**
-     * 지정한 시간만큼 기다린다. 배속을 반영한다.
-     *
-     * @param ms 밀리초
-     * @returns 완료 Promise
-     */
-    function wait(ms) {
-        return new Promise(function (r) { setTimeout(r, ms / state.speed); });
-    }
-
     /**
      * 경로를 따라 계층 사이에 데이터를 흘려 보낸다.
      *
@@ -1575,139 +967,7 @@
         }
     ];
 
-    /**
-     * 지정한 장면으로 이동해 재생한다. 자동 재생 중이면 다음 장면으로 이어 간다.
-     *
-     * @param i 장면 번호
-     */
-    async function go(i) {
-        if (!state.world) return;
-        const g = ++state.gen;
-        state.step = i;
-        syncUi();
-        await STEPS[i](g);
-        if (!alive(g)) return;
-        if (state.auto) {
-            if (i < STEPS.length - 1) {
-                await new Promise(function (r) { setTimeout(r, 1800 / state.speed); });
-                if (alive(g) && state.auto) go(i + 1);
-            } else {
-                state.auto = false;
-                syncUi();
-            }
-        }
-    }
+    v3.setSteps(STEPS);
 
-    /**
-     * 자동 재생을 켜거나 끈다. reduced-motion이어도 사용자가 누른 재생은 막지 않는다.
-     */
-    function togglePlay() {
-        state.auto = !state.auto;
-        syncUi();
-        if (state.auto) go(state.step === 0 || state.step === STEPS.length - 1 ? 1 : state.step);
-    }
-
-    /**
-     * 자동 재생을 멈추고 시점과 확대를 원래대로 돌린 뒤 첫 장면으로 되감는다.
-     */
-    function rewind() {
-        if (!state.world) return;
-        state.auto = false;
-        state.world.resetView();
-        go(0);
-    }
-
-    /* ===================== 생명주기 ===================== */
-    /**
-     * 폰트를 불러온 뒤 월드를 만들고 현재 장면을 재생한다.
-     */
-    async function startWorld() {
-        const g = ++state.gen;
-        await loadFonts();
-        if (g !== state.gen || !state.wanted || !state.ui || state.world) return;
-        try {
-            state.world = createWorld(state.ui.stage);
-        } catch (e) {
-            showFail('3D를 만들지 못했습니다. 브라우저의 하드웨어 가속이 꺼져 있거나 열려 있는 3D 화면이 많을 수 있습니다. 2D로 보세요.');
-            return;
-        }
-        state.ui.fail.classList.remove('is-on');
-        state.ui.cpuTag.hidden = !state.world.soft;
-        state.world.start();
-        go(state.step);
-    }
-
-    /**
-     * 월드의 GPU 자원을 해제한다. UI와 현재 장면 번호는 남긴다.
-     */
-    function closeWorld() {
-        state.gen++;
-        state.auto = false;
-        if (state.world) {
-            state.world.dispose();
-            state.world = null;
-        }
-        syncUi();
-    }
-
-    /**
-     * 3D 화면을 열고 시작한다.
-     *
-     * @param container 시각화 컨테이너
-     * @param onExit    2D로 돌아갈 때 호출할 함수
-     */
-    function open(container, onExit) {
-        close();
-        state.wanted = true;
-        state.exit = onExit;
-        state.ui = buildUi(container);
-        syncUi();
-        startWorld();
-    }
-
-    /**
-     * 3D 화면을 닫고 UI까지 지운다.
-     */
-    function close() {
-        state.wanted = false;
-        closeWorld();
-        if (state.ui) {
-            state.ui.root.remove();
-            state.ui = null;
-        }
-    }
-
-    /**
-     * 사용자가 2D로 돌아간다.
-     */
-    function leave() {
-        const cb = state.exit;
-        close();
-        state.step = 0;
-        if (cb) cb();
-    }
-
-    /**
-     * 실패 뒤 같은 UI에서 월드를 다시 만든다.
-     */
-    function restart() {
-        closeWorld();
-        startWorld();
-    }
-
-    window.addEventListener('csflow-viz-pause', function () {
-        if (state.wanted && state.world) closeWorld();
-    });
-    window.addEventListener('csflow-viz-resume', function () {
-        if (state.wanted && state.ui && !state.world) startWorld();
-    });
-    document.addEventListener('click', function (e) {
-        if (state.ui && !state.ui.cpuTag.contains(e.target)) state.ui.cpuTag.classList.remove('is-open');
-    });
-    window.addEventListener('pagehide', function () {
-        if (state.world) state.world.dispose();
-        state.world = null;
-    });
-
-    window.CsFlow.memHier3d = { open: open, close: close };
+    window.CsFlow.memHier3d = { open: v3.open, close: v3.close };
 })();
