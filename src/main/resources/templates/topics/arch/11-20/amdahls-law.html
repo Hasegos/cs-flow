@@ -5,6 +5,7 @@
     <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">암달의 법칙 | CS 지식 정리 - CS Flow</title>
     <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
     <link rel="stylesheet" th:href="@{/css/visualizer/arch/11-20/2d/amdahls-law.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/viz3d-common.css}">
 </head>
 <body>
     <!-- 헤더 -->
@@ -240,7 +241,8 @@
             <!-- 탭 2: 작동 원리 -->
             <div class="topic-panel" id="panel-visualizer">
                 <div class="visualizer-wrap">
-                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                    <div class="visualizer-canvas-area" id="visualizer-container"
+                         th:attr="data-three-src=@{/vendor/three/three-r128.min.js}, data-viz3d-common-src=@{/js/visualizer/viz3d-common.js}, data-viz3d-src=@{/js/visualizer/arch/11-20/3d/amdahls-law.js}"></div>
                 </div>
             </div>
 

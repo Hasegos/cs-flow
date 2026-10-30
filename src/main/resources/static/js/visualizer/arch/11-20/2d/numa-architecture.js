@@ -178,6 +178,9 @@
         { t: 0, pages: [0, 1, 0, 1], tag: '페이지를 노드에 번갈아 배치', log: '해결 2 — 인터리브(interleave) 정책은 페이지를 노드에 번갈아 배치합니다. 한 노드에 몰리는 것은 막지만 접근의 절반은 원격이 됩니다.' },
         { t: 0, pages: [0, 1, 0, 1], tag: '', log: '정리 — 스레드와 데이터를 같은 노드에 두는 것이 기본 원칙입니다. 여러 노드가 같은 데이터를 쓰면 인터리브로 부하를 나누는 선택을 합니다.' }
     ];
+
+    window.CsFlow.numaData = { local: LOCAL, remote: REMOTE, acc: ACC, arch: ARCH_STEPS, cost: COST_STEPS, policy: POLICY_STEPS };
+
     function avgDist(t, pages) {
         var sum = 0;
         pages.forEach(function (n) { sum += n === t ? LOCAL : REMOTE; });
@@ -624,6 +627,21 @@
                 setHoveredKey: function () {},
                 draw: draw
             };
+        }
+    });
+
+    window.CsFlow.mount3dButton({
+        container: container,
+        parent: toolbar,
+        cls: 'numa-viz__btn numa-viz__btn--primary',
+        label: '3D 공항 허브',
+        onOpen: function () {
+            vizReset();
+            root.classList.add('numa-viz--hidden');
+        },
+        onExit: function () {
+            root.classList.remove('numa-viz--hidden');
+            resize();
         }
     });
 
