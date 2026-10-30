@@ -163,6 +163,6 @@
   pointer-events: none;
 }
 
-.pl--hidden {
+.pl-viz--hidden {
   display: none;
 }

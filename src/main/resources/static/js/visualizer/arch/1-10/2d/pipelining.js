@@ -552,10 +552,10 @@
         label: '3D 세탁소',
         onOpen: function () {
             plReset();
-            root.classList.add('pl--hidden');
+            root.classList.add('pl-viz--hidden');
         },
         onExit: function () {
-            root.classList.remove('pl--hidden');
+            root.classList.remove('pl-viz--hidden');
             resize();
         }
     });

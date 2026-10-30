@@ -75,10 +75,10 @@
         label: '3D 공장 단면',
         onOpen: function () {
             vizReset();
-            root.classList.add('cpu--hidden');
+            root.classList.add('cpu-viz--hidden');
         },
         onExit: function () {
-            root.classList.remove('cpu--hidden');
+            root.classList.remove('cpu-viz--hidden');
             resize();
         }
     });

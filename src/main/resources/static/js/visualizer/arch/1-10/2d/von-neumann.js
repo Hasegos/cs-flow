@@ -76,10 +76,10 @@
         label: '3D 외길 다리',
         onOpen: function () {
             vizReset();
-            root.classList.add('vn--hidden');
+            root.classList.add('vn-viz--hidden');
         },
         onExit: function () {
-            root.classList.remove('vn--hidden');
+            root.classList.remove('vn-viz--hidden');
             resize();
         }
     });

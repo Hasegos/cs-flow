@@ -143,6 +143,6 @@
   pointer-events: none;
 }
 
-.cpu--hidden {
+.cpu-viz--hidden {
   display: none;
 }

@@ -530,6 +530,7 @@ window.CsFlow.createVizLifecycle = function (options) {
             btn.disabled = true;
             btn.textContent = '불러오는 중…';
             ensure3d(opts.container).then(function () {
+                if (!window.CsFlow.viz3d.active) throw new Error('3D controller missing');
                 opts.onOpen();
                 window.CsFlow.viz3d.active.open(opts.container, opts.onExit);
             }).catch(function () {

@@ -76,10 +76,10 @@
         label: '3D 주방',
         onOpen: function () {
             vizReset();
-            root.classList.add('ic--hidden');
+            root.classList.add('ic-viz--hidden');
         },
         onExit: function () {
-            root.classList.remove('ic--hidden');
+            root.classList.remove('ic-viz--hidden');
             resize();
         }
     });

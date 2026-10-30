@@ -189,6 +189,6 @@ border-color: var(--color-purple);
   cursor: not-allowed;
 }
 
-.ic--hidden {
+.ic-viz--hidden {
   display: none;
 }
