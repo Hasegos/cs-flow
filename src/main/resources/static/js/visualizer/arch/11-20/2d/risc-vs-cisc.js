@@ -200,6 +200,12 @@
         { k: 3, log: '정리 — 어느 쪽이 빠른지는 세 요소의 곱으로 정해지며, 명령어 수만 보아서는 알 수 없습니다. 이 값들은 설명을 위한 가정입니다.' }
     ];
 
+    window.CsFlow.riscVsCiscData = {
+        ciscI: CISC_I, riscI: RISC_I, riscNote: RISC_NOTE, uops: UOPS, one: ONE_STEPS,
+        riscLen: RISC_LEN, ciscLen: CISC_LEN, riscStart: RISC_START, ciscStart: CISC_START, totalR: TOTAL_R, totalC: TOTAL_C, decode: DECODE_STEPS,
+        clockNs: CLOCK_NS, pa: PA, pb: PB, cpuTimeMs: cpuTimeMs, fmtN: fmtN, perf: PERF_STEPS
+    };
+
     /* ===================== 상태 ===================== */
     function currentSteps() {
         if (mode === 'decode') return DECODE_STEPS;
@@ -575,6 +581,21 @@
                 setHoveredKey: function () {},
                 draw: draw
             };
+        }
+    });
+
+    window.CsFlow.mount3dButton({
+        container: container,
+        parent: toolbar,
+        cls: 'isa-viz__btn isa-viz__btn--primary',
+        label: '3D 두 주방',
+        onOpen: function () {
+            vizReset();
+            root.classList.add('isa-viz--hidden');
+        },
+        onExit: function () {
+            root.classList.remove('isa-viz--hidden');
+            resize();
         }
     });
 
