@@ -1,0 +1,51 @@
+[
+  {
+    "slug": "arch",
+    "name": "컴퓨터 구조",
+    "colorAccent": "#6c63ff",
+    "published": true,
+    "order": 1
+  },
+  {
+    "slug": "os",
+    "name": "운영체제",
+    "colorAccent": "#3ecfb2",
+    "published": true,
+    "order": 2
+  },
+  {
+    "slug": "network",
+    "name": "네트워크",
+    "colorAccent": "#ff6b6b",
+    "published": true,
+    "order": 3
+  },
+  {
+    "slug": "ds",
+    "name": "자료구조",
+    "colorAccent": "#ffd166",
+    "published": true,
+    "order": 4
+  },
+  {
+    "slug": "algo",
+    "name": "알고리즘",
+    "colorAccent": "#a29bfe",
+    "published": true,
+    "order": 5
+  },
+  {
+    "slug": "db",
+    "name": "데이터베이스",
+    "colorAccent": "#55efc4",
+    "published": true,
+    "order": 6
+  },
+  {
+    "slug": "robot",
+    "name": "로봇 · 임베디드",
+    "colorAccent": "#ff9f43",
+    "published": true,
+    "order": 7
+  }
+]

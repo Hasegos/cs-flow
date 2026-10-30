@@ -1,0 +1,60 @@
+{
+  "subject": "algo",
+  "slug": "complexity",
+  "title": "시간/공간 복잡도",
+  "templateName": "complexity",
+  "metaDescription": "시간·공간 복잡도 CS 지식 정리 — Big-O 표기법, O(1)·O(log n)·O(n)·O(n²) 그래프 비교를 인터랙티브 시각화로 학습하세요. 개발자 면접 알고리즘 핵심 개념.",
+  "published": true,
+  "order": 1,
+  "tags": [
+    "알고리즘",
+    "Big-O",
+    "복잡도"
+  ],
+  "visual": {
+    "key": "algo/1-10/2d/complexity",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "displayOrder": 1,
+      "prompt": "입력 크기가 커질수록 O(1)과 O(n) 중 더 느리게 증가하는 것은?",
+      "options": [
+        "O(1)",
+        "O(n)",
+        "둘 다 동일",
+        "비교 불가"
+      ],
+      "correctOption": "B",
+      "hint": "O(1)은 입력 크기와 무관하게 일정합니다.",
+      "explanation": "O(1)은 입력 크기가 커져도 실행 시간이 일정하지만, O(n)은 입력 크기에 비례해 실행 시간이 늘어납니다."
+    },
+    {
+      "displayOrder": 2,
+      "prompt": "O(n^2)과 O(n log n) 중 큰 n에서 더 느린 것은?",
+      "options": [
+        "O(n^2)",
+        "O(n log n)",
+        "항상 같다",
+        "n이 작을 때만 다르다"
+      ],
+      "correctOption": "A",
+      "hint": "n이 커질수록 제곱과 로그 곱셈의 격차가 벌어집니다.",
+      "explanation": "O(n^2)은 n이 커질수록 O(n log n)보다 훨씬 빠르게 증가해, 큰 입력에서 더 느립니다. 그래서 정렬 알고리즘은 O(n log n)을 목표로 설계합니다."
+    },
+    {
+      "displayOrder": 3,
+      "prompt": "Big-O 표기법이 나타내는 것은?",
+      "options": [
+        "정확한 실행 시간(초 단위)",
+        "입력 크기 증가에 따른 실행 시간(또는 공간)의 증가 추세",
+        "프로그램의 줄 수",
+        "메모리 용량"
+      ],
+      "correctOption": "B",
+      "hint": "하드웨어에 따라 초 단위 시간은 다르지만 '증가 추세'는 알고리즘 고유의 특성입니다.",
+      "explanation": "Big-O는 입력 크기가 커질 때 실행 시간(또는 공간)이 어떤 비율로 늘어나는지를 나타내는 점근적 표기법으로, 하드웨어 성능과 무관한 알고리즘 자체의 효율성을 비교하는 데 씁니다."
+    }
+  ],
+  "interview": []
+}

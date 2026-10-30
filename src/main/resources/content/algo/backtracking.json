@@ -1,0 +1,60 @@
+{
+  "subject": "algo",
+  "slug": "backtracking",
+  "title": "백트래킹",
+  "templateName": "backtracking",
+  "metaDescription": "백트래킹 CS 지식 정리 — N-Queens 문제로 탐색 트리 가지치기(Pruning) 과정을 인터랙티브 시각화로 학습하세요. 개발자 면접 알고리즘 핵심 개념.",
+  "published": true,
+  "order": 8,
+  "tags": [
+    "알고리즘",
+    "백트래킹",
+    "탐색"
+  ],
+  "visual": {
+    "key": "algo/1-10/2d/backtracking",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "displayOrder": 1,
+      "prompt": "백트래킹(Backtracking)의 기본 동작 방식은?",
+      "options": [
+        "가능한 모든 조합을 저장해두고 나중에 비교",
+        "선택을 진행하다 조건에 맞지 않으면 되돌아가 다른 선택을 시도",
+        "무작위로 답을 찍음",
+        "정렬만 수행"
+      ],
+      "correctOption": "B",
+      "hint": "막다른 길이면 되돌아가서(back) 다른 길을 추적(track)합니다.",
+      "explanation": "백트래킹은 해를 찾아가다가 현재 선택이 조건을 만족할 수 없다고 판단되면 이전 단계로 되돌아가(backtrack) 다른 선택지를 시도하는 탐색 기법입니다."
+    },
+    {
+      "displayOrder": 2,
+      "prompt": "4-Queens 문제에서 백트래킹이 탐색을 줄이는 방법은?",
+      "options": [
+        "모든 경우의 수를 끝까지 다 계산한 뒤 걸러냄",
+        "퀸을 놓을 때마다 서로 공격 가능한지 즉시 확인해, 불가능하면 그 지점에서 더 진행하지 않고 포기",
+        "퀸을 무작위로 배치",
+        "체스판 크기를 줄임"
+      ],
+      "correctOption": "B",
+      "hint": "가망 없는 가지는 미리 쳐냅니다(가지치기, pruning).",
+      "explanation": "백트래킹은 퀸을 놓을 때마다 다른 퀸과 충돌하는지 즉시 검사해, 이미 실패가 확정된 경로는 더 깊이 탐색하지 않고 가지치기(pruning)해 전체 탐색량을 줄입니다."
+    },
+    {
+      "displayOrder": 3,
+      "prompt": "백트래킹에서 '치우기(remove)' 단계가 필요한 이유는?",
+      "options": [
+        "정답을 저장하기 위해",
+        "현재 선택을 취소하고 이전 상태로 복원해 다른 경우를 시도할 수 있게 하기 위해",
+        "속도를 늦추기 위해",
+        "필요 없는 단계다"
+      ],
+      "correctOption": "B",
+      "hint": "놓았던 퀸을 다시 치워야 다른 자리를 시도할 수 있습니다.",
+      "explanation": "치우기 단계는 실패한 선택을 되돌려(상태를 원래대로 복원) 다음 후보를 다시 시도할 수 있도록 하는, 백트래킹의 핵심 동작입니다."
+    }
+  ],
+  "interview": []
+}

@@ -1,0 +1,60 @@
+{
+  "subject": "arch",
+  "slug": "gpu-architecture",
+  "title": "GPU 아키텍처",
+  "templateName": "gpu-architecture",
+  "metaDescription": "GPU 아키텍처 CS 지식 정리 — 수천 개 코어의 데이터 병렬 처리 구조와 CPU와의 설계 차이를 인터랙티브 시각화로 학습하세요. 개발자 면접 컴퓨터 구조 핵심 개념.",
+  "published": true,
+  "order": 19,
+  "tags": [
+    "GPU",
+    "병렬처리",
+    "구조"
+  ],
+  "visual": {
+    "key": "arch/11-20/2d/gpu-architecture",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "displayOrder": 1,
+      "prompt": "GPU가 그래픽·행렬 연산에서 CPU보다 유리한 이유는?",
+      "options": [
+        "코어 하나하나가 CPU 코어보다 훨씬 복잡하고 빠르기 때문",
+        "캐시와 메모리가 없기 때문",
+        "운영체제를 직접 실행하기 때문",
+        "단순한 코어 수천 개로 같은 연산을 많은 데이터에 동시에 적용(데이터 병렬)하기 때문"
+      ],
+      "correctOption": "D",
+      "hint": "GPU는 \"잘하는 한 명\" 보다 \"단순한 여러 명\" 쪽입니다.",
+      "explanation": "GPU는 상대적으로 단순한 코어를 수천 개 두고, 같은 연산을 방대한 데이터에 동시에 적용하는 데이터 병렬 처리에 최적화되어 있습니다. 복잡한 제어 흐름 처리는 CPU가 더 잘합니다."
+    },
+    {
+      "displayOrder": 2,
+      "prompt": "GPU가 상대적으로 불리한 작업은?",
+      "options": [
+        "대규모 행렬 곱셈",
+        "조건 분기가 많고 앞 결과에 의존하는 순차적인 작업",
+        "픽셀 단위 셰이딩 계산",
+        "큰 벡터의 덧셈"
+      ],
+      "correctOption": "B",
+      "hint": "GPU 코어들은 같은 명령을 함께 실행하는 데 강합니다.",
+      "explanation": "GPU는 같은 명령을 많은 데이터에 동시에 적용할 때 강합니다. 분기가 많아 스레드마다 경로가 갈리거나, 앞 결과에 강하게 의존하는 순차 작업은 병렬성을 살리기 어렵습니다."
+    },
+    {
+      "displayOrder": 3,
+      "prompt": "NVIDIA GPU에서 수십 개(32개)의 스레드가 묶여 같은 명령을 동시에 실행하는 단위의 이름은?",
+      "options": [
+        "파이프(Pipe)",
+        "뱅크(Bank)",
+        "워프(Warp)",
+        "페이지(Page)"
+      ],
+      "correctOption": "C",
+      "hint": "옷감을 짜는 씨실과 날실 중 \"날실\"을 뜻하는 단어입니다.",
+      "explanation": "NVIDIA GPU는 스레드를 32개씩 묶은 워프(Warp) 단위로 같은 명령어를 함께 실행합니다. 한 워프 안에서 분기가 갈리면 성능이 떨어집니다(warp divergence)."
+    }
+  ],
+  "interview": []
+}

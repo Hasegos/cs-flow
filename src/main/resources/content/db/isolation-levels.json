@@ -1,0 +1,60 @@
+{
+  "subject": "db",
+  "slug": "isolation-levels",
+  "title": "트랜잭션 격리 수준",
+  "templateName": "isolation-levels",
+  "metaDescription": "트랜잭션 격리 수준 CS 지식 정리 — Read Uncommitted부터 Serializable까지 Dirty Read, Non-repeatable Read, Phantom Read 차이를 인터랙티브 시각화로 학습하세요. 개발자 면접 데이터베이스 핵심 개념.",
+  "published": true,
+  "order": 11,
+  "tags": [
+    "이상현상",
+    "격리수준",
+    "트랜잭션"
+  ],
+  "visual": {
+    "key": "db/11-20/2d/isolation-levels",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "displayOrder": 1,
+      "prompt": "Dirty Read란?",
+      "options": [
+        "읽기 전용 트랜잭션이 디스크를 읽는 것",
+        "같은 행을 두 번 읽었는데 값이 달라지는 것",
+        "조회할 때마다 없던 행이 새로 나타나는 것",
+        "다른 트랜잭션이 아직 커밋하지 않은 변경을 읽는 것"
+      ],
+      "correctOption": "D",
+      "hint": "\"더러운\" 데이터 — 확정되지 않은 값입니다.",
+      "explanation": "Dirty Read는 다른 트랜잭션이 아직 커밋하지 않은(롤백될 수도 있는) 변경 내용을 읽는 현상입니다. Read Uncommitted 격리 수준에서 발생할 수 있습니다."
+    },
+    {
+      "displayOrder": 2,
+      "prompt": "Non-repeatable Read란?",
+      "options": [
+        "커밋되지 않은 변경을 읽는 현상",
+        "같은 트랜잭션 안에서 같은 행을 두 번 읽었는데, 그 사이 다른 트랜잭션이 커밋한 수정 때문에 값이 달라지는 현상",
+        "쓰기가 반복되는 현상",
+        "읽기 요청이 거부되는 현상"
+      ],
+      "correctOption": "B",
+      "hint": "\"반복해서 읽어도 같지 않다\"는 이름 그대로입니다.",
+      "explanation": "한 트랜잭션이 같은 행을 두 번 읽는 사이 다른 트랜잭션이 그 행을 수정하고 커밋하면 두 번째 읽기에서 값이 달라집니다. Read Committed에서는 발생할 수 있고 Repeatable Read부터 막힙니다."
+    },
+    {
+      "displayOrder": 3,
+      "prompt": "PostgreSQL의 기본 트랜잭션 격리 수준은?",
+      "options": [
+        "Read Committed",
+        "Read Uncommitted",
+        "Repeatable Read",
+        "Serializable"
+      ],
+      "correctOption": "A",
+      "hint": "가장 낮지도, 가장 높지도 않은 중간 수준입니다.",
+      "explanation": "PostgreSQL의 기본 격리 수준은 Read Committed입니다. 커밋된 데이터만 읽으며, 문장마다 그 시점의 커밋된 최신 스냅샷을 봅니다."
+    }
+  ],
+  "interview": []
+}

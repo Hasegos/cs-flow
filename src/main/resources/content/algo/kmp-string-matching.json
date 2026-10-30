@@ -1,0 +1,60 @@
+{
+  "subject": "algo",
+  "slug": "kmp-string-matching",
+  "title": "KMP 문자열 검색",
+  "templateName": "kmp-string-matching",
+  "metaDescription": "KMP 문자열 검색 CS 지식 정리 — 실패 함수(부분 일치 테이블)로 불필요한 비교를 건너뛰는 원리를 인터랙티브 시각화로 학습하세요. 개발자 면접 알고리즘 핵심 개념.",
+  "published": true,
+  "order": 14,
+  "tags": [
+    "패턴매칭",
+    "KMP",
+    "문자열"
+  ],
+  "visual": {
+    "key": "algo/11-20/2d/kmp-string-matching",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "displayOrder": 1,
+      "prompt": "KMP 알고리즘의 핵심 아이디어는?",
+      "options": [
+        "문자열을 정렬한 뒤 이진 탐색한다",
+        "모든 위치에서 처음부터 다시 비교한다",
+        "해시 값을 무작위로 비교한다",
+        "불일치가 생겼을 때 이미 비교한 정보(실패 함수)를 활용해 텍스트 위치를 되돌리지 않고 패턴만 이동시킨다"
+      ],
+      "correctOption": "D",
+      "hint": "이미 맞춰 본 글자를 다시 비교하지 않으려는 방법입니다.",
+      "explanation": "KMP는 패턴의 접두사·접미사 정보를 미리 계산한 실패 함수로, 불일치 시 텍스트 포인터를 뒤로 돌리지 않고 패턴이 이동할 위치를 결정합니다."
+    },
+    {
+      "displayOrder": 2,
+      "prompt": "텍스트 길이 n, 패턴 길이 m일 때 KMP의 시간 복잡도는?",
+      "options": [
+        "O(n × m)",
+        "O(n + m)",
+        "O(n^2)",
+        "O(m^2)"
+      ],
+      "correctOption": "B",
+      "hint": "실패 함수 계산과 검색이 각각 선형 시간입니다.",
+      "explanation": "실패 함수 계산에 O(m), 텍스트 탐색에 O(n)이 걸려 전체 O(n + m)입니다. 단순한 방식의 최악 O(n × m)보다 훨씬 효율적입니다."
+    },
+    {
+      "displayOrder": 3,
+      "prompt": "KMP의 실패 함수(pi 배열)에서 pi[i]가 뜻하는 것은?",
+      "options": [
+        "패턴에서 문자 i가 등장한 횟수",
+        "패턴의 길이",
+        "패턴의 처음부터 i번째 문자까지의 부분 문자열에서, 접두사이면서 접미사이기도 한 가장 긴 (자기 자신은 제외한) 부분 문자열의 길이",
+        "패턴에서 i번째 문자의 아스키 코드"
+      ],
+      "correctOption": "C",
+      "hint": "\"abab\" 의 끝 부분 \"ab\" 는 앞 부분 \"ab\" 와 같습니다.",
+      "explanation": "pi[i]는 패턴의 앞 i+1글자에서 접두사와 접미사가 일치하는 최대 길이입니다. 불일치가 났을 때 패턴을 얼마나 되돌려 이어서 비교할 수 있는지를 알려줍니다."
+    }
+  ],
+  "interview": []
+}

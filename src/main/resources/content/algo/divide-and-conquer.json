@@ -1,0 +1,60 @@
+{
+  "subject": "algo",
+  "slug": "divide-and-conquer",
+  "title": "분할정복",
+  "templateName": "divide-and-conquer",
+  "metaDescription": "분할 정복 CS 지식 정리 — 문제를 쪼개 풀고 합치는 3단계와 병합 정렬·거듭제곱 예제를 인터랙티브 시각화로 학습하세요. 개발자 면접 알고리즘 핵심 개념.",
+  "published": true,
+  "order": 16,
+  "tags": [
+    "병합정렬",
+    "재귀",
+    "분할정복"
+  ],
+  "visual": {
+    "key": "algo/11-20/2d/divide-and-conquer",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "displayOrder": 1,
+      "prompt": "분할 정복의 세 단계를 순서대로 나열한 것은?",
+      "options": [
+        "결합 → 분할 → 정복",
+        "분할(Divide) → 정복(Conquer) → 결합(Combine)",
+        "정복 → 결합 → 분할",
+        "정렬 → 탐색 → 삭제"
+      ],
+      "correctOption": "B",
+      "hint": "큰 문제를 쪼개고, 작은 문제를 풀고, 답을 합칩니다.",
+      "explanation": "문제를 더 작은 부분 문제로 나누고(분할), 각 부분 문제를 재귀적으로 해결한 뒤(정복), 부분 해를 합쳐 원래 문제의 해를 만듭니다(결합)."
+    },
+    {
+      "displayOrder": 2,
+      "prompt": "병합 정렬(Merge Sort)의 시간 복잡도는?",
+      "options": [
+        "O(n log n)",
+        "O(n)",
+        "O(n^2)",
+        "O(log n)"
+      ],
+      "correctOption": "A",
+      "hint": "절반씩 나누는 단계가 log n 번, 각 단계에서 합치는 비용이 n 입니다.",
+      "explanation": "배열을 절반씩 나누면 log n 단계가 있고, 각 단계에서 전체 원소를 합치는 데 O(n)이 들기 때문에 전체 O(n log n)입니다."
+    },
+    {
+      "displayOrder": 3,
+      "prompt": "x^n(거듭제곱)을 분할 정복으로 계산하면 곱셈 횟수는 대략?",
+      "options": [
+        "O(n)",
+        "O(n^2)",
+        "O(1)",
+        "O(log n)"
+      ],
+      "correctOption": "D",
+      "hint": "x^n = x^(n/2) × x^(n/2) 로 지수를 절반씩 줄입니다.",
+      "explanation": "x^n을 x^(n/2)를 제곱해서 구하고, n이 홀수면 x를 한 번 더 곱합니다. 지수가 절반씩 줄어들기 때문에 곱셈이 O(log n)번 필요합니다."
+    }
+  ],
+  "interview": []
+}

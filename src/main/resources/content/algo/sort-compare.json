@@ -1,0 +1,60 @@
+{
+  "subject": "algo",
+  "slug": "sort-compare",
+  "title": "정렬 비교",
+  "templateName": "sort-compare",
+  "metaDescription": "정렬 알고리즘 비교 CS 지식 정리 — Merge, Quick, Heap Sort 단계별 동작 원리와 시간 복잡도 비교를 인터랙티브 시각화로 학습하세요. 개발자 면접 알고리즘 핵심 개념.",
+  "published": true,
+  "order": 3,
+  "tags": [
+    "알고리즘",
+    "정렬",
+    "Merge Sort"
+  ],
+  "visual": {
+    "key": "algo/1-10/2d/sort-compare",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "displayOrder": 1,
+      "prompt": "병합 정렬, 퀵 정렬, 힙 정렬의 평균 시간 복잡도는 공통적으로?",
+      "options": [
+        "O(n)",
+        "O(n log n)",
+        "O(n^2)",
+        "O(1)"
+      ],
+      "correctOption": "B",
+      "hint": "세 알고리즘 모두 효율적인 비교 기반 정렬입니다.",
+      "explanation": "병합 정렬, 퀵 정렬, 힙 정렬은 모두 평균적으로 O(n log n) 시간에 정렬을 완료하는 효율적인 알고리즘입니다."
+    },
+    {
+      "displayOrder": 2,
+      "prompt": "같은 O(n log n)이어도 정렬 알고리즘마다 실제 비교 횟수가 다를 수 있는 이유는?",
+      "options": [
+        "Big-O는 상수 계수와 세부 구현 차이를 무시하기 때문",
+        "Big-O는 항상 정확한 횟수를 의미하기 때문",
+        "비교는 항상 같은 횟수만 발생하기 때문",
+        "정렬 알고리즘은 비교를 하지 않기 때문"
+      ],
+      "correctOption": "A",
+      "hint": "Big-O는 '추세'를 나타낼 뿐 정확한 상수는 무시합니다.",
+      "explanation": "Big-O 표기법은 상수 배율이나 세부 구현 차이를 무시한 점근적 추세이므로, 같은 O(n log n)이라도 실제 비교 횟수는 알고리즘 구현에 따라 다를 수 있습니다."
+    },
+    {
+      "displayOrder": 3,
+      "prompt": "퀵 정렬이 평균적으로 빠르지만 최악의 경우 O(n^2)이 될 수 있는 이유는?",
+      "options": [
+        "피벗 선택이 계속 한쪽으로 치우칠 경우 분할이 불균형해지기 때문",
+        "항상 정렬된 데이터만 다루기 때문",
+        "재귀를 쓰지 않기 때문",
+        "힙을 사용하기 때문"
+      ],
+      "correctOption": "A",
+      "hint": "분할이 균등하지 않으면 재귀 깊이와 비교 횟수가 늘어납니다.",
+      "explanation": "퀵 정렬은 피벗을 기준으로 분할하는데, 피벗이 계속 극단값으로 뽑히면 분할이 거의 되지 않아 최악의 경우 O(n^2)까지 나빠질 수 있습니다."
+    }
+  ],
+  "interview": []
+}

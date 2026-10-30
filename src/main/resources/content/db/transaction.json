@@ -1,0 +1,60 @@
+{
+  "subject": "db",
+  "slug": "transaction",
+  "title": "트랜잭션",
+  "templateName": "transaction",
+  "metaDescription": "트랜잭션 CS 지식 정리 — ACID 속성, Commit·Rollback·Savepoint, 격리 수준별 이상 현상을 인터랙티브 시각화로 학습하세요. 개발자 면접 데이터베이스 핵심 개념.",
+  "published": true,
+  "order": 4,
+  "tags": [
+    "DB",
+    "트랜잭션",
+    "ACID"
+  ],
+  "visual": {
+    "key": "db/1-10/2d/transaction",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "displayOrder": 1,
+      "prompt": "ACID 중 '원자성(Atomicity)'의 의미는?",
+      "options": [
+        "트랜잭션의 연산이 전부 수행되거나 전혀 수행되지 않아야 함",
+        "데이터가 항상 암호화됨",
+        "여러 트랜잭션이 항상 동시에 실행됨",
+        "트랜잭션은 절대 롤백될 수 없음"
+      ],
+      "correctOption": "A",
+      "hint": "'더 이상 쪼갤 수 없다'는 원자(atom)의 의미와 비슷합니다.",
+      "explanation": "원자성은 트랜잭션 내의 모든 연산이 전부 성공적으로 반영되거나, 하나라도 실패하면 전체가 롤백되어 아무 일도 없었던 것처럼 되어야 한다는 성질입니다."
+    },
+    {
+      "displayOrder": 2,
+      "prompt": "COMMIT과 ROLLBACK의 차이는?",
+      "options": [
+        "COMMIT은 변경사항을 확정 저장, ROLLBACK은 변경사항을 취소하고 이전 상태로 되돌림",
+        "둘 다 데이터를 삭제한다",
+        "COMMIT은 취소, ROLLBACK은 저장이다",
+        "차이가 없다"
+      ],
+      "correctOption": "A",
+      "hint": "하나는 '확정', 하나는 '되돌리기'입니다.",
+      "explanation": "COMMIT은 트랜잭션에서 수행한 변경사항을 데이터베이스에 영구적으로 반영하고, ROLLBACK은 트랜잭션 시작 이전 상태로 변경사항을 취소합니다."
+    },
+    {
+      "displayOrder": 3,
+      "prompt": "ACID 중 '고립성(Isolation)'이 필요한 이유는?",
+      "options": [
+        "트랜잭션은 항상 순서대로만 실행되어야 하기 때문",
+        "동시에 실행되는 여러 트랜잭션이 서로의 중간 상태에 영향을 주지 않도록 하기 위해",
+        "데이터베이스 크기를 줄이기 위해",
+        "필요 없는 속성이다"
+      ],
+      "correctOption": "B",
+      "hint": "여러 트랜잭션이 동시에 실행되어도 결과가 꼬이면 안 됩니다.",
+      "explanation": "고립성은 동시에 실행되는 트랜잭션들이 서로의 중간(커밋되지 않은) 상태를 보거나 간섭받지 않도록 해, 마치 순차적으로 실행된 것과 같은 결과를 보장합니다."
+    }
+  ],
+  "interview": []
+}

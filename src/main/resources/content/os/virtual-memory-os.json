@@ -1,0 +1,60 @@
+{
+  "subject": "os",
+  "slug": "virtual-memory-os",
+  "title": "가상 메모리",
+  "templateName": "virtual-memory-os",
+  "metaDescription": "가상 메모리 CS 지식 정리 — FIFO, LRU, Optimal 페이지 교체 알고리즘과 Thrashing 현상을 인터랙티브 시각화로 학습하세요. 개발자 면접 운영체제 핵심 개념.",
+  "published": true,
+  "order": 7,
+  "tags": [
+    "OS",
+    "메모리",
+    "페이징"
+  ],
+  "visual": {
+    "key": "os/1-10/2d/virtual-memory-os",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "displayOrder": 1,
+      "prompt": "FIFO 페이지 교체 알고리즘의 방식은?",
+      "options": [
+        "가장 오래전에 적재된 페이지를 먼저 내보냄",
+        "가장 최근에 쓴 페이지를 내보냄",
+        "무작위로 내보냄",
+        "가장 작은 페이지를 내보냄"
+      ],
+      "correctOption": "A",
+      "hint": "'First In First Out', 먼저 들어온 게 먼저 나갑니다.",
+      "explanation": "FIFO는 메모리에 가장 먼저 적재된(오래된) 페이지부터 교체 대상으로 선택합니다. 구현은 간단하지만 Belady's Anomaly가 생길 수 있습니다."
+    },
+    {
+      "displayOrder": 2,
+      "prompt": "LRU 페이지 교체가 FIFO보다 일반적으로 성능이 좋은 이유는?",
+      "options": [
+        "무작위로 선택하기 때문",
+        "최근 사용 패턴(지역성)을 반영해 다시 쓰일 가능성이 낮은 페이지를 내보내기 때문",
+        "항상 가장 최근 페이지를 내보내기 때문",
+        "페이지 크기를 줄이기 때문"
+      ],
+      "correctOption": "B",
+      "hint": "최근에 안 쓰인 페이지는 앞으로도 안 쓰일 가능성이 높습니다.",
+      "explanation": "LRU는 가장 오랫동안 사용되지 않은 페이지를 내보내, 지역성 원리에 따라 앞으로 다시 쓰일 가능성이 낮은 페이지부터 제거하는 합리적인 전략입니다."
+    },
+    {
+      "displayOrder": 3,
+      "prompt": "Optimal(최적) 페이지 교체 알고리즘이 실제 시스템에서 쓰이지 않는 이유는?",
+      "options": [
+        "성능이 가장 나쁘기 때문",
+        "미래에 어떤 페이지가 필요할지 미리 알아야 하기 때문",
+        "구현이 너무 쉬워서",
+        "캐시와 무관하기 때문"
+      ],
+      "correctOption": "B",
+      "hint": "미래를 알아야 하는 알고리즘입니다.",
+      "explanation": "Optimal은 앞으로 가장 오랫동안 사용되지 않을 페이지를 내보내는 이상적인 알고리즘이지만, 미래의 참조 패턴을 미리 알아야 해서 실제 구현이 불가능하고 성능 비교의 기준선으로만 쓰입니다."
+    }
+  ],
+  "interview": []
+}

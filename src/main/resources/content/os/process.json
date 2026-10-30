@@ -1,0 +1,60 @@
+{
+  "subject": "os",
+  "slug": "process",
+  "title": "프로세스",
+  "templateName": "process",
+  "metaDescription": "프로세스 CS 지식 정리 — 프로세스 상태 전이(New→Ready→Running→Waiting→Terminated), PCB 구조, 컨텍스트 스위칭 동작 원리를 인터랙티브 시각화로 학습하세요. 개발자 면접 운영체제 핵심 개념.",
+  "published": true,
+  "order": 1,
+  "tags": [
+    "OS",
+    "프로세스",
+    "PCB"
+  ],
+  "visual": {
+    "key": "os/1-10/2d/process",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "displayOrder": 1,
+      "prompt": "프로세스의 상태 전이 중 'Ready'는 무엇을 의미하나요?",
+      "options": [
+        "실행 중",
+        "CPU를 할당받을 준비가 되어 대기 중",
+        "종료됨",
+        "입출력 대기 중"
+      ],
+      "correctOption": "B",
+      "hint": "실행할 준비는 됐지만 아직 CPU를 못 받은 상태입니다.",
+      "explanation": "Ready 상태는 프로세스가 실행될 준비를 마치고 CPU 스케줄러가 자신을 선택해주기를 기다리는 상태입니다."
+    },
+    {
+      "displayOrder": 2,
+      "prompt": "PCB(Process Control Block)에 담기지 않는 정보는?",
+      "options": [
+        "프로세스 상태",
+        "프로그램 카운터 값",
+        "레지스터 값",
+        "다른 사용자의 비밀번호"
+      ],
+      "correctOption": "D",
+      "hint": "PCB는 프로세스 자신에 대한 정보만 담습니다.",
+      "explanation": "PCB는 프로세스 ID, 상태, 프로그램 카운터, 레지스터 값 등 해당 프로세스를 관리하는 데 필요한 정보를 담습니다. 다른 사용자의 정보와는 무관합니다."
+    },
+    {
+      "displayOrder": 3,
+      "prompt": "프로세스가 입출력을 요청하면 어떤 상태로 전이되나요?",
+      "options": [
+        "Running 유지",
+        "Waiting(Blocked)",
+        "Terminated",
+        "New"
+      ],
+      "correctOption": "B",
+      "hint": "입출력이 끝날 때까지 CPU를 쓸 수 없습니다.",
+      "explanation": "입출력 요청처럼 즉시 끝나지 않는 작업을 기다려야 할 때 프로세스는 Waiting(Blocked) 상태로 전이되어 완료될 때까지 대기합니다."
+    }
+  ],
+  "interview": []
+}

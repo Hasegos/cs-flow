@@ -1,0 +1,60 @@
+{
+  "subject": "network",
+  "slug": "dhcp",
+  "title": "DHCP",
+  "templateName": "dhcp",
+  "metaDescription": "DHCP CS 지식 정리 — Discover, Offer, Request, Ack 4단계로 IP 주소를 자동 할당받는 과정을 인터랙티브 시각화로 학습하세요. 개발자 면접 네트워크 핵심 개념.",
+  "published": true,
+  "order": 12,
+  "tags": [
+    "부팅",
+    "IP할당",
+    "DHCP"
+  ],
+  "visual": {
+    "key": "network/11-20/2d/dhcp",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "displayOrder": 1,
+      "prompt": "DHCP가 IP 주소를 할당하는 4단계의 올바른 순서는?",
+      "options": [
+        "Request → Discover → Ack → Offer",
+        "Discover → Offer → Request → Acknowledge",
+        "Offer → Discover → Ack → Request",
+        "Ack → Request → Offer → Discover"
+      ],
+      "correctOption": "B",
+      "hint": "DORA 라는 약어로 외우기도 합니다.",
+      "explanation": "클라이언트가 Discover(서버 탐색)를 보내면 서버가 Offer(제안)를 주고, 클라이언트가 Request(요청)로 수락하면 서버가 Acknowledge(확인)로 마무리합니다. 앞 글자를 따 DORA라고 부릅니다."
+    },
+    {
+      "displayOrder": 2,
+      "prompt": "DHCP Discover 메시지의 특징은?",
+      "options": [
+        "서버가 클라이언트에게 IP를 알려주는 메시지다",
+        "클라이언트가 특정 서버에게만 유니캐스트로 보낸다",
+        "클라이언트가 IP 주소를 반납하는 메시지다",
+        "아직 IP가 없는 클라이언트가 브로드캐스트로 DHCP 서버를 찾는 메시지다"
+      ],
+      "correctOption": "D",
+      "hint": "이 시점의 클라이언트는 자신의 IP도, 서버의 주소도 모릅니다.",
+      "explanation": "부팅 직후 클라이언트는 자기 IP도 DHCP 서버 위치도 모르므로, 브로드캐스트로 Discover 메시지를 보내 응답할 서버를 찾습니다."
+    },
+    {
+      "displayOrder": 3,
+      "prompt": "DHCP 서버가 IP 주소 외에 클라이언트에 함께 알려주는 정보는?",
+      "options": [
+        "서브넷 마스크, 기본 게이트웨이, DNS 서버 주소, 임대 시간 등",
+        "웹 페이지의 내용",
+        "사용자의 비밀번호",
+        "디스크 사용량"
+      ],
+      "correctOption": "A",
+      "hint": "네트워크에 접속해 인터넷을 쓰려면 IP 외에도 몇 가지가 더 필요합니다.",
+      "explanation": "DHCP는 IP 주소와 함께 서브넷 마스크, 기본 게이트웨이, DNS 서버 주소 같은 네트워크 설정과 임대(lease) 시간을 알려줘서 별도 설정 없이 바로 통신할 수 있게 합니다."
+    }
+  ],
+  "interview": []
+}

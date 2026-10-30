@@ -1,0 +1,60 @@
+{
+  "subject": "ds",
+  "slug": "tree",
+  "title": "트리",
+  "templateName": "tree",
+  "metaDescription": "트리 CS 지식 정리 — 이진 트리, 전위·중위·후위 순회, 높이·깊이 개념을 인터랙티브 시각화로 학습하세요. 개발자 면접 자료구조 핵심 개념.",
+  "published": true,
+  "order": 4,
+  "tags": [
+    "자료구조",
+    "트리",
+    "순회"
+  ],
+  "visual": {
+    "key": "ds/1-10/2d/tree",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "displayOrder": 1,
+      "prompt": "이진 트리에서 각 노드가 최대 몇 개의 자식을 가질 수 있나요?",
+      "options": [
+        "1개",
+        "2개",
+        "3개",
+        "제한 없음"
+      ],
+      "correctOption": "B",
+      "hint": "'이진'이라는 이름에서 힌트를 얻으세요.",
+      "explanation": "이진 트리(Binary Tree)는 각 노드가 최대 2개의 자식(왼쪽, 오른쪽)만 가질 수 있는 트리 구조입니다."
+    },
+    {
+      "displayOrder": 2,
+      "prompt": "중위 순회(In-order Traversal)의 순서는?",
+      "options": [
+        "루트→왼쪽→오른쪽",
+        "왼쪽→루트→오른쪽",
+        "왼쪽→오른쪽→루트",
+        "오른쪽→왼쪽→루트"
+      ],
+      "correctOption": "B",
+      "hint": "'중간'이라는 이름처럼 루트를 중간에 방문합니다.",
+      "explanation": "중위 순회는 왼쪽 서브트리→루트→오른쪽 서브트리 순서로 방문합니다. 이진 탐색 트리에서는 이 순서로 순회하면 정렬된 결과를 얻을 수 있습니다."
+    },
+    {
+      "displayOrder": 3,
+      "prompt": "전위 순회(Pre-order)와 후위 순회(Post-order)의 차이는?",
+      "options": [
+        "전위는 루트를 가장 먼저, 후위는 루트를 가장 나중에 방문",
+        "둘은 동일하다",
+        "후위는 오른쪽만 방문",
+        "전위는 자식을 방문하지 않는다"
+      ],
+      "correctOption": "A",
+      "hint": "'전(pre)'과 '후(post)'는 루트 방문 시점을 가리킵니다.",
+      "explanation": "전위 순회는 루트→왼쪽→오른쪽 순서로 루트를 가장 먼저 방문하고, 후위 순회는 왼쪽→오른쪽→루트 순서로 루트를 가장 마지막에 방문합니다."
+    }
+  ],
+  "interview": []
+}

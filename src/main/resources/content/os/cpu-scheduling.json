@@ -1,0 +1,60 @@
+{
+  "subject": "os",
+  "slug": "cpu-scheduling",
+  "title": "CPU 스케줄링",
+  "templateName": "cpu-scheduling",
+  "metaDescription": "CPU 스케줄링 CS 지식 정리 — FCFS, SJF, Round Robin 알고리즘 간트 차트 애니메이션으로 학습하세요. 개발자 면접 운영체제 핵심 개념.",
+  "published": true,
+  "order": 3,
+  "tags": [
+    "OS",
+    "CPU",
+    "스케줄링"
+  ],
+  "visual": {
+    "key": "os/1-10/2d/cpu-scheduling",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "displayOrder": 1,
+      "prompt": "FCFS(First-Come First-Served) 스케줄링의 특징은?",
+      "options": [
+        "가장 짧은 작업을 우선 실행",
+        "도착한 순서대로 실행",
+        "우선순위가 높은 작업 우선",
+        "항상 최적의 대기시간을 보장"
+      ],
+      "correctOption": "B",
+      "hint": "이름 그대로 '먼저 온 순서'입니다.",
+      "explanation": "FCFS는 프로세스가 도착한 순서대로 CPU를 할당합니다. 단순하지만 짧은 작업이 긴 작업 뒤에서 오래 기다리는 convoy effect가 생길 수 있습니다."
+    },
+    {
+      "displayOrder": 2,
+      "prompt": "SJF(Shortest Job First)가 평균 대기시간 측면에서 유리한 이유는?",
+      "options": [
+        "항상 먼저 온 작업을 우선하기 때문",
+        "실행시간이 짧은 작업을 먼저 처리해 전체 대기시간 합이 줄기 때문",
+        "우선순위를 무시하기 때문",
+        "라운드로빈과 동일하기 때문"
+      ],
+      "correctOption": "B",
+      "hint": "짧은 일을 먼저 끝내면 뒤에 기다리는 작업들의 대기시간 합이 줄어듭니다.",
+      "explanation": "SJF는 실행시간이 짧은 작업부터 처리해 이론적으로 평균 대기시간을 최소화하지만, 실행시간을 미리 알아야 한다는 제약이 있습니다."
+    },
+    {
+      "displayOrder": 3,
+      "prompt": "Round Robin(RR) 스케줄링에서 타임 퀀텀(time quantum)이 너무 작으면?",
+      "options": [
+        "응답성이 항상 좋아지기만 한다",
+        "컨텍스트 스위칭 오버헤드가 커진다",
+        "아무 영향이 없다",
+        "FCFS와 동일해진다"
+      ],
+      "correctOption": "B",
+      "hint": "너무 자주 스레드를 바꾸면 전환 비용이 누적됩니다.",
+      "explanation": "타임 퀀텀이 너무 작으면 컨텍스트 스위칭이 너무 자주 일어나 오버헤드가 커지고, 반대로 너무 크면 FCFS와 비슷해집니다."
+    }
+  ],
+  "interview": []
+}

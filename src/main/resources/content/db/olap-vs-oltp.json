@@ -1,0 +1,60 @@
+{
+  "subject": "db",
+  "slug": "olap-vs-oltp",
+  "title": "OLAP vs OLTP",
+  "templateName": "olap-vs-oltp",
+  "metaDescription": "OLAP vs OLTP CS 지식 정리 — 짧은 트랜잭션 중심 OLTP와 대량 분석 중심 OLAP의 설계 차이를 인터랙티브 시각화로 학습하세요. 개발자 면접 데이터베이스 핵심 개념.",
+  "published": true,
+  "order": 19,
+  "tags": [
+    "데이터웨어하우스",
+    "OLTP",
+    "OLAP"
+  ],
+  "visual": {
+    "key": "db/11-20/2d/olap-vs-oltp",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "displayOrder": 1,
+      "prompt": "OLTP(Online Transaction Processing)의 특징은?",
+      "options": [
+        "주문, 결제처럼 짧고 빈번한 트랜잭션을 빠르고 안정적으로 처리하는 데 초점을 둔다",
+        "수년치 데이터를 대량으로 집계하는 분석이 주 목적이다",
+        "데이터를 읽기만 하고 쓰지 않는다",
+        "데이터를 하루에 한 번만 갱신한다"
+      ],
+      "correctOption": "A",
+      "hint": "쇼핑몰의 주문 처리 시스템을 떠올려 보세요.",
+      "explanation": "OLTP는 주문 접수, 결제, 재고 갱신처럼 짧은 읽기/쓰기 트랜잭션을 대량으로 빠르게 처리하는 시스템입니다. 정규화된 스키마와 인덱스를 사용합니다."
+    },
+    {
+      "displayOrder": 2,
+      "prompt": "OLAP(Online Analytical Processing)의 특징은?",
+      "options": [
+        "대량의 이력 데이터를 집계·분석하는 읽기 중심 쿼리를 다룬다",
+        "초당 수천 건의 짧은 쓰기 트랜잭션에 특화되어 있다",
+        "인덱스를 사용하지 않는다",
+        "트랜잭션을 지원하지 않는 프로그램이다"
+      ],
+      "correctOption": "A",
+      "hint": "\"지난 3년간 지역별 매출 합계\" 같은 질문에 답합니다.",
+      "explanation": "OLAP은 대규모 데이터를 여러 차원으로 집계하고 분석하는 시스템으로, 복잡한 읽기 쿼리가 중심이며 데이터 웨어하우스에서 주로 사용합니다."
+    },
+    {
+      "displayOrder": 3,
+      "prompt": "컬럼 지향(Columnar) 저장 방식이 OLAP에 유리한 이유는?",
+      "options": [
+        "행 전체를 항상 읽어야 하기 때문",
+        "인덱스를 사용할 수 없기 때문",
+        "분석 쿼리는 일부 컬럼만 대량으로 읽으므로, 필요한 컬럼만 읽어 I/O를 줄이고 같은 컬럼끼리 압축 효율도 높일 수 있기 때문",
+        "쓰기 속도가 가장 빠르기 때문"
+      ],
+      "correctOption": "C",
+      "hint": "100개 컬럼 중 2개만 집계하는 쿼리를 생각해 보세요.",
+      "explanation": "분석 쿼리는 보통 소수의 컬럼을 대량의 행에 걸쳐 읽습니다. 컬럼 단위로 저장하면 필요한 컬럼만 읽고, 같은 타입 값이 모여 있어 압축도 잘 됩니다."
+    }
+  ],
+  "interview": []
+}

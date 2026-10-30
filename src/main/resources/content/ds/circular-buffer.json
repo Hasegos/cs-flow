@@ -1,0 +1,60 @@
+{
+  "subject": "ds",
+  "slug": "circular-buffer",
+  "title": "원형 버퍼",
+  "templateName": "circular-buffer",
+  "metaDescription": "원형 버퍼 CS 지식 정리 — head·tail 포인터로 고정 크기 배열을 순환하며 쓰는 큐 구현을 인터랙티브 시각화로 학습하세요. 개발자 면접 자료구조 핵심 개념.",
+  "published": true,
+  "order": 19,
+  "tags": [
+    "링버퍼",
+    "버퍼",
+    "큐"
+  ],
+  "visual": {
+    "key": "ds/11-20/2d/circular-buffer",
+    "has3d": false
+  },
+  "quizzes": [
+    {
+      "displayOrder": 1,
+      "prompt": "원형 버퍼에서 head 또는 tail 인덱스를 한 칸 앞으로 옮길 때 쓰는 계산은?",
+      "options": [
+        "index + 1 (범위 검사 없이)",
+        "index * 2",
+        "index - capacity",
+        "(index + 1) % capacity"
+      ],
+      "correctOption": "D",
+      "hint": "끝에 도달하면 다시 처음으로 돌아와야 합니다.",
+      "explanation": "인덱스를 1 증가시킨 뒤 용량으로 나눈 나머지를 취하면, 배열 끝에 도달했을 때 다시 0으로 돌아와 원형으로 순환하게 됩니다."
+    },
+    {
+      "displayOrder": 2,
+      "prompt": "원형 버퍼에서 head == tail 일 때 비어 있는지 가득 찼는지 구분하는 흔한 방법은?",
+      "options": [
+        "구분할 필요가 없다",
+        "항상 가득 찬 것으로 본다",
+        "한 칸을 항상 비워 두거나, 저장된 원소 개수를 별도 변수로 관리한다",
+        "버퍼를 두 배로 늘린다"
+      ],
+      "correctOption": "C",
+      "hint": "같은 상태가 두 가지 의미를 가질 수 있습니다.",
+      "explanation": "head와 tail이 같을 때 비어 있음과 가득 참이 모호해지므로, 한 칸을 비워 두는 규칙을 쓰거나 원소 개수(size)를 따로 관리해 구분합니다."
+    },
+    {
+      "displayOrder": 3,
+      "prompt": "원형 버퍼를 큐로 사용할 때의 장점은?",
+      "options": [
+        "원소를 이동시키지 않고 고정 크기 배열에서 O(1)로 삽입과 삭제를 할 수 있다",
+        "크기가 무한히 늘어난다",
+        "정렬이 자동으로 된다",
+        "모든 원소를 O(1)에 검색할 수 있다"
+      ],
+      "correctOption": "A",
+      "hint": "일반 배열 큐는 앞에서 꺼낼 때 원소를 당겨야 합니다.",
+      "explanation": "원형 버퍼는 head와 tail 인덱스만 이동시키므로 원소를 옮기지 않고도 O(1)로 삽입·삭제할 수 있고 메모리도 고정 크기라 예측 가능합니다. 스트리밍 데이터의 버퍼로 자주 쓰입니다."
+    }
+  ],
+  "interview": []
+}
