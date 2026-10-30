@@ -11,12 +11,15 @@
     "병렬처리",
     "구조"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "arch/11-20/2d/gpu-architecture",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "arch.gpu-architecture.quiz1",
       "displayOrder": 1,
       "prompt": "GPU가 그래픽·행렬 연산에서 CPU보다 유리한 이유는?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "GPU는 상대적으로 단순한 코어를 수천 개 두고, 같은 연산을 방대한 데이터에 동시에 적용하는 데이터 병렬 처리에 최적화되어 있습니다. 복잡한 제어 흐름 처리는 CPU가 더 잘합니다."
     },
     {
+      "id": "arch.gpu-architecture.quiz2",
       "displayOrder": 2,
       "prompt": "GPU가 상대적으로 불리한 작업은?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "GPU는 같은 명령을 많은 데이터에 동시에 적용할 때 강합니다. 분기가 많아 스레드마다 경로가 갈리거나, 앞 결과에 강하게 의존하는 순차 작업은 병렬성을 살리기 어렵습니다."
     },
     {
+      "id": "arch.gpu-architecture.quiz3",
       "displayOrder": 3,
       "prompt": "NVIDIA GPU에서 수십 개(32개)의 스레드가 묶여 같은 명령을 동시에 실행하는 단위의 이름은?",
       "options": [

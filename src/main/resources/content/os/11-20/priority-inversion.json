@@ -11,12 +11,15 @@
     "실시간",
     "우선순위"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "os/11-20/2d/priority-inversion",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "os.priority-inversion.quiz1",
       "displayOrder": 1,
       "prompt": "우선순위 역전(Priority Inversion)이 발생하는 상황을 가장 잘 설명한 것은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "낮은 우선순위 작업이 락을 쥔 채 중간 우선순위 작업에게 CPU를 빼앗기면, 그 락을 기다리는 높은 우선순위 작업이 중간 작업보다도 늦게 실행되는 현상이 생깁니다."
     },
     {
+      "id": "os.priority-inversion.quiz2",
       "displayOrder": 2,
       "prompt": "우선순위 역전을 완화하는 대표적인 방법은?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "우선순위 상속은 락을 가진 낮은 우선순위 작업이 대기 중인 높은 우선순위 작업의 우선순위를 임시로 상속해, 중간 우선순위 작업에게 밀리지 않고 빨리 락을 풀도록 만드는 기법입니다."
     },
     {
+      "id": "os.priority-inversion.quiz3",
       "displayOrder": 3,
       "prompt": "1997년 화성 탐사선 패스파인더에서 시스템이 반복해서 재부팅된 원인으로 알려진 것은?",
       "options": [

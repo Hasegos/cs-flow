@@ -11,12 +11,15 @@
     "재귀",
     "분할정복"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "algo/11-20/2d/divide-and-conquer",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "algo.divide-and-conquer.quiz1",
       "displayOrder": 1,
       "prompt": "분할 정복의 세 단계를 순서대로 나열한 것은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "문제를 더 작은 부분 문제로 나누고(분할), 각 부분 문제를 재귀적으로 해결한 뒤(정복), 부분 해를 합쳐 원래 문제의 해를 만듭니다(결합)."
     },
     {
+      "id": "algo.divide-and-conquer.quiz2",
       "displayOrder": 2,
       "prompt": "병합 정렬(Merge Sort)의 시간 복잡도는?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "배열을 절반씩 나누면 log n 단계가 있고, 각 단계에서 전체 원소를 합치는 데 O(n)이 들기 때문에 전체 O(n log n)입니다."
     },
     {
+      "id": "algo.divide-and-conquer.quiz3",
       "displayOrder": 3,
       "prompt": "x^n(거듭제곱)을 분할 정복으로 계산하면 곱셈 횟수는 대략?",
       "options": [

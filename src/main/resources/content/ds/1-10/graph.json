@@ -11,12 +11,15 @@
     "그래프",
     "BFS"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "ds/1-10/2d/graph",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "ds.graph.quiz1",
       "displayOrder": 1,
       "prompt": "인접 행렬(Adjacency Matrix)로 그래프를 표현할 때 공간 복잡도는?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "인접 행렬은 V×V 크기의 2차원 배열을 사용하므로 공간 복잡도가 O(V^2)이며, 간선이 적은 희소 그래프에서는 비효율적일 수 있습니다."
     },
     {
+      "id": "ds.graph.quiz2",
       "displayOrder": 2,
       "prompt": "인접 리스트(Adjacency List)가 인접 행렬보다 유리한 경우는?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "인접 리스트는 실제 존재하는 간선의 수(O(V+E))만큼만 공간을 사용해, 간선이 적은 희소 그래프에서 인접 행렬보다 메모리 효율적입니다."
     },
     {
+      "id": "ds.graph.quiz3",
       "displayOrder": 3,
       "prompt": "BFS(너비 우선 탐색)가 사용하는 자료구조는?",
       "options": [

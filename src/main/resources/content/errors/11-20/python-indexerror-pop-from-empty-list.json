@@ -1,0 +1,33 @@
+{
+  "slug": "python-indexerror-pop-from-empty-list",
+  "order": 19,
+  "category": "algorithm",
+  "title": "Python: IndexError: pop from empty list 에러",
+  "errorMessage": "IndexError: pop from empty list",
+  "envOs": "Windows 10 (재현 환경)",
+  "envDistro": null,
+  "envVersion": "Python 3.14.7 (재현)",
+  "cause": "Python 공식 문서는 list.pop()을 리스트의 마지막 항목을 제거하고 돌려주는 메서드로 설명합니다. 이 메시지 문구는 CPython 소스(Objects/listobject.c)에 있고, 재현에서는 빈 리스트에 pop()을 호출했을 때 나왔습니다. 공식 문서가 이 에러의 원인을 직접 설명하는 문장은 확인하지 못했습니다.",
+  "solution": "꺼내기 전에 리스트가 비어 있는지 검사합니다.\n\n[해결 확인 2026-10-26 · Windows 10 · Python 3.14.7]\n1. stack = [] 에서 stack.pop() 을 실행하면 IndexError: pop from empty list 가 납니다.\n2. if stack: 으로 먼저 검사하면 pop()을 건너뛰고 empty stack 이 출력되며, 값을 넣은 뒤에는 stack.pop() 이 1을 돌려줍니다.",
+  "reproduction": "[재현 완료 2026-10-26 · Windows 10 · Python 3.14.7]\n1. python -c 로 stack = [] 다음 줄에 stack.pop() 을 실행합니다.\n2. 마지막 줄에 IndexError: pop from empty list 가 출력됩니다.",
+  "createdOn": "2026-10-26",
+  "verifiedOn": "2026-10-26",
+  "verified": true,
+  "sources": [
+    {
+      "label": "python/cpython v3.14.7 — Objects/listobject.c (pop from empty list)",
+      "url": "https://github.com/python/cpython/blob/v3.14.7/Objects/listobject.c#L1539"
+    },
+    {
+      "label": "Python docs — Tutorial: Using Lists as Stacks",
+      "url": "https://docs.python.org/3/tutorial/datastructures.html"
+    },
+    {
+      "label": "Python docs — Built-in Exceptions: IndexError",
+      "url": "https://docs.python.org/3/library/exceptions.html#IndexError"
+    }
+  ],
+  "topics": [
+    "stack-queue"
+  ]
+}

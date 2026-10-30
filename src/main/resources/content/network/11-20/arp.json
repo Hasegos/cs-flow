@@ -11,12 +11,15 @@
     "링크계층",
     "ARP"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "network/11-20/2d/arp",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "network.arp.quiz1",
       "displayOrder": 1,
       "prompt": "ARP(Address Resolution Protocol)의 목적은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "같은 LAN 안에서는 프레임을 MAC 주소로 전달합니다. ARP는 통신할 상대의 IP 주소만 알 때, 그 IP를 가진 장치의 MAC 주소를 알아내는 프로토콜입니다."
     },
     {
+      "id": "network.arp.quiz2",
       "displayOrder": 2,
       "prompt": "ARP 요청(Request) 메시지는 어떤 방식으로 전송될까?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "상대의 MAC 주소를 아직 모르므로, \"이 IP 주소를 가진 장치는 MAC 주소를 알려달라\"는 요청을 같은 네트워크 전체에 브로드캐스트합니다."
     },
     {
+      "id": "network.arp.quiz3",
       "displayOrder": 3,
       "prompt": "ARP 응답(Reply)은 어떻게 전달될까?",
       "options": [

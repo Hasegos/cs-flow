@@ -11,12 +11,15 @@
     "샤딩",
     "분산"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "db/1-10/2d/sharding",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "db.sharding.quiz1",
       "displayOrder": 1,
       "prompt": "해시 샤딩(Hash Sharding)의 특징은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "해시 샤딩은 샤드 키를 해시하고 그 값을 샤드 개수로 나눈 나머지로 샤드를 결정해, 데이터를 여러 샤드에 고르게 분산시킵니다. 대신 범위 조회는 여러 샤드를 다 뒤져야 해서 불리합니다."
     },
     {
+      "id": "db.sharding.quiz2",
       "displayOrder": 2,
       "prompt": "레인지 샤딩에서 '핫스팟'이 생기는 대표적인 이유는?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "레인지 샤딩은 값 범위로 샤드를 나누므로, 최신 데이터(예: 신규 가입자)가 몰리는 구간을 담당하는 샤드 하나에 쓰기가 집중되는 핫스팟이 생길 수 있습니다."
     },
     {
+      "id": "db.sharding.quiz3",
       "displayOrder": 3,
       "prompt": "샤딩 환경에서 여러 샤드에 걸친 집계(예: 전체 사용자 수)를 구하는 방법은?",
       "options": [

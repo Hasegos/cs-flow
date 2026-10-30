@@ -1,0 +1,29 @@
+{
+  "slug": "python-indexerror-list-index-out-of-range",
+  "order": 5,
+  "category": "algorithm",
+  "title": "Python: IndexError: list index out of range 에러",
+  "errorMessage": "IndexError: list index out of range",
+  "envOs": "Windows 10 (재현 환경)",
+  "envDistro": null,
+  "envVersion": "Python 3.14.7 (재현), CPython 3.13 소스 기준",
+  "cause": "Python 공식 문서는 시퀀스의 서브스크립트가 범위를 벗어났을 때 발생한다고 설명합니다. 슬라이스 인덱스는 허용 범위로 조용히 잘리므로 에러가 나지 않고, 정수가 아닌 인덱스는 TypeError가 납니다. 메시지 문구는 CPython 소스(Objects/listobject.c)에서 확인했고 공식 문서 페이지에는 글자 그대로 나오지 않습니다.",
+  "solution": "리스트에 접근하기 전에 인덱스가 0 이상이고 len(리스트)보다 작은지 확인합니다.\n\n[해결 확인 2026-10-26 · Windows 10 · Python 3.14.7]\n1. a = [1, 2, 3] 에서 print(a[3]) 을 실행하면 IndexError: list index out of range 가 납니다.\n2. i = 3 일 때 i < len(a) 를 먼저 검사하면 범위 밖 문구가 출력되고, 마지막 원소는 a[len(a) - 1] 로 읽어 3이 출력됩니다.",
+  "reproduction": "[재현 완료 2026-10-24 · Windows 10 · Python 3.14.7]\n1. python -c \"a=[1,2,3]; print(a[5])\" 를 실행합니다.\n2. 마지막 줄에 IndexError: list index out of range 가 출력됩니다.",
+  "createdOn": "2026-10-24",
+  "verifiedOn": "2026-10-26",
+  "verified": true,
+  "sources": [
+    {
+      "label": "Python docs — Built-in Exceptions: IndexError",
+      "url": "https://docs.python.org/3.13/library/exceptions.html"
+    },
+    {
+      "label": "python/cpython 3.13 — Objects/listobject.c",
+      "url": "https://github.com/python/cpython/blob/3.13/Objects/listobject.c"
+    }
+  ],
+  "topics": [
+    "array-linkedlist"
+  ]
+}

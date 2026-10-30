@@ -11,12 +11,15 @@
     "반복",
     "재귀"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "algo/11-20/2d/recursion-vs-iteration",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "algo.recursion-vs-iteration.quiz1",
       "displayOrder": 1,
       "prompt": "재귀 호출이 너무 깊어질 때 발생할 수 있는 문제는?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "재귀 호출은 호출마다 스택에 프레임이 쌓이므로 깊이가 너무 깊으면 스택 공간을 초과해 스택 오버플로우가 발생합니다. 이런 경우 반복문이나 명시적 스택으로 바꿔야 할 수 있습니다."
     },
     {
+      "id": "algo.recursion-vs-iteration.quiz2",
       "displayOrder": 2,
       "prompt": "꼬리 재귀 최적화(Tail Call Optimization)의 효과는? (지원하는 언어·컴파일러 기준)",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "재귀 호출 뒤에 남은 연산이 없는(꼬리 위치) 경우, 이전 프레임을 재사용해 스택 증가 없이 실행할 수 있습니다. 다만 Java처럼 이 최적화를 지원하지 않는 언어도 있습니다."
     },
     {
+      "id": "algo.recursion-vs-iteration.quiz3",
       "displayOrder": 3,
       "prompt": "메모이제이션 없는 단순 재귀 피보나치가 비효율적인 이유는?",
       "options": [

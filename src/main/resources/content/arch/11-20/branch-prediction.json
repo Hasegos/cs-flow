@@ -11,12 +11,15 @@
     "파이프라인",
     "분기예측"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "arch/11-20/2d/branch-prediction",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "arch.branch-prediction.quiz1",
       "displayOrder": 1,
       "prompt": "파이프라인 CPU에서 분기 예측이 필요한 이유는?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "분기 명령의 결과(어느 주소로 갈지)는 실행 단계에서야 확정됩니다. 그때까지 기다리면 파이프라인에 버블이 생기므로, 예측으로 다음 명령어를 미리 가져와 흐름이 끊기지 않게 합니다."
     },
     {
+      "id": "arch.branch-prediction.quiz2",
       "displayOrder": 2,
       "prompt": "분기 예측이 틀렸을 때 CPU에서 일어나는 일은?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "예측이 틀리면 잘못 가져와 실행 중이던 명령어들을 파이프라인에서 비우고(flush), 올바른 분기 목적지에서 다시 시작합니다. 이때 낭비되는 사이클이 예측 실패 비용입니다."
     },
     {
+      "id": "arch.branch-prediction.quiz3",
       "displayOrder": 3,
       "prompt": "2비트 포화 카운터 예측기가 1비트 예측기보다 유리한 점은?",
       "options": [

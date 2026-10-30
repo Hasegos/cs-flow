@@ -11,12 +11,15 @@
     "KMP",
     "문자열"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "algo/11-20/2d/kmp-string-matching",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "algo.kmp-string-matching.quiz1",
       "displayOrder": 1,
       "prompt": "KMP 알고리즘의 핵심 아이디어는?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "KMP는 패턴의 접두사·접미사 정보를 미리 계산한 실패 함수로, 불일치 시 텍스트 포인터를 뒤로 돌리지 않고 패턴이 이동할 위치를 결정합니다."
     },
     {
+      "id": "algo.kmp-string-matching.quiz2",
       "displayOrder": 2,
       "prompt": "텍스트 길이 n, 패턴 길이 m일 때 KMP의 시간 복잡도는?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "실패 함수 계산에 O(m), 텍스트 탐색에 O(n)이 걸려 전체 O(n + m)입니다. 단순한 방식의 최악 O(n × m)보다 훨씬 효율적입니다."
     },
     {
+      "id": "algo.kmp-string-matching.quiz3",
       "displayOrder": 3,
       "prompt": "KMP의 실패 함수(pi 배열)에서 pi[i]가 뜻하는 것은?",
       "options": [

@@ -1,0 +1,37 @@
+{
+  "slug": "python-typeerror-unhashable-type-list",
+  "order": 21,
+  "category": "algorithm",
+  "title": "Python: TypeError: unhashable type: 'list' 에러 (3.14는 dict key 문구)",
+  "errorMessage": "TypeError: cannot use 'list' as a dict key (unhashable type: 'list')\n(Python 3.13까지: TypeError: unhashable type: 'list')",
+  "envOs": "Windows 10 (재현 환경)",
+  "envDistro": null,
+  "envVersion": "Python 3.14.7 (재현), 3.13까지의 문구는 소스 기준",
+  "cause": "Python 용어집은 리스트 같은 가변 컨테이너는 hashable이 아니며, 딕셔너리 키나 집합 원소로 쓰려면 hashable이어야 한다고 설명합니다. Python 3.14 What's New는 해시할 수 없는 타입을 dict나 set에 넣을 때의 오류 메시지가 개선됐다고 설명하며, 3.14부터 딕셔너리 키로 쓰면 이 항목의 첫 문구가 나옵니다. 3.13까지의 문구는 CPython 3.13.0 소스상 unhashable type: 'list' 하나입니다(3.13 이하에서 실행해 확인하지는 않았고, 집합 원소로 쓸 때의 문구는 다릅니다).",
+  "solution": "딕셔너리 키는 리스트 대신 튜플처럼 hashable한 값으로 씁니다.\n\n[해결 확인 2026-10-26 · Windows 10 · Python 3.14.7]\n1. d = {} 에서 d[[1, 2]] = 'v' 를 실행하면 TypeError: cannot use 'list' as a dict key (unhashable type: 'list') 가 납니다.\n2. d[(1, 2)] = 'v' 로 튜플을 키로 쓰면 에러 없이 {(1, 2): 'v'} 가 출력됩니다.",
+  "reproduction": "[재현 완료 2026-10-26 · Windows 10 · Python 3.14.7]\n1. python -c 로 d = {} 다음 줄에 d[[1, 2]] = 'v' 를 실행합니다.\n2. 마지막 줄에 TypeError: cannot use 'list' as a dict key (unhashable type: 'list') 가 출력됩니다.",
+  "createdOn": "2026-10-26",
+  "verifiedOn": "2026-10-26",
+  "verified": true,
+  "sources": [
+    {
+      "label": "Python docs — Glossary: hashable",
+      "url": "https://docs.python.org/3/glossary.html#term-hashable"
+    },
+    {
+      "label": "Python docs — What's New in Python 3.14",
+      "url": "https://docs.python.org/3.14/whatsnew/3.14.html"
+    },
+    {
+      "label": "python/cpython v3.14.7 — Objects/dictobject.c (dict_unhashable_type)",
+      "url": "https://github.com/python/cpython/blob/v3.14.7/Objects/dictobject.c#L2353"
+    },
+    {
+      "label": "python/cpython v3.13.0 — Objects/object.c (unhashable type)",
+      "url": "https://github.com/python/cpython/blob/v3.13.0/Objects/object.c#L1023"
+    }
+  ],
+  "topics": [
+    "hash-table"
+  ]
+}

@@ -11,12 +11,15 @@
     "TLS",
     "보안"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "network/1-10/2d/https-tls",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "network.https-tls.quiz1",
       "displayOrder": 1,
       "prompt": "TLS 핸드셰이크의 주요 목적은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "TLS 핸드셰이크는 암호화 알고리즘 협상, 인증서 검증, 세션 키 교환 등을 통해 이후 통신에 사용할 안전한 암호화 채널을 준비하는 과정입니다."
     },
     {
+      "id": "network.https-tls.quiz2",
       "displayOrder": 2,
       "prompt": "HTTPS가 HTTP보다 안전한 이유는?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "HTTPS는 HTTP 통신을 TLS/SSL로 암호화해, 중간에서 데이터를 가로채도 내용을 알 수 없게 하고 변조 여부도 감지할 수 있게 합니다."
     },
     {
+      "id": "network.https-tls.quiz3",
       "displayOrder": 3,
       "prompt": "TLS 인증서 검증 과정에서 확인하는 것은?",
       "options": [

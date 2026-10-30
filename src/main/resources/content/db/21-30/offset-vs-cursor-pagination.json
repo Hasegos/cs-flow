@@ -12,12 +12,15 @@
     "커서",
     "성능"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "db/21-30/2d/offset-vs-cursor-pagination",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "db.offset-vs-cursor-pagination.quiz1",
       "displayOrder": 1,
       "prompt": "OFFSET 999990 LIMIT 10 쿼리가 뒤쪽 페이지에서 느린 이유로 가장 알맞은 것은?",
       "options": [
@@ -31,6 +34,7 @@
       "explanation": "OFFSET으로 건너뛴 행도 서버 안에서 순서대로 계산해야 하므로, 돌려주는 행이 10개여도 offset이 클수록 처리하는 행이 늘어납니다. PostgreSQL 문서도 큰 OFFSET이 비효율적일 수 있다고 설명합니다."
     },
     {
+      "id": "db.offset-vs-cursor-pagination.quiz2",
       "displayOrder": 2,
       "prompt": "커서(keyset) 방식 페이지네이션의 단점으로 옳은 것은?",
       "options": [
@@ -44,6 +48,7 @@
       "explanation": "커서는 마지막으로 본 행의 키라서 직전 응답을 거쳐야 얻을 수 있습니다. 그래서 임의의 페이지로 바로 이동하거나 전체 페이지 수를 보여 주는 화면에는 맞지 않고, 무한 스크롤이나 다음 · 이전 이동에 어울립니다."
     },
     {
+      "id": "db.offset-vs-cursor-pagination.quiz3",
       "displayOrder": 3,
       "prompt": "최신순 목록에서 1페이지(id 100 ~ 91)를 본 뒤 새 글 3개가 올라왔다. OFFSET 방식으로 2페이지를 요청하면 어떻게 되는가?",
       "options": [

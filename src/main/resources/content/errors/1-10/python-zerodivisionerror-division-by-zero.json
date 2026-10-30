@@ -1,0 +1,27 @@
+{
+  "slug": "python-zerodivisionerror-division-by-zero",
+  "order": 7,
+  "category": "algorithm",
+  "title": "Python: ZeroDivisionError: division by zero 에러",
+  "errorMessage": "ZeroDivisionError: division by zero",
+  "envOs": "Windows 10 (재현 환경)",
+  "envDistro": null,
+  "envVersion": "Python 3.14.7 (재현), CPython 3.13 소스 기준",
+  "cause": "Python 공식 문서는 나눗셈이나 나머지 연산의 두 번째 피연산자가 0일 때 발생한다고 설명하고, 튜토리얼(Errors and Exceptions)이 같은 메시지를 보여 줍니다. 이 메시지는 / 연산 기준입니다. // 와 % 연산의 0 나누기 메시지는 CPython 3.13과 3.14 소스에서 서로 다릅니다.",
+  "solution": "나누기 전에 분모가 0인지 검사합니다.\n\n[해결 확인 2026-10-26 · Windows 10 · Python 3.14.7]\n1. print(10/0) 을 실행하면 ZeroDivisionError: division by zero 가 납니다.\n2. d = 0 일 때 d != 0 을 먼저 검사해 나누지 않으면 에러 없이 안내 문구가 출력됩니다.",
+  "reproduction": "[재현 완료 2026-10-24 · Windows 10 · Python 3.14.7]\n1. python -c \"print(1/0)\" 를 실행합니다.\n2. 마지막 줄에 ZeroDivisionError: division by zero 가 출력됩니다.",
+  "createdOn": "2026-10-24",
+  "verifiedOn": "2026-10-26",
+  "verified": true,
+  "sources": [
+    {
+      "label": "Python docs — Tutorial: Errors and Exceptions",
+      "url": "https://docs.python.org/3.13/tutorial/errors.html"
+    },
+    {
+      "label": "python/cpython 3.13 — Objects/longobject.c",
+      "url": "https://github.com/python/cpython/blob/3.13/Objects/longobject.c"
+    }
+  ],
+  "topics": []
+}

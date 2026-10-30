@@ -11,12 +11,15 @@
     "커널",
     "인터페이스"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "os/1-10/2d/system-call",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "os.system-call.quiz1",
       "displayOrder": 1,
       "prompt": "시스템 콜이 필요한 이유는?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "유저 프로그램이 파일, 디바이스 등에 직접 접근하면 위험하므로, 시스템 콜을 통해 커널에 요청하고 커널이 대신 처리하도록 합니다."
     },
     {
+      "id": "os.system-call.quiz2",
       "displayOrder": 2,
       "prompt": "유저 모드에서 커널 모드로 전환이 일어나는 시점은?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "시스템 콜 호출이나 하드웨어 인터럽트가 발생하면 CPU는 유저 모드에서 커널 모드로 전환해 특권 작업을 수행합니다."
     },
     {
+      "id": "os.system-call.quiz3",
       "displayOrder": 3,
       "prompt": "커널 모드가 유저 모드보다 가지는 특징은?",
       "options": [

@@ -11,12 +11,15 @@
     "연결리스트",
     "스킵리스트"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "ds/11-20/2d/skip-list",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "ds.skip-list.quiz1",
       "displayOrder": 1,
       "prompt": "스킵 리스트가 평균적으로 O(log n) 탐색을 달성하는 방법은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "스킵 리스트는 아래 레벨의 리스트 일부를 위 레벨에 복사해 \"빠른 길\"을 만듭니다. 위 레벨에서 크게 건너뛰다가 내려오며 범위를 좁혀 평균 O(log n)에 탐색합니다."
     },
     {
+      "id": "ds.skip-list.quiz2",
       "displayOrder": 2,
       "prompt": "스킵 리스트에서 새 노드가 몇 개 레벨에 걸쳐 존재할지는 어떻게 정할까?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "새 노드의 레벨은 무작위로 정합니다. 보통 1/2 확률로 위 레벨로 승격하는 방식이라, 위로 갈수록 노드 수가 절반씩 줄어드는 구조가 평균적으로 만들어집니다."
     },
     {
+      "id": "ds.skip-list.quiz3",
       "displayOrder": 3,
       "prompt": "스킵 리스트가 실제로 사용되는 예로 알맞은 것은?",
       "options": [

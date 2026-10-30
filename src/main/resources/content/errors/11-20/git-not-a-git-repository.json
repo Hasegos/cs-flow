@@ -1,0 +1,27 @@
+{
+  "slug": "git-not-a-git-repository",
+  "order": 15,
+  "category": "git",
+  "title": "Git: fatal: not a git repository (or any of the parent directories): .git 에러",
+  "errorMessage": "fatal: not a git repository (or any of the parent directories): .git",
+  "envOs": "Windows 10 (재현 환경)",
+  "envDistro": null,
+  "envVersion": "Git 2.52.0 (재현), Git 2.56.0 소스 기준",
+  "cause": "Git 소스(setup.c)는 현재 디렉터리에서 상위 디렉터리로 올라가며 .git을 찾다가 상한(ceiling)에 닿으면 이 메시지로 종료합니다. 메시지 끝의 .git은 기본 Git 디렉터리 이름입니다.",
+  "solution": "저장소 폴더 안으로 이동해서 실행합니다. 새 저장소를 만들 폴더라면 git init 을 먼저 실행합니다.\n\n[해결 확인 2026-10-26 · Windows 10 · Git 2.52.0]\n1. 저장소가 아닌 빈 폴더에서 git status 를 실행하면 fatal: not a git repository (or any of the parent directories): .git 이 나고 종료 코드는 128입니다.\n2. 같은 폴더에서 git init 을 실행한 뒤 git status -sb 를 실행하면 에러 없이 ## No commits yet on <기본 브랜치 이름> 이 출력됩니다. 기본 브랜치 이름은 설정에 따라 다릅니다.",
+  "reproduction": "[재현 완료 2026-10-24 · Windows 10 · Git 2.52.0]\n1. 저장소 밖의 빈 디렉터리를 만듭니다 (상위에 .git이 없어야 합니다).\n2. 그 디렉터리에서 git status 를 실행합니다.\n3. fatal: not a git repository (or any of the parent directories): .git 이 출력되고 종료 코드가 128입니다.",
+  "createdOn": "2026-10-24",
+  "verifiedOn": "2026-10-26",
+  "verified": true,
+  "sources": [
+    {
+      "label": "git/git v2.56.0 — setup.c",
+      "url": "https://github.com/git/git/blob/v2.56.0/setup.c"
+    },
+    {
+      "label": "git/git v2.56.0 — usage.c",
+      "url": "https://github.com/git/git/blob/v2.56.0/usage.c"
+    }
+  ],
+  "topics": []
+}

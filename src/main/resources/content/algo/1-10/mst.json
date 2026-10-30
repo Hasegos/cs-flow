@@ -11,12 +11,15 @@
     "그래프",
     "신장 트리"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "algo/1-10/2d/mst",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "algo.mst.quiz1",
       "displayOrder": 1,
       "prompt": "최소 신장 트리(MST)의 정의는?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "MST는 그래프의 모든 정점을 사이클 없이 연결하면서 간선 가중치의 합이 최소가 되는 트리입니다."
     },
     {
+      "id": "algo.mst.quiz2",
       "displayOrder": 2,
       "prompt": "크루스칼(Kruskal) 알고리즘의 방식은?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "크루스칼은 모든 간선을 가중치 오름차순으로 정렬한 뒤, 사이클을 만들지 않는 간선을 순서대로 선택해 MST를 구성합니다."
     },
     {
+      "id": "algo.mst.quiz3",
       "displayOrder": 3,
       "prompt": "프림(Prim) 알고리즘과 크루스칼의 차이는?",
       "options": [

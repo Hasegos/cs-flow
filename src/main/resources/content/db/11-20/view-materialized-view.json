@@ -11,12 +11,15 @@
     "구체화뷰",
     "뷰"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "db/11-20/2d/view-materialized-view",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "db.view-materialized-view.quiz1",
       "displayOrder": 1,
       "prompt": "일반 뷰(View)의 특징은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "일반 뷰는 쿼리 정의만 저장해 두고, 조회할 때마다 그 쿼리를 원본 테이블에 대해 실행합니다. 항상 최신 데이터를 보여주지만 복잡한 쿼리라면 매번 계산 비용이 듭니다."
     },
     {
+      "id": "db.view-materialized-view.quiz2",
       "displayOrder": 2,
       "prompt": "구체화 뷰(Materialized View)의 특징은?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "Materialized View는 쿼리 결과를 실제 데이터로 저장하므로 조회가 빠릅니다. 대신 PostgreSQL에서는 원본이 바뀌어도 자동으로 반영되지 않아 REFRESH로 갱신해야 합니다."
     },
     {
+      "id": "db.view-materialized-view.quiz3",
       "displayOrder": 3,
       "prompt": "구체화 뷰를 사용할 때 주의할 점은?",
       "options": [

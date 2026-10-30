@@ -11,12 +11,15 @@
     "동적 프로그래밍",
     "최적화"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "ds/1-10/2d/dp",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "ds.dp.quiz1",
       "displayOrder": 1,
       "prompt": "동적 프로그래밍(DP)의 핵심 아이디어는?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "DP는 큰 문제를 작은 부분 문제로 나누고, 중복되는 부분 문제의 결과를 메모이제이션 등으로 저장해 재계산을 피함으로써 효율을 높입니다."
     },
     {
+      "id": "ds.dp.quiz2",
       "displayOrder": 2,
       "prompt": "메모이제이션(Memoization)과 타뷸레이션(Tabulation)의 차이는?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "메모이제이션은 재귀 호출을 하되 이미 계산한 값을 캐싱하는 하향식(top-down) 방식이고, 타뷸레이션은 작은 문제부터 반복문으로 테이블을 채워가는 상향식(bottom-up) 방식입니다."
     },
     {
+      "id": "ds.dp.quiz3",
       "displayOrder": 3,
       "prompt": "완전탐색(브루트포스) 대비 DP가 훨씬 빠른 이유는?",
       "options": [

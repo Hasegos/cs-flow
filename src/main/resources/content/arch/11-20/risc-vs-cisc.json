@@ -11,12 +11,15 @@
     "RISC",
     "CISC"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "arch/11-20/2d/risc-vs-cisc",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "arch.risc-vs-cisc.quiz1",
       "displayOrder": 1,
       "prompt": "RISC 아키텍처의 특징으로 옳은 것은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "RISC는 명령어 종류를 줄이고 길이를 대체로 고정해 디코딩과 파이프라인 구현을 단순하게 만듭니다. 연산은 레지스터 사이에서 하고 메모리 접근은 load/store 명령이 전담합니다."
     },
     {
+      "id": "arch.risc-vs-cisc.quiz2",
       "displayOrder": 2,
       "prompt": "CISC 아키텍처의 특징으로 옳은 것은?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "CISC는 하나의 명령어로 여러 단계의 작업(예: 메모리 값을 읽어 더하고 다시 저장)을 수행할 수 있도록 풍부한 명령어를 제공하며, 명령어 길이도 가변적입니다."
     },
     {
+      "id": "arch.risc-vs-cisc.quiz3",
       "displayOrder": 3,
       "prompt": "대표적인 아키텍처를 알맞게 짝지은 것은?",
       "options": [

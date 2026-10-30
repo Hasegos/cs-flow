@@ -11,12 +11,15 @@
     "백트래킹",
     "탐색"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "algo/1-10/2d/backtracking",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "algo.backtracking.quiz1",
       "displayOrder": 1,
       "prompt": "백트래킹(Backtracking)의 기본 동작 방식은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "백트래킹은 해를 찾아가다가 현재 선택이 조건을 만족할 수 없다고 판단되면 이전 단계로 되돌아가(backtrack) 다른 선택지를 시도하는 탐색 기법입니다."
     },
     {
+      "id": "algo.backtracking.quiz2",
       "displayOrder": 2,
       "prompt": "4-Queens 문제에서 백트래킹이 탐색을 줄이는 방법은?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "백트래킹은 퀸을 놓을 때마다 다른 퀸과 충돌하는지 즉시 검사해, 이미 실패가 확정된 경로는 더 깊이 탐색하지 않고 가지치기(pruning)해 전체 탐색량을 줄입니다."
     },
     {
+      "id": "algo.backtracking.quiz3",
       "displayOrder": 3,
       "prompt": "백트래킹에서 '치우기(remove)' 단계가 필요한 이유는?",
       "options": [

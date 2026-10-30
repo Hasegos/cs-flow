@@ -11,12 +11,15 @@
     "우선순위 큐",
     "정렬"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "ds/1-10/2d/heap",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "ds.heap.quiz1",
       "displayOrder": 1,
       "prompt": "Max-Heap의 특징은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "Max-Heap은 부모 노드의 값이 항상 자식 노드보다 크거나 같은 완전 이진 트리로, 루트에 항상 최댓값이 위치합니다."
     },
     {
+      "id": "ds.heap.quiz2",
       "displayOrder": 2,
       "prompt": "힙에 새 원소를 삽입할 때 일반적인 방법은?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "힙 삽입은 마지막 위치에 새 원소를 넣고, 부모와 비교하며 힙 속성을 만족할 때까지 위로 올리는(sift-up) 과정을 거칩니다."
     },
     {
+      "id": "ds.heap.quiz3",
       "displayOrder": 3,
       "prompt": "힙 정렬(Heap Sort)의 시간 복잡도는?",
       "options": [

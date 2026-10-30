@@ -12,12 +12,15 @@
     "보안",
     "웹"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "network/21-30/2d/cors",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "network.cors.quiz1",
       "displayOrder": 1,
       "prompt": "브라우저에서 CORS 오류가 났을 때 일반적으로 고쳐야 하는 곳은?",
       "options": [
@@ -31,6 +34,7 @@
       "explanation": "CORS의 허락은 서버가 응답 헤더(Access-Control-Allow-Origin 등)로 표시하고, 브라우저가 그 헤더를 보고 응답을 스크립트에 넘길지 정합니다. 프런트엔드 코드만으로는 허락을 만들 수 없습니다."
     },
     {
+      "id": "network.cors.quiz2",
       "displayOrder": 2,
       "prompt": "다른 출처로 보내는 fetch 요청 중 사전 요청(preflight)이 발생하는 것은?",
       "options": [
@@ -44,6 +48,7 @@
       "explanation": "GET, HEAD, POST이면서 안전한 헤더와 form 전송용 Content-Type만 쓰는 요청이 단순 요청입니다. PUT이거나 Content-Type이 application/json이면 단순 요청이 아니므로 브라우저가 OPTIONS 사전 요청으로 먼저 허락을 묻습니다."
     },
     {
+      "id": "network.cors.quiz3",
       "displayOrder": 3,
       "prompt": "쿠키를 포함한 CORS 요청(credentials: 'include')에서 Access-Control-Allow-Origin 값으로 허용되지 않는 것은?",
       "options": [

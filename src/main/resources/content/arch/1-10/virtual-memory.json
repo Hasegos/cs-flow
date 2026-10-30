@@ -11,12 +11,15 @@
     "OS",
     "메모리"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "arch/1-10/2d/virtual-memory",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "arch.virtual-memory.quiz1",
       "displayOrder": 1,
       "prompt": "TLB(Translation Lookaside Buffer)의 역할은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "TLB는 최근에 변환한 가상주소-물리주소 매핑을 캐싱해, 페이지 테이블을 매번 메모리에서 조회하지 않고 빠르게 주소 변환을 할 수 있게 합니다."
     },
     {
+      "id": "arch.virtual-memory.quiz2",
       "displayOrder": 2,
       "prompt": "Page Fault(페이지 폴트)가 발생하는 경우는?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "Page Fault는 프로세스가 필요로 하는 페이지가 물리 메모리에 없어, OS가 디스크(스왑)에서 그 페이지를 가져와야 할 때 발생합니다."
     },
     {
+      "id": "arch.virtual-memory.quiz3",
       "displayOrder": 3,
       "prompt": "TLB Hit과 TLB Miss 중 더 빠른 것은?",
       "options": [

@@ -11,12 +11,15 @@
     "OS",
     "입출력"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "arch/1-10/2d/io-methods",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "arch.io-methods.quiz1",
       "displayOrder": 1,
       "prompt": "Programmed I/O 방식의 특징은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "Programmed I/O는 CPU가 busy-waiting(polling)하며 입출력 장치의 상태를 반복 확인하기 때문에, 그동안 CPU가 다른 작업을 못 해 비효율적입니다."
     },
     {
+      "id": "arch.io-methods.quiz2",
       "displayOrder": 2,
       "prompt": "인터럽트 기반 I/O가 Programmed I/O보다 나은 점은?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "인터럽트 기반 I/O는 CPU가 입출력이 끝날 때까지 기다리지 않고 다른 작업을 하다가, 장치가 인터럽트로 완료를 알리면 처리합니다."
     },
     {
+      "id": "arch.io-methods.quiz3",
       "displayOrder": 3,
       "prompt": "DMA 방식이 인터럽트 기반 I/O와 다른 점은?",
       "options": [

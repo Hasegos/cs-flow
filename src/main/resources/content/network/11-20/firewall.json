@@ -11,12 +11,15 @@
     "패킷필터",
     "방화벽"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "network/11-20/2d/firewall",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "network.firewall.quiz1",
       "displayOrder": 1,
       "prompt": "패킷 필터링 방화벽이 주로 검사하는 정보는?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "패킷 필터링 방화벽은 패킷 헤더의 출발지/목적지 IP, 포트 번호, 프로토콜(TCP/UDP 등)을 규칙과 비교해 허용 또는 차단을 결정합니다."
     },
     {
+      "id": "network.firewall.quiz2",
       "displayOrder": 2,
       "prompt": "상태 기반(Stateful) 방화벽의 특징은?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "상태 기반 방화벽은 연결 상태 테이블을 유지해, 내부에서 허용된 연결에 대한 응답 트래픽을 자동으로 허용합니다. 상태를 보지 않는 필터보다 규칙을 단순하고 안전하게 만들 수 있습니다."
     },
     {
+      "id": "network.firewall.quiz3",
       "displayOrder": 3,
       "prompt": "보안상 권장되는 방화벽의 기본 정책은?",
       "options": [

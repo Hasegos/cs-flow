@@ -11,12 +11,15 @@
     "교착상태",
     "동기화"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "os/1-10/2d/deadlock",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "os.deadlock.quiz1",
       "displayOrder": 1,
       "prompt": "교착 상태(Deadlock)가 발생하기 위한 4가지 필요조건에 포함되지 않는 것은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "데드락의 4가지 필요조건은 상호 배제, 점유와 대기, 비선점(선점 불가), 순환 대기입니다. \"선점 가능\"은 오히려 데드락을 막는 조건입니다."
     },
     {
+      "id": "os.deadlock.quiz2",
       "displayOrder": 2,
       "prompt": "자원 할당 그래프(RAG)에서 사이클이 존재한다는 것은?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "자원 할당 그래프에서 사이클이 발생하면(각 자원 종류가 1개씩인 경우) 데드락을 의미하며, 여러 개인 경우엔 데드락 가능성을 시사합니다."
     },
     {
+      "id": "os.deadlock.quiz3",
       "displayOrder": 3,
       "prompt": "데드락을 예방하는 방법으로 '점유와 대기' 조건을 깨는 방법은?",
       "options": [

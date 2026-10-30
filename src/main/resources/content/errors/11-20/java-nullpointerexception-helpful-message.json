@@ -1,0 +1,27 @@
+{
+  "slug": "java-nullpointerexception-helpful-message",
+  "order": 11,
+  "category": "java",
+  "title": "Java: NullPointerException: Cannot invoke ... because ... is null 에러",
+  "errorMessage": "java.lang.NullPointerException: Cannot invoke \"<메서드>\" because \"<대상>\" is null",
+  "envOs": "Windows 10 (재현 환경)",
+  "envDistro": null,
+  "envVersion": "OpenJDK 21.0.8 (재현), JDK 21 소스 기준",
+  "cause": "JEP 358(Helpful NullPointerExceptions)에 따르면 메시지는 NPE를 던진 메서드의 바이트코드를 분석해 어떤 동작이 어떤 null 값 때문에 실패했는지를 적습니다. 로컬 변수 이름은 javac -g로 컴파일해 클래스 파일에 로컬 변수 테이블이 있을 때만 표시됩니다. 없으면 이름 대신 \"<local1>\"처럼 JVM 로컬 변수 슬롯 번호가 붙고(long, double 뒤에서는 번호가 건너뜀), 매개변수는 \"<parameter1>\"로 나옵니다(HotSpot bytecodeUtils.cpp). JEP 본문은 이 기능의 기본값을 false라고 적지만 JDK 21 소스(globals.hpp)의 기본값은 true입니다. 끄려면 -XX:-ShowCodeDetailsInExceptionMessages 입니다.",
+  "solution": "null일 수 있는 참조는 메서드를 호출하기 전에 null인지 검사합니다.\n\n[해결 확인 2026-10-26 · Windows 10 · OpenJDK 21.0.8]\n1. String s = null 에서 s.length() 를 호출하면 java.lang.NullPointerException: Cannot invoke \"String.length()\" because \"<local1>\" is null 이 납니다.\n2. s != null 을 먼저 검사해 null이면 -1을 쓰도록 고치면 에러 없이 -1이 출력됩니다.",
+  "reproduction": "[재현 완료 2026-10-24 · Windows 10 · OpenJDK 21.0.8]\n1. Npe.java 를 만듭니다: public class Npe { public static void main(String[] a){ String s = null; System.out.println(s.length()); } }\n2. java Npe.java 를 실행합니다.\n3. Exception in thread \"main\" java.lang.NullPointerException: Cannot invoke \"String.length()\" because \"<local1>\" is null 이 출력됩니다.",
+  "createdOn": "2026-10-24",
+  "verifiedOn": "2026-10-26",
+  "verified": true,
+  "sources": [
+    {
+      "label": "OpenJDK — JEP 358: Helpful NullPointerExceptions",
+      "url": "https://openjdk.org/jeps/358"
+    },
+    {
+      "label": "openjdk/jdk jdk-21-ga — hotspot/share/interpreter/bytecodeUtils.cpp",
+      "url": "https://github.com/openjdk/jdk/blob/jdk-21-ga/src/hotspot/share/interpreter/bytecodeUtils.cpp"
+    }
+  ],
+  "topics": []
+}

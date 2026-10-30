@@ -11,12 +11,15 @@
     "NoSQL",
     "MongoDB"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "db/1-10/2d/nosql",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "db.nosql.quiz1",
       "displayOrder": 1,
       "prompt": "Key-Value 모델의 가장 큰 특징은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "Key-Value는 키 하나로 값 하나를 저장/조회하는 가장 단순한 모델입니다. 빠르지만 여러 키에 걸친 관계 표현은 애플리케이션이 직접 처리해야 합니다."
     },
     {
+      "id": "db.nosql.quiz2",
       "displayOrder": 2,
       "prompt": "Document 모델이 Key-Value보다 유리한 점은?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "Document 모델은 관련 데이터를 하나의 문서(JSON 등)에 중첩해서 저장할 수 있어, Key-Value처럼 여러 키를 따로 조회할 필요 없이 문서 하나로 관련 정보를 한 번에 가져올 수 있습니다."
     },
     {
+      "id": "db.nosql.quiz3",
       "displayOrder": 3,
       "prompt": "Graph DB가 관계 탐색에 강한 이유는?",
       "options": [

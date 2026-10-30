@@ -11,12 +11,15 @@
     "격리수준",
     "트랜잭션"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "db/11-20/2d/isolation-levels",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "db.isolation-levels.quiz1",
       "displayOrder": 1,
       "prompt": "Dirty Read란?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "Dirty Read는 다른 트랜잭션이 아직 커밋하지 않은(롤백될 수도 있는) 변경 내용을 읽는 현상입니다. Read Uncommitted 격리 수준에서 발생할 수 있습니다."
     },
     {
+      "id": "db.isolation-levels.quiz2",
       "displayOrder": 2,
       "prompt": "Non-repeatable Read란?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "한 트랜잭션이 같은 행을 두 번 읽는 사이 다른 트랜잭션이 그 행을 수정하고 커밋하면 두 번째 읽기에서 값이 달라집니다. Read Committed에서는 발생할 수 있고 Repeatable Read부터 막힙니다."
     },
     {
+      "id": "db.isolation-levels.quiz3",
       "displayOrder": 3,
       "prompt": "PostgreSQL의 기본 트랜잭션 격리 수준은?",
       "options": [

@@ -11,12 +11,15 @@
     "분산",
     "CAP"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "db/11-20/2d/cap-theorem",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "db.cap-theorem.quiz1",
       "displayOrder": 1,
       "prompt": "CAP 정리의 세 가지 속성은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "CAP은 Consistency(일관성), Availability(가용성), Partition tolerance(분단 내성)의 머리글자입니다."
     },
     {
+      "id": "db.cap-theorem.quiz2",
       "displayOrder": 2,
       "prompt": "네트워크 분단(Partition)이 실제로 발생했을 때 분산 시스템이 택해야 하는 것은?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "네트워크 분단 때는 최신 데이터임을 보장하려고 일부 요청을 거부(일관성)하거나, 오래된 데이터라도 응답(가용성)하는 둘 중 하나를 골라야 합니다."
     },
     {
+      "id": "db.cap-theorem.quiz3",
       "displayOrder": 3,
       "prompt": "CP 시스템의 특성으로 알맞은 것은?",
       "options": [

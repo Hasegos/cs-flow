@@ -11,12 +11,15 @@
     "캐시",
     "LRU"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "ds/11-20/2d/lru-cache-impl",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "ds.lru-cache-impl.quiz1",
       "displayOrder": 1,
       "prompt": "LRU 캐시를 조회·삽입·제거 모두 O(1)에 구현하는 대표적인 자료구조 조합은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "해시맵은 키로 노드를 O(1)에 찾고, 이중 연결 리스트는 노드를 O(1)에 맨 앞으로 옮기거나 맨 뒤에서 제거할 수 있어 둘의 조합으로 LRU를 O(1)에 구현합니다."
     },
     {
+      "id": "ds.lru-cache-impl.quiz2",
       "displayOrder": 2,
       "prompt": "LRU 캐시에서 항목을 조회(get)했을 때 해야 할 일은?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "LRU는 가장 오래 사용되지 않은 항목을 제거하는 정책이므로, 조회한 항목은 \"방금 사용됨\"으로 표시하기 위해 리스트의 맨 앞으로 옮깁니다."
     },
     {
+      "id": "ds.lru-cache-impl.quiz3",
       "displayOrder": 3,
       "prompt": "LRU 캐시가 용량을 초과했을 때 제거되는 항목은?",
       "options": [

@@ -1,0 +1,33 @@
+{
+  "slug": "java-illegalthreadstateexception",
+  "order": 24,
+  "category": "java",
+  "title": "Java: java.lang.IllegalThreadStateException 에러",
+  "errorMessage": "java.lang.IllegalThreadStateException",
+  "envOs": "Windows 10 (재현 환경)",
+  "envDistro": null,
+  "envVersion": "OpenJDK 21.0.8 (재현)",
+  "cause": "Java 공식 문서는 스레드를 최대 한 번만 시작할 수 있고 종료된 뒤에는 다시 시작할 수 없으며, 이미 시작된 스레드에 start()를 호출하면 IllegalThreadStateException이 던져진다고 설명합니다. OpenJDK 21 소스는 스레드 상태가 NEW가 아니면(이미 시작됐거나 종료됐으면) 이 예외를 던집니다(일반 플랫폼 스레드 기준).",
+  "solution": "스레드는 한 번만 시작할 수 있으므로, 다시 실행하려면 실행마다 새 Thread 객체를 만듭니다.\n\n[해결 확인 2026-10-26 · Windows 10 · OpenJDK 21.0.8]\n1. start()와 join()이 끝난 같은 Thread 객체에 start()를 다시 호출하면 java.lang.IllegalThreadStateException 이 납니다.\n2. 반복문 안에서 매번 new Thread(...) 를 만들어 start() 하면 run 이 두 번 에러 없이 출력됩니다.",
+  "reproduction": "[재현 완료 2026-10-26 · Windows 10 · OpenJDK 21.0.8]\n1. java Th1.java 로 Thread t = new Thread(() -> System.out.println(\"hi\")) 를 start(), join() 한 뒤 start() 를 한 번 더 호출하는 프로그램을 실행합니다.\n2. hi 가 출력된 뒤 Exception in thread \"main\" java.lang.IllegalThreadStateException 과 Thread.start(Thread.java:1525) 스택트레이스가 출력됩니다.",
+  "createdOn": "2026-10-26",
+  "verifiedOn": "2026-10-26",
+  "verified": true,
+  "sources": [
+    {
+      "label": "Java SE 21 API — Thread.start()",
+      "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Thread.html"
+    },
+    {
+      "label": "Java SE 21 API — IllegalThreadStateException",
+      "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/IllegalThreadStateException.html"
+    },
+    {
+      "label": "openjdk/jdk jdk-21-ga — java/lang/Thread.java",
+      "url": "https://github.com/openjdk/jdk/blob/jdk-21-ga/src/java.base/share/classes/java/lang/Thread.java#L1525"
+    }
+  ],
+  "topics": [
+    "thread"
+  ]
+}

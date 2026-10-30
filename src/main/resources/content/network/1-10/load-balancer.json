@@ -11,12 +11,15 @@
     "로드 밸런서",
     "분산"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "network/1-10/2d/load-balancer",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "network.load-balancer.quiz1",
       "displayOrder": 1,
       "prompt": "Round Robin 로드 밸런싱 방식은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "Round Robin은 들어오는 요청을 서버 목록 순서대로 하나씩 돌아가며 분배해 부하를 균등하게 나눕니다."
     },
     {
+      "id": "network.load-balancer.quiz2",
       "displayOrder": 2,
       "prompt": "Least Connections 방식이 Round Robin보다 유리할 수 있는 경우는?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "Least Connections는 현재 연결(부하)이 가장 적은 서버로 요청을 보내, 처리 시간이 들쭉날쭉해 특정 서버에 부하가 쏠리는 상황에서 Round Robin보다 균형 있게 분산할 수 있습니다."
     },
     {
+      "id": "network.load-balancer.quiz3",
       "displayOrder": 3,
       "prompt": "IP Hash 방식 로드 밸런싱의 특징은?",
       "options": [

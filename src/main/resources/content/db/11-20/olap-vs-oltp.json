@@ -11,12 +11,15 @@
     "OLTP",
     "OLAP"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "db/11-20/2d/olap-vs-oltp",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "db.olap-vs-oltp.quiz1",
       "displayOrder": 1,
       "prompt": "OLTP(Online Transaction Processing)의 특징은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "OLTP는 주문 접수, 결제, 재고 갱신처럼 짧은 읽기/쓰기 트랜잭션을 대량으로 빠르게 처리하는 시스템입니다. 정규화된 스키마와 인덱스를 사용합니다."
     },
     {
+      "id": "db.olap-vs-oltp.quiz2",
       "displayOrder": 2,
       "prompt": "OLAP(Online Analytical Processing)의 특징은?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "OLAP은 대규모 데이터를 여러 차원으로 집계하고 분석하는 시스템으로, 복잡한 읽기 쿼리가 중심이며 데이터 웨어하우스에서 주로 사용합니다."
     },
     {
+      "id": "db.olap-vs-oltp.quiz3",
       "displayOrder": 3,
       "prompt": "컬럼 지향(Columnar) 저장 방식이 OLAP에 유리한 이유는?",
       "options": [

@@ -11,12 +11,15 @@
     "DP",
     "최적화"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "algo/1-10/2d/dp-basic",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "algo.dp-basic.quiz1",
       "displayOrder": 1,
       "prompt": "0/1 배낭 문제에서 '0/1'이 의미하는 것은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "0/1 배낭 문제는 각 아이템을 통째로 담거나(1) 안 담거나(0)만 선택할 수 있는 문제로, 아이템을 쪼개 담을 수 있는 분할 가능 배낭 문제와 구분됩니다."
     },
     {
+      "id": "algo.dp-basic.quiz2",
       "displayOrder": 2,
       "prompt": "배낭 문제의 DP 테이블에서 행과 열은 보통 무엇을 나타내나요?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "0/1 배낭 DP 테이블은 보통 용량(무게)과 아이템 인덱스를 축으로 삼아, 각 칸이 '이 아이템까지 고려했을 때 이 용량에서 얻을 수 있는 최대 가치'를 담습니다."
     },
     {
+      "id": "algo.dp-basic.quiz3",
       "displayOrder": 3,
       "prompt": "DP 테이블을 채운 뒤 역추적(backtracking)으로 하는 일은?",
       "options": [

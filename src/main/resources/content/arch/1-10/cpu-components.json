@@ -11,12 +11,15 @@
     "ALU",
     "CPU"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "arch/1-10/2d/cpu-components",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "arch.cpu-components.quiz1",
       "displayOrder": 1,
       "prompt": "ALU(산술논리연산장치)의 역할은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "ALU는 CU(제어장치)의 지시에 따라 실제 산술·논리 연산을 수행하는 CPU의 핵심 실행 단위입니다."
     },
     {
+      "id": "arch.cpu-components.quiz2",
       "displayOrder": 2,
       "prompt": "제어장치(CU)의 역할로 가장 적절한 것은?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "CU는 명령어를 해석하고 ALU, 레지스터, 메모리 등에 제어 신호를 보내 명령어가 올바른 순서로 실행되도록 지휘합니다."
     },
     {
+      "id": "arch.cpu-components.quiz3",
       "displayOrder": 3,
       "prompt": "레지스터가 캐시나 메모리보다 빠른 이유는?",
       "options": [

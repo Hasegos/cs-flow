@@ -11,12 +11,15 @@
     "그래프",
     "탐색"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "algo/1-10/2d/bfs-dfs",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "algo.bfs-dfs.quiz1",
       "displayOrder": 1,
       "prompt": "BFS와 DFS 중 큐(Queue)를 사용하는 탐색은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "BFS(너비 우선 탐색)는 큐를 사용해 가까운 노드부터 레벨 단위로 방문하고, DFS(깊이 우선 탐색)는 스택(또는 재귀)을 사용해 한 방향으로 깊이 들어갑니다."
     },
     {
+      "id": "algo.bfs-dfs.quiz2",
       "displayOrder": 2,
       "prompt": "최단 경로(간선 가중치가 동일한 그래프)를 찾을 때 더 적합한 탐색은?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "BFS는 가까운 노드부터 순서대로 방문하므로, 가중치가 동일한 그래프에서 목적지에 처음 도달했을 때가 곧 최단 경로가 됩니다."
     },
     {
+      "id": "algo.bfs-dfs.quiz3",
       "displayOrder": 3,
       "prompt": "DFS가 스택(또는 재귀)을 사용하는 이유는?",
       "options": [

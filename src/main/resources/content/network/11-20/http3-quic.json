@@ -11,12 +11,15 @@
     "QUIC",
     "HTTP/3"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "network/11-20/2d/http3-quic",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "network.http3-quic.quiz1",
       "displayOrder": 1,
       "prompt": "HTTP/3이 사용하는 전송 프로토콜은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "HTTP/3은 TCP 대신 UDP 위에서 동작하는 QUIC 프로토콜을 사용합니다. QUIC이 신뢰성, 혼잡 제어, 암호화를 직접 처리합니다."
     },
     {
+      "id": "network.http3-quic.quiz2",
       "displayOrder": 2,
       "prompt": "TCP 기반 HTTP/2에서 패킷 하나가 유실되면 어떤 문제가 생길까?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "HTTP/2는 하나의 TCP 연결에 여러 스트림을 태우는데, TCP는 연결 전체의 순서를 보장하므로 패킷 하나가 유실되면 다른 스트림들도 대기합니다. QUIC은 스트림별로 독립적으로 처리해 이 문제를 줄입니다."
     },
     {
+      "id": "network.http3-quic.quiz3",
       "displayOrder": 3,
       "prompt": "QUIC의 연결 수립 관련 장점은?",
       "options": [

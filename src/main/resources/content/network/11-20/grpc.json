@@ -11,12 +11,15 @@
     "RPC",
     "gRPC"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "network/11-20/2d/grpc",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "network.grpc.quiz1",
       "displayOrder": 1,
       "prompt": "gRPC가 기본으로 사용하는 전송 프로토콜과 직렬화 방식은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "gRPC는 HTTP/2 위에서 동작하며 기본적으로 Protocol Buffers로 메시지를 직렬화합니다. HTTP/2의 멀티플렉싱과 스트리밍 덕분에 효율적인 통신이 가능합니다."
     },
     {
+      "id": "network.grpc.quiz2",
       "displayOrder": 2,
       "prompt": "Protocol Buffers의 특징은?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "Protocol Buffers는 .proto 파일로 스키마를 정의하고 그로부터 각 언어용 코드를 생성합니다. 이진 형식이라 JSON보다 크기가 작고 직렬화/역직렬화가 빠릅니다."
     },
     {
+      "id": "network.grpc.quiz3",
       "displayOrder": 3,
       "prompt": "gRPC가 지원하는 통신 방식은?",
       "options": [

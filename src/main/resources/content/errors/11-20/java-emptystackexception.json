@@ -1,0 +1,33 @@
+{
+  "slug": "java-emptystackexception",
+  "order": 20,
+  "category": "algorithm",
+  "title": "Java: java.util.EmptyStackException 에러",
+  "errorMessage": "java.util.EmptyStackException",
+  "envOs": "Windows 10 (재현 환경)",
+  "envDistro": null,
+  "envVersion": "OpenJDK 21.0.8 (재현)",
+  "cause": "Java 공식 문서는 EmptyStackException을 Stack 클래스의 메서드가 스택이 비어 있음을 알릴 때 던지는 예외로 설명하고, Stack.pop()과 peek()가 스택이 비었을 때 이 예외를 던진다고 적습니다. Stack 문서는 Deque 인터페이스와 그 구현을 이 클래스보다 우선해서 쓰라고 안내합니다.",
+  "solution": "꺼내기 전에 스택이 비어 있는지 검사합니다.\n\n[해결 확인 2026-10-26 · Windows 10 · OpenJDK 21.0.8]\n1. new Stack<Integer>().pop() 을 실행하면 java.util.EmptyStackException 이 납니다.\n2. if (!s.isEmpty()) 로 먼저 검사하면 pop()을 건너뛰고 empty stack 이 출력되며, push(1) 뒤에는 pop() 이 1을 돌려줍니다.",
+  "reproduction": "[재현 완료 2026-10-26 · Windows 10 · OpenJDK 21.0.8]\n1. java Es1.java 로 Stack<Integer> s = new Stack<>() 에 바로 s.pop() 을 호출하는 한 파일 프로그램을 실행합니다.\n2. Exception in thread \"main\" java.util.EmptyStackException 과 함께 Stack.peek(Stack.java:103), Stack.pop(Stack.java:85) 스택트레이스가 출력됩니다.",
+  "createdOn": "2026-10-26",
+  "verifiedOn": "2026-10-26",
+  "verified": true,
+  "sources": [
+    {
+      "label": "Java SE 21 API — Stack",
+      "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Stack.html"
+    },
+    {
+      "label": "Java SE 21 API — EmptyStackException",
+      "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/EmptyStackException.html"
+    },
+    {
+      "label": "openjdk/jdk jdk-21-ga — java/util/Stack.java",
+      "url": "https://github.com/openjdk/jdk/blob/jdk-21-ga/src/java.base/share/classes/java/util/Stack.java#L103"
+    }
+  ],
+  "topics": [
+    "stack-queue"
+  ]
+}

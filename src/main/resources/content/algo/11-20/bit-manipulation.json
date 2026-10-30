@@ -11,12 +11,15 @@
     "XOR",
     "비트연산"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "algo/11-20/2d/bit-manipulation",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "algo.bit-manipulation.quiz1",
       "displayOrder": 1,
       "prompt": "양의 정수 n이 2의 거듭제곱인지 판별하는 비트 연산 조건은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "2의 거듭제곱은 이진수에서 1이 하나뿐입니다. n - 1은 그 1이 0이 되고 아래 비트가 모두 1이 되므로 (n & (n - 1)) 은 0이 됩니다. (단, n > 0 인 경우)"
     },
     {
+      "id": "algo.bit-manipulation.quiz2",
       "displayOrder": 2,
       "prompt": "배열에서 한 원소만 한 번 나타나고 나머지는 모두 두 번씩 나타날 때, 그 원소를 O(n)에 O(1) 공간으로 찾는 방법은?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "같은 값끼리 XOR하면 0이 되고, 0과 XOR한 값은 그대로이므로 모든 원소를 XOR하면 쌍으로 나온 값은 사라지고 한 번만 나온 값만 남습니다."
     },
     {
+      "id": "algo.bit-manipulation.quiz3",
       "displayOrder": 3,
       "prompt": "비트마스크 mask에서 i번째 원소가 집합에 포함되어 있는지 확인하는 식은?",
       "options": [

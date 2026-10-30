@@ -11,12 +11,15 @@
     "데이터표현",
     "IEEE754"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "arch/11-20/2d/ieee754-float",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "arch.ieee754-float.quiz1",
       "displayOrder": 1,
       "prompt": "IEEE 754 단정밀도(32비트) 부동소수점의 비트 구성은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "단정밀도(float)는 부호 1비트, 지수 8비트, 가수(소수부) 23비트로 총 32비트입니다. 부호 1 + 지수 11 + 가수 52는 배정밀도(double, 64비트)입니다."
     },
     {
+      "id": "arch.ieee754-float.quiz2",
       "displayOrder": 2,
       "prompt": "많은 언어에서 0.1 + 0.2 == 0.3 이 false가 되는 이유는?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "0.1, 0.2 같은 값은 2진 부동소수점으로 정확히 표현할 수 없어 가장 가까운 근사값으로 저장됩니다. 이 근사값들을 더하면 0.3의 근사값과 미세하게 다른 결과가 나옵니다."
     },
     {
+      "id": "arch.ieee754-float.quiz3",
       "displayOrder": 3,
       "prompt": "부동소수점 두 수가 같은지 비교할 때 권장되는 방법은?",
       "options": [

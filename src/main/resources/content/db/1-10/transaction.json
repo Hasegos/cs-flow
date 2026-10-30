@@ -11,12 +11,15 @@
     "트랜잭션",
     "ACID"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "db/1-10/2d/transaction",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "db.transaction.quiz1",
       "displayOrder": 1,
       "prompt": "ACID 중 '원자성(Atomicity)'의 의미는?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "원자성은 트랜잭션 내의 모든 연산이 전부 성공적으로 반영되거나, 하나라도 실패하면 전체가 롤백되어 아무 일도 없었던 것처럼 되어야 한다는 성질입니다."
     },
     {
+      "id": "db.transaction.quiz2",
       "displayOrder": 2,
       "prompt": "COMMIT과 ROLLBACK의 차이는?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "COMMIT은 트랜잭션에서 수행한 변경사항을 데이터베이스에 영구적으로 반영하고, ROLLBACK은 트랜잭션 시작 이전 상태로 변경사항을 취소합니다."
     },
     {
+      "id": "db.transaction.quiz3",
       "displayOrder": 3,
       "prompt": "ACID 중 '고립성(Isolation)'이 필요한 이유는?",
       "options": [

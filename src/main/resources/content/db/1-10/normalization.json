@@ -11,12 +11,15 @@
     "정규화",
     "설계"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "db/1-10/2d/normalization",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "db.normalization.quiz1",
       "displayOrder": 1,
       "prompt": "정규화(Normalization)의 목적은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "정규화는 테이블을 분해해 데이터 중복을 줄이고, 데이터를 추가/수정/삭제할 때 발생할 수 있는 이상 현상을 방지하는 설계 과정입니다."
     },
     {
+      "id": "db.normalization.quiz2",
       "displayOrder": 2,
       "prompt": "제1정규형(1NF)을 만족하기 위한 조건은?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "1NF는 각 컬럼이 하나의 원자적인 값만 가져야 한다는 규칙으로, 한 셀에 여러 값을 리스트 형태로 저장하는 것을 금지합니다."
     },
     {
+      "id": "db.normalization.quiz3",
       "displayOrder": 3,
       "prompt": "제2정규형(2NF)에서 다루는 문제는?",
       "options": [

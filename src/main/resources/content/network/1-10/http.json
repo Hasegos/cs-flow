@@ -11,12 +11,15 @@
     "HTTP",
     "웹"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "network/1-10/2d/http",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "network.http.quiz1",
       "displayOrder": 1,
       "prompt": "HTTP/1.1의 성능 한계로 자주 언급되는 것은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "HTTP/1.1은 한 커넥션에서 요청이 순서대로 처리되어야 해, 앞선 요청이 느리면 뒤 요청까지 막히는 Head-of-Line Blocking이 발생할 수 있습니다."
     },
     {
+      "id": "network.http.quiz2",
       "displayOrder": 2,
       "prompt": "HTTP/2의 멀티플렉싱(Multiplexing)이 해결한 문제는?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "HTTP/2는 하나의 TCP 연결 위에서 여러 요청/응답 스트림을 동시에 주고받는 멀티플렉싱을 지원해, HTTP/1.1의 순차 처리 한계를 완화합니다."
     },
     {
+      "id": "network.http.quiz3",
       "displayOrder": 3,
       "prompt": "HTTP는 기본적으로 어떤 특성을 가진 프로토콜인가요?",
       "options": [

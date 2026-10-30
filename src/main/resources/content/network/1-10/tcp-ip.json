@@ -11,12 +11,15 @@
     "TCP",
     "핸드셰이크"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "network/1-10/2d/tcp-ip",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "network.tcp-ip.quiz1",
       "displayOrder": 1,
       "prompt": "TCP 3-way Handshake의 순서는?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "클라이언트가 SYN을 보내면 서버가 SYN-ACK으로 응답하고, 클라이언트가 다시 ACK을 보내 연결이 수립됩니다(3-way Handshake)."
     },
     {
+      "id": "network.tcp-ip.quiz2",
       "displayOrder": 2,
       "prompt": "TCP 연결 종료가 4단계(4-way)인 이유는?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "TCP는 양방향 연결이라 클라이언트와 서버가 각자 FIN을 보내고 상대의 ACK을 받아야 완전히 종료되므로 총 4단계가 필요합니다."
     },
     {
+      "id": "network.tcp-ip.quiz3",
       "displayOrder": 3,
       "prompt": "TCP가 UDP보다 신뢰성이 높은 이유로 가장 적절한 것은?",
       "options": [

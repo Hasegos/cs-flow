@@ -11,12 +11,15 @@
     "음수가중치",
     "최단경로"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "algo/11-20/2d/bellman-ford",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "algo.bellman-ford.quiz1",
       "displayOrder": 1,
       "prompt": "벨만-포드 알고리즘이 다익스트라 알고리즘과 달리 처리할 수 있는 것은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "다익스트라는 가중치가 모두 0 이상이라는 가정 아래 정점의 거리를 한 번 확정합니다. 벨만-포드는 모든 간선을 반복 완화해 음수 가중치가 있어도 최단 경로를 구할 수 있습니다."
     },
     {
+      "id": "algo.bellman-ford.quiz2",
       "displayOrder": 2,
       "prompt": "벨만-포드 알고리즘의 시간 복잡도는? (V: 정점 수, E: 간선 수)",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "간선 E개를 모두 확인하는 과정을 V-1번 반복하므로 O(VE)입니다. 다익스트라보다 느리지만 음수 간선을 처리할 수 있습니다."
     },
     {
+      "id": "algo.bellman-ford.quiz3",
       "displayOrder": 3,
       "prompt": "벨만-포드로 음수 사이클을 탐지하는 방법은?",
       "options": [

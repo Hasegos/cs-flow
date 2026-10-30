@@ -11,12 +11,15 @@
     "구간합",
     "트리"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "ds/11-20/2d/fenwick-tree",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "ds.fenwick-tree.quiz1",
       "displayOrder": 1,
       "prompt": "펜윅 트리(BIT)에서 인덱스 i가 담당하는 구간의 길이를 결정하는 값은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "펜윅 트리의 i번째 칸은 i의 최하위 1비트(lowbit = i & -i)만큼의 길이를 담당합니다. 예를 들어 i=12(1100)의 lowbit는 4이므로 원소 9~12를 합쳐서 저장합니다."
     },
     {
+      "id": "ds.fenwick-tree.quiz2",
       "displayOrder": 2,
       "prompt": "펜윅 트리에서 1부터 i까지의 구간 합을 구하는 시간 복잡도는?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "구간 합 쿼리는 i에서 시작해 lowbit를 반복해서 빼며 이동하므로 최대 log n번 반복합니다. 값 갱신도 lowbit를 더하며 올라가므로 O(log n)입니다."
     },
     {
+      "id": "ds.fenwick-tree.quiz3",
       "displayOrder": 3,
       "prompt": "펜윅 트리가 세그먼트 트리보다 유리한 점은?",
       "options": [

@@ -11,12 +11,15 @@
     "디스크",
     "스케줄링"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "os/1-10/2d/disk-scheduling",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "os.disk-scheduling.quiz1",
       "displayOrder": 1,
       "prompt": "FCFS 디스크 스케줄링의 단점은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "FCFS는 디스크 요청을 들어온 순서대로 처리해 헤드가 불필요하게 왔다갔다 하며 이동 거리가 길어질 수 있습니다."
     },
     {
+      "id": "os.disk-scheduling.quiz2",
       "displayOrder": 2,
       "prompt": "SSTF(Shortest Seek Time First)의 방식은?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "SSTF는 현재 헤드 위치에서 가장 가까운 트랙 요청을 먼저 처리해 평균 탐색 시간을 줄이지만, 특정 요청이 계속 밀리는 기아(starvation) 문제가 생길 수 있습니다."
     },
     {
+      "id": "os.disk-scheduling.quiz3",
       "displayOrder": 3,
       "prompt": "SCAN(엘리베이터) 알고리즘과 C-SCAN의 차이는?",
       "options": [

@@ -11,12 +11,15 @@
     "버퍼",
     "큐"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "ds/11-20/2d/circular-buffer",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "ds.circular-buffer.quiz1",
       "displayOrder": 1,
       "prompt": "원형 버퍼에서 head 또는 tail 인덱스를 한 칸 앞으로 옮길 때 쓰는 계산은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "인덱스를 1 증가시킨 뒤 용량으로 나눈 나머지를 취하면, 배열 끝에 도달했을 때 다시 0으로 돌아와 원형으로 순환하게 됩니다."
     },
     {
+      "id": "ds.circular-buffer.quiz2",
       "displayOrder": 2,
       "prompt": "원형 버퍼에서 head == tail 일 때 비어 있는지 가득 찼는지 구분하는 흔한 방법은?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "head와 tail이 같을 때 비어 있음과 가득 참이 모호해지므로, 한 칸을 비워 두는 규칙을 쓰거나 원소 개수(size)를 따로 관리해 구분합니다."
     },
     {
+      "id": "ds.circular-buffer.quiz3",
       "displayOrder": 3,
       "prompt": "원형 버퍼를 큐로 사용할 때의 장점은?",
       "options": [

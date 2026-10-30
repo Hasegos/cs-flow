@@ -11,12 +11,15 @@
     "쿼리",
     "실행 계획"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "db/1-10/2d/query-plan",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "db.query-plan.quiz1",
       "displayOrder": 1,
       "prompt": "PostgreSQL의 EXPLAIN이 보여주는 것은 무엇입니까?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "PostgreSQL의 EXPLAIN은 옵티마이저가 선택한 노드(Seq Scan, Index Scan, Bitmap Heap Scan 등)와 예상 비용(cost), 예상 행 수(rows)를 보여줍니다."
     },
     {
+      "id": "db.query-plan.quiz2",
       "displayOrder": 2,
       "prompt": "선택도(Selectivity)가 낮다는 것은 어떤 의미입니까?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "선택도 = 조건에 맞는 행 수 / 전체 행 수. 값이 작을수록(희귀할수록) Index Scan이 유리해집니다. 반대로 선택도가 높으면(흔한 값) Seq Scan이 더 쌀 수 있습니다."
     },
     {
+      "id": "db.query-plan.quiz3",
       "displayOrder": 3,
       "prompt": "PostgreSQL EXPLAIN 결과에서 Seq Scan이 나타나는 경우로 가장 적절한 것은?",
       "options": [
@@ -56,6 +61,7 @@
       "explanation": "Seq Scan은 \"인덱스가 없다\"는 뜻이 아닙니다. 인덱스가 있어도 조건에 맞는 행 비율(선택도)이 높으면, 여기저기 흩어진 행을 인덱스로 찾아가는 것보다 테이블을 처음부터 순서대로 읽는 게 더 빠르다고 옵티마이저가 판단한 것입니다."
     },
     {
+      "id": "db.query-plan.quiz4",
       "displayOrder": 4,
       "prompt": "PostgreSQL에서 옵티마이저 판단이 의심될 때, 통계를 최신 상태로 갱신하는 방법은?",
       "options": [

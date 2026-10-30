@@ -11,12 +11,15 @@
     "탐색 트리",
     "이진 탐색"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "ds/1-10/2d/bst",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "ds.bst.quiz1",
       "displayOrder": 1,
       "prompt": "이진 탐색 트리(BST)의 핵심 규칙은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "BST는 왼쪽 서브트리의 모든 노드가 루트보다 작고 오른쪽 서브트리는 모두 커야 한다는 규칙 덕분에, 매번 절반씩 범위를 좁혀가며 탐색할 수 있습니다."
     },
     {
+      "id": "ds.bst.quiz2",
       "displayOrder": 2,
       "prompt": "BST가 한쪽으로 치우쳐 삽입되면 어떤 문제가 생기나요?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "정렬된 데이터를 순서대로 삽입하는 등 한쪽으로 치우치면 트리가 사실상 연결 리스트가 되어, 탐색 시간이 O(log n)이 아닌 O(n)으로 나빠집니다."
     },
     {
+      "id": "ds.bst.quiz3",
       "displayOrder": 3,
       "prompt": "BST에서 삭제하려는 노드가 자식을 2개 가진 경우 일반적인 처리 방법은?",
       "options": [

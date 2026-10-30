@@ -11,12 +11,15 @@
     "구간쿼리",
     "트리"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "ds/11-20/2d/segment-tree",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "ds.segment-tree.quiz1",
       "displayOrder": 1,
       "prompt": "세그먼트 트리에서 구간 쿼리와 값 갱신의 시간 복잡도는?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "세그먼트 트리는 구간을 절반씩 나눈 이진 트리 구조라 높이가 log n입니다. 쿼리와 갱신 모두 루트에서 리프까지의 경로 수준으로 처리해 O(log n)이 걸립니다."
     },
     {
+      "id": "ds.segment-tree.quiz2",
       "displayOrder": 2,
       "prompt": "세그먼트 트리의 각 노드가 저장하는 것은?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "각 노드는 자신이 담당하는 구간의 집계 결과(합, 최솟값, 최댓값 등)를 저장합니다. 부모 노드의 값은 두 자식의 값을 합쳐서 만듭니다."
     },
     {
+      "id": "ds.segment-tree.quiz3",
       "displayOrder": 3,
       "prompt": "배열 크기가 n일 때 세그먼트 트리를 배열로 구현하려면 보통 필요한 크기는?",
       "options": [

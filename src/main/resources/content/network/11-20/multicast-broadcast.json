@@ -11,12 +11,15 @@
     "브로드캐스트",
     "멀티캐스트"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "network/11-20/2d/multicast-broadcast",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "network.multicast-broadcast.quiz1",
       "displayOrder": 1,
       "prompt": "유니캐스트(Unicast)란?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "유니캐스트는 송신자와 수신자가 1:1로 통신하는 방식입니다. 웹 서핑 같은 일반적인 인터넷 통신 대부분이 유니캐스트입니다."
     },
     {
+      "id": "network.multicast-broadcast.quiz2",
       "displayOrder": 2,
       "prompt": "브로드캐스트(Broadcast)란?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "IPv4에서 브로드캐스트는 같은 브로드캐스트 도메인 안의 모든 호스트에게 전송하는 방식입니다. 라우터는 브로드캐스트를 넘기지 않으므로 인터넷 전체로 퍼지지 않습니다. IPv6에는 브로드캐스트가 없고 멀티캐스트가 그 역할을 맡습니다."
     },
     {
+      "id": "network.multicast-broadcast.quiz3",
       "displayOrder": 3,
       "prompt": "멀티캐스트(Multicast)에 대한 설명으로 옳은 것은?",
       "options": [

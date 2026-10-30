@@ -14,9 +14,11 @@ import java.util.List;
  * @param published       발행 여부
  * @param order           과목 안 순서 (1부터, 이전 · 다음 토픽과 목록 기본 정렬 기준)
  * @param tags            태그 목록
+ * @param roles           관련 직무 목록 (면접 대비 코스용, 지금은 비어 있어도 된다)
+ * @param exams           관련 시험 목록 (지금은 비어 있어도 된다)
  * @param visual          시각화 정보(키, 3D 여부), 없으면 null
- * @param interview       면접 질문 목록 (4단계에서 채움, 없으면 null이나 빈 목록)
  * @param quizzes         퀴즈 문항 목록
+ * @param interview       면접 질문 목록 (4단계에서 채움, 없으면 null이나 빈 목록)
  */
 public record ContentTopic(
         String subject,
@@ -27,6 +29,8 @@ public record ContentTopic(
         Boolean published,
         Integer order,
         List<String> tags,
+        List<String> roles,
+        List<String> exams,
         ContentVisual visual,
         List<ContentQuiz> quizzes,
         List<ContentInterview> interview

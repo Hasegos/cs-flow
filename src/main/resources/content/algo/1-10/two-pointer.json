@@ -11,12 +11,15 @@
     "투 포인터",
     "슬라이딩 윈도우"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "algo/1-10/2d/two-pointer",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "algo.two-pointer.quiz1",
       "displayOrder": 1,
       "prompt": "정렬된 배열에서 두 수의 합을 찾는 투 포인터 기법의 동작은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "정렬된 배열에서는 양 끝 포인터의 합을 목표값과 비교해, 합이 크면 오른쪽(큰 값) 포인터를 안쪽으로, 작으면 왼쪽(작은 값) 포인터를 안쪽으로 옮기며 O(n)에 답을 찾을 수 있습니다."
     },
     {
+      "id": "algo.two-pointer.quiz2",
       "displayOrder": 2,
       "prompt": "슬라이딩 윈도우(Sliding Window)가 최소 길이 부분배열 문제에 쓰이는 방식은?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "슬라이딩 윈도우는 오른쪽 끝을 늘려가며 조건을 만족시키고, 만족하는 동안 왼쪽 끝을 줄여가며 더 짧은 윈도우가 가능한지 확인해 최소 길이를 찾습니다."
     },
     {
+      "id": "algo.two-pointer.quiz3",
       "displayOrder": 3,
       "prompt": "투 포인터 기법이 정렬되지 않은 배열에서 그대로 적용되지 않는 이유는?",
       "options": [

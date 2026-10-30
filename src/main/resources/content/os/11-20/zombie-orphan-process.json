@@ -11,12 +11,15 @@
     "좀비",
     "프로세스"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "os/11-20/2d/zombie-orphan-process",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "os.zombie-orphan-process.quiz1",
       "displayOrder": 1,
       "prompt": "좀비 프로세스(Zombie Process)란?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "자식 프로세스가 종료돼도 부모가 wait() 등으로 종료 상태를 읽어 가기 전까지 커널은 그 정보를 프로세스 테이블에 남겨둡니다. 이 상태의 프로세스가 좀비입니다."
     },
     {
+      "id": "os.zombie-orphan-process.quiz2",
       "displayOrder": 2,
       "prompt": "좀비 프로세스가 사라지게 하는 방법은?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "좀비는 이미 종료된 상태라 kill로 없앨 수 없습니다. 부모가 wait()/waitpid()로 종료 상태를 회수하면 정리되고, 부모가 종료되면 init(PID 1)이 자식들을 입양해 회수합니다."
     },
     {
+      "id": "os.zombie-orphan-process.quiz3",
       "displayOrder": 3,
       "prompt": "고아 프로세스(Orphan Process)가 생긴 뒤 운영체제가 처리하는 방식은?",
       "options": [

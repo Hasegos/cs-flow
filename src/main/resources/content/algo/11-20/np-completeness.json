@@ -11,12 +11,15 @@
     "복잡도",
     "NP"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "algo/11-20/2d/np-completeness",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "algo.np-completeness.quiz1",
       "displayOrder": 1,
       "prompt": "NP(Nondeterministic Polynomial) 문제의 정의는?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "NP는 어떤 답이 주어졌을 때 그 답이 정답인지 다항 시간 안에 확인할 수 있는 결정 문제들의 집합입니다. 답을 찾는 것이 어렵더라도 검증이 쉬우면 NP에 속합니다."
     },
     {
+      "id": "algo.np-completeness.quiz2",
       "displayOrder": 2,
       "prompt": "NP-완전(NP-Complete) 문제란?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "NP-완전 문제는 NP에 속하면서, 모든 NP 문제가 다항 시간 환원으로 이 문제로 바뀔 수 있는 문제입니다. SAT, 외판원 문제의 결정 버전 등이 대표적입니다."
     },
     {
+      "id": "algo.np-completeness.quiz3",
       "displayOrder": 3,
       "prompt": "어떤 NP-완전 문제 하나를 다항 시간에 풀 수 있음이 증명된다면 의미하는 것은?",
       "options": [

@@ -11,12 +11,15 @@
     "스케줄링",
     "컨텍스트스위칭"
   ],
+  "roles": [],
+  "exams": [],
   "visual": {
     "key": "os/11-20/2d/context-switching",
     "has3d": false
   },
   "quizzes": [
     {
+      "id": "os.context-switching.quiz1",
       "displayOrder": 1,
       "prompt": "컨텍스트 스위칭 때 운영체제가 저장하고 복원하는 것은?",
       "options": [
@@ -30,6 +33,7 @@
       "explanation": "컨텍스트 스위칭은 실행 중이던 작업의 레지스터·프로그램 카운터 등 실행 상태를 PCB(스레드는 TCB)에 저장하고, 다음에 실행할 작업의 상태를 복원해 CPU가 그 작업을 이어서 실행하게 하는 과정입니다."
     },
     {
+      "id": "os.context-switching.quiz2",
       "displayOrder": 2,
       "prompt": "컨텍스트 스위칭이 성능 오버헤드가 되는 이유는?",
       "options": [
@@ -43,6 +47,7 @@
       "explanation": "전환 작업 자체는 사용자에게 유용한 일이 아니고, 전환 후에는 이전 작업 위주로 채워졌던 캐시와 TLB의 효율이 떨어져 한동안 성능이 낮아집니다."
     },
     {
+      "id": "os.context-switching.quiz3",
       "displayOrder": 3,
       "prompt": "같은 프로세스 안의 스레드 간 전환이 서로 다른 프로세스 간 전환보다 보통 가벼운 이유는?",
       "options": [
