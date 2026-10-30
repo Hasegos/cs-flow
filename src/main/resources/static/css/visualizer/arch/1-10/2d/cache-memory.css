@@ -143,3 +143,7 @@
   cursor: not-allowed;
   pointer-events: none;
 }
+
+.cache-viz--hidden {
+  display: none;
+}
