@@ -10,7 +10,7 @@ import java.util.Optional;
  */
 public interface TopicLikeRepository extends JpaRepository<TopicLike, Long> {
 
-    Optional<TopicLike> findByTopic_TopicIdAndVisitorId(Long topicId, String visitorId);
+    Optional<TopicLike> findByTopicSlugAndVisitorId(String topicSlug, String visitorId);
 
-    long countByTopic_TopicId(Long topicId);
+    long countByTopicSlug(String topicSlug);
 }

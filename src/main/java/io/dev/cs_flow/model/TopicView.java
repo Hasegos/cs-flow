@@ -26,9 +26,8 @@ public class TopicView {
     @Column(name = "id")
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "topic_id", nullable = false)
-    private Topic topic;
+    @Column(name = "topic_slug", nullable = false, length = 100)
+    private String topicSlug;
 
     @Column(name = "visitor_id", nullable = false, length = 36)
     private String visitorId;

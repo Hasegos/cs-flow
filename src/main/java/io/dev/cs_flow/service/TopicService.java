@@ -6,10 +6,9 @@ import io.dev.cs_flow.dto.TagCount;
 import io.dev.cs_flow.dto.TopicIndexItem;
 import io.dev.cs_flow.dto.TopicInfo;
 import io.dev.cs_flow.dto.TopicSearchCondition;
-import io.dev.cs_flow.dto.TopicStat;
 import io.dev.cs_flow.dto.TopicTagView;
-import io.dev.cs_flow.model.Topic;
-import io.dev.cs_flow.repository.TopicRepository;
+import io.dev.cs_flow.model.TopicStat;
+import io.dev.cs_flow.repository.TopicStatRepository;
 import io.dev.cs_flow.repository.TopicViewRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,7 +34,7 @@ import java.util.stream.Collectors;
  * 토픽 관련 비즈니스 로직을 처리하는 서비스.
  * <p>
  * 토픽 내용(제목, 태그, 순서 등)은 콘텐츠 JSON({@link ContentStore})에서 읽고,
- * 조회수 · 추천수는 DB {@code topic} 테이블에서 slug로 읽어 합친다.
+ * 조회수 · 추천수는 DB {@code topic_stat} 테이블에서 slug로 읽어 합친다.
  * 과목 slug 기반 토픽 목록(검색어 · 태그 필터 포함), 단건 조회, 태그 기반 연관 토픽,
  * 과목별 태그 집계, JSON-LD 생성, 내 학습용 토픽 목록, 조회 기록 기능을 제공한다.
  * </p>
@@ -46,7 +45,7 @@ import java.util.stream.Collectors;
 public class TopicService {
 
     private final ContentStore contentStore;
-    private final TopicRepository topicRepository;
+    private final TopicStatRepository topicStatRepository;
     private final TopicViewRepository topicViewRepository;
     private final ObjectMapper objectMapper;
 
@@ -134,7 +133,7 @@ public class TopicService {
         log.info("토픽 목록 조회 - subjectSlug: {}, condition: {}, page: {}, size: {}, sort: {}",
                 subjectSlug, condition, page, size, sort);
         Map<String, TopicStat> stats = new HashMap<>();
-        topicRepository.findAllStats().forEach(s -> stats.put(s.slug(), s));
+        topicStatRepository.findAll().forEach(s -> stats.put(s.getSlug(), s));
 
         String query = SearchPatterns.normalizeQuery(condition.query());
         List<TopicInfo> matched = (subjectSlug == null ? contentStore.topics() : contentStore.topicsOf(subjectSlug))
@@ -145,7 +144,7 @@ public class TopicService {
                         || t.tags().stream().anyMatch(tag -> SearchPatterns.contains(tag.tag(), query)))
                 .map(t -> {
                     TopicStat s = stats.get(t.slug());
-                    return s == null ? t : t.withCounts(s.viewCount(), s.likeCount());
+                    return s == null ? t : t.withCounts(s.getViewCount(), s.getLikeCount());
                 })
                 .sorted(comparator(sort, stats))
                 .toList();
@@ -164,12 +163,12 @@ public class TopicService {
         Comparator<LocalDateTime> nullsLast = Comparator.nullsLast(Comparator.naturalOrder());
         if ("view".equals(sort)) {
             return Comparator.comparingLong(TopicInfo::viewCount).reversed()
-                    .thenComparing(t -> stats.containsKey(t.slug()) ? stats.get(t.slug()).viewCountUpdatedAt() : null, nullsLast)
+                    .thenComparing(t -> stats.containsKey(t.slug()) ? stats.get(t.slug()).getViewCountUpdatedAt() : null, nullsLast)
                     .thenComparing(bySeq);
         }
         if ("like".equals(sort)) {
             return Comparator.comparingLong(TopicInfo::likeCount).reversed()
-                    .thenComparing(t -> stats.containsKey(t.slug()) ? stats.get(t.slug()).likeCountUpdatedAt() : null, nullsLast)
+                    .thenComparing(t -> stats.containsKey(t.slug()) ? stats.get(t.slug()).getLikeCountUpdatedAt() : null, nullsLast)
                     .thenComparing(bySeq);
         }
         return bySeq;
@@ -236,29 +235,17 @@ public class TopicService {
     }
 
     /**
-     * 토픽 slug로 조회수 · 추천수를 저장하는 DB 토픽 행의 ID를 찾는다.
-     *
-     * @param slug 토픽 영문 식별자
-     * @return DB 토픽 ID, 행이 없으면 null (조회 · 추천 기록은 건너뛴다)
-     */
-    @Cacheable(value = "topicIds", key = "#slug")
-    @Transactional(readOnly = true)
-    public Long getTopicId(String slug){
-        return topicRepository.findBySlugAndIsPublishedTrue(slug).map(Topic::getTopicId).orElse(null);
-    }
-
-    /**
      * 토픽 조회를 기록한다. 같은 방문자가 오늘 이미 조회했으면 무시한다.
      *
-     * @param topicId   DB 토픽 ID
+     * @param topicSlug 토픽 영문 식별자
      * @param visitorId 익명 방문자 식별자
      */
     @Transactional
-    public void recordView(Long topicId, String visitorId){
-        int inserted = topicViewRepository.recordViewIfNew(topicId, visitorId);
+    public void recordView(String topicSlug, String visitorId){
+        int inserted = topicViewRepository.recordViewIfNew(topicSlug, visitorId);
         if (inserted > 0) {
-            topicRepository.incrementViewCount(topicId);
-            log.info("조회수 증가 - topicId: {}", topicId);
+            topicStatRepository.incrementViewCount(topicSlug);
+            log.info("조회수 증가 - topicSlug: {}", topicSlug);
         }
     }
 }

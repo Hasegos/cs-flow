@@ -14,15 +14,15 @@ public interface TopicViewRepository extends JpaRepository<TopicView, Long> {
     /**
      * 오늘 날짜 기준으로 해당 방문자의 조회 기록이 없을 때만 삽입한다.
      *
-     * @param topicId   토픽 ID
+     * @param topicSlug 토픽 영문 식별자
      * @param visitorId 익명 방문자 식별자
      * @return 새로 삽입되었으면 1, 이미 오늘 조회한 기록이 있으면 0
      */
     @Modifying
     @Query(value = """
-            INSERT INTO topic_view (topic_id, visitor_id, viewed_date)
-            VALUES (:topicId, :visitorId, CURRENT_DATE)
-            ON CONFLICT (topic_id, visitor_id, viewed_date) DO NOTHING
+            INSERT INTO topic_view (topic_slug, visitor_id, viewed_date)
+            VALUES (:topicSlug, :visitorId, CURRENT_DATE)
+            ON CONFLICT (topic_slug, visitor_id, viewed_date) DO NOTHING
             """, nativeQuery = true)
-    int recordViewIfNew(@Param("topicId") Long topicId, @Param("visitorId") String visitorId);
+    int recordViewIfNew(@Param("topicSlug") String topicSlug, @Param("visitorId") String visitorId);
 }
