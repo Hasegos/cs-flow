@@ -798,11 +798,13 @@
             stage.appendChild(fail);
             const touch = window.matchMedia('(pointer: coarse)').matches;
             const hint = mk('span', B + 'hint', touch ? HINT.touch : HINT.mouse);
-            root.appendChild(stage);
+            const view = mk('div', B + 'view');
+            view.appendChild(stage);
+            root.appendChild(view);
 
             const log = mk('div', B + 'caption');
             log.setAttribute('aria-live', 'polite');
-            stage.appendChild(log);
+            view.appendChild(log);
 
             const controls = mk('div', B + 'controls');
             const prev = iconButton(B + 'btn ' + B + 'btn--icon', '이전 장면', ICON.prev, false);
