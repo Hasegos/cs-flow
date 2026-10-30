@@ -13,6 +13,7 @@ public class PolicyController {
     /**
      * 사이트 소개 및 문의 페이지를 반환한다.
      *
+     * @param model 뷰에 전달할 데이터 모델
      * @return {@code about/about} 뷰 이름
      */
     @GetMapping("/about")
@@ -24,6 +25,7 @@ public class PolicyController {
     /**
      * 개인정보처리방침 페이지를 반환한다.
      *
+     * @param model 뷰에 전달할 데이터 모델
      * @return {@code privacy/privacy} 뷰 이름
      */
     @GetMapping("/privacy")
@@ -35,6 +37,7 @@ public class PolicyController {
     /**
      * 이용약관 페이지를 반환한다.
      *
+     * @param model 뷰에 전달할 데이터 모델
      * @return {@code terms/terms} 뷰 이름
      */
     @GetMapping("/terms")

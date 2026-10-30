@@ -18,6 +18,9 @@ public final class BreadcrumbLd {
     private static final ObjectMapper MAPPER = JsonMapper.builder().build();
     private static final String HOME_URL = "https://csflow.kr/";
 
+    /**
+     * 인스턴스 생성을 막는다.
+     */
     private BreadcrumbLd() {
     }
 

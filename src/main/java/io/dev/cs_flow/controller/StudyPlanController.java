@@ -109,15 +109,32 @@ public class StudyPlanController {
         }
     }
 
+    /**
+     * 200 응답을 캐시하지 않도록 {@code Cache-Control: no-store}를 붙인 빌더를 만든다.
+     *
+     * @return 응답 빌더
+     */
     private ResponseEntity.BodyBuilder noStore() {
         return ResponseEntity.ok().cacheControl(CacheControl.noStore());
     }
 
+    /**
+     * 404 응답을 만들고 경고 로그를 남긴다.
+     *
+     * @param e 계획을 찾지 못한 예외
+     * @return 본문 없는 404 응답
+     */
     private ResponseEntity<?> notFound(NotFoundException e) {
         log.warn("[404] 면접 계획: {}", e.getMessage());
         return ResponseEntity.notFound().build();
     }
 
+    /**
+     * 400 응답을 만들고 경고 로그를 남긴다.
+     *
+     * @param e 입력 오류 예외
+     * @return 오류 메시지를 담은 400 응답
+     */
     private ResponseEntity<?> badRequest(IllegalArgumentException e) {
         log.warn("[400] 면접 계획: {}", e.getMessage());
         return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));

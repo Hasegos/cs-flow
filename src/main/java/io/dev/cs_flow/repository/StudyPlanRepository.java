@@ -1,6 +1,6 @@
 package io.dev.cs_flow.repository;
 
-import io.dev.cs_flow.model.PlanStatus;
+import io.dev.cs_flow.model.enums.PlanStatus;
 import io.dev.cs_flow.model.StudyPlan;
 import org.springframework.data.jpa.repository.JpaRepository;
 

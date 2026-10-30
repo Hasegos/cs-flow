@@ -9,6 +9,9 @@ public final class OgImages {
 
     private static final String SITE_URL = "https://csflow.kr";
 
+    /**
+     * 인스턴스 생성을 막는다.
+     */
     private OgImages() {
     }
 

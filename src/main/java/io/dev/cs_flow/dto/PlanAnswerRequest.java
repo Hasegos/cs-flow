@@ -1,6 +1,6 @@
 package io.dev.cs_flow.dto;
 
-import io.dev.cs_flow.model.SelfRating;
+import io.dev.cs_flow.model.enums.SelfRating;
 
 /**
  * 오늘 출제된 질문에 대한 답변 기록 요청 본문.

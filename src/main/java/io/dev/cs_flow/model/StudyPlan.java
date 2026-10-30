@@ -1,5 +1,8 @@
 package io.dev.cs_flow.model;
 
+import io.dev.cs_flow.model.enums.PlanRole;
+import io.dev.cs_flow.model.enums.PlanStatus;
+import io.dev.cs_flow.model.enums.PlanType;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -67,6 +70,20 @@ public class StudyPlan {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    /**
+     * 진행 중 상태의 계획을 만든다.
+     *
+     * @param publicToken  계획 공개 토큰
+     * @param type         계획 종류
+     * @param role         직무
+     * @param startDate    시작일
+     * @param targetDate   면접일
+     * @param restWeekdays 쉬는 요일(쉼표로 구분한 요일 이름)
+     * @param dailyMinutes 하루 학습 시간(분)
+     * @param seed         문항 선택 순서를 정하는 값
+     * @param visitorId    익명 방문자 식별자
+     * @param now          생성 시각
+     */
     public StudyPlan(String publicToken, PlanType type, PlanRole role, LocalDate startDate, LocalDate targetDate,
                      String restWeekdays, int dailyMinutes, long seed, String visitorId, LocalDateTime now) {
         this.publicToken = publicToken;

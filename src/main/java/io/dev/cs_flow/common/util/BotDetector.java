@@ -16,6 +16,9 @@ public final class BotDetector {
             "headless", "lighthouse", "monitor", "uptime", "preview", "facebookexternalhit"
     );
 
+    /**
+     * 인스턴스 생성을 막는다.
+     */
     private BotDetector() {
     }
 

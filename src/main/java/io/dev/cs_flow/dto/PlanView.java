@@ -1,7 +1,7 @@
 package io.dev.cs_flow.dto;
 
-import io.dev.cs_flow.model.PlanRole;
-import io.dev.cs_flow.model.PlanStatus;
+import io.dev.cs_flow.model.enums.PlanRole;
+import io.dev.cs_flow.model.enums.PlanStatus;
 import io.dev.cs_flow.service.PlanEngine;
 
 import java.time.DayOfWeek;

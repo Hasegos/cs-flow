@@ -103,6 +103,11 @@ public class ContentStore {
         log.info("콘텐츠 저장소 준비 - 과목 {}, 토픽 {}, 에러 {}", subjects.size(), topics.size(), errorEntries.size());
     }
 
+    /**
+     * 토픽의 퀴즈를 화면용 문항과 정답 색인으로 나눠 담는다.
+     *
+     * @param t 토픽
+     */
     private void indexQuizzes(ContentTopic t) {
         List<QuizQuestionView> views = new ArrayList<>();
         for (ContentQuiz q : t.quizzes()) {
@@ -113,6 +118,11 @@ public class ContentStore {
         quizzesByTopic.put(t.slug(), List.copyOf(views));
     }
 
+    /**
+     * 토픽의 면접 질문을 화면용 목록, 질문 ID별 내용, 면접 계획 출제 후보로 나눠 담는다.
+     *
+     * @param t 토픽
+     */
     private void indexInterviews(ContentTopic t) {
         List<InterviewQuestionView> views = new ArrayList<>();
         if (t.interview() != null) {
@@ -130,6 +140,8 @@ public class ContentStore {
 
     /**
      * 공개된 과목 목록을 과목 순서대로 돌려준다.
+     *
+     * @return 공개된 과목 목록
      */
     public List<SubjectView> subjects() {
         return subjects;
@@ -137,6 +149,9 @@ public class ContentStore {
 
     /**
      * slug로 공개된 과목을 찾는다.
+     *
+     * @param slug 과목 영문 식별자
+     * @return 과목, 없거나 비공개면 비어 있다
      */
     public Optional<SubjectView> subject(String slug) {
         return Optional.ofNullable(subjectBySlug.get(slug));
@@ -144,6 +159,8 @@ public class ContentStore {
 
     /**
      * 보이는 모든 토픽을 전체 순서(seq)대로 돌려준다.
+     *
+     * @return 보이는 토픽 목록
      */
     public List<TopicInfo> topics() {
         return topics;
@@ -151,6 +168,9 @@ public class ContentStore {
 
     /**
      * 과목에 속한 토픽을 과목 안 순서대로 돌려준다.
+     *
+     * @param subjectSlug 과목 영문 식별자
+     * @return 과목 안 순서대로 정렬한 토픽 목록, 없으면 빈 리스트
      */
     public List<TopicInfo> topicsOf(String subjectSlug) {
         return topicsBySubject.getOrDefault(subjectSlug, List.of());
@@ -158,6 +178,9 @@ public class ContentStore {
 
     /**
      * 토픽 slug(전역 유일)로 보이는 토픽을 찾는다.
+     *
+     * @param topicSlug 토픽 영문 식별자
+     * @return 토픽, 없거나 비공개면 비어 있다
      */
     public Optional<TopicInfo> topic(String topicSlug) {
         return Optional.ofNullable(topicBySlug.get(topicSlug));
@@ -165,6 +188,10 @@ public class ContentStore {
 
     /**
      * 과목 slug와 토픽 slug로 토픽을 찾는다.
+     *
+     * @param subjectSlug 과목 영문 식별자
+     * @param topicSlug   토픽 영문 식별자
+     * @return 토픽, 없거나 다른 과목의 토픽이면 비어 있다
      */
     public Optional<TopicInfo> topic(String subjectSlug, String topicSlug) {
         TopicInfo info = topicBySlug.get(topicSlug);
@@ -173,13 +200,18 @@ public class ContentStore {
 
     /**
      * 토픽 slug로 면접 질문을 순서대로 돌려준다.
+     *
+     * @param topicSlug 토픽 영문 식별자
+     * @return 면접 질문 목록, 없으면 빈 리스트
      */
     public List<InterviewQuestionView> interviews(String topicSlug) {
         return interviewsByTopic.getOrDefault(topicSlug, List.of());
     }
 
     /**
-     * 면접 계획이 출제할 수 있는 모든 면접 질문을 돌려준다. 난이도가 비어 있으면 2, 필수 여부가 비어 있으면 아님으로 본다.
+     * 공개된 토픽의 면접 질문 가운데 면접 계획이 출제할 수 있는 것을 모두 돌려준다. 난이도가 비어 있으면 2, 필수 여부가 비어 있으면 아님으로 본다.
+     *
+     * @return 면접 계획 출제 후보 질문 목록(수정할 수 없다)
      */
     public List<PlanEngine.Question> planQuestions() {
         return Collections.unmodifiableList(planQuestions);
@@ -187,6 +219,9 @@ public class ContentStore {
 
     /**
      * 질문 ID로 면접 질문의 내용을 찾는다. 없으면 비어 있다.
+     *
+     * @param questionId 면접 질문 ID
+     * @return 질문 내용, 없으면 비어 있다
      */
     public Optional<InterviewDetail> interviewDetail(String questionId) {
         return Optional.ofNullable(interviewById.get(questionId));
@@ -194,6 +229,9 @@ public class ContentStore {
 
     /**
      * 토픽 slug로 퀴즈 문항(정답 제외)을 출제 순서대로 돌려준다.
+     *
+     * @param topicSlug 토픽 영문 식별자
+     * @return 퀴즈 문항 목록, 없으면 빈 리스트
      */
     public List<QuizQuestionView> quizzes(String topicSlug) {
         return quizzesByTopic.getOrDefault(topicSlug, List.of());
@@ -201,6 +239,9 @@ public class ContentStore {
 
     /**
      * 문항 ID의 정답 보기(A~D)를 돌려준다. 없는 문항이면 비어 있다.
+     *
+     * @param questionId 퀴즈 문항 ID
+     * @return 정답 보기(A~D), 없으면 비어 있다
      */
     public Optional<String> correctOption(String questionId) {
         return Optional.ofNullable(correctByQuizId.get(questionId));
@@ -208,6 +249,8 @@ public class ContentStore {
 
     /**
      * 보이는 에러 사전 항목을 목록 순서(order)대로 돌려준다.
+     *
+     * @return 에러 사전 항목 목록
      */
     public List<ErrorEntryView> errorEntries() {
         return errorEntries;
@@ -215,6 +258,9 @@ public class ContentStore {
 
     /**
      * slug로 에러 사전 항목을 찾는다.
+     *
+     * @param slug 에러 사전 항목 영문 식별자
+     * @return 에러 사전 항목, 없으면 비어 있다
      */
     public Optional<ErrorEntryView> errorEntry(String slug) {
         return Optional.ofNullable(errorBySlug.get(slug));

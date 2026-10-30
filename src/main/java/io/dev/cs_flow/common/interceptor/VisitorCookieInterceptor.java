@@ -24,6 +24,14 @@ public class VisitorCookieInterceptor implements HandlerInterceptor {
 
     private static final int MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
 
+    /**
+     * 방문자 쿠키를 읽고, 없으면 새로 발급해서 요청 속성에 담는다.
+     *
+     * @param request  현재 HTTP 요청
+     * @param response 현재 HTTP 응답
+     * @param handler  실행될 핸들러
+     * @return 항상 true
+     */
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
         String visitorId = readVisitorCookie(request);
@@ -37,6 +45,12 @@ public class VisitorCookieInterceptor implements HandlerInterceptor {
         return true;
     }
 
+    /**
+     * 요청 쿠키에서 방문자 ID를 읽는다.
+     *
+     * @param request 현재 HTTP 요청
+     * @return 방문자 ID, 쿠키가 없으면 null
+     */
     private String readVisitorCookie(HttpServletRequest request) {
         Cookie[] cookies = request.getCookies();
         if (cookies == null) {
@@ -50,6 +64,12 @@ public class VisitorCookieInterceptor implements HandlerInterceptor {
         return null;
     }
 
+    /**
+     * 방문자 ID를 담은 1년짜리 쿠키를 만든다. HttpOnly, Secure, SameSite=Lax를 적용한다.
+     *
+     * @param visitorId 방문자 ID
+     * @return 방문자 쿠키
+     */
     private Cookie buildVisitorCookie(String visitorId) {
         Cookie cookie = new Cookie(COOKIE_NAME, visitorId);
         cookie.setPath("/");

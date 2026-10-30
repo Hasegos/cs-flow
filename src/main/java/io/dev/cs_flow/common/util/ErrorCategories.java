@@ -22,6 +22,9 @@ public final class ErrorCategories {
             Map.entry("ssh", "SSH")
     );
 
+    /**
+     * 인스턴스 생성을 막는다.
+     */
     private ErrorCategories() {
     }
 

@@ -1,5 +1,7 @@
 package io.dev.cs_flow.model;
 
+import io.dev.cs_flow.model.enums.PlanPhase;
+import io.dev.cs_flow.model.enums.SelfRating;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -54,6 +56,19 @@ public class PlanAnswer {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
+    /**
+     * 답변 기록을 만든다.
+     *
+     * @param planId      계획 ID
+     * @param questionId  질문 ID
+     * @param phase       기록 단계
+     * @param answeredOn   답한 날짜
+     * @param keywordMask 체크한 키워드 비트
+     * @param hitCount     체크한 키워드 수
+     * @param totalCount   질문의 키워드 수
+     * @param selfRating  자기 평가, 없으면 null
+     * @param now          기록 시각
+     */
     public PlanAnswer(Long planId, String questionId, PlanPhase phase, LocalDate answeredOn, int keywordMask,
                       int hitCount, int totalCount, SelfRating selfRating, LocalDateTime now) {
         this.planId = planId;
