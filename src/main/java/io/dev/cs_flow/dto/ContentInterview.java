@@ -3,7 +3,7 @@ package io.dev.cs_flow.dto;
 import java.util.List;
 
 /**
- * 콘텐츠 JSON의 면접 질문 한 건. 토픽 파일의 {@code interview}에 들어간다. 질문과 답변은 토픽 페이지에 보이고, 나머지는 자리만 있다.
+ * 콘텐츠 JSON의 면접 질문 한 건. 토픽 파일의 {@code interview}에 들어간다. 질문과 답변만 채워져 있고 나머지는 자리만 있다.
  *
  * @param id        질문 ID ({과목}.{slug}.q{n})
  * @param question  질문

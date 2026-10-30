@@ -35,7 +35,7 @@ import java.util.regex.Pattern;
  * <p>
  * 파일 구성은 {@code subjects.json}, {@code manifest.json}, {@code {과목}/{묶음}/{토픽slug}.json}, {@code errors/{묶음}/{slug}.json}이다.
  * 문법 오류, 모르는 필드, 필수 값 누락, 중복, 개수 불일치가 하나라도 있으면 {@link IllegalStateException}으로
- * 빈 생성을 실패시켜 앱이 뜨지 않게 한다. 지금은 검증만 하고 읽기 경로는 아직 DB를 쓴다.
+ * 빈 생성을 실패시켜 앱이 뜨지 않게 한다. 읽은 내용은 {@link ContentStore}가 화면용 객체로 만든다.
  * </p>
  */
 @Slf4j
@@ -460,7 +460,7 @@ public class ContentLoader {
     }
 
     /**
-     * 읽은 과목 · 토픽 · 퀴즈 개수가 manifest와 같은지 전체와 과목별로 검증한다.
+     * 읽은 과목 · 토픽 · 퀴즈 · 면접 질문 개수가 manifest와 같은지 전체와 과목별로 검증한다.
      */
     private void validateManifest(ContentManifest m, List<ContentSubject> subjectList, Iterable<ContentTopic> topicList,
                                   int errorCount) {
