@@ -4,29 +4,40 @@ import io.dev.cs_flow.common.exception.NotFoundException;
 import io.dev.cs_flow.common.util.SearchPatterns;
 import io.dev.cs_flow.dto.TagCount;
 import io.dev.cs_flow.dto.TopicIndexItem;
+import io.dev.cs_flow.dto.TopicInfo;
 import io.dev.cs_flow.dto.TopicSearchCondition;
+import io.dev.cs_flow.dto.TopicStat;
+import io.dev.cs_flow.dto.TopicTagView;
 import io.dev.cs_flow.model.Topic;
 import io.dev.cs_flow.repository.TopicRepository;
-import io.dev.cs_flow.repository.TopicTagRepository;
 import io.dev.cs_flow.repository.TopicViewRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.data.domain.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
 
+import java.time.LocalDateTime;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
- * 토픽(Topic) 관련 비즈니스 로직을 처리하는 서비스.
+ * 토픽 관련 비즈니스 로직을 처리하는 서비스.
  * <p>
- * 과목 slug 기반 토픽 목록 조회(검색어·태그 필터 포함), 토픽 단건 조회,
- * 태그 기반 연관 토픽 조회, 과목별 태그 집계, 토픽 JSON-LD 생성, 내 학습 페이지용 토픽 목록 기능을 제공한다.
+ * 토픽 내용(제목, 태그, 순서 등)은 콘텐츠 JSON({@link ContentStore})에서 읽고,
+ * 조회수 · 추천수는 DB {@code topic} 테이블에서 slug로 읽어 합친다.
+ * 과목 slug 기반 토픽 목록(검색어 · 태그 필터 포함), 단건 조회, 태그 기반 연관 토픽,
+ * 과목별 태그 집계, JSON-LD 생성, 내 학습용 토픽 목록, 조회 기록 기능을 제공한다.
  * </p>
  */
 @Slf4j
@@ -34,9 +45,9 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class TopicService {
 
+    private final ContentStore contentStore;
     private final TopicRepository topicRepository;
     private final TopicViewRepository topicViewRepository;
-    private final TopicTagRepository topicTagRepository;
     private final ObjectMapper objectMapper;
 
     /**
@@ -47,66 +58,68 @@ public class TopicService {
      * @return 공개된 토픽
      * @throws NotFoundException 해당 slug의 공개된 토픽이 없을 경우
      */
-    @Cacheable(value = "topic", key = "#subjectSlug + ':' + #topicSlug")
-    @Transactional(readOnly = true)
-    public Topic getPublishedTopic(String subjectSlug, String topicSlug){
+    public TopicInfo getPublishedTopic(String subjectSlug, String topicSlug){
         log.info("토픽 단건 조회 - subjectSlug: {}, topicSlug: {}", subjectSlug, topicSlug);
-        return topicRepository.findPublishedTopic(subjectSlug, topicSlug)
+        return contentStore.topic(subjectSlug, topicSlug)
                 .orElseThrow(() -> new NotFoundException(
                         "존재하지않는 토픽입니다. subjectSlug: " + subjectSlug + ", topicSlug: " + topicSlug
                 ));
     }
 
     /**
-     * 특정 토픽과 동일한 태그를 가진 연관 토픽 목록을 조회한다.
+     * 특정 토픽과 태그가 하나라도 겹치는 연관 토픽 목록을 전체 순서대로 조회한다. 본인은 제외한다.
      *
-     * @param topicId 기준 토픽 ID
+     * @param topic 기준 토픽
      * @return 연관 토픽 목록, 없으면 빈 리스트 반환
      */
-    @Cacheable(value = "relatedTopics", key = "#topicId")
-    @Transactional(readOnly = true)
-    public List<Topic> getRelatedTopics(Long topicId){
-        log.info("연관 토픽 목록 조회 - topicId: {}", topicId);
-        return topicRepository.findRelatedTopic(topicId);
+    public List<TopicInfo> getRelatedTopics(TopicInfo topic){
+        Set<String> tags = topic.tags().stream().map(TopicTagView::tag).collect(Collectors.toSet());
+        return contentStore.topics().stream()
+                .filter(t -> !t.slug().equals(topic.slug()))
+                .filter(t -> t.tags().stream().anyMatch(tag -> tags.contains(tag.tag())))
+                .toList();
     }
 
     /**
      * 같은 과목에서 현재 토픽 다음 순서의 공개 토픽을 조회한다.
      *
-     * @param subjectSlug 과목 영문 식별자
-     * @param topicId     현재 토픽 ID
+     * @param topic 현재 토픽
      * @return 다음 토픽, 과목의 마지막 토픽이면 null
      */
-    @Cacheable(value = "nextTopic", key = "#subjectSlug + ':' + #topicId")
-    @Transactional(readOnly = true)
-    public TopicIndexItem getNextTopic(String subjectSlug, Long topicId){
-        log.info("다음 토픽 조회 - subjectSlug: {}, topicId: {}", subjectSlug, topicId);
-        return topicRepository.findNextPublished(subjectSlug, topicId, PageRequest.of(0, 1))
-                .stream().findFirst().orElse(null);
+    public TopicIndexItem getNextTopic(TopicInfo topic){
+        return neighbor(topic, 1);
     }
 
     /**
      * 같은 과목에서 현재 토픽 바로 앞 순서의 공개 토픽을 조회한다.
      *
-     * @param subjectSlug 과목 영문 식별자
-     * @param topicId     현재 토픽 ID
+     * @param topic 현재 토픽
      * @return 이전 토픽, 과목의 첫 토픽이면 null
      */
-    @Cacheable(value = "prevTopic", key = "#subjectSlug + ':' + #topicId")
-    @Transactional(readOnly = true)
-    public TopicIndexItem getPrevTopic(String subjectSlug, Long topicId){
-        log.info("이전 토픽 조회 - subjectSlug: {}, topicId: {}", subjectSlug, topicId);
-        return topicRepository.findPrevPublished(subjectSlug, topicId, PageRequest.of(0, 1))
-                .stream().findFirst().orElse(null);
+    public TopicIndexItem getPrevTopic(TopicInfo topic){
+        return neighbor(topic, -1);
     }
 
     /**
-     * 조건에 맞는 공개된 토픽 목록을 페이지 단위로 조회한다.
-     * <p>
-     * collection fetch join과 Pageable 충돌을 피하기 위해 2단계로 조회한다.
-     * 1단계: topicId만 페이징 조회 (DB에서 정확한 LIMIT/OFFSET 적용)
-     * 2단계: 해당 ID로 tags·subject 포함 조회 후, 1단계 정렬 순서에 맞춰 재정렬
-     * </p>
+     * 같은 과목 안에서 기준 토픽에서 offset만큼 떨어진 토픽을 요약으로 돌려준다.
+     */
+    private TopicIndexItem neighbor(TopicInfo topic, int offset){
+        List<TopicInfo> siblings = contentStore.topicsOf(topic.subject().slug());
+        for (int i = 0; i < siblings.size(); i++) {
+            if (siblings.get(i).slug().equals(topic.slug())) {
+                int at = i + offset;
+                if (at < 0 || at >= siblings.size()) {
+                    return null;
+                }
+                TopicInfo found = siblings.get(at);
+                return new TopicIndexItem(found.slug(), found.title(), found.subject().slug());
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 조건에 맞는 공개된 토픽 목록을 페이지 단위로 조회한다. 조회수 · 추천수는 DB 값을 slug로 합친다.
      *
      * @param subjectSlug 과목 영문 식별자, null이면 전체 과목
      * @param condition   검색 조건 (검색어는 대소문자·띄어쓰기 무시 부분 일치, 태그는 정확히 일치)
@@ -116,57 +129,66 @@ public class TopicService {
      * @return 공개된 토픽 Page 객체
      */
     @Transactional(readOnly = true)
-    public Page<Topic> getPublishedTopicsPageable(String subjectSlug, TopicSearchCondition condition,
-                                                  int page, int size, String sort){
+    public Page<TopicInfo> getPublishedTopicsPageable(String subjectSlug, TopicSearchCondition condition,
+                                                      int page, int size, String sort){
         log.info("토픽 목록 조회 - subjectSlug: {}, condition: {}, page: {}, size: {}, sort: {}",
                 subjectSlug, condition, page, size, sort);
-        Sort order;
+        Map<String, TopicStat> stats = new HashMap<>();
+        topicRepository.findAllStats().forEach(s -> stats.put(s.slug(), s));
+
+        String query = SearchPatterns.normalizeQuery(condition.query());
+        List<TopicInfo> matched = (subjectSlug == null ? contentStore.topics() : contentStore.topicsOf(subjectSlug))
+                .stream()
+                .filter(t -> condition.tag() == null || t.tags().stream().anyMatch(tag -> tag.tag().equals(condition.tag())))
+                .filter(t -> query == null
+                        || SearchPatterns.contains(t.title(), query)
+                        || t.tags().stream().anyMatch(tag -> SearchPatterns.contains(tag.tag(), query)))
+                .map(t -> {
+                    TopicStat s = stats.get(t.slug());
+                    return s == null ? t : t.withCounts(s.viewCount(), s.likeCount());
+                })
+                .sorted(comparator(sort, stats))
+                .toList();
+
+        Pageable pageable = PageRequest.of(page, size);
+        int from = (int) Math.min(pageable.getOffset(), matched.size());
+        int to = Math.min(from + size, matched.size());
+        return new PageImpl<>(matched.subList(from, to), pageable, matched.size());
+    }
+
+    /**
+     * 정렬 기준에 맞는 비교자를 만든다. 동점이면 먼저 그 수에 도달한 토픽, 그다음 전체 순서(seq) 순이다.
+     */
+    private static Comparator<TopicInfo> comparator(String sort, Map<String, TopicStat> stats){
+        Comparator<TopicInfo> bySeq = Comparator.comparingInt(TopicInfo::seq);
+        Comparator<LocalDateTime> nullsLast = Comparator.nullsLast(Comparator.naturalOrder());
         if ("view".equals(sort)) {
-            order = Sort.by(
-                    Sort.Order.desc("viewCount"),
-                    Sort.Order.asc("viewCountUpdatedAt").nullsLast(),
-                    Sort.Order.asc("topicId")
-            );
-        } else if ("like".equals(sort)) {
-            order = Sort.by(
-                    Sort.Order.desc("likeCount"),
-                    Sort.Order.asc("likeCountUpdatedAt").nullsLast(),
-                    Sort.Order.asc("topicId")
-            );
-        } else {
-            order = Sort.by("topicId").ascending();
+            return Comparator.comparingLong(TopicInfo::viewCount).reversed()
+                    .thenComparing(t -> stats.containsKey(t.slug()) ? stats.get(t.slug()).viewCountUpdatedAt() : null, nullsLast)
+                    .thenComparing(bySeq);
         }
-        Pageable pageable = PageRequest.of(page, size, order);
-
-        Page<Long> idPage = topicRepository.searchPublishedTopicIds(
-                subjectSlug == null ? "" : subjectSlug,
-                condition.tag() == null ? "" : condition.tag(),
-                SearchPatterns.toLikePattern(condition.query()),
-                pageable
-        );
-        if (idPage.isEmpty()) {
-            return new PageImpl<>(List.of(), pageable, idPage.getTotalElements());
+        if ("like".equals(sort)) {
+            return Comparator.comparingLong(TopicInfo::likeCount).reversed()
+                    .thenComparing(t -> stats.containsKey(t.slug()) ? stats.get(t.slug()).likeCountUpdatedAt() : null, nullsLast)
+                    .thenComparing(bySeq);
         }
-        List<Topic> topics = topicRepository.findTopicsWithTagsByIds(idPage.getContent());
-
-        Map<Long, Topic> byId = new LinkedHashMap<>();
-        topics.forEach(t -> byId.put(t.getTopicId(), t));
-        List<Topic> ordered = idPage.getContent().stream().map(byId::get).toList();
-
-        return new PageImpl<>(ordered, pageable, idPage.getTotalElements());
+        return bySeq;
     }
 
     /**
      * 과목에 속한 공개 토픽의 태그 목록을 토픽 수와 함께 조회한다.
      *
      * @param subjectSlug 과목 영문 식별자
-     * @return 태그와 토픽 수 목록, 없으면 빈 리스트 반환
+     * @return 태그와 토픽 수 목록 (토픽 수 내림차순, 태그 오름차순), 없으면 빈 리스트 반환
      */
-    @Cacheable(value = "subjectTags", key = "#subjectSlug")
-    @Transactional(readOnly = true)
     public List<TagCount> getPublishedTags(String subjectSlug){
-        log.info("과목 태그 목록 조회 - subjectSlug: {}", subjectSlug);
-        return topicTagRepository.countPublishedTagsBySubjectSlug(subjectSlug);
+        Map<String, Long> counts = new HashMap<>();
+        contentStore.topicsOf(subjectSlug).forEach(t ->
+                t.tags().forEach(tag -> counts.merge(tag.tag(), 1L, Long::sum)));
+        return counts.entrySet().stream()
+                .map(e -> new TagCount(e.getKey(), e.getValue()))
+                .sorted(Comparator.comparingLong(TagCount::count).reversed().thenComparing(TagCount::tag))
+                .toList();
     }
 
     /**
@@ -178,12 +200,10 @@ public class TopicService {
      * @return [{slug, title, subjectSlug}] 형태의 JSON 문자열
      */
     @Cacheable("topicIndex")
-    @Transactional(readOnly = true)
     public String getTopicIndexJson(){
         log.info("공개 토픽 목록(JSON) 조회");
-        List<TopicIndexItem> items = topicRepository.findAllPublished().stream()
-                .sorted(Comparator.comparing(Topic::getTopicId))
-                .map(t -> new TopicIndexItem(t.getSlug(), t.getTitle(), t.getSubject().getSlug()))
+        List<TopicIndexItem> items = contentStore.topics().stream()
+                .map(t -> new TopicIndexItem(t.slug(), t.title(), t.subject().slug()))
                 .toList();
         return objectMapper.writeValueAsString(items);
     }
@@ -195,13 +215,12 @@ public class TopicService {
      * @param canonicalUrl 토픽 페이지 canonical URL
      * @return JSON-LD 문자열, 직렬화 실패 시 null
      */
-    @Transactional(readOnly = true)
-    public String buildLdJson(Topic topic, String canonicalUrl){
+    public String buildLdJson(TopicInfo topic, String canonicalUrl){
         Map<String, Object> ld = new LinkedHashMap<>();
         ld.put("@context", "https://schema.org");
         ld.put("@type", "LearningResource");
-        ld.put("name", topic.getTitle());
-        ld.put("description", topic.getMetaDescription());
+        ld.put("name", topic.title());
+        ld.put("description", topic.metaDescription());
         ld.put("url", canonicalUrl);
         ld.put("provider", Map.of(
                 "@type", "Organization",
@@ -211,15 +230,27 @@ public class TopicService {
         try {
             return objectMapper.writeValueAsString(ld).replace("<", "\\u003c");
         } catch (Exception e) {
-            log.warn("JSON-LD 직렬화 실패 - topicSlug: {}", topic.getSlug(), e);
+            log.warn("JSON-LD 직렬화 실패 - topicSlug: {}", topic.slug(), e);
             return null;
         }
     }
 
     /**
+     * 토픽 slug로 조회수 · 추천수를 저장하는 DB 토픽 행의 ID를 찾는다.
+     *
+     * @param slug 토픽 영문 식별자
+     * @return DB 토픽 ID, 행이 없으면 null (조회 · 추천 기록은 건너뛴다)
+     */
+    @Cacheable(value = "topicIds", key = "#slug")
+    @Transactional(readOnly = true)
+    public Long getTopicId(String slug){
+        return topicRepository.findBySlugAndIsPublishedTrue(slug).map(Topic::getTopicId).orElse(null);
+    }
+
+    /**
      * 토픽 조회를 기록한다. 같은 방문자가 오늘 이미 조회했으면 무시한다.
      *
-     * @param topicId   기준 토픽 ID
+     * @param topicId   DB 토픽 ID
      * @param visitorId 익명 방문자 식별자
      */
     @Transactional

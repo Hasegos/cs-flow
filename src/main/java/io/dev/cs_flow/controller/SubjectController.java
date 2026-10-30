@@ -4,9 +4,9 @@ import io.dev.cs_flow.common.util.BreadcrumbLd;
 import io.dev.cs_flow.common.util.OgImages;
 import io.dev.cs_flow.common.util.PageRangeUtil;
 import io.dev.cs_flow.common.util.SubjectSlugs;
+import io.dev.cs_flow.dto.SubjectView;
+import io.dev.cs_flow.dto.TopicInfo;
 import io.dev.cs_flow.dto.TopicSearchCondition;
-import io.dev.cs_flow.model.Subject;
-import io.dev.cs_flow.model.Topic;
 import io.dev.cs_flow.service.SubjectService;
 import io.dev.cs_flow.service.TopicService;
 import lombok.RequiredArgsConstructor;
@@ -59,16 +59,16 @@ public class SubjectController {
         TopicSearchCondition condition = new TopicSearchCondition(q, tag);
         log.info("과목 홈 페이지 요청 - subjectSlug: {}, sort: {}, condition: {}", subjectSlug, sort, condition);
 
-        Page<Topic> topicPage = topicService.getPublishedTopicsPageable(
+        Page<TopicInfo> topicPage = topicService.getPublishedTopicsPageable(
                 subjectSlug, condition, Math.max(0, page), PAGE_SIZE, sort);
 
-        Subject subject = subjectService.getPublishedSubject(subjectSlug);
+        SubjectView subject = subjectService.getPublishedSubject(subjectSlug);
         model.addAttribute("subject", subject);
         model.addAttribute("ogImage", OgImages.url(subjectSlug, "_index"));
         model.addAttribute("breadcrumbLd", BreadcrumbLd.build(List.of(
-                new BreadcrumbLd.Crumb(subject.getName(), "https://csflow.kr/" + subjectSlug))));
-        model.addAttribute("pageTitle", subject.getName() + " CS 지식 정리 | CS Flow");
-        model.addAttribute("pageDescription", subject.getName() + " 핵심 개념을 인터랙티브 시각화, 코드 연결, 퀴즈로 정리합니다. 개발자 면접 대비 " + subject.getName() + " CS 지식 총정리.");
+                new BreadcrumbLd.Crumb(subject.name(), "https://csflow.kr/" + subjectSlug))));
+        model.addAttribute("pageTitle", subject.name() + " CS 지식 정리 | CS Flow");
+        model.addAttribute("pageDescription", subject.name() + " 핵심 개념을 인터랙티브 시각화, 코드 연결, 퀴즈로 정리합니다. 개발자 면접 대비 " + subject.name() + " CS 지식 총정리.");
         model.addAttribute("topics", topicPage.getContent());
         model.addAttribute("currentPage", topicPage.getNumber());
         model.addAttribute("totalPages",    topicPage.getTotalPages());
@@ -109,7 +109,7 @@ public class SubjectController {
         log.info("검색 페이지 요청 - condition: {}, page: {}", condition, page);
 
         if (condition.isFiltered()) {
-            Page<Topic> topicPage = topicService.getPublishedTopicsPageable(
+            Page<TopicInfo> topicPage = topicService.getPublishedTopicsPageable(
                     null, condition, Math.max(0, page), PAGE_SIZE, "default");
             model.addAttribute("topics", topicPage.getContent());
             model.addAttribute("currentPage", topicPage.getNumber());

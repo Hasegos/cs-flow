@@ -92,7 +92,7 @@
 
         setOptionsDisabled(question, true);
 
-        window.CsFlow.postJson('/api/quiz/check', { questionId: Number(questionId), selected: selected })
+        window.CsFlow.postJson('/api/quiz/check', { questionId: questionId, selected: selected })
             .then(function (data) {
                 if (typeof data.correct !== 'boolean') throw new Error('invalid response');
                 saveAttempt(questionId, selected, data.correct, attempt);

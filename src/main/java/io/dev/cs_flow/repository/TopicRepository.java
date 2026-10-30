@@ -128,6 +128,17 @@ public interface TopicRepository extends JpaRepository<Topic,Long> {
     List<Topic> findAllPublished();
 
     /**
+     * 모든 토픽의 조회수 · 추천수와 마지막 증가 시각을 slug와 함께 조회한다. 콘텐츠 JSON의 토픽과 slug로 합친다.
+     *
+     * @return 토픽별 숫자 목록
+     */
+    @Query("""
+            SELECT new io.dev.cs_flow.dto.TopicStat(t.slug, t.viewCount, t.viewCountUpdatedAt, t.likeCount, t.likeCountUpdatedAt)
+            FROM Topic t
+            """)
+    List<io.dev.cs_flow.dto.TopicStat> findAllStats();
+
+    /**
      * slug로 공개된 토픽 단건을 조회한다. (과목 무관, slug는 전역 유일)
      *
      * @param slug 토픽 영문 식별자
