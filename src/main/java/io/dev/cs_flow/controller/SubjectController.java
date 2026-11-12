@@ -33,12 +33,14 @@ public class SubjectController {
     private final SubjectService subjectService;
     private final TopicService topicService;
     private static final int PAGE_SIZE = 10;
+    private static final String DEFAULT_SORT = "default";
 
     /**
      * 과목 홈 페이지를 렌더링한다.
      * 과목 정보와 해당 과목의 공개된 토픽 목록을 페이지 단위로 전달한다.
      * 검색어(q)·태그(tag)가 있으면 조건에 맞는 토픽만 보여주고, 검색엔진 색인에서 제외(noindex)한다.
      * 2페이지 이후는 자기 자신을 canonical로 지정해 해당 페이지의 토픽 링크가 색인 경로에서 빠지지 않게 한다.
+     * 페이지네이션 링크에 쓰는 {@code sortQs}는 기본 정렬이면 비어 있어 {@code ?sort=default}가 붙은 중복 주소를 만들지 않는다.
      *
      * @param subjectSlug 과목 영문 식별자
      * @param page        페이지 번호 (0-based, 기본값 0)
@@ -52,7 +54,7 @@ public class SubjectController {
     public String subjectHome(
             @PathVariable String subjectSlug,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "default") String sort,
+            @RequestParam(defaultValue = DEFAULT_SORT) String sort,
             @RequestParam(required = false) String q,
             @RequestParam(required = false) String tag,
             Model model){
@@ -82,6 +84,7 @@ public class SubjectController {
         model.addAttribute("filtered", condition.isFiltered());
         model.addAttribute("qQs", queryString("q", condition.query()));
         model.addAttribute("filterQs", queryString("q", condition.query()) + queryString("tag", condition.tag()));
+        model.addAttribute("sortQs", queryString("sort", DEFAULT_SORT.equals(sort) ? null : sort));
         model.addAttribute("noindex", condition.isFiltered());
         String canonicalUrl = "https://csflow.kr/" + subjectSlug;
         if (topicPage.getNumber() > 0) {

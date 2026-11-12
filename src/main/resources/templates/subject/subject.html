@@ -65,11 +65,11 @@
                     <div class="topic-filter__tags" th:if="${not #lists.isEmpty(tags)}">
                         <a th:href="@{/{slug}(slug=${subject.slug}, sort=${currentSort})} + ${qQs}"
                            th:classappend="${tag == null} ? ' is-active' : ''"
-                           class="topic-filter__tag">전체</a>
+                           class="topic-filter__tag" rel="nofollow">전체</a>
                         <a th:each="t : ${tags}"
                            th:href="${t.tag == tag} ? (@{/{slug}(slug=${subject.slug}, sort=${currentSort})} + ${qQs}) : (@{/{slug}(slug=${subject.slug}, sort=${currentSort}, tag=${t.tag})} + ${qQs})"
                            th:classappend="${t.tag == tag} ? ' is-active' : ''"
-                           class="topic-filter__tag">
+                           class="topic-filter__tag" rel="nofollow">
                             <span th:text="${t.tag}">태그</span>
                             <span class="topic-filter__tag-count" th:text="${t.count}">0</span>
                         </a>
@@ -79,7 +79,7 @@
                         <th:block th:if="${q}">"<span th:text="${q}">검색어</span>"</th:block>
                         <th:block th:if="${tag}">#<span th:text="${tag}">태그</span></th:block>
                         검색 결과 <span th:text="${totalElements}">0</span>개
-                        <a th:href="@{/{slug}(slug=${subject.slug}, sort=${currentSort})}" class="topic-filter__reset">필터 초기화</a>
+                        <a th:href="@{/{slug}(slug=${subject.slug}, sort=${currentSort})}" class="topic-filter__reset" rel="nofollow">필터 초기화</a>
                     </p>
                 </div>
 
@@ -87,13 +87,13 @@
                 <div class="topic-list__sort" th:if="${not #lists.isEmpty(topics)}">
                     <a th:href="@{/{slug}(slug=${subject.slug}, sort='default')} + ${filterQs}"
                        th:classappend="${currentSort == 'default'} ? ' is-active' : ''"
-                       class="topic-list__sort-btn">기본순</a>
+                       class="topic-list__sort-btn" rel="nofollow">기본순</a>
                     <a th:href="@{/{slug}(slug=${subject.slug}, sort='view')} + ${filterQs}"
                        th:classappend="${currentSort == 'view'} ? ' is-active' : ''"
-                       class="topic-list__sort-btn">조회순</a>
+                       class="topic-list__sort-btn" rel="nofollow">조회순</a>
                     <a th:href="@{/{slug}(slug=${subject.slug}, sort='like')} + ${filterQs}"
                        th:classappend="${currentSort == 'like'} ? ' is-active' : ''"
-                       class="topic-list__sort-btn">인기순</a>
+                       class="topic-list__sort-btn" rel="nofollow">인기순</a>
                 </div>
 
                 <!-- 토픽 있을 때 -->
@@ -135,7 +135,7 @@
                 <nav class="pagination" th:if="${totalPages > 1}" aria-label="토픽 페이지 네비게이션">
                     <!-- 이전 버튼 -->
                     <a th:if="${currentPage > 0}"
-                       th:href="@{/{slug}(slug=${subject.slug}, page=${currentPage - 1}, sort=${currentSort})} + ${filterQs}"
+                       th:href="@{/{slug}(slug=${subject.slug}, page=${currentPage - 1})} + ${sortQs} + ${filterQs}"
                        class="pagination__btn pagination__btn--prev"
                        aria-label="이전 페이지">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -156,7 +156,7 @@
                     <th:block th:each="p : ${pageRange}">
                         <span th:if="${p == -1}" class="pagination__ellipsis">…</span>
                         <a th:if="${p != -1 && p != currentPage}"
-                           th:href="@{/{slug}(slug=${subject.slug}, page=${p}, sort=${currentSort})} + ${filterQs}"
+                           th:href="@{/{slug}(slug=${subject.slug}, page=${p})} + ${sortQs} + ${filterQs}"
                            class="pagination__btn pagination__num"
                            th:text="${p + 1}">1</a>
                         <span th:if="${p != -1 && p == currentPage}"
@@ -166,7 +166,7 @@
 
                     <!-- 다음 버튼 -->
                     <a th:if="${currentPage < totalPages - 1}"
-                       th:href="@{/{slug}(slug=${subject.slug}, page=${currentPage + 1}, sort=${currentSort})} + ${filterQs}"
+                       th:href="@{/{slug}(slug=${subject.slug}, page=${currentPage + 1})} + ${sortQs} + ${filterQs}"
                        class="pagination__btn pagination__btn--next"
                        aria-label="다음 페이지">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
