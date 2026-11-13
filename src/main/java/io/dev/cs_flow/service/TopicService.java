@@ -4,6 +4,7 @@ import io.dev.cs_flow.common.exception.NotFoundException;
 import io.dev.cs_flow.common.util.SearchPatterns;
 import io.dev.cs_flow.dto.InterviewQuestionView;
 import io.dev.cs_flow.dto.TagCount;
+import io.dev.cs_flow.dto.SideNavItem;
 import io.dev.cs_flow.dto.TopicIndexItem;
 import io.dev.cs_flow.dto.TopicInfo;
 import io.dev.cs_flow.dto.TopicSearchCondition;
@@ -23,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -184,19 +186,31 @@ public class TopicService {
     }
 
     /**
-     * 과목에 속한 공개 토픽 전체를 발행 순서대로 목차 형태로 조회한다.
+     * 과목에 속한 공개 토픽 전체를 발행 순서대로 왼쪽 목차 형태로 조회한다.
      * <p>
-     * 과목 홈과 토픽 상세의 왼쪽 목차에 쓴다. 조회수 · 추천수를 쓰지 않으므로 DB를 조회하지 않는다.
+     * 과목 홈과 토픽 상세가 같은 목록을 쓴다. 조회수 · 추천수를 쓰지 않으므로 DB를 조회하지 않는다.
      * </p>
      *
-     * @param subjectSlug 과목 영문 식별자
+     * @param subjectSlug     과목 영문 식별자
+     * @param currentTopicSlug 지금 보고 있는 토픽 slug, 과목 홈이면 null
      * @return 과목 전체 토픽 목차, 없으면 빈 리스트 반환
      */
-    public List<TopicIndexItem> getPublishedTopicIndex(String subjectSlug){
-        return contentStore.topicsOf(subjectSlug).stream()
+    public List<SideNavItem> getSideNav(String subjectSlug, String currentTopicSlug){
+        List<TopicInfo> topics = contentStore.topicsOf(subjectSlug).stream()
                 .sorted(Comparator.comparingInt(TopicInfo::seq))
-                .map(t -> new TopicIndexItem(t.slug(), t.title(), t.subject().slug()))
                 .toList();
+
+        List<SideNavItem> items = new ArrayList<>(topics.size());
+        for (int i = 0; i < topics.size(); i++) {
+            TopicInfo t = topics.get(i);
+            items.add(SideNavItem.numbered(
+                    t.slug(),
+                    "/" + t.subject().slug() + "/" + t.slug(),
+                    t.title(),
+                    i + 1,
+                    t.slug().equals(currentTopicSlug)));
+        }
+        return items;
     }
 
     /**

@@ -44,10 +44,8 @@ public class ErrorEntryController {
      * @return 목록 페이지 뷰 이름
      */
     @GetMapping("/errors")
-    public String list(@RequestParam(defaultValue = "0") int page,
-                       @RequestParam(required = false) String q,
-                       Model model) {
-        return renderList(null, page, q, model);
+    public String list(@RequestParam(required = false) String q, Model model) {
+        return renderList(null, q, model);
     }
 
     /**
@@ -63,27 +61,25 @@ public class ErrorEntryController {
      */
     @GetMapping("/errors/category/{category:[a-z0-9\\-]+}")
     public String listByCategory(@PathVariable String category,
-                                 @RequestParam(defaultValue = "0") int page,
                                  @RequestParam(required = false) String q,
                                  Model model) {
-        return renderList(category, page, q, model);
+        return renderList(category, q, model);
     }
 
     /**
      * 전체 목록과 분류별 목록이 함께 쓰는 모델 구성과 뷰 이름 반환.
      *
      * @param category 분류 slug, 전체 목록이면 null
-     * @param page     페이지 번호 (0-based)
      * @param q        검색어 (선택)
      * @param model    뷰에 전달할 데이터 모델
      * @return 목록 페이지 뷰 이름
      */
-    private String renderList(String category, int page, String q, Model model) {
+    private String renderList(String category, String q, Model model) {
         TopicSearchCondition condition = new TopicSearchCondition(q, null);
-        log.info("에러 사전 목록 요청 - category: {}, condition: {}, page: {}", category, condition, page);
+        log.info("에러 사전 목록 요청 - category: {}, condition: {}", category, condition);
 
         ErrorCategoryCount current = category == null ? null : errorEntryService.getCategory(category);
-        Page<ErrorEntryView> entryPage = errorEntryService.search(category, condition, Math.max(0, page), PAGE_SIZE);
+        List<ErrorEntryView> entries = errorEntryService.searchAll(category, condition);
         String basePath = category == null ? "/errors" : "/errors/category/" + category;
 
         model.addAttribute("ogImage", OgImages.url("errors", category == null ? "_index" : "_category-" + category));
@@ -91,11 +87,11 @@ public class ErrorEntryController {
         model.addAttribute("category", category);
         model.addAttribute("categoryLabel", current == null ? null : current.label());
         model.addAttribute("basePath", basePath);
-        model.addAttribute("entries", entryPage.getContent());
-        model.addAttribute("currentPage", entryPage.getNumber());
-        model.addAttribute("totalPages", entryPage.getTotalPages());
-        model.addAttribute("totalElements", entryPage.getTotalElements());
-        model.addAttribute("pageRange", PageRangeUtil.build(entryPage.getNumber(), entryPage.getTotalPages()));
+        model.addAttribute("entries", entries);
+        model.addAttribute("totalElements", entries.size());
+        model.addAttribute("sideNavTitle", "에러 사전");
+        model.addAttribute("sideNavFilterLabel", "분류 거르기");
+        model.addAttribute("sideNavItems", errorEntryService.getSideNav(category));
         model.addAttribute("q", condition.query());
         model.addAttribute("qQs", queryString("q", condition.query()));
         model.addAttribute("filtered", condition.isFiltered());
@@ -115,7 +111,7 @@ public class ErrorEntryController {
             crumbs.add(new BreadcrumbLd.Crumb(current.label(), canonicalBase));
         }
         model.addAttribute("breadcrumbLd", BreadcrumbLd.build(crumbs));
-        model.addAttribute("canonicalUrl", entryPage.getNumber() > 0 ? canonicalBase + "?page=" + entryPage.getNumber() : canonicalBase);
+        model.addAttribute("canonicalUrl", canonicalBase);
         return "errors/list";
     }
 
@@ -144,6 +140,9 @@ public class ErrorEntryController {
         model.addAttribute("currentSection", "errors");
         model.addAttribute("pageTitle", entry.title() + " 원인과 해결 | CS Flow 에러 사전");
         model.addAttribute("pageDescription", errorEntryService.describe(entry));
+        model.addAttribute("sideNavTitle", "에러 사전");
+        model.addAttribute("sideNavFilterLabel", "분류 거르기");
+        model.addAttribute("sideNavItems", errorEntryService.getSideNav(entry.category()));
         model.addAttribute("canonicalUrl", canonicalUrl);
         return "errors/detail";
     }

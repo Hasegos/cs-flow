@@ -89,11 +89,11 @@
 
     /* ===================== 왼쪽 목차 진행 표시 ===================== */
     (function markSidebar() {
-        var list = document.getElementById('subjectNavList');
+        var list = document.getElementById('sideNavList');
         /* 저장소를 못 쓰면 목록을 그대로 둔다 */
         if (!list || !available) return;
 
-        var items = list.querySelectorAll('.subject-nav__item');
+        var items = list.querySelectorAll('.side-nav__item');
         if (items.length === 0) return;
 
         var topics = read().topics;
@@ -102,7 +102,7 @@
 
         for (var i = 0; i < items.length; i++) {
             var item = items[i];
-            var rec  = topics[item.getAttribute('data-slug')];
+            var rec  = topics[item.getAttribute('data-key')];
             if (!rec) continue;
 
             var marks = [];
@@ -113,11 +113,11 @@
             item.setAttribute('data-state', rec.st);
             if (rec.bm) item.setAttribute('data-bm', '1');
 
-            var link = item.querySelector('.subject-nav__link');
+            var link = item.querySelector('.side-nav__link');
             if (!link) continue;
 
             var state = document.createElement('span');
-            state.className = 'subject-nav__state';
+            state.className = 'side-nav__state';
             state.setAttribute('aria-hidden', 'true');
             state.textContent = marks.join('');
             link.appendChild(state);
@@ -131,9 +131,9 @@
 
         if (done + doing === 0) return;
 
-        var box  = document.getElementById('subjectNavProgress');
-        var fill = document.getElementById('subjectNavProgressFill');
-        var text = document.getElementById('subjectNavProgressText');
+        var box  = document.getElementById('sideNavProgress');
+        var fill = document.getElementById('sideNavProgressFill');
+        var text = document.getElementById('sideNavProgressText');
         if (!box || !fill || !text) return;
 
         var pct = Math.round((done / items.length) * 100);

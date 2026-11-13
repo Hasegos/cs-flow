@@ -4,6 +4,7 @@ import io.dev.cs_flow.common.exception.NotFoundException;
 import io.dev.cs_flow.common.util.SearchPatterns;
 import io.dev.cs_flow.dto.ContentError;
 import io.dev.cs_flow.dto.ErrorCategoryCount;
+import io.dev.cs_flow.dto.SideNavItem;
 import io.dev.cs_flow.dto.ErrorEntrySummary;
 import io.dev.cs_flow.dto.ErrorEntryView;
 import io.dev.cs_flow.dto.TopicSearchCondition;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Service;
 import tools.jackson.databind.ObjectMapper;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -64,8 +66,23 @@ public class ErrorEntryService {
      */
     public Page<ErrorEntryView> search(String category, TopicSearchCondition condition, int page, int size) {
         log.info("에러 항목 목록 조회 - category: {}, condition: {}, page: {}, size: {}", category, condition, page, size);
+        List<ErrorEntryView> matched = searchAll(category, condition);
+        Pageable pageable = PageRequest.of(page, size);
+        int from = (int) Math.min(pageable.getOffset(), matched.size());
+        int to = Math.min(from + size, matched.size());
+        return new PageImpl<>(matched.subList(from, to), pageable, matched.size());
+    }
+
+    /**
+     * 조건에 맞는 항목 전체를 한 번에 조회한다. 항목이 28개뿐이라 목록 화면은 페이지로 나누지 않는다.
+     *
+     * @param category  분류 slug, 전체면 null
+     * @param condition 검색 조건
+     * @return 조건에 맞는 항목 목록, 없으면 빈 리스트 반환
+     */
+    public List<ErrorEntryView> searchAll(String category, TopicSearchCondition condition) {
         String query = SearchPatterns.normalizeQuery(condition.query());
-        List<ErrorEntryView> matched = contentStore.errorEntries().stream()
+        return contentStore.errorEntries().stream()
                 .filter(e -> category == null || e.category().equals(category))
                 .filter(e -> query == null
                         || SearchPatterns.contains(e.errorMessage(), query)
@@ -73,10 +90,6 @@ public class ErrorEntryService {
                         || SearchPatterns.contains(e.category(), query))
                 .sorted(Comparator.comparingInt(ErrorEntryView::order).reversed())
                 .toList();
-        Pageable pageable = PageRequest.of(page, size);
-        int from = (int) Math.min(pageable.getOffset(), matched.size());
-        int to = Math.min(from + size, matched.size());
-        return new PageImpl<>(matched.subList(from, to), pageable, matched.size());
     }
 
     /**
@@ -123,6 +136,32 @@ public class ErrorEntryService {
      * @return 해당 분류의 항목 수
      * @throws NotFoundException 항목이 하나도 없는 분류일 경우
      */
+    /**
+     * 왼쪽 목차에 쓸 분류 목록을 만든다. 맨 앞에 전체가 오고 그 뒤로 항목이 많은 분류 순이다.
+     * <p>
+     * 검증된 항목이 {@link ErrorCategoryCount#MIN_INDEXABLE}개 미만인 분류는 페이지가 색인에서 빠지므로
+     * 링크에 {@code nofollow}를 달아 크롤러가 따라가지 않게 한다.
+     * </p>
+     *
+     * @param current 지금 보고 있는 분류 slug, 전체 목록이면 null
+     * @return 왼쪽 목차 항목 목록
+     */
+    public List<SideNavItem> getSideNav(String current) {
+        List<ErrorCategoryCount> categories = getCategories();
+        long total = categories.stream().mapToLong(ErrorCategoryCount::total).sum();
+
+        List<SideNavItem> items = new ArrayList<>(categories.size() + 1);
+        items.add(SideNavItem.counted("", "/errors", "전체", total, current == null, false));
+        categories.forEach(c -> items.add(SideNavItem.counted(
+                c.category(),
+                "/errors/category/" + c.category(),
+                c.label(),
+                c.total(),
+                c.category().equals(current),
+                !c.indexable())));
+        return items;
+    }
+
     public ErrorCategoryCount getCategory(String category) {
         return getCategories().stream()
                 .filter(c -> c.category().equals(category))

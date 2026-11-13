@@ -73,10 +73,10 @@ public class TopicController {
 
         model.addAttribute("topic", topic);
         model.addAttribute("currentSubject", subjectSlug);
-        model.addAttribute("subjectName", topic.subject().name());
-        model.addAttribute("subjectAccent", topic.subject().colorAccent());
-        model.addAttribute("currentTopicSlug", topicSlug);
-        model.addAttribute("topicIndex", topicService.getPublishedTopicIndex(subjectSlug));
+        model.addAttribute("sideNavTitle", topic.subject().name());
+        model.addAttribute("sideNavAccent", topic.subject().colorAccent());
+        model.addAttribute("sideNavFilterLabel", "토픽 거르기");
+        model.addAttribute("sideNavItems", topicService.getSideNav(subjectSlug, topicSlug));
         model.addAttribute("jsFileKey", viewPath.jsFileKey());
         model.addAttribute("ldJson", topicService.buildLdJson(topic, canonicalUrl));
         model.addAttribute("breadcrumbLd", BreadcrumbLd.build(List.of(
