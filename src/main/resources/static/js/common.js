@@ -1,5 +1,5 @@
 /**
- * 공통 JS — 공용 헬퍼(저장소·POST·토스트) / 햄버거 메뉴 / 탭 전환 / 테마
+ * 공통 JS — 공용 헬퍼(저장소·POST·토스트) / 햄버거 메뉴 / 과목 토픽 목차 / 탭 전환 / 테마
  */
 (function () {
     'use strict';
@@ -74,6 +74,46 @@
     document.querySelectorAll('link[data-async-css]').forEach(function (link) {
         link.media = 'all';
     });
+
+    /* ===================== 과목 토픽 목차 ===================== */
+    /*
+     * 1140px 이상에서는 CSS가 사이드바를 펼쳐 두므로 토글 버튼이 보이지 않는다.
+     * 그 아래 폭에서만 버튼으로 열고 닫는다. 필터는 서버를 거치지 않고 목록만 좁힌다.
+     */
+    const navToggle = document.getElementById('subjectNavToggle');
+    const navPanel  = document.getElementById('subjectNavPanel');
+
+    if (navToggle && navPanel) {
+        navToggle.addEventListener('click', function () {
+            const isOpen = navPanel.classList.toggle('subject-nav__panel--open');
+            navToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        });
+    }
+
+    const navFilter = document.getElementById('subjectNavFilter');
+    const navList   = document.getElementById('subjectNavList');
+    const navEmpty  = document.getElementById('subjectNavEmpty');
+
+    if (navFilter && navList) {
+        const items = Array.prototype.slice.call(navList.querySelectorAll('.subject-nav__item'));
+        const titles = items.map(function (item) {
+            const text = item.querySelector('.subject-nav__text');
+            return (text ? text.textContent : '').replace(/\s+/g, '').toLowerCase();
+        });
+
+        navFilter.addEventListener('input', function () {
+            const needle = navFilter.value.replace(/\s+/g, '').toLowerCase();
+            let shown = 0;
+
+            for (let i = 0; i < items.length; i++) {
+                const hit = needle === '' || titles[i].indexOf(needle) !== -1;
+                items[i].classList.toggle('subject-nav__item--hidden', !hit);
+                if (hit) shown++;
+            }
+
+            if (navEmpty) navEmpty.hidden = shown > 0;
+        });
+    }
 
     /* ===================== 햄버거 메뉴 ===================== */
     const hamburger = document.getElementById('hamburgerBtn');

@@ -73,6 +73,10 @@ public class TopicController {
 
         model.addAttribute("topic", topic);
         model.addAttribute("currentSubject", subjectSlug);
+        model.addAttribute("subjectName", topic.subject().name());
+        model.addAttribute("subjectAccent", topic.subject().colorAccent());
+        model.addAttribute("currentTopicSlug", topicSlug);
+        model.addAttribute("topicIndex", topicService.getPublishedTopicIndex(subjectSlug));
         model.addAttribute("jsFileKey", viewPath.jsFileKey());
         model.addAttribute("ldJson", topicService.buildLdJson(topic, canonicalUrl));
         model.addAttribute("breadcrumbLd", BreadcrumbLd.build(List.of(
