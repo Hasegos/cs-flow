@@ -63,22 +63,6 @@
 
                 <!-- 결과 (입력 중 실시간 검색 시 이 영역만 교체) -->
                 <div class="topic-results" id="topic-results">
-                <!-- 분류 -->
-                <div class="topic-filter__meta" th:if="${not #lists.isEmpty(categories)}">
-                    <nav class="topic-filter__tags" aria-label="에러 분류">
-                        <a th:href="@{/errors}"
-                           th:classappend="${category == null} ? ' is-active' : ''"
-                           class="topic-filter__tag">전체</a>
-                        <a th:each="c : ${categories}"
-                           th:href="@{/errors/category/{category}(category=${c.category})}"
-                           th:classappend="${c.category == category} ? ' is-active' : ''"
-                           class="topic-filter__tag">
-                            <span th:text="${c.label}">분류</span>
-                            <span class="topic-filter__tag-count" th:text="${c.total}">0</span>
-                        </a>
-                    </nav>
-                </div>
-
                 <div class="topic-filter__meta" th:if="${filtered}">
                     <p class="topic-filter__summary">
                         "<span th:text="${q}">검색어</span>"
@@ -94,7 +78,7 @@
                        class="topic-card">
 
                         <div class="topic-card__number">
-                            <span th:text="${#numbers.formatInteger((currentPage * 10) + stat.count, 2)}">01</span>
+                            <span th:text="${#numbers.formatInteger(stat.count, 2)}">01</span>
                         </div>
 
                         <div class="topic-card__body">
@@ -117,56 +101,6 @@
                         </div>
                     </a>
                 </div>
-
-                <!-- 페이지네이션 -->
-                <nav class="pagination" th:if="${totalPages > 1}" aria-label="에러 페이지 네비게이션">
-                    <a th:if="${currentPage > 0}"
-                       th:href="@{${basePath}(page=${currentPage - 1})} + ${qQs}"
-                       class="pagination__btn pagination__btn--prev"
-                       aria-label="이전 페이지">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                             stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="15 18 9 12 15 6"/>
-                        </svg>
-                    </a>
-                    <span th:if="${currentPage == 0}"
-                          class="pagination__btn pagination__btn--disabled"
-                          aria-disabled="true">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                             stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="15 18 9 12 15 6"/>
-                        </svg>
-                    </span>
-
-                    <th:block th:each="p : ${pageRange}">
-                        <span th:if="${p == -1}" class="pagination__ellipsis">…</span>
-                        <a th:if="${p != -1 && p != currentPage}"
-                           th:href="@{${basePath}(page=${p})} + ${qQs}"
-                           class="pagination__btn pagination__num"
-                           th:text="${p + 1}">1</a>
-                        <span th:if="${p != -1 && p == currentPage}"
-                              class="pagination__btn pagination__num pagination__num--active"
-                              th:text="${p + 1}">1</span>
-                    </th:block>
-
-                    <a th:if="${currentPage < totalPages - 1}"
-                       th:href="@{${basePath}(page=${currentPage + 1})} + ${qQs}"
-                       class="pagination__btn pagination__btn--next"
-                       aria-label="다음 페이지">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                             stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="9 18 15 12 9 6"/>
-                        </svg>
-                    </a>
-                    <span th:if="${currentPage == totalPages - 1}"
-                          class="pagination__btn pagination__btn--disabled"
-                          aria-disabled="true">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                             stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="9 18 15 12 9 6"/>
-                        </svg>
-                    </span>
-                </nav>
 
                 <!-- 항목 없을 때 -->
                 <div class="topic-empty" th:if="${#lists.isEmpty(entries)}">

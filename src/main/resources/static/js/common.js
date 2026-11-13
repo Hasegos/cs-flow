@@ -76,7 +76,7 @@
     });
 
     /* ===================== 과목 토픽 목차 ===================== */
-    const navEl = document.querySelector('.subject-nav');
+    const navEl = document.querySelector('.side-nav');
 
     /* 과목 강조색을 루트로 올려 목차 밖에서도 쓰게 한다 */
     if (navEl) {
@@ -84,19 +84,19 @@
         if (accent) document.documentElement.style.setProperty('--subject-accent', accent.trim());
     }
 
-    const navToggle = document.getElementById('subjectNavToggle');
-    const navPanel  = document.getElementById('subjectNavPanel');
+    const navToggle = document.getElementById('sideNavToggle');
+    const navPanel  = document.getElementById('sideNavPanel');
 
     /* 토글 버튼은 1140px 미만에서만 보인다 */
     if (navToggle && navPanel) {
         navToggle.addEventListener('click', function () {
-            const isOpen = navPanel.classList.toggle('subject-nav__panel--open');
+            const isOpen = navPanel.classList.toggle('side-nav__panel--open');
             navToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
         });
     }
 
     /* --- 너비 조절 --- */
-    const navResizer = document.getElementById('subjectNavResizer');
+    const navResizer = document.getElementById('sideNavResizer');
 
     if (navResizer) {
         const root = document.documentElement;
@@ -112,8 +112,8 @@
          */
         function limits() {
             const cs = getComputedStyle(root);
-            const min = parseInt(cs.getPropertyValue('--subject-nav-w-min'), 10) || 220;
-            const max = parseInt(cs.getPropertyValue('--subject-nav-w-max'), 10) || 480;
+            const min = parseInt(cs.getPropertyValue('--side-nav-w-min'), 10) || 220;
+            const max = parseInt(cs.getPropertyValue('--side-nav-w-max'), 10) || 480;
             return { min: min, max: Math.min(max, Math.round(window.innerWidth * 0.4)) };
         }
 
@@ -127,7 +127,7 @@
         function apply(px, remember) {
             const lim = limits();
             const w = Math.min(Math.max(Math.round(px), lim.min), lim.max);
-            root.style.setProperty('--subject-nav-w', w + 'px');
+            root.style.setProperty('--side-nav-w', w + 'px');
             navResizer.setAttribute('aria-valuenow', String(w));
             if (remember) storage.set(KEY, String(w));
             return w;
@@ -162,7 +162,7 @@
 
         /* 더블클릭하면 기본값으로 */
         navResizer.addEventListener('dblclick', function () {
-            root.style.removeProperty('--subject-nav-w');
+            root.style.removeProperty('--side-nav-w');
             storage.remove(KEY);
             navResizer.setAttribute('aria-valuenow', String(DEFAULT_W));
         });
@@ -171,19 +171,19 @@
         navResizer.addEventListener('keydown', function (e) {
             if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
             e.preventDefault();
-            const now = parseInt(getComputedStyle(root).getPropertyValue('--subject-nav-w'), 10) || DEFAULT_W;
+            const now = parseInt(getComputedStyle(root).getPropertyValue('--side-nav-w'), 10) || DEFAULT_W;
             apply(now + (e.key === 'ArrowRight' ? STEP : -STEP), true);
         });
     }
 
-    const navFilter = document.getElementById('subjectNavFilter');
-    const navList   = document.getElementById('subjectNavList');
-    const navEmpty  = document.getElementById('subjectNavEmpty');
+    const navFilter = document.getElementById('sideNavFilter');
+    const navList   = document.getElementById('sideNavList');
+    const navEmpty  = document.getElementById('sideNavEmpty');
 
     if (navFilter && navList) {
-        const items = Array.prototype.slice.call(navList.querySelectorAll('.subject-nav__item'));
+        const items = Array.prototype.slice.call(navList.querySelectorAll('.side-nav__item'));
         const titles = items.map(function (item) {
-            const text = item.querySelector('.subject-nav__text');
+            const text = item.querySelector('.side-nav__text');
             return (text ? text.textContent : '').replace(/\s+/g, '').toLowerCase();
         });
 
@@ -193,7 +193,7 @@
 
             for (let i = 0; i < items.length; i++) {
                 const hit = needle === '' || titles[i].indexOf(needle) !== -1;
-                items[i].classList.toggle('subject-nav__item--hidden', !hit);
+                items[i].classList.toggle('side-nav__item--hidden', !hit);
                 if (hit) shown++;
             }
 
@@ -432,7 +432,7 @@
      */
     function findSearchInput() {
         return document.querySelector('.topic-filter__input')
-            || document.getElementById('subjectNavFilter')
+            || document.getElementById('sideNavFilter')
             || null;
     }
 
@@ -443,9 +443,9 @@
             const input = findSearchInput();
             if (!input) return;
             e.preventDefault();
-            const panel = document.getElementById('subjectNavPanel');
-            const toggle = document.getElementById('subjectNavToggle');
-            if (input.id === 'subjectNavFilter' && panel && !panel.classList.contains('subject-nav__panel--open')
+            const panel = document.getElementById('sideNavPanel');
+            const toggle = document.getElementById('sideNavToggle');
+            if (input.id === 'sideNavFilter' && panel && !panel.classList.contains('side-nav__panel--open')
                 && toggle && getComputedStyle(toggle).display !== 'none') {
                 toggle.click();
             }

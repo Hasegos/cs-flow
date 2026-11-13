@@ -39,7 +39,7 @@ public class SubjectController {
      * 과목 홈 페이지를 렌더링한다.
      * 과목 정보와 해당 과목의 공개된 토픽을 한 번에 전달한다. 과목당 토픽이 20~23개라 페이지로 나누지 않는다.
      * 검색어(q)·태그(tag)가 있으면 조건에 맞는 토픽만 보여주고, 검색엔진 색인에서 제외(noindex)한다.
-     * 왼쪽 목차({@code topicIndex})는 필터와 무관하게 과목 전체를 담아, 걸러 본 뒤에도 다른 토픽으로 바로 갈 수 있게 한다.
+     * 왼쪽 목차는 필터와 무관하게 과목 전체를 담아, 걸러 본 뒤에도 다른 토픽으로 바로 갈 수 있게 한다.
      *
      * @param subjectSlug 과목 영문 식별자
      * @param sort        정렬 기준 (default / view / like)
@@ -70,9 +70,10 @@ public class SubjectController {
         model.addAttribute("topics", topics);
         model.addAttribute("totalElements", topics.size());
         model.addAttribute("currentSubject", subjectSlug);
-        model.addAttribute("subjectName", subject.name());
-        model.addAttribute("subjectAccent", subject.colorAccent());
-        model.addAttribute("topicIndex", topicService.getPublishedTopicIndex(subjectSlug));
+        model.addAttribute("sideNavTitle", subject.name());
+        model.addAttribute("sideNavAccent", subject.colorAccent());
+        model.addAttribute("sideNavFilterLabel", "토픽 거르기");
+        model.addAttribute("sideNavItems", topicService.getSideNav(subjectSlug, null));
         model.addAttribute("currentSort", sort);
         model.addAttribute("tags", topicService.getPublishedTags(subjectSlug));
         model.addAttribute("q", condition.query());
