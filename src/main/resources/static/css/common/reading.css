@@ -22,8 +22,8 @@
 
 /* === 목차가 있으면 본문 영역 위에만 === */
 @media (min-width: 1141px) {
-  body:has(.subject-nav) .reading-progress {
-    left: var(--subject-nav-w);
+  body:has(.side-nav) .reading-progress {
+    left: var(--side-nav-w);
   }
 }
 
