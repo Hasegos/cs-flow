@@ -201,22 +201,40 @@
         });
     }
 
-    /* ===================== 햄버거 메뉴 ===================== */
-    const hamburger = document.getElementById('hamburgerBtn');
-    const drawer    = document.getElementById('gnbDrawer');
+    /* ===================== 하단 탭 시트 ===================== */
+    const browseBtn = document.getElementById('tabbarBrowse');
+    const sheet     = document.getElementById('tabbarSheet');
+    const scrim     = document.getElementById('tabbarScrim');
 
-    if (hamburger && drawer) {
-        hamburger.addEventListener('click', function () {
-            const isOpen = drawer.classList.toggle('gnb__drawer--open');
-            hamburger.classList.toggle('gnb__hamburger--open', isOpen);
-            hamburger.setAttribute('aria-label', isOpen ? '메뉴 닫기' : '메뉴 열기');
+    if (browseBtn && sheet && scrim) {
+        /**
+         * 과목 시트를 열거나 닫는다.
+         *
+         * @param open true면 연다
+         */
+        function toggleSheet(open) {
+            sheet.hidden = !open;
+            scrim.hidden = !open;
+            browseBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+            document.body.classList.toggle('is-sheet-open', open);
+            if (open) {
+                const first = sheet.querySelector('.tabbar__sheet-item');
+                if (first) first.focus();
+            }
+        }
+
+        browseBtn.addEventListener('click', function () {
+            toggleSheet(sheet.hidden);
         });
 
-        document.addEventListener('click', function (e) {
-            if (!hamburger.contains(e.target) && !drawer.contains(e.target)) {
-                drawer.classList.remove('gnb__drawer--open');
-                hamburger.classList.remove('gnb__hamburger--open');
-                hamburger.setAttribute('aria-label', '메뉴 열기');
+        scrim.addEventListener('click', function () {
+            toggleSheet(false);
+        });
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && !sheet.hidden) {
+                toggleSheet(false);
+                browseBtn.focus();
             }
         });
     }
@@ -322,8 +340,9 @@
         });
 
         window.addEventListener('popstate', function () {
-            const target = window.location.hash.replace('#', '');
-            if (target) activateTab(target, { scroll: false });
+            /* 해시가 없는 자리로 돌아오면 첫 탭이 열려 있어야 한다 */
+            const target = window.location.hash.replace('#', '') || tabBtns[0].dataset.tab;
+            activateTab(target, { scroll: false });
         });
 
         syncTabState();

@@ -1,5 +1,22 @@
 /* 과목 토픽 목차 */
 
+/* === 좁은 화면: 고정 헤더에 가리지 않게 내려놓는다 === */
+.side-nav {
+  position: relative;
+  z-index: 30;
+  padding-top: var(--header-h);
+}
+
+/* 헤더 높이만큼은 목차가 이미 차지하므로 히어로에서 뺀다 */
+@media (max-width: 1140px) {
+  body:has(.side-nav) .topic-hero { padding-top: 3rem; }
+  body:has(.side-nav) .subject-hero { padding-top: 5rem; }
+}
+
+@media (max-width: 768px) {
+  body:has(.side-nav) .subject-hero { padding-top: 3rem; }
+}
+
 /* === 모바일 토글 버튼 (기본) === */
 .side-nav__toggle {
   display: flex;
@@ -269,6 +286,7 @@ body.is-nav-resizing {
 @media (min-width: 1141px) {
   .side-nav {
     position: fixed;
+    padding-top: 0;
     top: var(--header-h);
     left: 0;
     bottom: 0;
@@ -335,6 +353,14 @@ body.is-nav-resizing {
   body.is-nav-resizing .side-nav__resizer {
     background: var(--subject-accent, var(--color-purple));
     outline: none;
+  }
+
+  /* 손가락으로 집는 기기에서는 손잡이를 넓힌다 */
+  @media (pointer: coarse) {
+    .side-nav__resizer {
+      left: calc(var(--side-nav-w) - 8px);
+      width: 16px;
+    }
   }
 
   /* 목차가 있는 페이지만 본문 왼쪽을 비운다 */
