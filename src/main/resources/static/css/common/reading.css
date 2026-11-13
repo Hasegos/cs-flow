@@ -1,0 +1,35 @@
+/* 읽기 진행 바 (common.js 가 토픽 페이지에서만 붙인다) */
+
+/* === 막대 === */
+.reading-progress {
+  position: fixed;
+  top: var(--header-h);
+  left: 0;
+  right: 0;
+  z-index: 90;
+  height: 2px;
+  pointer-events: none;
+  background: transparent;
+}
+
+.reading-progress__fill {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: var(--subject-accent, var(--color-purple));
+  box-shadow: 0 0 6px var(--subject-accent, var(--color-purple));
+}
+
+/* === 목차가 있으면 본문 영역 위에만 === */
+@media (min-width: 1141px) {
+  body:has(.subject-nav) .reading-progress {
+    left: var(--subject-nav-w);
+  }
+}
+
+/* === 움직임 줄이기 === */
+@media (prefers-reduced-motion: reduce) {
+  .reading-progress__fill {
+    box-shadow: none;
+  }
+}
