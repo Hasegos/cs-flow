@@ -340,8 +340,9 @@
         });
 
         window.addEventListener('popstate', function () {
-            const target = window.location.hash.replace('#', '');
-            if (target) activateTab(target, { scroll: false });
+            /* 해시가 없는 자리로 돌아오면 첫 탭이 열려 있어야 한다 */
+            const target = window.location.hash.replace('#', '') || tabBtns[0].dataset.tab;
+            activateTab(target, { scroll: false });
         });
 
         syncTabState();
