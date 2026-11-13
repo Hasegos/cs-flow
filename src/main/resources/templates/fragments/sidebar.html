@@ -1,9 +1,5 @@
 <th:block th:fragment="sidebar">
-    <!--
-      과목 토픽 목차. topicIndex가 있을 때만(과목 홈 · 토픽 상세) 나온다.
-      링크는 항상 HTML에 넣고 1140px 미만에서 CSS로만 숨긴다.
-      구글이 모바일 화면을 기준으로 색인하므로 서버에서 빼면 안 된다.
-    -->
+    <!-- 과목 토픽 목차. 링크는 항상 내려보내고 좁은 화면에서는 CSS로만 숨긴다 -->
     <aside class="subject-nav" th:if="${topicIndex != null and not #lists.isEmpty(topicIndex)}"
            th:style="${subjectAccent != null} ? ('--subject-accent: ' + ${subjectAccent}) : null">
 
@@ -20,7 +16,7 @@
                 <span class="subject-nav__count" th:text="${#lists.size(topicIndex)}">0</span>
             </h2>
 
-            <!-- 학습 진행률. localStorage를 읽어 learning.js가 채운다. -->
+            <!-- 학습 진행률 (learning.js가 채운다) -->
             <div class="subject-nav__progress" id="subjectNavProgress" hidden>
                 <div class="subject-nav__progress-track">
                     <span class="subject-nav__progress-fill" id="subjectNavProgressFill"></span>

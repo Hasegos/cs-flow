@@ -88,12 +88,9 @@
     };
 
     /* ===================== 왼쪽 목차 진행 표시 ===================== */
-    /*
-     * 과목 홈과 토픽 상세의 목차에 학습 상태를 붙인다.
-     * 저장소를 못 쓰면(사생활 보호 모드 등) 아무것도 하지 않고 목록은 그대로 둔다.
-     */
     (function markSidebar() {
         var list = document.getElementById('subjectNavList');
+        /* 저장소를 못 쓰면 목록을 그대로 둔다 */
         if (!list || !available) return;
 
         var items = list.querySelectorAll('.subject-nav__item');

@@ -37,6 +37,12 @@
     /* 헤더 높이 */
     --header-h: 64px;
 
+    /* 과목 토픽 목차 너비 (본문·푸터 여백이 같은 값을 쓴다) */
+    --subject-nav-w: 300px;
+    --subject-nav-w-min: 220px;
+    --subject-nav-w-max: 480px;
+    --subject-nav-pad: 1.25rem;
+
     --subject-accent: #6c63ff;
 }
 

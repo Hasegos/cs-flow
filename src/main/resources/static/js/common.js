@@ -76,13 +76,10 @@
     });
 
     /* ===================== 과목 토픽 목차 ===================== */
-    /*
-     * 1140px 이상에서는 CSS가 사이드바를 펼쳐 두므로 토글 버튼이 보이지 않는다.
-     * 그 아래 폭에서만 버튼으로 열고 닫는다. 필터는 서버를 거치지 않고 목록만 좁힌다.
-     */
     const navToggle = document.getElementById('subjectNavToggle');
     const navPanel  = document.getElementById('subjectNavPanel');
 
+    /* 토글 버튼은 1140px 미만에서만 보인다 */
     if (navToggle && navPanel) {
         navToggle.addEventListener('click', function () {
             const isOpen = navPanel.classList.toggle('subject-nav__panel--open');
@@ -99,14 +96,26 @@
         const DEFAULT_W = 300;
         const STEP = 16;
 
+        /**
+         * 지금 화면에서 쓸 수 있는 너비 범위를 돌려준다.
+         * 화면이 좁으면 본문이 사라지지 않도록 최대값을 더 줄인다.
+         *
+         * @returns {{min: number, max: number}} 최소 · 최대 너비(px)
+         */
         function limits() {
             const cs = getComputedStyle(root);
             const min = parseInt(cs.getPropertyValue('--subject-nav-w-min'), 10) || 220;
             const max = parseInt(cs.getPropertyValue('--subject-nav-w-max'), 10) || 480;
-            /* 화면이 좁으면 본문이 사라지지 않도록 더 줄인다 */
             return { min: min, max: Math.min(max, Math.round(window.innerWidth * 0.4)) };
         }
 
+        /**
+         * 너비를 범위 안으로 맞춰 적용한다.
+         *
+         * @param px       적용할 너비(px)
+         * @param remember true면 브라우저에 기억한다
+         * @returns {number} 실제로 적용된 너비(px)
+         */
         function apply(px, remember) {
             const lim = limits();
             const w = Math.min(Math.max(Math.round(px), lim.min), lim.max);
@@ -143,14 +152,14 @@
             navResizer.addEventListener('pointercancel', up);
         });
 
-        /* 더블클릭하면 기본 너비로 되돌린다 */
+        /* 더블클릭하면 기본값으로 */
         navResizer.addEventListener('dblclick', function () {
             root.style.removeProperty('--subject-nav-w');
             storage.remove(KEY);
             navResizer.setAttribute('aria-valuenow', String(DEFAULT_W));
         });
 
-        /* 키보드로도 조절한다 */
+        /* 좌우 화살표로 16px씩 */
         navResizer.addEventListener('keydown', function (e) {
             if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
             e.preventDefault();
