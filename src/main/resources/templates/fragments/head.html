@@ -64,8 +64,8 @@
     <script th:if="${topic}" src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js"></script>
     <meta th:if="${topic}" name="kakao-js-key" th:content="${kakaoJsKey}">
 
-    <!-- 학습 진행도 / 북마크 (토픽 페이지 전용) -->
-    <script th:if="${topic}" th:src="@{/js/learning.js}" defer></script>
+    <!-- 학습 진행도 / 북마크. 과목 홈은 왼쪽 목차에 표시하려고 같이 읽는다. -->
+    <script th:if="${topic != null or topicIndex != null}" th:src="@{/js/learning.js}" defer></script>
 
     <!-- JSON-LD -->
     <script type="application/ld+json">

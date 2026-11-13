@@ -87,6 +87,65 @@
         loadTopicIndex: loadTopicIndex
     };
 
+    /* ===================== 왼쪽 목차 진행 표시 ===================== */
+    /*
+     * 과목 홈과 토픽 상세의 목차에 학습 상태를 붙인다.
+     * 저장소를 못 쓰면(사생활 보호 모드 등) 아무것도 하지 않고 목록은 그대로 둔다.
+     */
+    (function markSidebar() {
+        var list = document.getElementById('subjectNavList');
+        if (!list || !available) return;
+
+        var items = list.querySelectorAll('.subject-nav__item');
+        if (items.length === 0) return;
+
+        var topics = read().topics;
+        var done = 0;
+        var doing = 0;
+
+        for (var i = 0; i < items.length; i++) {
+            var item = items[i];
+            var rec  = topics[item.getAttribute('data-slug')];
+            if (!rec) continue;
+
+            var marks = [];
+            if (rec.bm) marks.push('\u2605');                 /* ★ 북마크 */
+            if (rec.st === 'done') { marks.push('\u2713'); done++; }      /* ✓ 완료 */
+            else { marks.push('\u25D7'); doing++; }                       /* ◗ 학습 중 */
+
+            item.setAttribute('data-state', rec.st);
+            if (rec.bm) item.setAttribute('data-bm', '1');
+
+            var link = item.querySelector('.subject-nav__link');
+            if (!link) continue;
+
+            var state = document.createElement('span');
+            state.className = 'subject-nav__state';
+            state.setAttribute('aria-hidden', 'true');
+            state.textContent = marks.join('');
+            link.appendChild(state);
+
+            var label = [];
+            if (rec.st === 'done') label.push('학습 완료');
+            else label.push('학습 중');
+            if (rec.bm) label.push('북마크');
+            link.setAttribute('title', label.join(' · '));
+        }
+
+        if (done + doing === 0) return;
+
+        var box  = document.getElementById('subjectNavProgress');
+        var fill = document.getElementById('subjectNavProgressFill');
+        var text = document.getElementById('subjectNavProgressText');
+        if (!box || !fill || !text) return;
+
+        var pct = Math.round((done / items.length) * 100);
+        fill.style.width = pct + '%';
+        text.textContent = done + '/' + items.length;
+        box.setAttribute('title', '학습 완료 ' + done + '개, 학습 중 ' + doing + '개');
+        box.hidden = false;
+    })();
+
     /* ===================== 토픽 페이지 ===================== */
     var likeBtn = document.querySelector('.topic-like');
     if (!available || !likeBtn) return;

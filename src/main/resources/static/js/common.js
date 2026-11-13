@@ -90,6 +90,75 @@
         });
     }
 
+    /* --- 너비 조절 --- */
+    const navResizer = document.getElementById('subjectNavResizer');
+
+    if (navResizer) {
+        const root = document.documentElement;
+        const KEY = 'csflow-nav-width';
+        const DEFAULT_W = 300;
+        const STEP = 16;
+
+        function limits() {
+            const cs = getComputedStyle(root);
+            const min = parseInt(cs.getPropertyValue('--subject-nav-w-min'), 10) || 220;
+            const max = parseInt(cs.getPropertyValue('--subject-nav-w-max'), 10) || 480;
+            /* 화면이 좁으면 본문이 사라지지 않도록 더 줄인다 */
+            return { min: min, max: Math.min(max, Math.round(window.innerWidth * 0.4)) };
+        }
+
+        function apply(px, remember) {
+            const lim = limits();
+            const w = Math.min(Math.max(Math.round(px), lim.min), lim.max);
+            root.style.setProperty('--subject-nav-w', w + 'px');
+            navResizer.setAttribute('aria-valuenow', String(w));
+            if (remember) storage.set(KEY, String(w));
+            return w;
+        }
+
+        const saved = parseInt(storage.get(KEY), 10);
+        if (saved) apply(saved, false);
+
+        const lim0 = limits();
+        navResizer.setAttribute('aria-valuemin', String(lim0.min));
+        navResizer.setAttribute('aria-valuemax', String(lim0.max));
+
+        navResizer.addEventListener('pointerdown', function (e) {
+            e.preventDefault();
+            navResizer.setPointerCapture(e.pointerId);
+            document.body.classList.add('is-nav-resizing');
+
+            function move(ev) { apply(ev.clientX, false); }
+
+            function up(ev) {
+                navResizer.removeEventListener('pointermove', move);
+                navResizer.removeEventListener('pointerup', up);
+                navResizer.removeEventListener('pointercancel', up);
+                document.body.classList.remove('is-nav-resizing');
+                apply(ev.clientX, true);
+            }
+
+            navResizer.addEventListener('pointermove', move);
+            navResizer.addEventListener('pointerup', up);
+            navResizer.addEventListener('pointercancel', up);
+        });
+
+        /* 더블클릭하면 기본 너비로 되돌린다 */
+        navResizer.addEventListener('dblclick', function () {
+            root.style.removeProperty('--subject-nav-w');
+            storage.remove(KEY);
+            navResizer.setAttribute('aria-valuenow', String(DEFAULT_W));
+        });
+
+        /* 키보드로도 조절한다 */
+        navResizer.addEventListener('keydown', function (e) {
+            if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+            e.preventDefault();
+            const now = parseInt(getComputedStyle(root).getPropertyValue('--subject-nav-w'), 10) || DEFAULT_W;
+            apply(now + (e.key === 'ArrowRight' ? STEP : -STEP), true);
+        });
+    }
+
     const navFilter = document.getElementById('subjectNavFilter');
     const navList   = document.getElementById('subjectNavList');
     const navEmpty  = document.getElementById('subjectNavEmpty');

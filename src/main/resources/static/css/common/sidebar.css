@@ -7,8 +7,13 @@
      토픽 템플릿 128개를 고치지 않으려고 이 방식을 쓴다.
    ========================================================= */
 
-.subject-nav {
-  --subject-nav-w: 280px;
+/* 본문(main)이 같은 값을 써야 하므로 :root 에 둔다. 사이드바에만 선언하면 형제인 main 에서 var 가 빈 값이 된다.
+   너비는 리사이저를 끌면 JS가 이 값을 덮어쓰고 localStorage에 기억한다. */
+:root {
+  --subject-nav-w: 300px;
+  --subject-nav-w-min: 220px;
+  --subject-nav-w-max: 480px;
+  --subject-nav-pad: 1.25rem;
 }
 
 /* === 모바일 토글 버튼 (기본) === */
@@ -92,6 +97,8 @@
 
 .subject-nav__panel--open { display: block; }
 
+.subject-nav__panel .subject-nav__progress { margin: 0.35rem 0.4rem 0.6rem; }
+
 .subject-nav__toggle[aria-expanded="true"] {
   border-radius: var(--radius-sm) var(--radius-sm) 0 0;
   border-bottom-color: transparent;
@@ -150,8 +157,8 @@
 .subject-nav__link {
   display: flex;
   align-items: baseline;
-  gap: 0.55rem;
-  padding: 0.4rem 0.6rem;
+  gap: 0.7rem;
+  padding: 0.45rem 0.7rem;
   border-radius: var(--radius-sm);
   font-size: 0.84rem;
   color: var(--color-text-sub);
@@ -193,10 +200,70 @@
   white-space: nowrap;
 }
 
+/* === 학습 진행 표시 === */
+.subject-nav__progress {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0.1rem 0.7rem;
+}
+
+.subject-nav__progress-track {
+  flex: 1 1 auto;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--color-border);
+  overflow: hidden;
+}
+
+.subject-nav__progress-fill {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--subject-accent, var(--color-purple));
+  transition: width var(--transition);
+}
+
+.subject-nav__progress-text {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 목록 항목 상태 표식 (✓ 완료 · ◗ 학습 중 · ★ 북마크) */
+.subject-nav__state {
+  margin-left: auto;
+  padding-left: 0.4rem;
+  flex: 0 0 auto;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  color: var(--color-text-muted);
+}
+
+.subject-nav__item[data-state="done"] .subject-nav__state {
+  color: var(--subject-accent, var(--color-purple));
+}
+
+.subject-nav__item[data-state="done"] .subject-nav__text {
+  color: var(--color-text);
+}
+
 .subject-nav__empty {
   padding: 0.6rem;
   font-size: 0.82rem;
   color: var(--color-text-muted);
+}
+
+/* === 너비 조절 손잡이 (데스크톱 전용) === */
+.subject-nav__resizer { display: none; }
+
+/* 끄는 동안 본문 글자가 선택되지 않게 한다 */
+body.is-nav-resizing {
+  cursor: col-resize;
+  user-select: none;
 }
 
 /* =========================================================
@@ -221,7 +288,8 @@
   .subject-nav__panel {
     display: block;
     margin: 0;
-    padding: 1.25rem 0.75rem 2.5rem;
+    /* 오른쪽은 리사이저 폭(6px)을 비워 둔다 */
+    padding: 1.5rem calc(var(--subject-nav-pad) + 6px) 2.5rem var(--subject-nav-pad);
     background: none;
     border: 0;
     border-radius: 0;
@@ -231,7 +299,7 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    margin: 0 0.6rem 0.75rem;
+    margin: 0 0.1rem 0.85rem;
     font-size: 0.95rem;
     font-weight: 700;
     color: var(--color-text);
@@ -247,10 +315,43 @@
     background: var(--color-purple-dim);
   }
 
+  .subject-nav__filter,
+  .subject-nav__panel .subject-nav__progress {
+    margin: 0 0.1rem 0.7rem;
+  }
+
+  /* 너비 조절 손잡이 */
+  .subject-nav__resizer {
+    display: block;
+    position: fixed;
+    top: var(--header-h);
+    bottom: 0;
+    left: calc(var(--subject-nav-w) - 3px);
+    z-index: 41;
+    width: 6px;
+    cursor: col-resize;
+    background: transparent;
+    transition: background var(--transition);
+  }
+
+  .subject-nav__resizer:hover,
+  .subject-nav__resizer:focus-visible,
+  body.is-nav-resizing .subject-nav__resizer {
+    background: var(--subject-accent, var(--color-purple));
+    outline: none;
+  }
+
   /* 사이드바가 있는 페이지에서만 본문을 비운다 */
-  body:has(.subject-nav) main,
-  body:has(.subject-nav) > footer {
+  body:has(.subject-nav) main {
     padding-left: var(--subject-nav-w);
+  }
+
+  /*
+   * 푸터는 .footer 가 padding 단축 속성으로 좌우 2rem 을 주고 있다.
+   * 여기서 padding-left 만 덮어쓰면 그 2rem 이 사라져 글자가 사이드바에 붙는다.
+   */
+  body:has(.subject-nav) > footer {
+    padding-left: calc(var(--subject-nav-w) + 2rem);
   }
 }
 
