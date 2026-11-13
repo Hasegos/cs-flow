@@ -80,6 +80,25 @@
   background: var(--color-purple-dim);
 }
 
+/* === 반응형 === */
+@media (max-width: 1140px) {
+  .gnb__nav { display: none; }
+
+  .gnb__search-btn {
+    margin-left: auto;
+  }
+
+  .gnb__theme-btn {
+    margin-left: 0.5rem;
+  }
+}
+
+/* === 라이트 모드 헤더 === */
+[data-theme="light"] .gnb {
+  background: rgba(245, 245, 255, 0.92);
+  border-bottom-color: rgba(108, 99, 255, 0.18);
+}
+
 /* === 검색·테마 토글 버튼 === */
 .gnb__search-btn,
 .gnb__study-btn,
