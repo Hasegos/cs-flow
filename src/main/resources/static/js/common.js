@@ -1,5 +1,5 @@
 /**
- * 공통 JS — 공용 헬퍼(저장소·POST·토스트) / 햄버거 메뉴 / 탭 전환 / 테마
+ * 공통 JS — 공용 헬퍼(저장소·POST·토스트) / 햄버거 메뉴 / 과목 토픽 목차 / 탭 전환 / 테마
  */
 (function () {
     'use strict';
@@ -74,6 +74,124 @@
     document.querySelectorAll('link[data-async-css]').forEach(function (link) {
         link.media = 'all';
     });
+
+    /* ===================== 과목 토픽 목차 ===================== */
+    const navToggle = document.getElementById('subjectNavToggle');
+    const navPanel  = document.getElementById('subjectNavPanel');
+
+    /* 토글 버튼은 1140px 미만에서만 보인다 */
+    if (navToggle && navPanel) {
+        navToggle.addEventListener('click', function () {
+            const isOpen = navPanel.classList.toggle('subject-nav__panel--open');
+            navToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        });
+    }
+
+    /* --- 너비 조절 --- */
+    const navResizer = document.getElementById('subjectNavResizer');
+
+    if (navResizer) {
+        const root = document.documentElement;
+        const KEY = 'csflow-nav-width';
+        const DEFAULT_W = 300;
+        const STEP = 16;
+
+        /**
+         * 지금 화면에서 쓸 수 있는 너비 범위를 돌려준다.
+         * 화면이 좁으면 본문이 사라지지 않도록 최대값을 더 줄인다.
+         *
+         * @returns {{min: number, max: number}} 최소 · 최대 너비(px)
+         */
+        function limits() {
+            const cs = getComputedStyle(root);
+            const min = parseInt(cs.getPropertyValue('--subject-nav-w-min'), 10) || 220;
+            const max = parseInt(cs.getPropertyValue('--subject-nav-w-max'), 10) || 480;
+            return { min: min, max: Math.min(max, Math.round(window.innerWidth * 0.4)) };
+        }
+
+        /**
+         * 너비를 범위 안으로 맞춰 적용한다.
+         *
+         * @param px       적용할 너비(px)
+         * @param remember true면 브라우저에 기억한다
+         * @returns {number} 실제로 적용된 너비(px)
+         */
+        function apply(px, remember) {
+            const lim = limits();
+            const w = Math.min(Math.max(Math.round(px), lim.min), lim.max);
+            root.style.setProperty('--subject-nav-w', w + 'px');
+            navResizer.setAttribute('aria-valuenow', String(w));
+            if (remember) storage.set(KEY, String(w));
+            return w;
+        }
+
+        const saved = parseInt(storage.get(KEY), 10);
+        if (saved) apply(saved, false);
+
+        const lim0 = limits();
+        navResizer.setAttribute('aria-valuemin', String(lim0.min));
+        navResizer.setAttribute('aria-valuemax', String(lim0.max));
+
+        navResizer.addEventListener('pointerdown', function (e) {
+            e.preventDefault();
+            navResizer.setPointerCapture(e.pointerId);
+            document.body.classList.add('is-nav-resizing');
+
+            function move(ev) { apply(ev.clientX, false); }
+
+            function up(ev) {
+                navResizer.removeEventListener('pointermove', move);
+                navResizer.removeEventListener('pointerup', up);
+                navResizer.removeEventListener('pointercancel', up);
+                document.body.classList.remove('is-nav-resizing');
+                apply(ev.clientX, true);
+            }
+
+            navResizer.addEventListener('pointermove', move);
+            navResizer.addEventListener('pointerup', up);
+            navResizer.addEventListener('pointercancel', up);
+        });
+
+        /* 더블클릭하면 기본값으로 */
+        navResizer.addEventListener('dblclick', function () {
+            root.style.removeProperty('--subject-nav-w');
+            storage.remove(KEY);
+            navResizer.setAttribute('aria-valuenow', String(DEFAULT_W));
+        });
+
+        /* 좌우 화살표로 16px씩 */
+        navResizer.addEventListener('keydown', function (e) {
+            if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+            e.preventDefault();
+            const now = parseInt(getComputedStyle(root).getPropertyValue('--subject-nav-w'), 10) || DEFAULT_W;
+            apply(now + (e.key === 'ArrowRight' ? STEP : -STEP), true);
+        });
+    }
+
+    const navFilter = document.getElementById('subjectNavFilter');
+    const navList   = document.getElementById('subjectNavList');
+    const navEmpty  = document.getElementById('subjectNavEmpty');
+
+    if (navFilter && navList) {
+        const items = Array.prototype.slice.call(navList.querySelectorAll('.subject-nav__item'));
+        const titles = items.map(function (item) {
+            const text = item.querySelector('.subject-nav__text');
+            return (text ? text.textContent : '').replace(/\s+/g, '').toLowerCase();
+        });
+
+        navFilter.addEventListener('input', function () {
+            const needle = navFilter.value.replace(/\s+/g, '').toLowerCase();
+            let shown = 0;
+
+            for (let i = 0; i < items.length; i++) {
+                const hit = needle === '' || titles[i].indexOf(needle) !== -1;
+                items[i].classList.toggle('subject-nav__item--hidden', !hit);
+                if (hit) shown++;
+            }
+
+            if (navEmpty) navEmpty.hidden = shown > 0;
+        });
+    }
 
     /* ===================== 햄버거 메뉴 ===================== */
     const hamburger = document.getElementById('hamburgerBtn');

@@ -1,4 +1,5 @@
-<header th:fragment="header" class="gnb">
+<th:block th:fragment="header">
+<header class="gnb">
     <div class="gnb__inner">
         <a th:href="@{/}" class="gnb__logo">
             <img th:src="@{/img/csflow_icon.svg}"       alt="CS Flow 로고" class="gnb__logo-icon gnb__logo-icon--dark">
@@ -77,3 +78,6 @@
         <a th:href="@{/study}"   class="gnb__drawer-item" th:classappend="${currentPage == 'study'}      ? ' is-active'">내 학습</a>
     </div>
 </header>
+
+<th:block th:replace="~{fragments/sidebar :: sidebar}"></th:block>
+</th:block>

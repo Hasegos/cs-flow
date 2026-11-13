@@ -1,0 +1,57 @@
+<th:block th:fragment="sidebar">
+    <!-- 과목 토픽 목차. 링크는 항상 내려보내고 좁은 화면에서는 CSS로만 숨긴다 -->
+    <aside class="subject-nav" th:if="${topicIndex != null and not #lists.isEmpty(topicIndex)}"
+           th:style="${subjectAccent != null} ? ('--subject-accent: ' + ${subjectAccent}) : null">
+
+        <button type="button" class="subject-nav__toggle" id="subjectNavToggle"
+                aria-expanded="false" aria-controls="subjectNavPanel">
+            <span class="subject-nav__toggle-icon" aria-hidden="true"></span>
+            <span class="subject-nav__toggle-text" th:text="${subjectName} + ' 토픽'">과목 토픽</span>
+            <span class="subject-nav__toggle-count" th:text="${#lists.size(topicIndex)}">0</span>
+        </button>
+
+        <div class="subject-nav__panel" id="subjectNavPanel">
+            <h2 class="subject-nav__title">
+                <span th:text="${subjectName}">과목</span>
+                <span class="subject-nav__count" th:text="${#lists.size(topicIndex)}">0</span>
+            </h2>
+
+            <!-- 학습 진행률 (learning.js가 채운다) -->
+            <div class="subject-nav__progress" id="subjectNavProgress" hidden>
+                <div class="subject-nav__progress-track">
+                    <span class="subject-nav__progress-fill" id="subjectNavProgressFill"></span>
+                </div>
+                <span class="subject-nav__progress-text" id="subjectNavProgressText">0/0</span>
+            </div>
+
+            <div class="subject-nav__filter">
+                <svg class="subject-nav__filter-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="11" cy="11" r="7"/>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <input type="search" id="subjectNavFilter" class="subject-nav__filter-input"
+                       placeholder="토픽 거르기" aria-label="토픽 거르기" autocomplete="off" maxlength="40">
+            </div>
+
+            <ol class="subject-nav__list" id="subjectNavList">
+                <li th:each="item, stat : ${topicIndex}" class="subject-nav__item"
+                    th:attr="data-slug=${item.slug}">
+                    <a class="subject-nav__link"
+                       th:classappend="${item.slug == currentTopicSlug} ? ' subject-nav__link--active' : ''"
+                       th:attr="aria-current=${item.slug == currentTopicSlug} ? 'page' : null"
+                       th:href="@{/{subjectSlug}/{topicSlug}(subjectSlug=${item.subjectSlug}, topicSlug=${item.slug})}">
+                        <span class="subject-nav__num" th:text="${#numbers.formatInteger(stat.count, 2)}">01</span>
+                        <span class="subject-nav__text" th:text="${item.title}">토픽 제목</span>
+                    </a>
+                </li>
+            </ol>
+
+            <p class="subject-nav__empty" id="subjectNavEmpty" hidden>맞는 토픽이 없습니다.</p>
+        </div>
+
+        <div class="subject-nav__resizer" id="subjectNavResizer"
+             role="separator" aria-orientation="vertical" tabindex="0"
+             aria-label="목차 너비 조절" title="드래그해서 너비 조절 (더블클릭하면 기본값)"></div>
+    </aside>
+</th:block>

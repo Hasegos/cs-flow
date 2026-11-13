@@ -184,6 +184,39 @@ public class TopicService {
     }
 
     /**
+     * 과목에 속한 공개 토픽 전체를 발행 순서대로 목차 형태로 조회한다.
+     * <p>
+     * 과목 홈과 토픽 상세의 왼쪽 목차에 쓴다. 조회수 · 추천수를 쓰지 않으므로 DB를 조회하지 않는다.
+     * </p>
+     *
+     * @param subjectSlug 과목 영문 식별자
+     * @return 과목 전체 토픽 목차, 없으면 빈 리스트 반환
+     */
+    public List<TopicIndexItem> getPublishedTopicIndex(String subjectSlug){
+        return contentStore.topicsOf(subjectSlug).stream()
+                .sorted(Comparator.comparingInt(TopicInfo::seq))
+                .map(t -> new TopicIndexItem(t.slug(), t.title(), t.subject().slug()))
+                .toList();
+    }
+
+    /**
+     * 조건에 맞는 공개된 토픽 전체를 한 번에 조회한다. 조회수 · 추천수는 DB 값을 slug로 합친다.
+     * <p>
+     * 과목 홈은 토픽이 20~23개라 페이지로 나누지 않고 전부 보여 준다.
+     * 페이지 단위가 필요한 검색 화면은 {@link #getPublishedTopicsPageable} 쪽을 쓴다.
+     * </p>
+     *
+     * @param subjectSlug 과목 영문 식별자, null이면 전체 과목
+     * @param condition   검색 조건
+     * @param sort        정렬 기준
+     * @return 공개된 토픽 목록, 없으면 빈 리스트 반환
+     */
+    @Transactional(readOnly = true)
+    public List<TopicInfo> getPublishedTopics(String subjectSlug, TopicSearchCondition condition, String sort){
+        return getPublishedTopicsPageable(subjectSlug, condition, 0, Integer.MAX_VALUE, sort).getContent();
+    }
+
+    /**
      * 과목에 속한 공개 토픽의 태그 목록을 토픽 수와 함께 조회한다.
      *
      * @param subjectSlug 과목 영문 식별자
