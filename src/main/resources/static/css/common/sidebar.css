@@ -337,6 +337,14 @@ body.is-nav-resizing {
     outline: none;
   }
 
+  /* 손가락으로 집는 기기에서는 손잡이를 넓힌다 */
+  @media (pointer: coarse) {
+    .side-nav__resizer {
+      left: calc(var(--side-nav-w) - 8px);
+      width: 16px;
+    }
+  }
+
   /* 목차가 있는 페이지만 본문 왼쪽을 비운다 */
   body:has(.side-nav) main {
     padding-left: var(--side-nav-w);

@@ -51,7 +51,7 @@
         <div class="tabbar__grid">
             <a th:each="s : ${navSubjects}" th:href="@{/{slug}(slug=${s.slug})}" class="tabbar__sheet-item"
                th:classappend="${currentSubject == s.slug} ? ' tabbar__sheet-item--active'"
-               th:attr="aria-current=${currentSubject == s.slug} ? 'page' : null">
+               th:attr="aria-current=${currentSubject == s.slug} ? 'true' : null">
                 <span class="tabbar__dot" th:style="'background: ' + ${s.colorAccent}" aria-hidden="true"></span>
                 <span th:text="${s.name}">과목</span>
             </a>
@@ -61,13 +61,13 @@
         <div class="tabbar__grid">
             <a th:href="@{/errors}" class="tabbar__sheet-item"
                th:classappend="${currentSection == 'errors'} ? ' tabbar__sheet-item--active'"
-               th:attr="aria-current=${currentSection == 'errors'} ? 'page' : null">
+               th:attr="aria-current=${currentSection == 'errors'} ? 'true' : null">
                 <span class="tabbar__dot tabbar__dot--plain" aria-hidden="true"></span>
                 <span>에러 사전</span>
             </a>
             <a th:href="@{/interview}" class="tabbar__sheet-item" rel="nofollow"
                th:classappend="${currentPage == 'interview'} ? ' tabbar__sheet-item--active'"
-               th:attr="aria-current=${currentPage == 'interview'} ? 'page' : null">
+               th:attr="aria-current=${currentPage == 'interview'} ? 'true' : null">
                 <span class="tabbar__dot tabbar__dot--plain" aria-hidden="true"></span>
                 <span>면접 대비</span>
             </a>
