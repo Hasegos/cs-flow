@@ -692,13 +692,25 @@
                 if (on && !first) first = li;
             });
 
+            if (first) bringIntoView(list, first);
+        }
+
+        /**
+         * 밝아진 줄을 목록 가운데로 옮긴다.
+         * 목록이 통째로 펼쳐져 스스로 스크롤하지 않으면 아무것도 하지 않는다.
+         * 그때 화면을 움직이면 사용자가 보던 자리를 빼앗는다.
+         *
+         * @param list  지금 보이는 코드 목록
+         * @param line  밝아진 첫 줄
+         */
+        function bringIntoView(list, line) {
+            if (list.scrollHeight <= list.clientHeight + 1) return;
+
             /* offsetTop 은 패널 기준이 아니라 어긋난다. 실제 자리 차이로 잰다 */
-            if (first) {
-                const lr = list.getBoundingClientRect();
-                const fr = first.getBoundingClientRect();
-                const top = list.scrollTop + (fr.top - lr.top) - list.clientHeight / 2 + fr.height / 2;
-                list.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
-            }
+            const lr = list.getBoundingClientRect();
+            const fr = line.getBoundingClientRect();
+            const top = list.scrollTop + (fr.top - lr.top) - list.clientHeight / 2 + fr.height / 2;
+            list.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
         }
 
         langSel.addEventListener('change', function () {

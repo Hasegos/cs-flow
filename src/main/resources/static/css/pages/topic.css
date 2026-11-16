@@ -583,8 +583,18 @@
   min-width: 0;
 }
 
+/*
+ * 위아래로 쌓이면 시각화와 코드를 같이 볼 수 없다. 시각화를 탭 막대 아래에
+ * 붙여 두어, 코드를 끝까지 훑는 동안에도 계속 보이게 한다.
+ * 좌우로 나뉘면 나란히 있으므로 붙박이를 푼다.
+ */
 .code-sync .visualizer-wrap {
+  position: sticky;
+  top: calc(var(--header-h) + var(--topic-tabs-h));
+  z-index: 15;
   min-width: 0;
+  padding-bottom: 0.75rem;
+  background: var(--color-bg);
 }
 
 .code-sync__panel {
@@ -642,12 +652,6 @@
   padding: 0.7rem 0;
   list-style: none;
   counter-reset: codeline;
-  /*
-   * 위아래로 쌓였을 때 캔버스가 화면을 거의 다 먹는다. 코드까지 다 펼치면
-   * 하이라이트가 화면 밖으로 밀리므로 지금 줄 둘레만 보인다.
-   * markStep 이 밝아진 줄을 가운데로 스크롤한다.
-   */
-  max-height: 5.5rem;
   overflow-y: auto;
   scroll-behavior: smooth;
 }
@@ -725,10 +729,9 @@
 
   body.is-nav-collapsed .code-sync .visualizer-wrap {
     flex: 1.6 1 0;
-  }
-
-  body.is-nav-collapsed .code-sync__lines {
-    max-height: none;
+    position: static;
+    padding-bottom: 0;
+    background: none;
   }
 
   body.is-nav-collapsed .code-sync__panel {
@@ -747,10 +750,9 @@
 
   .code-sync .visualizer-wrap {
     flex: 1.6 1 0;
-  }
-
-  .code-sync__lines {
-    max-height: none;
+    position: static;
+    padding-bottom: 0;
+    background: none;
   }
 
   .code-sync__panel {
