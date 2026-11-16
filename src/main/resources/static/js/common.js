@@ -272,6 +272,9 @@
     const tabBtns = document.querySelectorAll('.topic-tabs__btn');
     const panels  = document.querySelectorAll('.topic-panel');
 
+    /* 코드 연결 탭을 작동 원리 안으로 합쳤다. 옛 주소가 빈 화면이 되지 않게 보낸다 */
+    const TAB_ALIAS = { code: 'visualizer' };
+
     if (tabBtns.length > 0) {
         const tabList = document.querySelector('.topic-tabs__inner');
         if (tabList) tabList.setAttribute('role', 'tablist');
@@ -370,15 +373,21 @@
 
         window.addEventListener('popstate', function () {
             /* 해시가 없는 자리로 돌아오면 첫 탭이 열려 있어야 한다 */
-            const target = window.location.hash.replace('#', '') || tabBtns[0].dataset.tab;
-            activateTab(target, { scroll: false });
+            const hash = window.location.hash.replace('#', '');
+            activateTab(TAB_ALIAS[hash] || hash || tabBtns[0].dataset.tab, { scroll: false });
         });
 
         syncTabState();
 
         /* 주소에 탭이 있으면 그 탭으로 */
         const initial = window.location.hash.replace('#', '');
-        if (initial) activateTab(initial, { scroll: false });
+        if (initial) {
+            const target = TAB_ALIAS[initial] || initial;
+            activateTab(target, { scroll: false });
+            if (target !== initial && window.history.replaceState) {
+                window.history.replaceState({ tab: target }, '', '#' + target);
+            }
+        }
     }
 
     /**
