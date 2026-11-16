@@ -509,6 +509,16 @@
   border-radius: var(--radius-sm);
 }
 
+.viz-hint__more {
+  color: var(--color-text-muted);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.viz-hint__more:hover {
+  color: var(--subject-accent, var(--color-purple));
+}
+
 .visualizer-canvas-area {
   width: 100%;
   background: var(--color-surface);
