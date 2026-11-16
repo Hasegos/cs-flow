@@ -51,6 +51,18 @@
                         </a>
                         <a th:href="@{/study}" class="hero__continue-all">내 학습 전체 보기 →</a>
                     </div>
+
+                    <!-- 처음 온 사람에게. 본 토픽이 없을 때만 나온다 -->
+                    <div class="hero__continue" id="first-visit" hidden>
+                        <p class="hero__continue-label">처음이신가요?</p>
+                        <a class="hero__continue-card" th:href="@{/guide}">
+                            <span class="hero__continue-subject">이용 가이드</span>
+                            <span class="hero__continue-title">보는 법과 단축키를 한 장에</span>
+                        </a>
+                        <button type="button" class="hero__continue-all hero__continue-skip" id="first-visit-close">
+                            바로 시작할게요
+                        </button>
+                    </div>
                 </div>
 
                 <!-- 배경 회로 — 다크/라이트 이미지 분리 -->
