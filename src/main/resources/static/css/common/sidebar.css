@@ -342,16 +342,15 @@ body.is-nav-resizing {
     display: none;
   }
 
-  /* 화면 세로 가운데에 둔다. 헤더 바로 아래에 두면 토픽 탭 막대와 겹친다 */
+  /* 토픽 탭 막대(헤더 아래 53px)보다 더 내려야 겹치지 않는다 */
   body.is-nav-collapsed .side-nav__open {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     position: fixed;
-    top: 50%;
-    transform: translateY(-50%);
+    top: calc(var(--header-h) + 4rem);
     left: 0;
-    z-index: 40;
+    z-index: 60;
     width: 1.5rem;
     height: 2.5rem;
     font-family: var(--font-mono);
