@@ -542,6 +542,39 @@
         }
     });
 
+    /* 키보드가 있는 기기에만, 재생 버튼이 있는 시각화에만 안내를 붙인다 */
+    const vizWrap = document.querySelector('.visualizer-wrap');
+    if (vizWrap && window.matchMedia('(pointer: fine)').matches) {
+        const hint = document.createElement('p');
+        hint.className = 'viz-hint';
+        hint.hidden = true;
+        hint.innerHTML = '<kbd>Space</kbd> 재생 · 정지'
+            + '<kbd>→</kbd> 한 단계'
+            + '<kbd>R</kbd> 처음으로';
+        vizWrap.appendChild(hint);
+
+        const vizWatch = new MutationObserver(revealVizHint);
+
+        /** 재생 버튼이 그려졌으면 안내를 보여 주고 지켜보기를 멈춘다. */
+        function revealVizHint() {
+            const btns = vizWrap.querySelectorAll('button');
+            for (let i = 0; i < btns.length; i++) {
+                if (btns[i].textContent.trim() === '▶ PLAY') {
+                    hint.hidden = false;
+                    vizWatch.disconnect();
+                    return;
+                }
+            }
+        }
+
+        revealVizHint();
+        if (hint.hidden) {
+            vizWatch.observe(vizWrap, { childList: true, subtree: true });
+            /* 재생 버튼이 없는 시각화도 있으므로 오래 지켜보지 않는다 */
+            setTimeout(function () { vizWatch.disconnect(); }, 8000);
+        }
+    }
+
     /* ===================== 읽기 진행 바 ===================== */
     if (document.querySelector('.topic-content')) {
         const readBar = document.createElement('div');
