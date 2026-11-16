@@ -67,7 +67,6 @@
             <div class="topic-tabs__inner">
                 <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
                 <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
-                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
                 <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
             </div>
         </nav>
@@ -277,14 +276,12 @@
                 <div class="visualizer-wrap">
                     <div class="visualizer-canvas-area" id="visualizer-container"></div>
                 </div>
-            </div>
 
-            <!-- 탭 3: 코드 연결 -->
-            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code-divider :: divider}"></th:block>
                 <th:block th:replace="~{fragments/code/algo/11-20/topological-sort-code :: code}"></th:block>
             </div>
 
-            <!-- 탭 4: 퀴즈 -->
+            <!-- 탭 3: 퀴즈 -->
             <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
                 <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
             </div>
