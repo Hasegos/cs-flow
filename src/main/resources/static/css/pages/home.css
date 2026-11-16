@@ -204,6 +204,13 @@
   text-decoration: none;
 }
 
+.hero__continue-skip {
+  font-family: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
 .hero__continue-all:hover {
   color: var(--color-purple);
 }
