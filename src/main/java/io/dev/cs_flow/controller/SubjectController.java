@@ -115,6 +115,7 @@ public class SubjectController {
         model.addAttribute("q", condition.query());
         model.addAttribute("qQs", queryString("q", condition.query()));
         model.addAttribute("noindex", true);
+        model.addAttribute("currentPage", "search");
         model.addAttribute("canonicalUrl", "https://csflow.kr/search");
         return "search/search";
     }
