@@ -11,15 +11,10 @@
         </a>
 
         <nav class="gnb__nav">
-            <a th:href="@{/arch}"    class="gnb__nav-item" th:classappend="${currentSubject == 'arch'}    ? ' is-active'">컴퓨터 구조</a>
-            <a th:href="@{/os}"      class="gnb__nav-item" th:classappend="${currentSubject == 'os'}      ? ' is-active'">운영체제</a>
-            <a th:href="@{/network}" class="gnb__nav-item" th:classappend="${currentSubject == 'network'} ? ' is-active'">네트워크</a>
-            <a th:href="@{/ds}"      class="gnb__nav-item" th:classappend="${currentSubject == 'ds'}      ? ' is-active'">자료구조</a>
-            <a th:href="@{/algo}"    class="gnb__nav-item" th:classappend="${currentSubject == 'algo'}    ? ' is-active'">알고리즘</a>
-            <a th:href="@{/db}"      class="gnb__nav-item" th:classappend="${currentSubject == 'db'}      ? ' is-active'">데이터베이스</a>
-            <a th:href="@{/robot}"   class="gnb__nav-item" th:classappend="${currentSubject == 'robot'}   ? ' is-active'">로봇·임베디드</a>
+            <a th:each="s : ${navSubjects}" th:href="@{/{slug}(slug=${s.slug})}" class="gnb__nav-item"
+               th:classappend="${currentSubject == s.slug} ? ' is-active'" th:text="${s.name}">과목</a>
             <a th:href="@{/errors}"  class="gnb__nav-item" th:classappend="${currentSection == 'errors'}  ? ' is-active'">에러 사전</a>
-            <a th:href="@{/interview}" class="gnb__nav-item" th:classappend="${currentPage == 'interview'} ? ' is-active'">면접 대비</a>
+            <a th:href="@{/interview}" class="gnb__nav-item" rel="nofollow" th:classappend="${currentPage == 'interview'} ? ' is-active'">면접 대비</a>
         </nav>
 
         <!-- 검색 -->
@@ -57,27 +52,9 @@
                 <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
             </svg>
         </button>
-
-        <button class="gnb__hamburger" id="hamburgerBtn" aria-label="메뉴 열기">
-            <span class="gnb__hamburger-line"></span>
-            <span class="gnb__hamburger-line"></span>
-            <span class="gnb__hamburger-line"></span>
-        </button>
-    </div>
-
-    <div class="gnb__drawer" id="gnbDrawer">
-        <a th:href="@{/arch}"    class="gnb__drawer-item" th:classappend="${currentSubject == 'arch'}    ? ' is-active'">컴퓨터 구조</a>
-        <a th:href="@{/os}"      class="gnb__drawer-item" th:classappend="${currentSubject == 'os'}      ? ' is-active'">운영체제</a>
-        <a th:href="@{/network}" class="gnb__drawer-item" th:classappend="${currentSubject == 'network'} ? ' is-active'">네트워크</a>
-        <a th:href="@{/ds}"      class="gnb__drawer-item" th:classappend="${currentSubject == 'ds'}      ? ' is-active'">자료구조</a>
-        <a th:href="@{/algo}"    class="gnb__drawer-item" th:classappend="${currentSubject == 'algo'}    ? ' is-active'">알고리즘</a>
-        <a th:href="@{/db}"      class="gnb__drawer-item" th:classappend="${currentSubject == 'db'}      ? ' is-active'">데이터베이스</a>
-        <a th:href="@{/robot}"   class="gnb__drawer-item" th:classappend="${currentSubject == 'robot'}   ? ' is-active'">로봇·임베디드</a>
-        <a th:href="@{/errors}"  class="gnb__drawer-item" th:classappend="${currentSection == 'errors'}  ? ' is-active'">에러 사전</a>
-        <a th:href="@{/interview}" class="gnb__drawer-item" th:classappend="${currentPage == 'interview'} ? ' is-active'">면접 대비</a>
-        <a th:href="@{/study}"   class="gnb__drawer-item" th:classappend="${currentPage == 'study'}      ? ' is-active'">내 학습</a>
     </div>
 </header>
 
 <th:block th:replace="~{fragments/sidebar :: sidebar}"></th:block>
+<th:block th:replace="~{fragments/tabbar :: tabbar}"></th:block>
 </th:block>
