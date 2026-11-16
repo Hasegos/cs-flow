@@ -143,9 +143,36 @@ body.is-sheet-open {
   overflow: hidden;
 }
 
-/* === 740px 이상: 숨김. 태블릿부터는 헤더 메뉴를 쓴다 === */
+/* === 740px 이상: 아래 탭 막대만 숨긴다. 과목 시트는 헤더 단추가 쓴다 === */
 @media (min-width: 740px) {
-  .tabbar,
+  .tabbar {
+    display: none;
+  }
+}
+
+/* === 740px ~ 1140px: 시트를 헤더 아래 드롭다운으로 === */
+@media (min-width: 740px) and (max-width: 1140px) {
+  .tabbar__sheet {
+    top: var(--header-h);
+    /* 오른쪽 2rem 은 헤더 .gnb__inner 와 같은 값이다 */
+    right: 2rem;
+    left: auto;
+    bottom: auto;
+    width: min(26rem, calc(100vw - 4rem));
+    max-height: calc(100vh - var(--header-h) - 2rem);
+    padding: 0.9rem 1rem 1rem;
+    border: 1px solid var(--color-border);
+    border-top: 0;
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
+  }
+
+  .tabbar__grip {
+    display: none;
+  }
+}
+
+/* === 1141px 이상: 헤더 메뉴가 다 보이므로 시트가 필요 없다 === */
+@media (min-width: 1141px) {
   .tabbar__scrim,
   .tabbar__sheet {
     display: none;

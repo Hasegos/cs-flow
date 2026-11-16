@@ -80,26 +80,52 @@
   background: var(--color-purple-dim);
 }
 
+/* === 과목 드롭다운 단추 (태블릿 폭에서만 보인다) === */
+.gnb__browse-btn {
+  display: none;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.8rem;
+  font-family: inherit;
+  font-size: 0.88rem;
+  color: var(--color-text-sub);
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color var(--transition), color var(--transition);
+}
+
+.gnb__browse-btn:hover {
+  border-color: var(--color-border-hover);
+  color: var(--color-text);
+}
+
+.gnb__browse-btn:focus-visible {
+  outline: 2px solid var(--color-purple);
+  outline-offset: 2px;
+}
+
+.gnb__browse-caret {
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid currentColor;
+  transition: transform var(--transition);
+}
+
+.gnb__browse-btn[aria-expanded="true"] .gnb__browse-caret {
+  transform: rotate(180deg);
+}
+
 /* === 반응형 === */
-/* 1140px 이하: 과목 메뉴를 가로로 밀어서 본다 */
+/* 1140px 이하: 과목 메뉴가 다 안 들어가므로 접는다 */
 @media (max-width: 1140px) {
-  .gnb__inner {
-    gap: 1.25rem;
-  }
+  .gnb__nav { display: none; }
 
-  .gnb__nav {
-    flex: 1 1 auto;
-    min-width: 0;
-    margin-left: 0;
-    overflow-x: auto;
-    scrollbar-width: none;
-    /* 오른쪽 끝을 흐리게 해서 더 있다는 것을 알린다 */
-    mask-image: linear-gradient(to right, #000 calc(100% - 1.5rem), transparent);
-    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 1.5rem), transparent);
-  }
-
-  .gnb__nav::-webkit-scrollbar {
-    display: none;
+  .gnb__search-btn {
+    margin-left: auto;
   }
 
   .gnb__theme-btn {
@@ -107,12 +133,15 @@
   }
 }
 
-/* 740px 미만: 아래 탭이 과목 이동을 맡으므로 헤더 메뉴를 숨긴다 */
-@media (max-width: 739px) {
-  .gnb__nav { display: none; }
+/* 740px ~ 1140px: 접은 메뉴를 드롭다운 단추로 연다 */
+@media (min-width: 740px) and (max-width: 1140px) {
+  .gnb__browse-btn {
+    display: inline-flex;
+    margin-left: auto;
+  }
 
   .gnb__search-btn {
-    margin-left: auto;
+    margin-left: 0.5rem;
   }
 }
 

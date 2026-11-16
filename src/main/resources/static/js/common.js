@@ -201,12 +201,16 @@
         });
     }
 
-    /* ===================== 하단 탭 시트 ===================== */
-    const browseBtn = document.getElementById('tabbarBrowse');
-    const sheet     = document.getElementById('tabbarSheet');
-    const scrim     = document.getElementById('tabbarScrim');
+    /* ===================== 과목 시트 ===================== */
+    /* 아래 탭(좁은 화면)과 헤더 단추(태블릿)가 같은 시트를 연다 */
+    const sheetBtns = [document.getElementById('tabbarBrowse'), document.getElementById('gnbBrowse')]
+        .filter(Boolean);
+    const sheet = document.getElementById('tabbarSheet');
+    const scrim = document.getElementById('tabbarScrim');
 
-    if (browseBtn && sheet && scrim) {
+    if (sheetBtns.length && sheet && scrim) {
+        let lastSheetBtn = sheetBtns[0];
+
         /**
          * 과목 시트를 열거나 닫는다.
          *
@@ -215,7 +219,9 @@
         function toggleSheet(open) {
             sheet.hidden = !open;
             scrim.hidden = !open;
-            browseBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+            sheetBtns.forEach(function (btn) {
+                btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+            });
             document.body.classList.toggle('is-sheet-open', open);
             if (open) {
                 const first = sheet.querySelector('.tabbar__sheet-item');
@@ -223,8 +229,11 @@
             }
         }
 
-        browseBtn.addEventListener('click', function () {
-            toggleSheet(sheet.hidden);
+        sheetBtns.forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                lastSheetBtn = btn;
+                toggleSheet(sheet.hidden);
+            });
         });
 
         scrim.addEventListener('click', function () {
@@ -234,7 +243,7 @@
         document.addEventListener('keydown', function (e) {
             if (e.key === 'Escape' && !sheet.hidden) {
                 toggleSheet(false);
-                browseBtn.focus();
+                lastSheetBtn.focus();
             }
         });
     }
