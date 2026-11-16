@@ -642,7 +642,14 @@
   padding: 0.7rem 0;
   list-style: none;
   counter-reset: codeline;
+  /*
+   * 위아래로 쌓였을 때 캔버스가 화면을 거의 다 먹는다. 코드까지 다 펼치면
+   * 하이라이트가 화면 밖으로 밀리므로 지금 줄 둘레만 보인다.
+   * markStep 이 밝아진 줄을 가운데로 스크롤한다.
+   */
+  max-height: 5.5rem;
   overflow-y: auto;
+  scroll-behavior: smooth;
 }
 
 .code-sync__lines[hidden] {
@@ -720,6 +727,10 @@
     flex: 1.6 1 0;
   }
 
+  body.is-nav-collapsed .code-sync__lines {
+    max-height: none;
+  }
+
   body.is-nav-collapsed .code-sync__panel {
     flex: 1 1 0;
     /* 코드가 짧으면 빈 상자를 남기지 않고 내용만큼만 차지한다 */
@@ -736,6 +747,10 @@
 
   .code-sync .visualizer-wrap {
     flex: 1.6 1 0;
+  }
+
+  .code-sync__lines {
+    max-height: none;
   }
 
   .code-sync__panel {

@@ -692,8 +692,11 @@
                 if (on && !first) first = li;
             });
 
+            /* offsetTop 은 패널 기준이 아니라 어긋난다. 실제 자리 차이로 잰다 */
             if (first) {
-                const top = first.offsetTop - list.clientHeight / 2 + first.offsetHeight / 2;
+                const lr = list.getBoundingClientRect();
+                const fr = first.getBoundingClientRect();
+                const top = list.scrollTop + (fr.top - lr.top) - list.clientHeight / 2 + fr.height / 2;
                 list.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
             }
         }
