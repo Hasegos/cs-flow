@@ -1,5 +1,5 @@
 /**
- * 공통 JS — 공용 헬퍼(저장소·POST·토스트) / 햄버거 메뉴 / 과목 토픽 목차 / 탭 전환 / 테마
+ * 공통 JS — 공용 헬퍼(저장소·POST·토스트) / 과목 토픽 목차 / 하단 탭 / 탭 전환 / 테마 / 단축키
  */
 (function () {
     'use strict';
@@ -477,6 +477,68 @@
             e.target.value = '';
             e.target.dispatchEvent(new Event('input', { bubbles: true }));
             e.target.blur();
+        }
+    });
+
+    /* ===================== 시각화 단축키 ===================== */
+    /**
+     * 작동 원리 탭의 시각화 버튼을 라벨로 찾는다. 버튼을 시각화마다 따로 만들어
+     * 클래스 이름이 과목별로 달라서 라벨로 고른다. 3D 화면이 열려 있으면 2D 버튼이
+     * 숨어 있으므로 보이는 버튼만 돌려준다.
+     *
+     * @param {string} label 버튼 라벨
+     * @returns {HTMLButtonElement|null} 찾은 버튼, 없으면 null
+     */
+    function findVizButton(label) {
+        const host = document.getElementById('visualizer-container');
+        if (!host) return null;
+        const btns = host.querySelectorAll('button');
+        for (let i = 0; i < btns.length; i++) {
+            if (btns[i].offsetParent !== null && btns[i].textContent.trim() === label) return btns[i];
+        }
+        return null;
+    }
+
+    document.addEventListener('keydown', function (e) {
+        if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+        if (isTyping(e.target)) return;
+
+        /* 버튼과 목차 손잡이는 Space · 화살표를 이미 쓴다 */
+        if (e.target && (e.target.tagName === 'BUTTON'
+            || (e.target.classList && e.target.classList.contains('side-nav__resizer')))) return;
+
+        const panel = document.getElementById('panel-visualizer');
+        if (!panel || !panel.classList.contains('is-active')) return;
+
+        if (e.key === ' ') {
+            const play = findVizButton('▶ PLAY');
+            if (!play) return;
+            e.preventDefault();
+            if (!play.disabled) {
+                play.click();
+                return;
+            }
+            /* 재생 중이면 멈춘다. 탭을 떠날 때 쓰는 신호를 그대로 쓴다 */
+            window.dispatchEvent(new CustomEvent('csflow-viz-pause'));
+            play.disabled = false;
+            const step = findVizButton('▶| STEP');
+            if (step) step.disabled = false;
+            return;
+        }
+
+        if (e.key === 'ArrowRight') {
+            const step = findVizButton('▶| STEP');
+            if (!step || step.disabled) return;
+            e.preventDefault();
+            step.click();
+            return;
+        }
+
+        if (e.key === 'r' || e.key === 'R') {
+            const reset = findVizButton('↺ RESET');
+            if (!reset) return;
+            e.preventDefault();
+            reset.click();
         }
     });
 
