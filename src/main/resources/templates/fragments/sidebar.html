@@ -5,7 +5,6 @@
 
         <button type="button" class="side-nav__toggle" id="sideNavToggle"
                 aria-expanded="false" aria-controls="sideNavPanel">
-            <span class="side-nav__toggle-icon" aria-hidden="true"></span>
             <span class="side-nav__toggle-text" th:text="${sideNavTitle}">목차</span>
             <span class="side-nav__toggle-count" th:text="${#lists.size(sideNavItems)}">0</span>
         </button>

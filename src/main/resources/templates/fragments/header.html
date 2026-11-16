@@ -17,6 +17,13 @@
             <a th:href="@{/interview}" class="gnb__nav-item" rel="nofollow" th:classappend="${currentPage == 'interview'} ? ' is-active'">면접 대비</a>
         </nav>
 
+        <!-- 과목 (태블릿 폭에서만. 아래 탭과 같은 시트를 연다) -->
+        <button type="button" class="gnb__browse-btn" id="gnbBrowse"
+                aria-expanded="false" aria-controls="tabbarSheet">
+            <span>과목</span>
+            <span class="gnb__browse-caret" aria-hidden="true"></span>
+        </button>
+
         <!-- 검색 -->
         <a th:href="@{/search}" class="gnb__search-btn" aria-label="검색">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

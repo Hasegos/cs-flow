@@ -1,5 +1,5 @@
 /**
- * 공통 JS — 공용 헬퍼(저장소·POST·토스트) / 햄버거 메뉴 / 과목 토픽 목차 / 탭 전환 / 테마
+ * 공통 JS — 공용 헬퍼(저장소·POST·토스트) / 과목 토픽 목차 / 하단 탭 / 탭 전환 / 테마 / 단축키
  */
 (function () {
     'use strict';
@@ -201,12 +201,16 @@
         });
     }
 
-    /* ===================== 하단 탭 시트 ===================== */
-    const browseBtn = document.getElementById('tabbarBrowse');
-    const sheet     = document.getElementById('tabbarSheet');
-    const scrim     = document.getElementById('tabbarScrim');
+    /* ===================== 과목 시트 ===================== */
+    /* 아래 탭(좁은 화면)과 헤더 단추(태블릿)가 같은 시트를 연다 */
+    const sheetBtns = [document.getElementById('tabbarBrowse'), document.getElementById('gnbBrowse')]
+        .filter(Boolean);
+    const sheet = document.getElementById('tabbarSheet');
+    const scrim = document.getElementById('tabbarScrim');
 
-    if (browseBtn && sheet && scrim) {
+    if (sheetBtns.length && sheet && scrim) {
+        let lastSheetBtn = sheetBtns[0];
+
         /**
          * 과목 시트를 열거나 닫는다.
          *
@@ -215,7 +219,9 @@
         function toggleSheet(open) {
             sheet.hidden = !open;
             scrim.hidden = !open;
-            browseBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+            sheetBtns.forEach(function (btn) {
+                btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+            });
             document.body.classList.toggle('is-sheet-open', open);
             if (open) {
                 const first = sheet.querySelector('.tabbar__sheet-item');
@@ -223,8 +229,11 @@
             }
         }
 
-        browseBtn.addEventListener('click', function () {
-            toggleSheet(sheet.hidden);
+        sheetBtns.forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                lastSheetBtn = btn;
+                toggleSheet(sheet.hidden);
+            });
         });
 
         scrim.addEventListener('click', function () {
@@ -234,7 +243,7 @@
         document.addEventListener('keydown', function (e) {
             if (e.key === 'Escape' && !sheet.hidden) {
                 toggleSheet(false);
-                browseBtn.focus();
+                lastSheetBtn.focus();
             }
         });
     }
@@ -479,6 +488,101 @@
             e.target.blur();
         }
     });
+
+    /* ===================== 시각화 단축키 ===================== */
+    /**
+     * 작동 원리 탭의 시각화 버튼을 라벨로 찾는다. 버튼을 시각화마다 따로 만들어
+     * 클래스 이름이 과목별로 달라서 라벨로 고른다. 3D 화면이 열려 있으면 2D 버튼이
+     * 숨어 있으므로 보이는 버튼만 돌려준다.
+     *
+     * @param {string} label 버튼 라벨
+     * @returns {HTMLButtonElement|null} 찾은 버튼, 없으면 null
+     */
+    function findVizButton(label) {
+        const host = document.getElementById('visualizer-container');
+        if (!host) return null;
+        const btns = host.querySelectorAll('button');
+        for (let i = 0; i < btns.length; i++) {
+            if (btns[i].offsetParent !== null && btns[i].textContent.trim() === label) return btns[i];
+        }
+        return null;
+    }
+
+    document.addEventListener('keydown', function (e) {
+        if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+        if (isTyping(e.target)) return;
+
+        /* 버튼과 목차 손잡이는 Space · 화살표를 이미 쓴다 */
+        if (e.target && (e.target.tagName === 'BUTTON'
+            || (e.target.classList && e.target.classList.contains('side-nav__resizer')))) return;
+
+        const panel = document.getElementById('panel-visualizer');
+        if (!panel || !panel.classList.contains('is-active')) return;
+
+        if (e.key === ' ') {
+            const play = findVizButton('▶ PLAY');
+            if (!play) return;
+            e.preventDefault();
+            if (!play.disabled) {
+                play.click();
+                return;
+            }
+            /* 재생 중이면 멈춘다. 탭을 떠날 때 쓰는 신호를 그대로 쓴다 */
+            window.dispatchEvent(new CustomEvent('csflow-viz-pause'));
+            play.disabled = false;
+            const step = findVizButton('▶| STEP');
+            if (step) step.disabled = false;
+            return;
+        }
+
+        if (e.key === 'ArrowRight') {
+            const step = findVizButton('▶| STEP');
+            if (!step || step.disabled) return;
+            e.preventDefault();
+            step.click();
+            return;
+        }
+
+        if (e.key === 'r' || e.key === 'R') {
+            const reset = findVizButton('↺ RESET');
+            if (!reset) return;
+            e.preventDefault();
+            reset.click();
+        }
+    });
+
+    /* 키보드가 있는 기기에만, 재생 버튼이 있는 시각화에만 안내를 붙인다 */
+    const vizWrap = document.querySelector('.visualizer-wrap');
+    if (vizWrap && window.matchMedia('(pointer: fine)').matches) {
+        const hint = document.createElement('p');
+        hint.className = 'viz-hint';
+        hint.hidden = true;
+        hint.innerHTML = '<kbd>Space</kbd> 재생 · 정지'
+            + '<kbd>→</kbd> 한 단계'
+            + '<kbd>R</kbd> 처음으로';
+        vizWrap.appendChild(hint);
+
+        const vizWatch = new MutationObserver(revealVizHint);
+
+        /** 재생 버튼이 그려졌으면 안내를 보여 주고 지켜보기를 멈춘다. */
+        function revealVizHint() {
+            const btns = vizWrap.querySelectorAll('button');
+            for (let i = 0; i < btns.length; i++) {
+                if (btns[i].textContent.trim() === '▶ PLAY') {
+                    hint.hidden = false;
+                    vizWatch.disconnect();
+                    return;
+                }
+            }
+        }
+
+        revealVizHint();
+        if (hint.hidden) {
+            vizWatch.observe(vizWrap, { childList: true, subtree: true });
+            /* 재생 버튼이 없는 시각화도 있으므로 오래 지켜보지 않는다 */
+            setTimeout(function () { vizWatch.disconnect(); }, 8000);
+        }
+    }
 
     /* ===================== 읽기 진행 바 ===================== */
     if (document.querySelector('.topic-content')) {
