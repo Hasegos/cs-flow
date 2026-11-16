@@ -196,6 +196,45 @@
         });
     }
 
+    /* --- 접기 --- */
+    const navCollapse = document.getElementById('sideNavCollapse');
+    const navOpen     = document.getElementById('sideNavOpen');
+
+    if (navCollapse && navOpen) {
+        const COLLAPSE_KEY = 'csflow-nav-collapsed';
+        const root = document.documentElement;
+
+        /**
+         * 목차를 접거나 편다. 접으면 --side-nav-w 를 0 으로 두어
+         * 본문 여백과 읽기 진행 바까지 한 번에 따라오게 한다.
+         *
+         * @param on true면 접는다
+         */
+        function setCollapsed(on) {
+            document.body.classList.toggle('is-nav-collapsed', on);
+            if (on) {
+                root.style.setProperty('--side-nav-w', '0px');
+            } else {
+                const saved = parseInt(storage.get('csflow-nav-width'), 10);
+                if (saved) root.style.setProperty('--side-nav-w', saved + 'px');
+                else root.style.removeProperty('--side-nav-w');
+            }
+            storage.set(COLLAPSE_KEY, on ? '1' : '0');
+        }
+
+        if (storage.get(COLLAPSE_KEY) === '1') setCollapsed(true);
+
+        navCollapse.addEventListener('click', function () {
+            setCollapsed(true);
+            navOpen.focus();
+        });
+
+        navOpen.addEventListener('click', function () {
+            setCollapsed(false);
+            navCollapse.focus();
+        });
+    }
+
     const navFilter = document.getElementById('sideNavFilter');
     const navList   = document.getElementById('sideNavList');
     const navEmpty  = document.getElementById('sideNavEmpty');
