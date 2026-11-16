@@ -81,15 +81,38 @@
 }
 
 /* === 반응형 === */
+/* 1140px 이하: 과목 메뉴를 가로로 밀어서 본다 */
 @media (max-width: 1140px) {
-  .gnb__nav { display: none; }
+  .gnb__inner {
+    gap: 1.25rem;
+  }
 
-  .gnb__search-btn {
-    margin-left: auto;
+  .gnb__nav {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin-left: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+    /* 오른쪽 끝을 흐리게 해서 더 있다는 것을 알린다 */
+    mask-image: linear-gradient(to right, #000 calc(100% - 1.5rem), transparent);
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 1.5rem), transparent);
+  }
+
+  .gnb__nav::-webkit-scrollbar {
+    display: none;
   }
 
   .gnb__theme-btn {
     margin-left: 0.5rem;
+  }
+}
+
+/* 740px 미만: 아래 탭이 과목 이동을 맡으므로 헤더 메뉴를 숨긴다 */
+@media (max-width: 739px) {
+  .gnb__nav { display: none; }
+
+  .gnb__search-btn {
+    margin-left: auto;
   }
 }
 
@@ -140,7 +163,7 @@
   text-decoration: none;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 739px) {
   .gnb__study-btn {
     display: none;
   }

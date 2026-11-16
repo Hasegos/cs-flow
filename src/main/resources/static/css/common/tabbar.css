@@ -143,8 +143,8 @@ body.is-sheet-open {
   overflow: hidden;
 }
 
-/* === 1140px 이상: 숨김 === */
-@media (min-width: 1141px) {
+/* === 740px 이상: 숨김. 태블릿부터는 헤더 메뉴를 쓴다 === */
+@media (min-width: 740px) {
   .tabbar,
   .tabbar__scrim,
   .tabbar__sheet {
@@ -152,8 +152,8 @@ body.is-sheet-open {
   }
 }
 
-/* === 1140px 미만: 본문 아래 여백 === */
-@media (max-width: 1140px) {
+/* === 740px 미만: 본문 아래 여백 === */
+@media (max-width: 739px) {
   body {
     padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
   }
