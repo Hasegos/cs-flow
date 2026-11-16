@@ -575,7 +575,30 @@
   }
 }
 
-/* === 코드 연결 탭 === */
+/* === 실제 코드에서 — 구분선과 코드 예제 === */
+.code-link-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin: 3rem 0 2rem;
+}
+
+.code-link-divider::before,
+.code-link-divider::after {
+  content: '';
+  flex: 1 1 auto;
+  height: 1px;
+  background: var(--color-border);
+}
+
+.code-link-divider__label {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+}
+
 .code-section {
   max-width: 780px;
 }
