@@ -706,7 +706,28 @@
   color: var(--subject-accent, var(--color-purple));
 }
 
-/* 1360px 이상에서만 좌우로 나눈다. 시각화 칸이 좁아지면 뜻이 없다 */
+/*
+ * 좌우로 나누려면 캔버스 600px + 코드 320px + 틈이 들어갈 칸이 필요하다.
+ * 목차를 접으면 그 폭(기본 300px)이 본문으로 돌아오므로 임계값이 그만큼 내려간다.
+ */
+@media (min-width: 1080px) {
+  body.is-nav-collapsed .code-sync {
+    flex-direction: row;
+    align-items: stretch;
+  }
+
+  body.is-nav-collapsed .code-sync .visualizer-wrap {
+    flex: 1.6 1 0;
+  }
+
+  body.is-nav-collapsed .code-sync__panel {
+    flex: 1 1 0;
+    /* 코드가 짧으면 빈 상자를 남기지 않고 내용만큼만 차지한다 */
+    align-self: flex-start;
+    max-height: 32rem;
+  }
+}
+
 @media (min-width: 1360px) {
   .code-sync {
     flex-direction: row;
@@ -719,7 +740,6 @@
 
   .code-sync__panel {
     flex: 1 1 0;
-    /* 코드가 짧으면 빈 상자를 남기지 않고 내용만큼만 차지한다 */
     align-self: flex-start;
     max-height: 32rem;
   }
