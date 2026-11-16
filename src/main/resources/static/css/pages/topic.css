@@ -708,10 +708,11 @@
 }
 
 /*
- * 좌우로 나누려면 캔버스 600px + 코드 320px + 틈이 들어갈 칸이 필요하다.
+ * 나란히 놓는 것이 먼저다. 캔버스가 600px 밑으로 내려가면 시각화가 모바일
+ * 배치로 바뀌지만, 위아래로 떨어져 한쪽을 못 보는 것보다 낫다.
  * 목차를 접으면 그 폭(기본 300px)이 본문으로 돌아오므로 임계값이 그만큼 내려간다.
  */
-@media (min-width: 1080px) {
+@media (min-width: 900px) {
   body.is-nav-collapsed .code-sync {
     flex-direction: row;
     align-items: stretch;
@@ -729,7 +730,7 @@
   }
 }
 
-@media (min-width: 1360px) {
+@media (min-width: 1200px) {
   .code-sync {
     flex-direction: row;
     align-items: stretch;
