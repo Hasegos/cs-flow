@@ -75,6 +75,26 @@
         link.media = 'all';
     });
 
+    /* 폰트가 늦게 오면 글이 다시 흘러 #주소로 들어온 자리가 어긋난다. 다 읽은 뒤 한 번 더 맞춘다 */
+    if (location.hash.length > 1) {
+        let userMoved = false;
+        const markMoved = function () { userMoved = true; };
+        window.addEventListener('wheel',     markMoved, { passive: true, once: true });
+        window.addEventListener('touchmove', markMoved, { passive: true, once: true });
+        window.addEventListener('keydown',   markMoved, { once: true });
+
+        /** 사용자가 아직 안 움직였으면 #주소가 가리키는 자리로 다시 맞춘다. */
+        function settleHash() {
+            if (userMoved) return;
+            const target = document.getElementById(location.hash.slice(1));
+            if (target) target.scrollIntoView();
+        }
+
+        window.addEventListener('load', settleHash);
+        /* 글꼴은 load 뒤에 올 수도 있다 */
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(settleHash);
+    }
+
     /* ===================== 과목 토픽 목차 ===================== */
     const navEl = document.querySelector('.side-nav');
 
@@ -559,7 +579,8 @@
         hint.hidden = true;
         hint.innerHTML = '<kbd>Space</kbd> 재생 · 정지'
             + '<kbd>→</kbd> 한 단계'
-            + '<kbd>R</kbd> 처음으로';
+            + '<kbd>R</kbd> 처음으로'
+            + '<a class="viz-hint__more" href="/guide#shortcuts">이용 가이드</a>';
         vizWrap.appendChild(hint);
 
         const vizWatch = new MutationObserver(revealVizHint);

@@ -69,12 +69,8 @@
   margin-bottom: 6px;
 }
 
-.policy-page__list--keys {
-  list-style: none;
-  padding-left: 0;
-}
-
-.policy-page__list kbd {
+.policy-page__list kbd,
+.policy-page__table kbd {
   display: inline-block;
   min-width: 1.6rem;
   margin-right: 0.45rem;
@@ -93,6 +89,16 @@
 .policy-page__section a {
   color: var(--color-purple);
   text-decoration: underline;
+}
+
+/* 주소에 #이 붙어 들어올 때 제목이 고정 헤더에 가리지 않게 한다 */
+.policy-page__section[id] {
+  scroll-margin-top: calc(var(--header-h) + 1rem);
+}
+
+.policy-page__table-wrap {
+  overflow-x: auto;
+  margin-bottom: 12px;
 }
 
 .policy-page__table {
