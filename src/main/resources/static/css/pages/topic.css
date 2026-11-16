@@ -484,6 +484,31 @@
   gap: 1.5rem;
 }
 
+/* === 시각화 단축키 안내 === */
+.viz-hint {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem 0.9rem;
+  margin: -0.75rem 0 0;
+  font-size: 0.76rem;
+  color: var(--color-text-muted);
+}
+
+.viz-hint kbd {
+  margin-right: 0.3rem;
+  padding: 0.1rem 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: var(--color-text-sub);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-bottom-width: 2px;
+  border-radius: var(--radius-sm);
+}
+
 .visualizer-canvas-area {
   width: 100%;
   background: var(--color-surface);

@@ -1,10 +1,11 @@
 /* 과목 토픽 목차 */
 
-/* === 좁은 화면: 고정 헤더에 가리지 않게 내려놓는다 === */
+/* === 좁은 화면: 고정 헤더 바로 아래 줄로 붙인다 === */
 .side-nav {
   position: relative;
   z-index: 30;
   padding-top: var(--header-h);
+  background: var(--color-surface);
 }
 
 /* 헤더 높이만큼은 목차가 이미 차지하므로 히어로에서 뺀다 */
@@ -22,48 +23,31 @@
   display: flex;
   align-items: center;
   gap: 0.55rem;
-  width: calc(100% - 3rem);
-  margin: 1.25rem 1.5rem 0;
-  padding: 0.7rem 0.9rem;
+  width: 100%;
+  margin: 0;
+  /* 좌우 2rem 은 헤더 .gnb__inner 와 같은 값이다 */
+  padding: 0.85rem 2rem;
   font-family: inherit;
   font-size: 0.85rem;
+  text-align: left;
   color: var(--color-text-sub);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--color-border);
+  border-radius: 0;
   cursor: pointer;
-  transition: border-color var(--transition), color var(--transition);
+  transition: background var(--transition), color var(--transition);
 }
 
 .side-nav__toggle:hover {
-  border-color: var(--color-border-hover);
+  background: var(--color-bg);
   color: var(--color-text);
 }
 
 .side-nav__toggle:focus-visible {
   outline: 2px solid var(--subject-accent, var(--color-purple));
-  outline-offset: 2px;
+  outline-offset: -2px;
 }
-
-.side-nav__toggle-icon {
-  position: relative;
-  width: 14px;
-  height: 10px;
-  flex: 0 0 auto;
-}
-
-.side-nav__toggle-icon::before,
-.side-nav__toggle-icon::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  width: 100%;
-  height: 1.5px;
-  background: currentColor;
-}
-
-.side-nav__toggle-icon::before { top: 0; }
-.side-nav__toggle-icon::after  { bottom: 0; }
 
 .side-nav__toggle-text {
   font-weight: 500;
@@ -88,20 +72,21 @@
 /* === 패널 (기본: 접힘) === */
 .side-nav__panel {
   display: none;
-  margin: 0 1.5rem;
-  padding: 0.4rem;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-top: 0;
-  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  margin: 0;
+  /* 1.3rem + 링크 안쪽 0.7rem = 토글 글자와 같은 2rem */
+  padding: 0 1.3rem 0.9rem;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--color-border);
+  border-radius: 0;
 }
 
 .side-nav__panel--open { display: block; }
 
-.side-nav__panel .side-nav__progress { margin: 0.35rem 0.4rem 0.6rem; }
+.side-nav__panel .side-nav__progress { margin: 0 0.7rem 0.6rem; }
 
 .side-nav__toggle[aria-expanded="true"] {
-  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  background: var(--color-bg);
   border-bottom-color: transparent;
 }
 
@@ -112,7 +97,7 @@
   display: flex;
   align-items: center;
   gap: 0.45rem;
-  margin: 0.35rem 0.4rem 0.6rem;
+  margin: 0 0.7rem 0.6rem;
   padding: 0.4rem 0.8rem;
   background: var(--color-bg);
   border: 1px solid var(--color-border);
