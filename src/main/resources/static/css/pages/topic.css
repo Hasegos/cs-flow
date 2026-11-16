@@ -583,18 +583,8 @@
   min-width: 0;
 }
 
-/*
- * 위아래로 쌓이면 시각화와 코드를 같이 볼 수 없다. 시각화를 탭 막대 아래에
- * 붙여 두어, 코드를 끝까지 훑는 동안에도 계속 보이게 한다.
- * 좌우로 나뉘면 나란히 있으므로 붙박이를 푼다.
- */
 .code-sync .visualizer-wrap {
-  position: sticky;
-  top: calc(var(--header-h) + var(--topic-tabs-h));
-  z-index: 15;
   min-width: 0;
-  padding-bottom: 0.75rem;
-  background: var(--color-bg);
 }
 
 .code-sync__panel {
@@ -729,9 +719,6 @@
 
   body.is-nav-collapsed .code-sync .visualizer-wrap {
     flex: 1.6 1 0;
-    position: static;
-    padding-bottom: 0;
-    background: none;
   }
 
   body.is-nav-collapsed .code-sync__panel {
@@ -750,9 +737,6 @@
 
   .code-sync .visualizer-wrap {
     flex: 1.6 1 0;
-    position: static;
-    padding-bottom: 0;
-    background: none;
   }
 
   .code-sync__panel {
