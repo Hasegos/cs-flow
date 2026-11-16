@@ -8,6 +8,16 @@
                 <option value="java">Java</option>
                 <option value="python">Python</option>
                 <option value="javascript">JavaScript</option>
+                <option value="typescript">TypeScript</option>
+                <option value="c">C</option>
+                <option value="cpp">C++</option>
+                <option value="csharp">C#</option>
+                <option value="go">Go</option>
+                <option value="kotlin">Kotlin</option>
+                <option value="swift">Swift</option>
+                <option value="rust">Rust</option>
+                <option value="ruby">Ruby</option>
+                <option value="php">PHP</option>
             </select>
             <span class="code-sync__state" data-code-sync-state>재생하면 지금 줄이 밝아집니다</span>
         </div>
@@ -15,13 +25,13 @@
         <!-- 이진 탐색 -->
         <ol class="code-sync__lines" data-variant="binary" data-lang="easy">
             <li data-step="intro"><span>정렬된 배열과 찾을 값을 준비한다</span></li>
-            <li data-step="intro"><span>왼쪽은 맨 앞, 오른쪽은 맨 뒤를 가리킨다</span></li>
-            <li data-step="go-left go-right found"><span>왼쪽이 오른쪽을 지나치기 전까지 되풀이한다</span></li>
-            <li data-step="go-left go-right found" class="code-sync__in"><span>가운데 자리를 고른다</span></li>
-            <li data-step="found" class="code-sync__in"><span>가운데 값이 찾는 값이면 거기서 끝낸다</span></li>
-            <li data-step="go-right" class="code-sync__in"><span>가운데 값이 더 작으면 왼쪽을 가운데 다음으로 옮긴다</span></li>
-            <li data-step="go-left" class="code-sync__in"><span>가운데 값이 더 크면 오른쪽을 가운데 앞으로 옮긴다</span></li>
-            <li data-step="done"><span>다 돌아도 못 찾으면 없는 값이다</span></li>
+            <li data-step="intro" class="code-sync__in"><span>왼쪽은 맨 앞, 오른쪽은 맨 뒤를 가리킨다</span></li>
+            <li data-step="go-left go-right found" class="code-sync__in"><span>왼쪽이 오른쪽을 지나치기 전까지 되풀이한다</span></li>
+            <li data-step="go-left go-right found" class="code-sync__in2"><span>가운데 자리를 고른다</span></li>
+            <li data-step="found" class="code-sync__in2"><span>가운데 값이 찾는 값이면 거기서 끝낸다</span></li>
+            <li data-step="go-right" class="code-sync__in2"><span>가운데 값이 더 작으면 왼쪽을 가운데 다음으로 옮긴다</span></li>
+            <li data-step="go-left" class="code-sync__in2"><span>가운데 값이 더 크면 오른쪽을 가운데 앞으로 옮긴다</span></li>
+            <li data-step="done" class="code-sync__in"><span>다 돌아도 못 찾으면 없는 값이다</span></li>
         </ol>
 
         <ol class="code-sync__lines" data-variant="binary" data-lang="java" hidden>
@@ -61,13 +71,143 @@
             <li><code>}</code></li>
         </ol>
 
+        <ol class="code-sync__lines" data-variant="binary" data-lang="typescript" hidden>
+            <li data-step="intro"><code>function binarySearch(arr: number[], target: number): number {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>let low = 0, high = arr.length - 1;</code></li>
+            <li data-step="go-left go-right found" class="code-sync__in"><code>while (low &lt;= high) {</code></li>
+            <li data-step="go-left go-right found" class="code-sync__in2"><code>const mid = (low + high) &gt;&gt; 1;</code></li>
+            <li data-step="found" class="code-sync__in2"><code>if (arr[mid] === target) return mid;</code></li>
+            <li data-step="go-right" class="code-sync__in2"><code>if (arr[mid] &lt; target) low = mid + 1;</code></li>
+            <li data-step="go-left" class="code-sync__in2"><code>else high = mid - 1;</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done" class="code-sync__in"><code>return -1;</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="binary" data-lang="c" hidden>
+            <li data-step="intro"><code>int binary_search(const int arr[], int n, int target) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>int low = 0, high = n - 1;</code></li>
+            <li data-step="go-left go-right found" class="code-sync__in"><code>while (low &lt;= high) {</code></li>
+            <li data-step="go-left go-right found" class="code-sync__in2"><code>int mid = low + (high - low) / 2;</code></li>
+            <li data-step="found" class="code-sync__in2"><code>if (arr[mid] == target) return mid;</code></li>
+            <li data-step="go-right" class="code-sync__in2"><code>if (arr[mid] &lt; target) low = mid + 1;</code></li>
+            <li data-step="go-left" class="code-sync__in2"><code>else high = mid - 1;</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done" class="code-sync__in"><code>return -1;</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="binary" data-lang="cpp" hidden>
+            <li data-step="intro"><code>int binarySearch(const std::vector&lt;int&gt;&amp; arr, int target) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>int low = 0, high = (int)arr.size() - 1;</code></li>
+            <li data-step="go-left go-right found" class="code-sync__in"><code>while (low &lt;= high) {</code></li>
+            <li data-step="go-left go-right found" class="code-sync__in2"><code>int mid = low + (high - low) / 2;</code></li>
+            <li data-step="found" class="code-sync__in2"><code>if (arr[mid] == target) return mid;</code></li>
+            <li data-step="go-right" class="code-sync__in2"><code>if (arr[mid] &lt; target) low = mid + 1;</code></li>
+            <li data-step="go-left" class="code-sync__in2"><code>else high = mid - 1;</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done" class="code-sync__in"><code>return -1;</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="binary" data-lang="csharp" hidden>
+            <li data-step="intro"><code>int BinarySearch(int[] arr, int target) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>int low = 0, high = arr.Length - 1;</code></li>
+            <li data-step="go-left go-right found" class="code-sync__in"><code>while (low &lt;= high) {</code></li>
+            <li data-step="go-left go-right found" class="code-sync__in2"><code>int mid = low + (high - low) / 2;</code></li>
+            <li data-step="found" class="code-sync__in2"><code>if (arr[mid] == target) return mid;</code></li>
+            <li data-step="go-right" class="code-sync__in2"><code>if (arr[mid] &lt; target) low = mid + 1;</code></li>
+            <li data-step="go-left" class="code-sync__in2"><code>else high = mid - 1;</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done" class="code-sync__in"><code>return -1;</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="binary" data-lang="go" hidden>
+            <li data-step="intro"><code>func binarySearch(arr []int, target int) int {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>low, high := 0, len(arr)-1</code></li>
+            <li data-step="go-left go-right found" class="code-sync__in"><code>for low &lt;= high {</code></li>
+            <li data-step="go-left go-right found" class="code-sync__in2"><code>mid := (low + high) / 2</code></li>
+            <li data-step="found" class="code-sync__in2"><code>if arr[mid] == target { return mid }</code></li>
+            <li data-step="go-right" class="code-sync__in2"><code>if arr[mid] &lt; target { low = mid + 1 }</code></li>
+            <li data-step="go-left" class="code-sync__in2"><code>if arr[mid] &gt; target { high = mid - 1 }</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done" class="code-sync__in"><code>return -1</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="binary" data-lang="kotlin" hidden>
+            <li data-step="intro"><code>fun binarySearch(arr: IntArray, target: Int): Int {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>var low = 0; var high = arr.size - 1</code></li>
+            <li data-step="go-left go-right found" class="code-sync__in"><code>while (low &lt;= high) {</code></li>
+            <li data-step="go-left go-right found" class="code-sync__in2"><code>val mid = (low + high) / 2</code></li>
+            <li data-step="found" class="code-sync__in2"><code>if (arr[mid] == target) return mid</code></li>
+            <li data-step="go-right" class="code-sync__in2"><code>if (arr[mid] &lt; target) low = mid + 1</code></li>
+            <li data-step="go-left" class="code-sync__in2"><code>else high = mid - 1</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done" class="code-sync__in"><code>return -1</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="binary" data-lang="swift" hidden>
+            <li data-step="intro"><code>func binarySearch(_ arr: [Int], _ target: Int) -&gt; Int {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>var low = 0, high = arr.count - 1</code></li>
+            <li data-step="go-left go-right found" class="code-sync__in"><code>while low &lt;= high {</code></li>
+            <li data-step="go-left go-right found" class="code-sync__in2"><code>let mid = (low + high) / 2</code></li>
+            <li data-step="found" class="code-sync__in2"><code>if arr[mid] == target { return mid }</code></li>
+            <li data-step="go-right" class="code-sync__in2"><code>if arr[mid] &lt; target { low = mid + 1 }</code></li>
+            <li data-step="go-left" class="code-sync__in2"><code>else { high = mid - 1 }</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done" class="code-sync__in"><code>return -1</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="binary" data-lang="rust" hidden>
+            <li data-step="intro"><code>fn binary_search(arr: &amp;[i32], target: i32) -&gt; i32 {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>let (mut low, mut high) = (0i32, arr.len() as i32 - 1);</code></li>
+            <li data-step="go-left go-right found" class="code-sync__in"><code>while low &lt;= high {</code></li>
+            <li data-step="go-left go-right found" class="code-sync__in2"><code>let mid = (low + high) / 2;</code></li>
+            <li data-step="found" class="code-sync__in2"><code>if arr[mid as usize] == target { return mid; }</code></li>
+            <li data-step="go-right" class="code-sync__in2"><code>if arr[mid as usize] &lt; target { low = mid + 1; }</code></li>
+            <li data-step="go-left" class="code-sync__in2"><code>else { high = mid - 1; }</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done" class="code-sync__in"><code>-1</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="binary" data-lang="ruby" hidden>
+            <li data-step="intro"><code>def binary_search(arr, target)</code></li>
+            <li data-step="intro" class="code-sync__in"><code>low, high = 0, arr.length - 1</code></li>
+            <li data-step="go-left go-right found" class="code-sync__in"><code>while low &lt;= high</code></li>
+            <li data-step="go-left go-right found" class="code-sync__in2"><code>mid = (low + high) / 2</code></li>
+            <li data-step="found" class="code-sync__in2"><code>return mid if arr[mid] == target</code></li>
+            <li data-step="go-right" class="code-sync__in2"><code>low = mid + 1 if arr[mid] &lt; target</code></li>
+            <li data-step="go-left" class="code-sync__in2"><code>high = mid - 1 if arr[mid] &gt; target</code></li>
+            <li class="code-sync__in"><code>end</code></li>
+            <li data-step="done" class="code-sync__in"><code>-1</code></li>
+            <li><code>end</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="binary" data-lang="php" hidden>
+            <li data-step="intro"><code>function binarySearch(array $arr, int $target): int {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>$low = 0; $high = count($arr) - 1;</code></li>
+            <li data-step="go-left go-right found" class="code-sync__in"><code>while ($low &lt;= $high) {</code></li>
+            <li data-step="go-left go-right found" class="code-sync__in2"><code>$mid = intdiv($low + $high, 2);</code></li>
+            <li data-step="found" class="code-sync__in2"><code>if ($arr[$mid] === $target) return $mid;</code></li>
+            <li data-step="go-right" class="code-sync__in2"><code>if ($arr[$mid] &lt; $target) $low = $mid + 1;</code></li>
+            <li data-step="go-left" class="code-sync__in2"><code>else $high = $mid - 1;</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done" class="code-sync__in"><code>return -1;</code></li>
+            <li><code>}</code></li>
+        </ol>
+
         <!-- 선형 탐색과 비교 -->
         <ol class="code-sync__lines" data-variant="compare" data-lang="easy" hidden>
             <li data-step="intro"><span>배열과 찾을 값을 준비한다</span></li>
-            <li data-step="check found"><span>맨 앞부터 한 칸씩 끝까지 본다</span></li>
-            <li data-step="found" class="code-sync__in"><span>이 칸이 찾는 값이면 거기서 끝낸다</span></li>
+            <li data-step="check found" class="code-sync__in"><span>맨 앞부터 한 칸씩 끝까지 본다</span></li>
+            <li data-step="found" class="code-sync__in2"><span>이 칸이 찾는 값이면 거기서 끝낸다</span></li>
             <li data-step="check" class="code-sync__in"><span>아니면 다음 칸으로 넘어간다</span></li>
-            <li data-step="done"><span>끝까지 못 찾으면 없는 값이다</span></li>
+            <li data-step="done" class="code-sync__in"><span>끝까지 못 찾으면 없는 값이다</span></li>
         </ol>
 
         <ol class="code-sync__lines" data-variant="compare" data-lang="java" hidden>
@@ -90,6 +230,96 @@
             <li data-step="intro"><code>function linearSearch(arr, target) {</code></li>
             <li data-step="check found" class="code-sync__in"><code>for (let i = 0; i &lt; arr.length; i++) {</code></li>
             <li data-step="found" class="code-sync__in2"><code>if (arr[i] === target) return i;</code></li>
+            <li data-step="check" class="code-sync__in"><code>}</code></li>
+            <li data-step="done" class="code-sync__in"><code>return -1;</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="compare" data-lang="typescript" hidden>
+            <li data-step="intro"><code>function linearSearch(arr: number[], target: number): number {</code></li>
+            <li data-step="check found" class="code-sync__in"><code>for (let i = 0; i &lt; arr.length; i++) {</code></li>
+            <li data-step="found" class="code-sync__in2"><code>if (arr[i] === target) return i;</code></li>
+            <li data-step="check" class="code-sync__in"><code>}</code></li>
+            <li data-step="done" class="code-sync__in"><code>return -1;</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="compare" data-lang="c" hidden>
+            <li data-step="intro"><code>int linear_search(const int arr[], int n, int target) {</code></li>
+            <li data-step="check found" class="code-sync__in"><code>for (int i = 0; i &lt; n; i++) {</code></li>
+            <li data-step="found" class="code-sync__in2"><code>if (arr[i] == target) return i;</code></li>
+            <li data-step="check" class="code-sync__in"><code>}</code></li>
+            <li data-step="done" class="code-sync__in"><code>return -1;</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="compare" data-lang="cpp" hidden>
+            <li data-step="intro"><code>int linearSearch(const std::vector&lt;int&gt;&amp; arr, int target) {</code></li>
+            <li data-step="check found" class="code-sync__in"><code>for (int i = 0; i &lt; (int)arr.size(); i++) {</code></li>
+            <li data-step="found" class="code-sync__in2"><code>if (arr[i] == target) return i;</code></li>
+            <li data-step="check" class="code-sync__in"><code>}</code></li>
+            <li data-step="done" class="code-sync__in"><code>return -1;</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="compare" data-lang="csharp" hidden>
+            <li data-step="intro"><code>int LinearSearch(int[] arr, int target) {</code></li>
+            <li data-step="check found" class="code-sync__in"><code>for (int i = 0; i &lt; arr.Length; i++) {</code></li>
+            <li data-step="found" class="code-sync__in2"><code>if (arr[i] == target) return i;</code></li>
+            <li data-step="check" class="code-sync__in"><code>}</code></li>
+            <li data-step="done" class="code-sync__in"><code>return -1;</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="compare" data-lang="go" hidden>
+            <li data-step="intro"><code>func linearSearch(arr []int, target int) int {</code></li>
+            <li data-step="check found" class="code-sync__in"><code>for i, value := range arr {</code></li>
+            <li data-step="found" class="code-sync__in2"><code>if value == target { return i }</code></li>
+            <li data-step="check" class="code-sync__in"><code>}</code></li>
+            <li data-step="done" class="code-sync__in"><code>return -1</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="compare" data-lang="kotlin" hidden>
+            <li data-step="intro"><code>fun linearSearch(arr: IntArray, target: Int): Int {</code></li>
+            <li data-step="check found" class="code-sync__in"><code>for (i in arr.indices) {</code></li>
+            <li data-step="found" class="code-sync__in2"><code>if (arr[i] == target) return i</code></li>
+            <li data-step="check" class="code-sync__in"><code>}</code></li>
+            <li data-step="done" class="code-sync__in"><code>return -1</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="compare" data-lang="swift" hidden>
+            <li data-step="intro"><code>func linearSearch(_ arr: [Int], _ target: Int) -&gt; Int {</code></li>
+            <li data-step="check found" class="code-sync__in"><code>for (i, value) in arr.enumerated() {</code></li>
+            <li data-step="found" class="code-sync__in2"><code>if value == target { return i }</code></li>
+            <li data-step="check" class="code-sync__in"><code>}</code></li>
+            <li data-step="done" class="code-sync__in"><code>return -1</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="compare" data-lang="rust" hidden>
+            <li data-step="intro"><code>fn linear_search(arr: &amp;[i32], target: i32) -&gt; i32 {</code></li>
+            <li data-step="check found" class="code-sync__in"><code>for (i, &amp;value) in arr.iter().enumerate() {</code></li>
+            <li data-step="found" class="code-sync__in2"><code>if value == target { return i as i32; }</code></li>
+            <li data-step="check" class="code-sync__in"><code>}</code></li>
+            <li data-step="done" class="code-sync__in"><code>-1</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="compare" data-lang="ruby" hidden>
+            <li data-step="intro"><code>def linear_search(arr, target)</code></li>
+            <li data-step="check found" class="code-sync__in"><code>arr.each_with_index do |value, i|</code></li>
+            <li data-step="found" class="code-sync__in2"><code>return i if value == target</code></li>
+            <li data-step="check" class="code-sync__in"><code>end</code></li>
+            <li data-step="done" class="code-sync__in"><code>-1</code></li>
+            <li><code>end</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="compare" data-lang="php" hidden>
+            <li data-step="intro"><code>function linearSearch(array $arr, int $target): int {</code></li>
+            <li data-step="check found" class="code-sync__in"><code>for ($i = 0; $i &lt; count($arr); $i++) {</code></li>
+            <li data-step="found" class="code-sync__in2"><code>if ($arr[$i] === $target) return $i;</code></li>
             <li data-step="check" class="code-sync__in"><code>}</code></li>
             <li data-step="done" class="code-sync__in"><code>return -1;</code></li>
             <li><code>}</code></li>
