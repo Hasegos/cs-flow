@@ -614,6 +614,73 @@
         }
     }
 
+    /* ===================== 코드 패널 ===================== */
+    /* 시각화가 단계를 넘길 때마다 같은 이름이 달린 코드 줄을 밝힌다 */
+    const codeSync = document.querySelector('[data-code-sync]');
+    if (codeSync) {
+        const langSel  = codeSync.querySelector('.code-sync__select');
+        const stateEl  = codeSync.querySelector('[data-code-sync-state]');
+        const allLists = codeSync.querySelectorAll('.code-sync__lines');
+        const LANG_KEY = 'csflow-code-lang';
+
+        let variant  = allLists[0].dataset.variant;
+        let lastStep = null;
+        let lang     = storage.get(LANG_KEY) || langSel.value;
+        if (!codeSync.querySelector('.code-sync__lines[data-lang="' + lang + '"]')) lang = langSel.value;
+        langSel.value = lang;
+
+        /** 고른 갈래와 언어에 맞는 목록 하나만 보여 준다. */
+        function showList() {
+            allLists.forEach(function (list) {
+                list.hidden = !(list.dataset.variant === variant && list.dataset.lang === lang);
+            });
+        }
+
+        /**
+         * 지금 단계에 해당하는 줄을 밝힌다.
+         *
+         * @param step 단계 이름. null 이면 모두 끈다
+         */
+        function markStep(step) {
+            const list = codeSync.querySelector('.code-sync__lines:not([hidden])');
+            if (!list) return;
+
+            let first = null;
+            list.querySelectorAll('li').forEach(function (li) {
+                const names = (li.dataset.step || '').split(' ');
+                const on = step !== null && names.indexOf(step) !== -1;
+                li.classList.toggle('is-now', on);
+                if (on && !first) first = li;
+            });
+
+            if (first) {
+                const top = first.offsetTop - list.clientHeight / 2 + first.offsetHeight / 2;
+                list.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+            }
+        }
+
+        langSel.addEventListener('change', function () {
+            lang = langSel.value;
+            storage.set(LANG_KEY, lang);
+            showList();
+            markStep(lastStep);
+        });
+
+        window.addEventListener('csflow-viz-step', function (e) {
+            const d = e.detail || {};
+            if (d.variant && d.variant !== variant) {
+                variant = d.variant;
+                showList();
+            }
+            lastStep = d.step || null;
+            markStep(lastStep);
+            /* 한 번 밝아지고 나면 안내는 필요 없다 */
+            if (stateEl) stateEl.hidden = lastStep !== null;
+        });
+
+        showList();
+    }
+
     /* ===================== 읽기 진행 바 ===================== */
     if (document.querySelector('.topic-content')) {
         const readBar = document.createElement('div');

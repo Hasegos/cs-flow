@@ -575,6 +575,156 @@
   }
 }
 
+/* === 시각화와 코드 나란히 보기 === */
+.code-sync {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  min-width: 0;
+}
+
+.code-sync .visualizer-wrap {
+  min-width: 0;
+}
+
+.code-sync__panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.code-sync__bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 0.9rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.code-sync__label {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+}
+
+.code-sync__select {
+  font-family: inherit;
+  font-size: 0.8rem;
+  padding: 0.25rem 0.5rem;
+  color: var(--color-text);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.code-sync__select:focus-visible {
+  outline: 2px solid var(--subject-accent, var(--color-purple));
+  outline-offset: 1px;
+}
+
+.code-sync__state {
+  margin-left: auto;
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.code-sync__lines {
+  flex: 1 1 auto;
+  margin: 0;
+  padding: 0.7rem 0;
+  list-style: none;
+  counter-reset: codeline;
+  overflow-y: auto;
+}
+
+.code-sync__lines[hidden] {
+  display: none;
+}
+
+.code-sync__lines li {
+  display: flex;
+  gap: 0.8rem;
+  padding: 0.12rem 0.9rem;
+  font-size: 0.8rem;
+  line-height: 1.65;
+  color: var(--color-text-sub);
+  border-left: 2px solid transparent;
+}
+
+.code-sync__lines li::before {
+  counter-increment: codeline;
+  content: counter(codeline);
+  flex: 0 0 1.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  line-height: 1.95;
+  text-align: right;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 긴 줄은 가로로 밀지 않고 접는다. 이어지는 부분을 더 들여써 한 줄임을 보인다 */
+.code-sync__lines li > code,
+.code-sync__lines li > span {
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  padding-left: 2rem;
+  text-indent: -2rem;
+}
+
+.code-sync__lines code {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  background: none;
+  border: 0;
+}
+
+/* 코드의 중첩 깊이 */
+.code-sync__in > code,
+.code-sync__in > span { margin-left: 1.1rem; }
+
+.code-sync__in2 > code,
+.code-sync__in2 > span { margin-left: 2.2rem; }
+
+.code-sync__lines li.is-now {
+  color: var(--color-text);
+  background: var(--color-purple-dim);
+  border-left-color: var(--subject-accent, var(--color-purple));
+}
+
+.code-sync__lines li.is-now::before {
+  color: var(--subject-accent, var(--color-purple));
+}
+
+/* 1360px 이상에서만 좌우로 나눈다. 시각화 칸이 좁아지면 뜻이 없다 */
+@media (min-width: 1360px) {
+  .code-sync {
+    flex-direction: row;
+    align-items: stretch;
+  }
+
+  .code-sync .visualizer-wrap {
+    flex: 1.6 1 0;
+  }
+
+  .code-sync__panel {
+    flex: 1 1 0;
+    /* 코드가 짧으면 빈 상자를 남기지 않고 내용만큼만 차지한다 */
+    align-self: flex-start;
+    max-height: 32rem;
+  }
+}
+
 /* === 실제 코드에서 — 구분선과 코드 예제 === */
 .code-link-divider {
   display: flex;
