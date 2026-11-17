@@ -587,6 +587,160 @@
   min-width: 0;
 }
 
+/*
+ * 지금 실행 중인 한 줄. 위아래로 쌓이면 코드 전체가 화면 밖으로 밀리므로
+ * 이 한 줄만 탭 막대 아래에 붙여 둔다. 좌우로 나뉘면 코드가 옆에 있으니 숨긴다.
+ */
+.code-sync__now {
+  position: sticky;
+  top: calc(var(--header-h) + var(--topic-tabs-h));
+  z-index: 16;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  width: 100%;
+  margin: 0;
+  padding: 0.55rem 0.9rem;
+  font-family: inherit;
+  font-size: 0.8rem;
+  text-align: left;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.code-sync__now:disabled { cursor: default; }
+
+.code-sync__now:focus-visible {
+  outline: 2px solid var(--subject-accent, var(--color-purple));
+  outline-offset: 2px;
+}
+
+.code-sync__now--on {
+  color: var(--color-text);
+  /* --color-purple-dim 은 반투명이다. 밑에 면 색을 깔아야 코드가 비치지 않는다 */
+  background: linear-gradient(var(--color-purple-dim), var(--color-purple-dim)), var(--color-surface);
+  border-color: var(--subject-accent, var(--color-purple));
+}
+
+.code-sync__now-caret {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  line-height: 1.45;
+  color: var(--color-text-muted);
+  transition: transform var(--transition);
+}
+
+/* 한 줄뿐이면 펼칠 것이 없다 */
+.code-sync__now:not(.code-sync__now--many) .code-sync__now-caret {
+  opacity: 0.45;
+}
+
+.code-sync__now--on .code-sync__now-caret {
+  color: var(--subject-accent, var(--color-purple));
+}
+
+.code-sync__now-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.code-sync__now-line {
+  display: flex;
+  gap: 0.5rem;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.code-sync__now-line b {
+  flex: 0 0 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  font-weight: 500;
+  line-height: 1.75;
+  text-align: right;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 접혀 있으면 첫 줄만 보인다 */
+.code-sync__now:not(.code-sync__now--open) .code-sync__now-line:not(:first-child) {
+  display: none;
+}
+
+.code-sync__now--open .code-sync__now-caret {
+  transform: rotate(90deg);
+}
+
+.code-sync__now-num {
+  flex: 0 0 auto;
+  padding: 0.02rem 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  line-height: 1.6;
+  color: var(--subject-accent, var(--color-purple));
+  background: var(--color-purple-dim);
+  border-radius: 999px;
+}
+
+.code-sync__now-num:empty { display: none; }
+
+/*
+ * 아래 고정 조작 막대. 진짜 버튼이 화면 밖으로 나가면 JS 가 띄운다.
+ * .topic-panel 이 transform 을 남겨 고정 위치의 기준이 되므로 body 에 둔다.
+ */
+.viz-dock {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 1rem;
+  z-index: 70;
+  display: flex;
+  gap: 0.4rem;
+  padding: 0.4rem 0.5rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  box-shadow: 0 0.4rem 1.25rem rgba(0, 0, 0, 0.22);
+}
+
+.viz-dock[hidden] { display: none; }
+
+.viz-dock__btn {
+  min-width: 2.4rem;
+  padding: 0.35rem 0.7rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--color-text-sub);
+  background: none;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color var(--transition), background var(--transition);
+}
+
+.viz-dock__btn:hover {
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+
+.viz-dock__btn:focus-visible {
+  outline: 2px solid var(--subject-accent, var(--color-purple));
+  outline-offset: 2px;
+}
+
+/* 아래 탭이 있는 폭에서는 그 위로 올린다 */
+@media (max-width: 739px) {
+  .viz-dock {
+    bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 0.6rem);
+  }
+}
+
 .code-sync__panel {
   display: flex;
   flex-direction: column;
@@ -717,6 +871,10 @@
     flex-direction: row;
     align-items: stretch;
   }
+  body.is-nav-collapsed .code-sync__now,
+  body.is-nav-collapsed .viz-dock {
+    display: none;
+  }
 
   body.is-nav-collapsed .code-sync .visualizer-wrap {
     flex: 1.6 1 0;
@@ -730,10 +888,15 @@
   }
 }
 
-@media (min-width: 1200px) {
+@media (min-width: 1024px) {
   .code-sync {
     flex-direction: row;
     align-items: stretch;
+  }
+
+  .code-sync__now,
+  .viz-dock {
+    display: none;
   }
 
   .code-sync .visualizer-wrap {

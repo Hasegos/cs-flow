@@ -664,6 +664,36 @@
 
         let variant  = allLists[0].dataset.variant;
         let lastStep = null;
+
+        /*
+         * 위아래로 쌓이면 코드가 화면 밖으로 밀린다. 지금 실행 중인 한 줄만
+         * 시각화 위에 붙여 둔다. 전체 코드는 그대로 아래에서 읽는다.
+         */
+        const OPEN_KEY = 'csflow-nowbar-open';
+        const nowBar = document.createElement('button');
+        nowBar.type = 'button';
+        nowBar.className = 'code-sync__now';
+        nowBar.setAttribute('aria-expanded', 'false');
+        nowBar.innerHTML = '<span class="code-sync__now-caret" aria-hidden="true">&#9656;</span>'
+            + '<span class="code-sync__now-body"></span>'
+            + '<span class="code-sync__now-num"></span>';
+        const nowBody = nowBar.querySelector('.code-sync__now-body');
+        const nowNum  = nowBar.querySelector('.code-sync__now-num');
+        codeSync.parentNode.insertBefore(nowBar, codeSync.parentNode.firstChild);
+
+        /* 한 단계가 여러 줄이면 접힌 채로는 첫 줄만 보인다. 눌러서 전부 편다 */
+        let nowOpen = storage.get(OPEN_KEY) === '1';
+
+        /** 띠를 접거나 편다. */
+        function setNowOpen(on) {
+            nowOpen = on;
+            nowBar.classList.toggle('code-sync__now--open', on);
+            nowBar.setAttribute('aria-expanded', on ? 'true' : 'false');
+            storage.set(OPEN_KEY, on ? '1' : '0');
+        }
+
+        nowBar.addEventListener('click', function () { setNowOpen(!nowOpen); });
+        setNowOpen(nowOpen);
         let lang     = storage.get(LANG_KEY) || langSel.value;
         if (!codeSync.querySelector('.code-sync__lines[data-lang="' + lang + '"]')) lang = langSel.value;
         langSel.value = lang;
@@ -693,6 +723,49 @@
             });
 
             if (first) bringIntoView(list, first);
+            fillNowBar(list, step);
+        }
+
+        /**
+         * 지금 밝은 줄을 모두 띠에 옮겨 적는다.
+         * 한 단계가 여러 줄에 걸치는 일이 흔해서(반복문 머리 + 가운데 고르기 등)
+         * 접힌 채로는 첫 줄만, 펴면 전부 보인다.
+         *
+         * @param list 지금 보이는 코드 목록
+         * @param step 단계 이름. null 이면 시작 전
+         */
+        function fillNowBar(list, step) {
+            const lines = Array.prototype.slice.call(list.querySelectorAll('li'));
+            const lit = lines.filter(function (li) {
+                return step !== null && (li.dataset.step || '').split(' ').indexOf(step) !== -1;
+            });
+
+            nowBody.textContent = '';
+            if (lit.length === 0) {
+                const p = document.createElement('span');
+                p.className = 'code-sync__now-line';
+                p.textContent = '재생하면 지금 줄이 여기에 나옵니다';
+                nowBody.appendChild(p);
+                nowNum.textContent = '';
+                nowBar.classList.remove('code-sync__now--on', 'code-sync__now--many');
+                nowBar.disabled = true;
+                return;
+            }
+
+            lit.forEach(function (li) {
+                const row = document.createElement('span');
+                row.className = 'code-sync__now-line';
+                const no = document.createElement('b');
+                no.textContent = lines.indexOf(li) + 1;
+                row.appendChild(no);
+                row.appendChild(document.createTextNode(li.textContent.trim()));
+                nowBody.appendChild(row);
+            });
+
+            nowNum.textContent = lit.length > 1 ? lit.length + '줄' : '';
+            nowBar.classList.add('code-sync__now--on');
+            nowBar.classList.toggle('code-sync__now--many', lit.length > 1);
+            nowBar.disabled = lit.length < 2;
         }
 
         /**
@@ -733,6 +806,60 @@
         });
 
         showList();
+        markStep(null);
+    }
+
+    /* ===================== 아래 고정 조작 막대 ===================== */
+    /*
+     * .topic-panel 이 animation ... both 로 transform 을 남겨 고정 위치의
+     * 기준이 된다. 그래서 진짜 버튼을 옮기지 않고 body 에 대신 누를 막대를
+     * 만들어 둔다. 좁은 화면에서 진짜 버튼이 화면 밖으로 나가면 나타난다.
+     */
+    if (document.querySelector('[data-code-sync]') && document.getElementById('visualizer-container')) {
+        const DOCK_KEYS = [
+            { label: '▶',  target: '▶ PLAY',  aria: '재생' },
+            { label: '▶|', target: '▶| STEP', aria: '한 단계' },
+            { label: '↺',  target: '↺ RESET', aria: '처음으로' }
+        ];
+
+        const dock = document.createElement('div');
+        dock.className = 'viz-dock';
+        dock.hidden = true;
+        DOCK_KEYS.forEach(function (k) {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'viz-dock__btn';
+            b.textContent = k.label;
+            b.setAttribute('aria-label', k.aria);
+            b.addEventListener('click', function () {
+                const real = findVizButton(k.target);
+                if (real) real.click();
+            });
+            dock.appendChild(b);
+        });
+        document.body.appendChild(dock);
+
+        /** 진짜 조작 막대가 화면 밖이고 작동 원리 탭일 때만 띄운다. */
+        function watchControls() {
+            const play = findVizButton('▶ PLAY');
+            if (!play || !play.parentNode) return false;
+
+            /* isIntersecting 은 1% 만 보여도 참이다. 다 보일 때만 막대를 숨긴다 */
+            const io = new IntersectionObserver(function (entries) {
+                const panel = document.getElementById('panel-visualizer');
+                const open = panel && panel.classList.contains('is-active');
+                dock.hidden = !open || entries[0].intersectionRatio > 0.95;
+            }, { threshold: [0, 0.5, 0.95, 1] });
+            io.observe(play.parentNode);
+            return true;
+        }
+
+        if (!watchControls()) {
+            /* 시각화는 나중에 그려진다. 생기면 그때 붙인다 */
+            const mo = new MutationObserver(function () { if (watchControls()) mo.disconnect(); });
+            mo.observe(document.getElementById('visualizer-container'), { childList: true, subtree: true });
+            setTimeout(function () { mo.disconnect(); }, 8000);
+        }
     }
 
     /* ===================== 읽기 진행 바 ===================== */
