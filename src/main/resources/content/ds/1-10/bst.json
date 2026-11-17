@@ -5,6 +5,7 @@
   "templateName": "bst",
   "metaDescription": "이진 탐색 트리 CS 지식 정리 — 삽입·삭제·탐색 동작 원리와 불균형 문제를 인터랙티브 시각화로 학습하세요. 개발자 면접 자료구조 핵심 개념.",
   "published": true,
+  "updatedOn": "2026-10-30",
   "order": 5,
   "seq": 35,
   "tags": [

@@ -5,6 +5,7 @@
   "templateName": "ros2-service-action",
   "metaDescription": "ROS2 서비스 vs 액션 CS 지식 정리 — 요청·응답 서비스, 목표·피드백·결과 액션, 실행 중 취소의 차이를 인터랙티브 시각화로 학습하세요. 로봇·임베디드 핵심 개념.",
   "published": true,
+  "updatedOn": "2026-10-30",
   "order": 2,
   "seq": 122,
   "tags": [

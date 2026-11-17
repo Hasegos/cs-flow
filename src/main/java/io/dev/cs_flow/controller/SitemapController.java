@@ -1,7 +1,5 @@
 package io.dev.cs_flow.controller;
 
-import io.dev.cs_flow.dto.TopicInfo;
-import io.dev.cs_flow.service.ErrorEntryService;
 import io.dev.cs_flow.service.SitemapService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -9,112 +7,27 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import java.util.List;
-
 /**
  * 사이트맵 요청을 처리하는 컨트롤러.
  * <p>
  * Google Search Console 등 검색 엔진에 제출할 sitemap.xml을 동적으로 생성한다.
- * 공개된 토픽 목록을 기반으로 과목 홈 페이지와 토픽 개별 페이지 URL을 포함한다.
+ * 본문은 {@link SitemapService}가 만들고 컨트롤러는 응답만 맡는다.
  * </p>
  */
 @Controller
 @RequiredArgsConstructor
 public class SitemapController {
 
-    private static final String BASE_URL       = "https://csflow.kr";
-    private static final String CHANGE_FREQ_WEEKLY  = "weekly";
-    private static final String CHANGE_FREQ_MONTHLY = "monthly";
-    private static final String CHANGE_FREQ_YEARLY  = "yearly";
-
-    private static final String SLUG_PATTERN = "^[a-z0-9\\-]+$";
     private final SitemapService sitemapService;
-    private final ErrorEntryService errorEntryService;
 
     /**
      * sitemap.xml을 생성하여 반환한다.
-     * <p>
-     * 홈, 정적 정책 페이지(개인정보처리방침·이용약관), 공개된 과목 홈 페이지, 공개된 토픽 개별 페이지 URL을 포함한다.
-     * 에러 사전은 검증된 항목이 있을 때만 목록 페이지, 색인 가능한 분류 페이지, 검증된 항목 URL을 포함한다.
-     * 토픽 목록은 {@link SitemapService}를 통해 콘텐츠 JSON의 공개 토픽을 사용한다.
-     * </p>
      *
      * @return XML 형식의 사이트맵 문자열
      */
     @GetMapping(value = "/sitemap.xml", produces = MediaType.APPLICATION_XML_VALUE)
     @ResponseBody
     public String sitemap() {
-        List<TopicInfo> topics = sitemapService.getPublishedTopics();
-
-        StringBuilder sb = new StringBuilder();
-        sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
-        sb.append("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">");
-
-        sb.append(url(BASE_URL  + "/", CHANGE_FREQ_WEEKLY, "1.0"));
-
-        sb.append(url(BASE_URL + "/about",   CHANGE_FREQ_YEARLY, "0.5"));
-        sb.append(url(BASE_URL + "/guide",   CHANGE_FREQ_YEARLY, "0.5"));
-        sb.append(url(BASE_URL + "/privacy", CHANGE_FREQ_YEARLY, "0.3"));
-        sb.append(url(BASE_URL + "/terms",   CHANGE_FREQ_YEARLY, "0.3"));
-
-        topics.stream()
-                .map(t -> t.subject().slug())
-                .distinct()
-                .filter(slug -> slug.matches(SLUG_PATTERN))
-                .forEach(slug -> sb.append(url(BASE_URL  + "/" + slug, CHANGE_FREQ_WEEKLY, "0.8")));
-
-        topics.stream()
-                .filter(t -> t.subject().slug().matches(SLUG_PATTERN)
-                        && t.slug().matches(SLUG_PATTERN))
-                .forEach(t -> sb.append(url(
-                        BASE_URL + "/" + t.subject().slug() + "/" + t.slug(),
-                        CHANGE_FREQ_MONTHLY, "0.7")));
-
-        List<String> errorSlugs = errorEntryService.getVerifiedSlugs().stream()
-                .filter(slug -> slug.matches(SLUG_PATTERN))
-                .toList();
-        if (!errorSlugs.isEmpty()) {
-            sb.append(url(BASE_URL + "/errors", CHANGE_FREQ_WEEKLY, "0.6"));
-            errorEntryService.getCategories().stream()
-                    .filter(c -> c.indexable() && c.category().matches(SLUG_PATTERN))
-                    .forEach(c -> sb.append(url(BASE_URL + "/errors/category/" + c.category(), CHANGE_FREQ_WEEKLY, "0.6")));
-            errorSlugs.forEach(slug -> sb.append(url(BASE_URL + "/errors/" + slug, CHANGE_FREQ_MONTHLY, "0.6")));
-        }
-
-        sb.append("</urlset>");
-        return sb.toString();
-    }
-
-    /**
-     * 단일 {@code <url>} XML 블록을 생성한다.
-     *
-     * @param loc        페이지 URL
-     * @param changefreq 변경 빈도 (daily / weekly / monthly / yearly 등)
-     * @param priority   우선순위 (0.0 ~ 1.0)
-     * @return XML 형식의 url 블록 문자열
-     */
-    private String url(String loc, String changefreq, String priority) {
-        return "<url>"
-                + "<loc>" + escapeXml(loc) + "</loc>"
-                + "<changefreq>" + changefreq + "</changefreq>"
-                + "<priority>" + priority + "</priority>"
-                + "</url>";
-    }
-
-    /**
-     * XML 특수문자를 이스케이프 처리한다.
-     * <p>
-     * slug에 예기치 않은 특수문자가 포함될 경우 XML 파싱 오류를 방지한다.
-     * </p>
-     *
-     * @param value 이스케이프할 문자열
-     * @return 이스케이프 처리된 문자열
-     */
-    private String escapeXml(String value) {
-        return value.replace("&", "&amp;")
-                .replace("<", "&lt;")
-                .replace(">", "&gt;")
-                .replace("\"", "&quot;")
-                .replace("'", "&apos;");
+        return sitemapService.buildXml();
     }
 }
