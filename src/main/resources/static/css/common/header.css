@@ -80,83 +80,68 @@
   background: var(--color-purple-dim);
 }
 
-/* === 모바일 햄버거 버튼 === */
-.gnb__hamburger {
+/* === 과목 드롭다운 단추 (태블릿 폭에서만 보인다) === */
+.gnb__browse-btn {
   display: none;
-  flex-direction: column;
-  gap: 5px;
-  margin-left: auto;
-  padding: 0.4rem;
-}
-
-.gnb__hamburger-line {
-  display: block;
-  width: 22px;
-  height: 2px;
-  background: var(--color-text-sub);
-  border-radius: 2px;
-  transition: transform var(--transition), opacity var(--transition);
-}
-
-.gnb__hamburger--open .gnb__hamburger-line:nth-child(1) {
-  transform: translateY(7px) rotate(45deg);
-}
-
-.gnb__hamburger--open .gnb__hamburger-line:nth-child(2) {
-  opacity: 0;
-}
-
-.gnb__hamburger--open .gnb__hamburger-line:nth-child(3) {
-  transform: translateY(-7px) rotate(-45deg);
-}
-
-/* === 모바일 드로어 메뉴 === */
-.gnb__drawer {
-  display: none;
-  flex-direction: column;
-  background: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
-  padding: 0.75rem 1.5rem;
-}
-
-.gnb__drawer--open {
-  display: flex;
-}
-
-.gnb__drawer-item {
-  padding: 0.75rem 0.5rem;
-  font-size: 0.9rem;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.8rem;
+  font-family: inherit;
+  font-size: 0.88rem;
   color: var(--color-text-sub);
-  border-bottom: 1px solid var(--color-border);
-  transition: color var(--transition);
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color var(--transition), color var(--transition);
 }
 
-.gnb__drawer-item:last-child {
-  border-bottom: none;
+.gnb__browse-btn:hover {
+  border-color: var(--color-border-hover);
+  color: var(--color-text);
 }
 
-.gnb__drawer-item:hover,
-.gnb__drawer-item--active {
-  color: var(--color-purple);
+.gnb__browse-btn:focus-visible {
+  outline: 2px solid var(--color-purple);
+  outline-offset: 2px;
+}
+
+.gnb__browse-caret {
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid currentColor;
+  transition: transform var(--transition);
+}
+
+.gnb__browse-btn[aria-expanded="true"] .gnb__browse-caret {
+  transform: rotate(180deg);
 }
 
 /* === 반응형 === */
+/* 1140px 이하: 과목 메뉴가 다 안 들어가므로 접는다 */
 @media (max-width: 1140px) {
   .gnb__nav { display: none; }
 
-  .gnb__hamburger {
-    display: flex;
-    margin-left: auto;
-    order: 1;
+  /* 간격은 .gnb__inner 의 gap 하나로만 정한다 */
+  .gnb__inner {
+    gap: 0.75rem;
   }
 
-  .gnb__search-btn {
-    order: 2;
+  .gnb__logo {
+    margin-right: auto;
   }
 
   .gnb__theme-btn {
-    order: 2;
-    margin-left: 0.5rem;
+    margin-left: 0;
+  }
+}
+
+/* 740px ~ 1140px: 접은 메뉴를 드롭다운 단추로 연다 */
+@media (min-width: 740px) and (max-width: 1140px) {
+  .gnb__browse-btn {
+    display: inline-flex;
   }
 }
 
@@ -164,14 +149,6 @@
 [data-theme="light"] .gnb {
   background: rgba(245, 245, 255, 0.92);
   border-bottom-color: rgba(108, 99, 255, 0.18);
-}
-
-[data-theme="light"] .gnb__drawer {
-  background: var(--color-surface);
-}
-
-[data-theme="light"] .gnb__hamburger-line {
-  background: var(--color-text-sub);
 }
 
 /* === 검색·테마 토글 버튼 === */
@@ -211,11 +188,18 @@
 
 .gnb__search-btn,
 .gnb__study-btn {
-  margin-right: -1.75rem;
   text-decoration: none;
 }
 
-@media (max-width: 768px) {
+/* gap 2.5rem 은 로고 · 메뉴 사이 값이라 아이콘끼리는 당겨 준다 */
+@media (min-width: 1141px) {
+  .gnb__search-btn,
+  .gnb__study-btn {
+    margin-right: -1.75rem;
+  }
+}
+
+@media (max-width: 739px) {
   .gnb__study-btn {
     display: none;
   }

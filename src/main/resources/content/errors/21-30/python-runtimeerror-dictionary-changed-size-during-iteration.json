@@ -3,6 +3,7 @@
   "order": 22,
   "category": "algorithm",
   "title": "Python: RuntimeError: dictionary changed size during iteration 에러",
+  "seoTitle": "Python dictionary changed size 에러",
   "errorMessage": "RuntimeError: dictionary changed size during iteration",
   "envOs": "Windows 10 (재현 환경)",
   "envDistro": null,

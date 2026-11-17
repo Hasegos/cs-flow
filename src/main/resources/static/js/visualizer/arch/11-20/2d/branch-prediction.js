@@ -70,6 +70,22 @@
     root.appendChild(controls);
     container.appendChild(root);
 
+    /* ===================== 3D 철도 분기점 전환 ===================== */
+    window.CsFlow.mount3dButton({
+        container: container,
+        parent: toolbar,
+        cls: 'bp-viz__btn bp-viz__btn--primary',
+        label: '3D 철도 분기점',
+        onOpen: function () {
+            vizReset();
+            root.classList.add('bp-viz--hidden');
+        },
+        onExit: function () {
+            root.classList.remove('bp-viz--hidden');
+            resize();
+        }
+    });
+
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
     function GW() { return canvas.width / dpr; }
@@ -245,6 +261,21 @@
         { groups: 3, log: '항상 taken — 세 예측기 모두 ' + pct(ACC[2][0]) + '. 단순한 패턴에서는 예측기 사이에 차이가 없습니다.' },
         { groups: 3, log: '정리 — 패턴이 단순하면 어떤 예측기든 잘 맞지만, 반복문 종료나 교대 같은 패턴에서는 상태를 기억하는 방식에 따라 적중률이 크게 갈립니다.' }
     ];
+
+    window.CsFlow.branchPredictionData = {
+        SEQ: SEQ,
+        INIT1: INIT1,
+        INIT2: INIT2,
+        pred1: pred1,
+        pred2: pred2,
+        after1: after1,
+        after2: after2,
+        PATTERNS: PATTERNS,
+        ACC: ACC,
+        PIPE_STEPS: PIPE_STEPS,
+        BITS_STEPS: BITS_STEPS,
+        ACC_STEPS: ACC_STEPS
+    };
 
     /* ===================== 상태 ===================== */
     function currentSteps() {

@@ -159,6 +159,7 @@
     ];
     var BARS_N = 8;
     var BARS_P = [0.5, 0.8, 0.9, 0.95, 0.99];
+    window.CsFlow.amdahlsLawData = { speedup: speedup, TIME_SER: TIME_SER, TIME_PAR: TIME_PAR, TIME_CORES: TIME_CORES, CURVE_PS: CURVE_PS };
 
     /* ===================== 스텝 정의 ===================== */
     var TIME_STEPS = [
@@ -556,6 +557,21 @@
                 setHoveredKey: function () {},
                 draw: draw
             };
+        }
+    });
+
+    window.CsFlow.mount3dButton({
+        container: container,
+        parent: toolbar,
+        cls: 'amdahl-viz__btn amdahl-viz__btn--primary',
+        label: '3D 이삿짐',
+        onOpen: function () {
+            vizReset();
+            root.classList.add('amdahl-viz--hidden');
+        },
+        onExit: function () {
+            root.classList.remove('amdahl-viz--hidden');
+            resize();
         }
     });
 

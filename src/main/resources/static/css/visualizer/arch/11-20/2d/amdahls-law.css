@@ -193,3 +193,8 @@
     padding: 8px 16px;
   }
 }
+
+/* === .amdahl-viz--hidden — 3D 화면을 열 때 2D 시각화 숨김 === */
+.amdahl-viz--hidden {
+  display: none;
+}

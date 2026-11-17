@@ -484,6 +484,41 @@
   gap: 1.5rem;
 }
 
+/* === 시각화 단축키 안내 === */
+.viz-hint {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem 0.9rem;
+  margin: -0.75rem 0 0;
+  font-size: 0.76rem;
+  color: var(--color-text-muted);
+}
+
+.viz-hint kbd {
+  margin-right: 0.3rem;
+  padding: 0.1rem 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: var(--color-text-sub);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-bottom-width: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.viz-hint__more {
+  color: var(--color-text-muted);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.viz-hint__more:hover {
+  color: var(--subject-accent, var(--color-purple));
+}
+
 .visualizer-canvas-area {
   width: 100%;
   background: var(--color-surface);
@@ -540,7 +575,359 @@
   }
 }
 
-/* === 코드 연결 탭 === */
+/* === 시각화와 코드 나란히 보기 === */
+.code-sync {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  min-width: 0;
+}
+
+.code-sync .visualizer-wrap {
+  min-width: 0;
+}
+
+/* 지금 실행 중인 줄. 위아래로 쌓일 때만 탭 막대 아래에 붙인다 */
+.code-sync__now {
+  position: sticky;
+  top: calc(var(--header-h) + var(--topic-tabs-h));
+  z-index: 16;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  width: 100%;
+  margin: 0;
+  padding: 0.55rem 0.9rem;
+  font-family: inherit;
+  font-size: 0.8rem;
+  text-align: left;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.code-sync__now:disabled { cursor: default; }
+
+.code-sync__now:focus-visible {
+  outline: 2px solid var(--subject-accent, var(--color-purple));
+  outline-offset: 2px;
+}
+
+.code-sync__now--on {
+  color: var(--color-text);
+  /* --color-purple-dim 은 반투명이다. 밑에 면 색을 깔아야 코드가 비치지 않는다 */
+  background: linear-gradient(var(--color-purple-dim), var(--color-purple-dim)), var(--color-surface);
+  border-color: var(--subject-accent, var(--color-purple));
+}
+
+.code-sync__now-caret {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  line-height: 1.45;
+  color: var(--color-text-muted);
+  transition: transform var(--transition);
+}
+
+/* 한 줄뿐이면 펼칠 것이 없다 */
+.code-sync__now:not(.code-sync__now--many) .code-sync__now-caret {
+  opacity: 0.45;
+}
+
+.code-sync__now--on .code-sync__now-caret {
+  color: var(--subject-accent, var(--color-purple));
+}
+
+.code-sync__now-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+
+.code-sync__now-line {
+  display: flex;
+  gap: 0.5rem;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.code-sync__now-line b {
+  flex: 0 0 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  font-weight: 500;
+  line-height: 1.75;
+  text-align: right;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 접혀 있으면 첫 줄만 보인다 */
+.code-sync__now:not(.code-sync__now--open) .code-sync__now-line:not(:first-child) {
+  display: none;
+}
+
+.code-sync__now--open .code-sync__now-caret {
+  transform: rotate(90deg);
+}
+
+.code-sync__now-num {
+  flex: 0 0 auto;
+  padding: 0.02rem 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  line-height: 1.6;
+  color: var(--subject-accent, var(--color-purple));
+  background: var(--color-purple-dim);
+  border-radius: 999px;
+}
+
+.code-sync__now-num:empty { display: none; }
+
+/* 아래 고정 조작 막대. 진짜 버튼이 화면 밖으로 나가면 JS 가 띄운다 */
+.viz-dock {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 1rem;
+  z-index: 70;
+  display: flex;
+  gap: 0.4rem;
+  padding: 0.4rem 0.5rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  box-shadow: 0 0.4rem 1.25rem rgba(0, 0, 0, 0.22);
+}
+
+.viz-dock[hidden] { display: none; }
+
+.viz-dock__btn {
+  min-width: 2.4rem;
+  padding: 0.35rem 0.7rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--color-text-sub);
+  background: none;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color var(--transition), background var(--transition);
+}
+
+.viz-dock__btn:hover {
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+
+.viz-dock__btn:focus-visible {
+  outline: 2px solid var(--subject-accent, var(--color-purple));
+  outline-offset: 2px;
+}
+
+/* 아래 탭이 있는 폭에서는 그 위로 올린다 */
+@media (max-width: 739px) {
+  .viz-dock {
+    bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 0.6rem);
+  }
+}
+
+.code-sync__panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.code-sync__bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 0.9rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.code-sync__label {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+}
+
+.code-sync__select {
+  font-family: inherit;
+  font-size: 0.8rem;
+  padding: 0.25rem 0.5rem;
+  color: var(--color-text);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.code-sync__select:focus-visible {
+  outline: 2px solid var(--subject-accent, var(--color-purple));
+  outline-offset: 1px;
+}
+
+.code-sync__state {
+  margin-left: auto;
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.code-sync__lines {
+  flex: 1 1 auto;
+  margin: 0;
+  padding: 0.7rem 0;
+  list-style: none;
+  counter-reset: codeline;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+}
+
+.code-sync__lines[hidden] {
+  display: none;
+}
+
+.code-sync__lines li {
+  display: flex;
+  gap: 0.8rem;
+  padding: 0.12rem 0.9rem;
+  font-size: 0.8rem;
+  line-height: 1.65;
+  color: var(--color-text-sub);
+  border-left: 2px solid transparent;
+}
+
+.code-sync__lines li::before {
+  counter-increment: codeline;
+  content: counter(codeline);
+  flex: 0 0 1.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  line-height: 1.95;
+  text-align: right;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 긴 줄은 가로로 밀지 않고 접는다. 이어지는 부분을 더 들여써 한 줄임을 보인다 */
+.code-sync__lines li > code,
+.code-sync__lines li > span {
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  padding-left: 2rem;
+  text-indent: -2rem;
+}
+
+.code-sync__lines code {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  background: none;
+  border: 0;
+}
+
+/* 코드의 중첩 깊이 */
+.code-sync__in > code,
+.code-sync__in > span { margin-left: 1.1rem; }
+
+.code-sync__in2 > code,
+.code-sync__in2 > span { margin-left: 2.2rem; }
+
+.code-sync__in3 > code,
+.code-sync__in3 > span { margin-left: 3.3rem; }
+
+.code-sync__lines li.is-now {
+  color: var(--color-text);
+  background: var(--color-purple-dim);
+  border-left-color: var(--subject-accent, var(--color-purple));
+}
+
+.code-sync__lines li.is-now::before {
+  color: var(--subject-accent, var(--color-purple));
+}
+
+/* 목차를 접으면 그 폭만큼 본문이 넓어져 더 좁은 창에서도 좌우로 나눈다 */
+@media (min-width: 900px) {
+  body.is-nav-collapsed .code-sync {
+    flex-direction: row;
+    align-items: stretch;
+  }
+  body.is-nav-collapsed .code-sync__now,
+  body.is-nav-collapsed .viz-dock {
+    display: none;
+  }
+
+  body.is-nav-collapsed .code-sync .visualizer-wrap {
+    flex: 1.6 1 0;
+  }
+
+  body.is-nav-collapsed .code-sync__panel {
+    flex: 1 1 0;
+    /* 코드가 짧으면 빈 상자를 남기지 않고 내용만큼만 차지한다 */
+    align-self: flex-start;
+    max-height: 32rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .code-sync {
+    flex-direction: row;
+    align-items: stretch;
+  }
+
+  .code-sync__now,
+  .viz-dock {
+    display: none;
+  }
+
+  .code-sync .visualizer-wrap {
+    flex: 1.6 1 0;
+  }
+
+  .code-sync__panel {
+    flex: 1 1 0;
+    align-self: flex-start;
+    max-height: 32rem;
+  }
+}
+
+/* === 실제 코드에서 — 구분선과 코드 예제 === */
+.code-link-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin: 3rem 0 2rem;
+}
+
+.code-link-divider::before,
+.code-link-divider::after {
+  content: '';
+  flex: 1 1 auto;
+  height: 1px;
+  background: var(--color-border);
+}
+
+.code-link-divider__label {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+}
+
 .code-section {
   max-width: 780px;
 }

@@ -203,6 +203,8 @@
         return p < 0 || OOO.end[p] <= c;
     }
 
+    window.CsFlow.oooData = { instr: INSTR, io: IO, ooo: OOO, commit: commit, commitWidth: COMMIT_WIDTH };
+
     /* ===================== 데이터: 스텝 ===================== */
     var COLS = IO.total;
 
@@ -688,6 +690,21 @@
                 setHoveredKey: function () {},
                 draw: draw
             };
+        }
+    });
+
+    window.CsFlow.mount3dButton({
+        container: container,
+        parent: toolbar,
+        cls: 'ooo-viz__btn ooo-viz__btn--primary',
+        label: '3D 출고 센터',
+        onOpen: function () {
+            vizReset();
+            root.classList.add('ooo-viz--hidden');
+        },
+        onExit: function () {
+            root.classList.remove('ooo-viz--hidden');
+            resize();
         }
     });
 

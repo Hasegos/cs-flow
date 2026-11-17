@@ -5,6 +5,7 @@
     <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">엔디언(빅/리틀) | CS 지식 정리 - CS Flow</title>
     <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
     <link rel="stylesheet" th:href="@{/css/visualizer/arch/11-20/2d/endianness.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/viz3d-common.css}">
 </head>
 <body>
     <!-- 헤더 -->
@@ -67,7 +68,6 @@
             <div class="topic-tabs__inner">
                 <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
                 <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
-                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
                 <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
             </div>
         </nav>
@@ -185,29 +185,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">빅 엔디언과 리틀 엔디언의 차이는 무엇인가요?</h3>
-                            <p class="overview-card__desc">여러 바이트로 이뤄진 값을 메모리에 놓는 순서입니다. 빅 엔디언은 MSB를 낮은 주소에, 리틀 엔디언은 LSB를 낮은 주소에 먼저 놓습니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">네트워크 바이트 순서가 왜 필요한가요?</h3>
-                            <p class="overview-card__desc">통신하는 호스트들의 엔디언이 다를 수 있어서 전송되는 바이트 순서를 하나로 정해야 같은 값으로 해석됩니다. 인터넷 프로토콜은 빅 엔디언을 씁니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">내 컴퓨터의 엔디언을 코드로 확인하려면?</h3>
-                            <p class="overview-card__desc">정수 1을 저장한 뒤 첫 바이트를 char 포인터로 읽어 보면 됩니다. int가 2바이트 이상일 때 첫 바이트가 1이면 리틀 엔디언, 0이면 빅 엔디언입니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">엔디언 문제는 언제 생기나요?</h3>
-                            <p class="overview-card__desc">바이트 단위로 정수를 다룰 때입니다. 소켓으로 정수를 보내거나, 바이너리 파일 형식을 읽고 쓰거나, 서로 다른 아키텍처 사이에서 메모리 덤프를 옮길 때 순서를 맞춰야 합니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">
@@ -260,16 +238,15 @@
             <!-- 탭 2: 작동 원리 -->
             <div class="topic-panel" id="panel-visualizer">
                 <div class="visualizer-wrap">
-                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                    <div class="visualizer-canvas-area" id="visualizer-container"
+                         th:attr="data-three-src=@{/vendor/three/three-r128.min.js}, data-viz3d-common-src=@{/js/visualizer/viz3d-common.js}, data-viz3d-src=@{/js/visualizer/arch/11-20/3d/endianness.js}"></div>
                 </div>
-            </div>
 
-            <!-- 탭 3: 코드 연결 -->
-            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code-divider :: divider}"></th:block>
                 <th:block th:replace="~{fragments/code/arch/11-20/endianness-code :: code}"></th:block>
             </div>
 
-            <!-- 탭 4: 퀴즈 -->
+            <!-- 탭 3: 퀴즈 -->
             <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
                 <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
             </div>

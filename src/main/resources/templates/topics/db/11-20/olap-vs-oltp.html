@@ -67,7 +67,6 @@
             <div class="topic-tabs__inner">
                 <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
                 <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
-                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
                 <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
             </div>
         </nav>
@@ -194,29 +193,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">OLTP의 특징은?</h3>
-                            <p class="overview-card__desc">주문과 결제처럼 짧고 빈번한 트랜잭션을 빠르고 안정적으로 처리하는 데 초점을 둡니다. 정규화된 스키마와 인덱스를 사용합니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">OLAP의 특징은?</h3>
-                            <p class="overview-card__desc">대량의 이력 데이터를 집계하고 분석하는 읽기 중심 쿼리를 다룹니다. 데이터 웨어하우스에서 주로 사용합니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">컬럼 지향 저장이 OLAP에 유리한 이유는?</h3>
-                            <p class="overview-card__desc">분석 쿼리는 일부 열을 많은 행에 걸쳐 읽으므로 필요한 열만 읽어 I/O를 줄일 수 있고, 같은 열의 값끼리 압축 효율도 높일 수 있습니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">분석 쿼리를 왜 업무 DB에서 따로 떼어 내나요?</h3>
-                            <p class="overview-card__desc">오래 걸리는 집계 쿼리가 업무 DB의 자원을 차지해 주문과 결제 응답에 영향을 줄 수 있어서, 분석 전용 저장소로 데이터를 옮겨 실행합니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">활용 분야</h2>
                     <div class="overview-points">
@@ -295,14 +272,12 @@
                 <div class="visualizer-wrap">
                     <div class="visualizer-canvas-area" id="visualizer-container"></div>
                 </div>
-            </div>
 
-            <!-- 탭 3: 코드 연결 -->
-            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code-divider :: divider}"></th:block>
                 <th:block th:replace="~{fragments/code/db/11-20/olap-vs-oltp-code :: code}"></th:block>
             </div>
 
-            <!-- 탭 4: 퀴즈 -->
+            <!-- 탭 3: 퀴즈 -->
             <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
                 <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
             </div>

@@ -198,6 +198,12 @@
         { split: true, n: 4, sum: true, log: '정리 — 같은 라인에 놓인 변수는 서로 무관해도 캐시 라인 단위로 일관성이 관리됩니다. 쓰기 ' + FS_N + '번 기준 라인 이동은 ' + fsMoves(false, 4) + '회 대 ' + fsMoves(true, 4) + '회입니다.' }
     ];
 
+    window.CsFlow.cacheCoherenceData = {
+        prob: PROB_STEPS, mesi: MESI_STEPS, falseShare: FALSE_STEPS,
+        seq: FS_SEQ, stLabel: ST_LABEL,
+        fsMoves: fsMoves, fsState: cohFsSt, fsOwner: cohFsOwner
+    };
+
     /* ===================== 상태 ===================== */
     function currentSteps() {
         if (mode === 'mesi') return MESI_STEPS;
@@ -576,6 +582,21 @@
                 setHoveredKey: function () {},
                 draw: draw
             };
+        }
+    });
+
+    window.CsFlow.mount3dButton({
+        container: container,
+        parent: toolbar,
+        cls: 'coh-viz__btn coh-viz__btn--primary',
+        label: '3D 공동 편집 노트',
+        onOpen: function () {
+            vizReset();
+            root.classList.add('coh-viz--hidden');
+        },
+        onExit: function () {
+            root.classList.remove('coh-viz--hidden');
+            resize();
         }
     });
 

@@ -5,6 +5,7 @@
     <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">RISC vs CISC | CS 지식 정리 - CS Flow</title>
     <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
     <link rel="stylesheet" th:href="@{/css/visualizer/arch/11-20/2d/risc-vs-cisc.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/viz3d-common.css}">
 </head>
 <body>
     <!-- 헤더 -->
@@ -67,7 +68,6 @@
             <div class="topic-tabs__inner">
                 <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
                 <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
-                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
                 <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
             </div>
         </nav>
@@ -188,29 +188,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">RISC와 CISC의 차이는 무엇인가요?</h3>
-                            <p class="overview-card__desc">RISC는 단순하고 길이가 일정한 명령어를 쓰고 연산은 레지스터끼리 하며 메모리 접근은 load/store가 맡습니다. CISC는 복잡한 명령어와 가변 길이를 쓰고 연산 명령어가 메모리 피연산자를 다룰 수 있습니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">대표적인 예와 오늘날의 경계는?</h3>
-                            <p class="overview-card__desc">ARM과 RISC-V가 RISC, x86이 CISC의 대표입니다. 다만 현대 x86 CPU는 복잡한 명령어를 마이크로 연산으로 바꿔 실행하므로 두 방식의 경계가 예전보다 흐려졌습니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">RISC가 파이프라인에 유리하다고 하는 이유는?</h3>
-                            <p class="overview-card__desc">명령어 길이가 같고 형식이 단순해 해독이 쉽고, 메모리 접근이 load/store로 분리되어 단계별 동작이 규칙적이기 때문입니다. 그래서 파이프라인 구현이 단순해집니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">성능은 어떻게 비교하나요?</h3>
-                            <p class="overview-card__desc">CPU 시간 = 명령어 수 × CPI × 사이클 시간 식으로 비교합니다. 명령어 수만 보거나 클럭만 봐서는 부족하고, 같은 프로그램에서 세 요소를 곱해 봐야 합니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">
@@ -287,16 +265,15 @@
             <!-- 탭 2: 작동 원리 -->
             <div class="topic-panel" id="panel-visualizer">
                 <div class="visualizer-wrap">
-                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                    <div class="visualizer-canvas-area" id="visualizer-container"
+                         th:attr="data-three-src=@{/vendor/three/three-r128.min.js}, data-viz3d-common-src=@{/js/visualizer/viz3d-common.js}, data-viz3d-src=@{/js/visualizer/arch/11-20/3d/risc-vs-cisc.js}"></div>
                 </div>
-            </div>
 
-            <!-- 탭 3: 코드 연결 -->
-            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code-divider :: divider}"></th:block>
                 <th:block th:replace="~{fragments/code/arch/11-20/risc-vs-cisc-code :: code}"></th:block>
             </div>
 
-            <!-- 탭 4: 퀴즈 -->
+            <!-- 탭 3: 퀴즈 -->
             <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
                 <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
             </div>

@@ -33,6 +33,13 @@ public class TopicLike {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
+    /**
+     * 추천 기록을 만든다.
+     *
+     * @param topicSlug 토픽 영문 식별자
+     * @param visitorId 익명 방문자 식별자
+     * @param createdAt 추천 시각
+     */
     public TopicLike(String topicSlug, String visitorId, LocalDateTime createdAt) {
         this.topicSlug = topicSlug;
         this.visitorId = visitorId;

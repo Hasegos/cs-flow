@@ -1,0 +1,716 @@
+<th:block th:fragment="sync">
+    <!-- 시각화 옆 코드 패널. 줄의 data-step 이 시각화 단계 이름과 짝지어 밝아진다 -->
+    <div class="code-sync__panel" data-code-sync>
+        <div class="code-sync__bar">
+            <label class="code-sync__label" for="codeSyncLang">언어</label>
+            <select class="code-sync__select" id="codeSyncLang">
+                <option value="easy">쉬운 말</option>
+                <option value="java">Java</option>
+                <option value="python">Python</option>
+                <option value="javascript">JavaScript</option>
+                <option value="typescript">TypeScript</option>
+                <option value="c">C</option>
+                <option value="cpp">C++</option>
+                <option value="csharp">C#</option>
+                <option value="go">Go</option>
+                <option value="kotlin">Kotlin</option>
+                <option value="swift">Swift</option>
+                <option value="rust">Rust</option>
+                <option value="ruby">Ruby</option>
+                <option value="php">PHP</option>
+            </select>
+            <span class="code-sync__state" data-code-sync-state>재생하면 지금 줄이 밝아집니다</span>
+        </div>
+
+        <!-- 구조 — 점과 선, 담는 방법 둘 -->
+        <ol class="code-sync__lines" data-variant="structure" data-lang="easy">
+            <li data-step="intro"><span>그래프는 점(정점)과 선(간선)으로 이루어진다</span></li>
+            <li data-step="intro"><span>선을 담는 방법이 둘 — 표로 담거나, 이웃 목록으로 담는다</span></li>
+            <li data-step="intro"><span>어느 쪽을 고르냐에 따라 메모리와 탐색 비용이 갈린다</span></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="structure" data-lang="java" hidden>
+            <li data-step="intro"><code>int[][] matrix = new int[V][V];        // 표로 담기</code></li>
+            <li data-step="intro"><code>List&lt;List&lt;Integer&gt;&gt; list = new ArrayList&lt;&gt;();  // 목록으로 담기</code></li>
+            <li data-step="intro"><code>// 표: 메모리 O(V^2), 간선 확인 O(1)   목록: O(V+E), 확인 O(deg)</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="structure" data-lang="python" hidden>
+            <li data-step="intro"><code>matrix = &#91;[0] * V for _ in range(V)]   # 표로 담기</code></li>
+            <li data-step="intro"><code>adj = &#91;[] for _ in range(V)]           # 목록으로 담기</code></li>
+            <li data-step="intro"><code># 표: 메모리 O(V^2), 간선 확인 O(1)   목록: O(V+E), 확인 O(deg)</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="structure" data-lang="javascript" hidden>
+            <li data-step="intro"><code>const matrix = Array.from({ length: V }, () =&gt; new Array(V).fill(0));</code></li>
+            <li data-step="intro"><code>const adj = Array.from({ length: V }, () =&gt; []);</code></li>
+            <li data-step="intro"><code>// 표: 메모리 O(V^2), 간선 확인 O(1)   목록: O(V+E), 확인 O(deg)</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="structure" data-lang="typescript" hidden>
+            <li data-step="intro"><code>const matrix: number[][] = Array.from({ length: V }, () =&gt; new Array(V).fill(0));</code></li>
+            <li data-step="intro"><code>const adj: number[][] = Array.from({ length: V }, () =&gt; []);</code></li>
+            <li data-step="intro"><code>// 표: 메모리 O(V^2), 간선 확인 O(1)   목록: O(V+E), 확인 O(deg)</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="structure" data-lang="c" hidden>
+            <li data-step="intro"><code>int matrix[V][V] = {0};                /* 표로 담기 */</code></li>
+            <li data-step="intro"><code>Node* adj[V] = {NULL};                 /* 목록으로 담기 */</code></li>
+            <li data-step="intro"><code>/* 표: 메모리 O(V^2), 간선 확인 O(1)   목록: O(V+E), 확인 O(deg) */</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="structure" data-lang="cpp" hidden>
+            <li data-step="intro"><code>std::vector&lt;std::vector&lt;int&gt;&gt; matrix(V, std::vector&lt;int&gt;(V, 0));</code></li>
+            <li data-step="intro"><code>std::vector&lt;std::vector&lt;int&gt;&gt; adj(V);</code></li>
+            <li data-step="intro"><code>// 표: 메모리 O(V^2), 간선 확인 O(1)   목록: O(V+E), 확인 O(deg)</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="structure" data-lang="csharp" hidden>
+            <li data-step="intro"><code>var matrix = new int[V, V];            // 표로 담기</code></li>
+            <li data-step="intro"><code>var adj = new List&lt;int&gt;[V];            // 목록으로 담기</code></li>
+            <li data-step="intro"><code>// 표: 메모리 O(V^2), 간선 확인 O(1)   목록: O(V+E), 확인 O(deg)</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="structure" data-lang="go" hidden>
+            <li data-step="intro"><code>matrix := make([][]int, V)             // 표로 담기</code></li>
+            <li data-step="intro"><code>adj := make([][]int, V)                // 목록으로 담기</code></li>
+            <li data-step="intro"><code>// 표: 메모리 O(V^2), 간선 확인 O(1)   목록: O(V+E), 확인 O(deg)</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="structure" data-lang="kotlin" hidden>
+            <li data-step="intro"><code>val matrix = Array(V) { IntArray(V) }   // 표로 담기</code></li>
+            <li data-step="intro"><code>val adj = Array(V) { mutableListOf&lt;Int&gt;() }</code></li>
+            <li data-step="intro"><code>// 표: 메모리 O(V^2), 간선 확인 O(1)   목록: O(V+E), 확인 O(deg)</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="structure" data-lang="swift" hidden>
+            <li data-step="intro"><code>var matrix = &#91;[Int]](repeating: [Int](repeating: 0, count: V), count: V)</code></li>
+            <li data-step="intro"><code>var adj = &#91;[Int]](repeating: [], count: V)</code></li>
+            <li data-step="intro"><code>// 표: 메모리 O(V^2), 간선 확인 O(1)   목록: O(V+E), 확인 O(deg)</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="structure" data-lang="rust" hidden>
+            <li data-step="intro"><code>let mut matrix = vec![vec![0; v]; v];   // 표로 담기</code></li>
+            <li data-step="intro"><code>let mut adj: Vec&lt;Vec&lt;usize&gt;&gt; = vec![Vec::new(); v];</code></li>
+            <li data-step="intro"><code>// 표: 메모리 O(V^2), 간선 확인 O(1)   목록: O(V+E), 확인 O(deg)</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="structure" data-lang="ruby" hidden>
+            <li data-step="intro"><code>matrix = Array.new(v) { Array.new(v, 0) }   # 표로 담기</code></li>
+            <li data-step="intro"><code>adj = Array.new(v) { [] }                  # 목록으로 담기</code></li>
+            <li data-step="intro"><code># 표: 메모리 O(V^2), 간선 확인 O(1)   목록: O(V+E), 확인 O(deg)</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="structure" data-lang="php" hidden>
+            <li data-step="intro"><code>$matrix = array_fill(0, $v, array_fill(0, $v, 0));</code></li>
+            <li data-step="intro"><code>$adj = array_fill(0, $v, []);</code></li>
+            <li data-step="intro"><code>// 표: 메모리 O(V^2), 간선 확인 O(1)   목록: O(V+E), 확인 O(deg)</code></li>
+        </ol>
+
+        <!-- 인접 행렬 — 표 한 칸이 간선 하나 -->
+        <ol class="code-sync__lines" data-variant="matrix" data-lang="easy" hidden>
+            <li data-step="intro"><span>V × V 크기의 표를 만든다</span></li>
+            <li data-step="intro" class="code-sync__in"><span>모든 칸을 0 으로 채운다</span></li>
+            <li data-step="fill" class="code-sync__in"><span>간선 하나씩 꺼내며</span></li>
+            <li data-step="fill" class="code-sync__in2"><span>양쪽 칸을 1 로 바꾼다</span></li>
+            <li data-step="complete"><span>칸 하나만 보면 간선이 있는지 바로 안다</span></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="matrix" data-lang="java" hidden>
+            <li data-step="intro"><code>int[][] buildMatrix(int V, int[][] edges) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>int[][] g = new int[V][V];</code></li>
+            <li data-step="fill" class="code-sync__in"><code>for (int[] e : edges) {</code></li>
+            <li data-step="fill" class="code-sync__in2"><code>g[e[0]][e[1]] = g[e[1]][e[0]] = 1;</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="complete"><code>return g;</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="matrix" data-lang="python" hidden>
+            <li data-step="intro"><code>def build_matrix(V, edges):</code></li>
+            <li data-step="intro" class="code-sync__in"><code>g = &#91;[0] * V for _ in range(V)]</code></li>
+            <li data-step="fill" class="code-sync__in"><code>for u, v in edges:</code></li>
+            <li data-step="fill" class="code-sync__in2"><code>g[u][v] = g[v][u] = 1</code></li>
+            <li data-step="complete"><code>return g</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="matrix" data-lang="javascript" hidden>
+            <li data-step="intro"><code>function buildMatrix(V, edges) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>const g = Array.from({ length: V }, () =&gt; new Array(V).fill(0));</code></li>
+            <li data-step="fill" class="code-sync__in"><code>for (const [u, v] of edges) {</code></li>
+            <li data-step="fill" class="code-sync__in2"><code>g[u][v] = g[v][u] = 1;</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="complete"><code>return g;</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="matrix" data-lang="typescript" hidden>
+            <li data-step="intro"><code>function buildMatrix(V: number, edges: [number, number][]): number[][] {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>const g: number[][] = Array.from({ length: V }, () =&gt; new Array(V).fill(0));</code></li>
+            <li data-step="fill" class="code-sync__in"><code>for (const [u, v] of edges) {</code></li>
+            <li data-step="fill" class="code-sync__in2"><code>g[u][v] = g[v][u] = 1;</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="complete"><code>return g;</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="matrix" data-lang="c" hidden>
+            <li data-step="intro"><code>void build_matrix(void) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>int g[V][V] = {0};</code></li>
+            <li data-step="fill" class="code-sync__in"><code>for (int i = 0; i &lt; E; i++) {</code></li>
+            <li data-step="fill" class="code-sync__in2"><code>g[eu[i]][ev[i]] = g[ev[i]][eu[i]] = 1;</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="matrix" data-lang="cpp" hidden>
+            <li data-step="intro"><code>auto buildMatrix(int V, const Edges&amp; edges) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>std::vector&lt;std::vector&lt;int&gt;&gt; g(V, std::vector&lt;int&gt;(V, 0));</code></li>
+            <li data-step="fill" class="code-sync__in"><code>for (auto&amp; e : edges) {</code></li>
+            <li data-step="fill" class="code-sync__in2"><code>g[e.first][e.second] = g[e.second][e.first] = 1;</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="complete"><code>return g;</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="matrix" data-lang="csharp" hidden>
+            <li data-step="intro"><code>int[,] BuildMatrix(int V, (int, int)[] edges) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>var g = new int[V, V];</code></li>
+            <li data-step="fill" class="code-sync__in"><code>foreach (var (u, v) in edges) {</code></li>
+            <li data-step="fill" class="code-sync__in2"><code>g[u, v] = g[v, u] = 1;</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="complete"><code>return g;</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="matrix" data-lang="go" hidden>
+            <li data-step="intro"><code>func buildMatrix(V int, edges []Edge) [][]int {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>g := make([][]int, V)</code></li>
+            <li data-step="fill" class="code-sync__in"><code>for _, e := range edges {</code></li>
+            <li data-step="fill" class="code-sync__in2"><code>g[e.u][e.v], g[e.v][e.u] = 1, 1</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="complete"><code>return g</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="matrix" data-lang="kotlin" hidden>
+            <li data-step="intro"><code>fun buildMatrix(V: Int, edges: List&lt;Pair&lt;Int, Int&gt;&gt;): Array&lt;IntArray&gt; {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>val g = Array(V) { IntArray(V) }</code></li>
+            <li data-step="fill" class="code-sync__in"><code>for ((u, v) in edges) {</code></li>
+            <li data-step="fill" class="code-sync__in2"><code>g[u][v] = 1; g[v][u] = 1</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="complete"><code>return g</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="matrix" data-lang="swift" hidden>
+            <li data-step="intro"><code>func buildMatrix(_ V: Int, _ edges: &#91;(Int, Int)]) -&gt; &#91;[Int]] {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>var g = &#91;[Int]](repeating: [Int](repeating: 0, count: V), count: V)</code></li>
+            <li data-step="fill" class="code-sync__in"><code>for (u, v) in edges {</code></li>
+            <li data-step="fill" class="code-sync__in2"><code>g[u][v] = 1; g[v][u] = 1</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="complete"><code>return g</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="matrix" data-lang="rust" hidden>
+            <li data-step="intro"><code>fn build_matrix(v: usize, edges: Vec&lt;(usize, usize)&gt;) -&gt; Vec&lt;Vec&lt;i32&gt;&gt; {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>let mut g = vec![vec![0; v]; v];</code></li>
+            <li data-step="fill" class="code-sync__in"><code>for &amp;(a, b) in &amp;edges {</code></li>
+            <li data-step="fill" class="code-sync__in2"><code>g[a][b] = 1; g[b][a] = 1;</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="complete"><code>g</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="matrix" data-lang="ruby" hidden>
+            <li data-step="intro"><code>def build_matrix(v, edges)</code></li>
+            <li data-step="intro" class="code-sync__in"><code>g = Array.new(v) { Array.new(v, 0) }</code></li>
+            <li data-step="fill" class="code-sync__in"><code>edges.each do |u, w|</code></li>
+            <li data-step="fill" class="code-sync__in2"><code>g[u][w] = g[w][u] = 1</code></li>
+            <li class="code-sync__in"><code>end</code></li>
+            <li data-step="complete"><code>g</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="matrix" data-lang="php" hidden>
+            <li data-step="intro"><code>function buildMatrix(int $v, array $edges): array {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>$g = array_fill(0, $v, array_fill(0, $v, 0));</code></li>
+            <li data-step="fill" class="code-sync__in"><code>foreach ($edges as [$u, $w]) {</code></li>
+            <li data-step="fill" class="code-sync__in2"><code>$g[$u][$w] = $g[$w][$u] = 1;</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="complete"><code>return $g;</code></li>
+        </ol>
+
+        <!-- 인접 리스트 — 정점마다 이웃 목록 -->
+        <ol class="code-sync__lines" data-variant="list" data-lang="easy" hidden>
+            <li data-step="intro"><span>정점 수만큼 빈 목록을 만든다</span></li>
+            <li data-step="intro" class="code-sync__in"><span>각 정점은 자기 이웃만 담는다</span></li>
+            <li data-step="fill" class="code-sync__in"><span>간선 하나씩 꺼내며</span></li>
+            <li data-step="fill" class="code-sync__in2"><span>서로의 목록에 상대를 넣는다</span></li>
+            <li data-step="complete"><span>이웃만 훑으면 되니 간선이 적을 때 유리하다</span></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="list" data-lang="java" hidden>
+            <li data-step="intro"><code>List&lt;List&lt;Integer&gt;&gt; buildList(int V, int[][] edges) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>List&lt;List&lt;Integer&gt;&gt; g = new ArrayList&lt;&gt;();</code></li>
+            <li data-step="fill" class="code-sync__in"><code>for (int[] e : edges) {</code></li>
+            <li data-step="fill" class="code-sync__in2"><code>g.get(e[0]).add(e[1]); g.get(e[1]).add(e[0]);</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="complete"><code>return g;</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="list" data-lang="python" hidden>
+            <li data-step="intro"><code>def build_list(V, edges):</code></li>
+            <li data-step="intro" class="code-sync__in"><code>g = &#91;[] for _ in range(V)]</code></li>
+            <li data-step="fill" class="code-sync__in"><code>for u, v in edges:</code></li>
+            <li data-step="fill" class="code-sync__in2"><code>g[u].append(v); g[v].append(u)</code></li>
+            <li data-step="complete"><code>return g</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="list" data-lang="javascript" hidden>
+            <li data-step="intro"><code>function buildList(V, edges) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>const g = Array.from({ length: V }, () =&gt; []);</code></li>
+            <li data-step="fill" class="code-sync__in"><code>for (const [u, v] of edges) {</code></li>
+            <li data-step="fill" class="code-sync__in2"><code>g[u].push(v); g[v].push(u);</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="complete"><code>return g;</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="list" data-lang="typescript" hidden>
+            <li data-step="intro"><code>function buildList(V: number, edges: [number, number][]): number[][] {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>const g: number[][] = Array.from({ length: V }, () =&gt; []);</code></li>
+            <li data-step="fill" class="code-sync__in"><code>for (const [u, v] of edges) {</code></li>
+            <li data-step="fill" class="code-sync__in2"><code>g[u].push(v); g[v].push(u);</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="complete"><code>return g;</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="list" data-lang="c" hidden>
+            <li data-step="intro"><code>void build_list(void) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>Node* g[V] = {NULL};</code></li>
+            <li data-step="fill" class="code-sync__in"><code>for (int i = 0; i &lt; E; i++) {</code></li>
+            <li data-step="fill" class="code-sync__in2"><code>g[eu[i]] = cons(ev[i], g[eu[i]]);</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="list" data-lang="cpp" hidden>
+            <li data-step="intro"><code>auto buildList(int V, const Edges&amp; edges) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>std::vector&lt;std::vector&lt;int&gt;&gt; g(V);</code></li>
+            <li data-step="fill" class="code-sync__in"><code>for (auto&amp; e : edges) {</code></li>
+            <li data-step="fill" class="code-sync__in2"><code>g[e.first].push_back(e.second); g[e.second].push_back(e.first);</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="complete"><code>return g;</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="list" data-lang="csharp" hidden>
+            <li data-step="intro"><code>List&lt;int&gt;[] BuildList(int V, (int, int)[] edges) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>var g = new List&lt;int&gt;[V];</code></li>
+            <li data-step="fill" class="code-sync__in"><code>foreach (var (u, v) in edges) {</code></li>
+            <li data-step="fill" class="code-sync__in2"><code>g[u].Add(v); g[v].Add(u);</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="complete"><code>return g;</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="list" data-lang="go" hidden>
+            <li data-step="intro"><code>func buildList(V int, edges []Edge) [][]int {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>g := make([][]int, V)</code></li>
+            <li data-step="fill" class="code-sync__in"><code>for _, e := range edges {</code></li>
+            <li data-step="fill" class="code-sync__in2"><code>g[e.u] = append(g[e.u], e.v); g[e.v] = append(g[e.v], e.u)</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="complete"><code>return g</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="list" data-lang="kotlin" hidden>
+            <li data-step="intro"><code>fun buildList(V: Int, edges: List&lt;Pair&lt;Int, Int&gt;&gt;): Array&lt;MutableList&lt;Int&gt;&gt; {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>val g = Array(V) { mutableListOf&lt;Int&gt;() }</code></li>
+            <li data-step="fill" class="code-sync__in"><code>for ((u, v) in edges) {</code></li>
+            <li data-step="fill" class="code-sync__in2"><code>g[u].add(v); g[v].add(u)</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="complete"><code>return g</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="list" data-lang="swift" hidden>
+            <li data-step="intro"><code>func buildList(_ V: Int, _ edges: &#91;(Int, Int)]) -&gt; &#91;[Int]] {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>var g = &#91;[Int]](repeating: [], count: V)</code></li>
+            <li data-step="fill" class="code-sync__in"><code>for (u, v) in edges {</code></li>
+            <li data-step="fill" class="code-sync__in2"><code>g[u].append(v); g[v].append(u)</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="complete"><code>return g</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="list" data-lang="rust" hidden>
+            <li data-step="intro"><code>fn build_list(v: usize, edges: Vec&lt;(usize, usize)&gt;) -&gt; Vec&lt;Vec&lt;usize&gt;&gt; {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>let mut g: Vec&lt;Vec&lt;usize&gt;&gt; = vec![Vec::new(); v];</code></li>
+            <li data-step="fill" class="code-sync__in"><code>for &amp;(a, b) in &amp;edges {</code></li>
+            <li data-step="fill" class="code-sync__in2"><code>g[a].push(b); g[b].push(a);</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="complete"><code>g</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="list" data-lang="ruby" hidden>
+            <li data-step="intro"><code>def build_list(v, edges)</code></li>
+            <li data-step="intro" class="code-sync__in"><code>g = Array.new(v) { [] }</code></li>
+            <li data-step="fill" class="code-sync__in"><code>edges.each do |u, w|</code></li>
+            <li data-step="fill" class="code-sync__in2"><code>g[u] &lt;&lt; w; g[w] &lt;&lt; u</code></li>
+            <li class="code-sync__in"><code>end</code></li>
+            <li data-step="complete"><code>g</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="list" data-lang="php" hidden>
+            <li data-step="intro"><code>function buildList(int $v, array $edges): array {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>$g = array_fill(0, $v, []);</code></li>
+            <li data-step="fill" class="code-sync__in"><code>foreach ($edges as [$u, $w]) {</code></li>
+            <li data-step="fill" class="code-sync__in2"><code>$g[$u][] = $w; $g[$w][] = $u;</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="complete"><code>return $g;</code></li>
+        </ol>
+
+        <!-- BFS — 줄을 써서 가까운 순서로 -->
+        <ol class="code-sync__lines" data-variant="bfs" data-lang="easy" hidden>
+            <li data-step="intro"><span>시작 점에서 가까운 순서로 훑는다</span></li>
+            <li data-step="intro" class="code-sync__in"><span>줄(큐)에 시작 점을 넣는다</span></li>
+            <li data-step="intro" class="code-sync__in"><span>시작 점을 방문했다고 적는다</span></li>
+            <li data-step="dequeue" class="code-sync__in"><span>줄이 빌 때까지 되풀이한다</span></li>
+            <li data-step="dequeue" class="code-sync__in2"><span>줄 맨 앞에서 점 하나를 꺼낸다</span></li>
+            <li data-step="enqueue" class="code-sync__in2"><span>그 점의 이웃을 하나씩 본다</span></li>
+            <li data-step="enqueue" class="code-sync__in3"><span>이미 방문했으면 건너뛴다</span></li>
+            <li data-step="enqueue" class="code-sync__in3"><span>아니면 방문 표시하고 줄 뒤에 넣는다</span></li>
+            <li data-step="done"><span>가까운 점부터 차례로 다 훑는다</span></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="bfs" data-lang="java" hidden>
+            <li data-step="intro"><code>void bfs(List&lt;List&lt;Integer&gt;&gt; g, int s) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>Deque&lt;Integer&gt; q = new ArrayDeque&lt;&gt;(List.of(s));</code></li>
+            <li data-step="intro" class="code-sync__in"><code>boolean[] seen = new boolean[g.size()]; seen[s] = true;</code></li>
+            <li data-step="dequeue" class="code-sync__in"><code>while (!q.isEmpty()) {</code></li>
+            <li data-step="dequeue" class="code-sync__in2"><code>int u = q.poll();</code></li>
+            <li data-step="enqueue" class="code-sync__in2"><code>for (int v : g.get(u)) {</code></li>
+            <li data-step="enqueue" class="code-sync__in3"><code>if (seen[v]) continue;</code></li>
+            <li data-step="enqueue" class="code-sync__in3"><code>seen[v] = true; q.add(v);</code></li>
+            <li class="code-sync__in2"><code>}</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done"><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="bfs" data-lang="python" hidden>
+            <li data-step="intro"><code>def bfs(g, s):</code></li>
+            <li data-step="intro" class="code-sync__in"><code>q = deque([s])</code></li>
+            <li data-step="intro" class="code-sync__in"><code>seen = {s}</code></li>
+            <li data-step="dequeue" class="code-sync__in"><code>while q:</code></li>
+            <li data-step="dequeue" class="code-sync__in2"><code>u = q.popleft()</code></li>
+            <li data-step="enqueue" class="code-sync__in2"><code>for v in g[u]:</code></li>
+            <li data-step="enqueue" class="code-sync__in3"><code>if v in seen: continue</code></li>
+            <li data-step="enqueue" class="code-sync__in3"><code>seen.add(v); q.append(v)</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="bfs" data-lang="javascript" hidden>
+            <li data-step="intro"><code>function bfs(g, s) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>const q = [s];</code></li>
+            <li data-step="intro" class="code-sync__in"><code>const seen = new Set([s]);</code></li>
+            <li data-step="dequeue" class="code-sync__in"><code>while (q.length) {</code></li>
+            <li data-step="dequeue" class="code-sync__in2"><code>const u = q.shift();</code></li>
+            <li data-step="enqueue" class="code-sync__in2"><code>for (const v of g[u]) {</code></li>
+            <li data-step="enqueue" class="code-sync__in3"><code>if (seen.has(v)) continue;</code></li>
+            <li data-step="enqueue" class="code-sync__in3"><code>seen.add(v); q.push(v);</code></li>
+            <li class="code-sync__in2"><code>}</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done"><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="bfs" data-lang="typescript" hidden>
+            <li data-step="intro"><code>function bfs(g: number[][], s: number): void {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>const q: number[] = [s];</code></li>
+            <li data-step="intro" class="code-sync__in"><code>const seen = new Set&lt;number&gt;([s]);</code></li>
+            <li data-step="dequeue" class="code-sync__in"><code>while (q.length) {</code></li>
+            <li data-step="dequeue" class="code-sync__in2"><code>const u = q.shift()!;</code></li>
+            <li data-step="enqueue" class="code-sync__in2"><code>for (const v of g[u]) {</code></li>
+            <li data-step="enqueue" class="code-sync__in3"><code>if (seen.has(v)) continue;</code></li>
+            <li data-step="enqueue" class="code-sync__in3"><code>seen.add(v); q.push(v);</code></li>
+            <li class="code-sync__in2"><code>}</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done"><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="bfs" data-lang="c" hidden>
+            <li data-step="intro"><code>void bfs(int s) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>int q[V], head = 0, tail = 0; q[tail++] = s;</code></li>
+            <li data-step="intro" class="code-sync__in"><code>int seen[V] = {0}; seen[s] = 1;</code></li>
+            <li data-step="dequeue" class="code-sync__in"><code>while (head &lt; tail) {</code></li>
+            <li data-step="dequeue" class="code-sync__in2"><code>int u = q[head++];</code></li>
+            <li data-step="enqueue" class="code-sync__in2"><code>for (Node* e = g[u]; e; e = e-&gt;next) {</code></li>
+            <li data-step="enqueue" class="code-sync__in3"><code>if (seen[e-&gt;v]) continue;</code></li>
+            <li data-step="enqueue" class="code-sync__in3"><code>seen[e-&gt;v] = 1; q[tail++] = e-&gt;v;</code></li>
+            <li class="code-sync__in2"><code>}</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done"><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="bfs" data-lang="cpp" hidden>
+            <li data-step="intro"><code>void bfs(const Graph&amp; g, int s) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>std::queue&lt;int&gt; q; q.push(s);</code></li>
+            <li data-step="intro" class="code-sync__in"><code>std::vector&lt;bool&gt; seen(g.size()); seen[s] = true;</code></li>
+            <li data-step="dequeue" class="code-sync__in"><code>while (!q.empty()) {</code></li>
+            <li data-step="dequeue" class="code-sync__in2"><code>int u = q.front(); q.pop();</code></li>
+            <li data-step="enqueue" class="code-sync__in2"><code>for (int v : g[u]) {</code></li>
+            <li data-step="enqueue" class="code-sync__in3"><code>if (seen[v]) continue;</code></li>
+            <li data-step="enqueue" class="code-sync__in3"><code>seen[v] = true; q.push(v);</code></li>
+            <li class="code-sync__in2"><code>}</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done"><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="bfs" data-lang="csharp" hidden>
+            <li data-step="intro"><code>void Bfs(List&lt;int&gt;[] g, int s) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>var q = new Queue&lt;int&gt;(new[] { s });</code></li>
+            <li data-step="intro" class="code-sync__in"><code>var seen = new bool[g.Length]; seen[s] = true;</code></li>
+            <li data-step="dequeue" class="code-sync__in"><code>while (q.Count &gt; 0) {</code></li>
+            <li data-step="dequeue" class="code-sync__in2"><code>int u = q.Dequeue();</code></li>
+            <li data-step="enqueue" class="code-sync__in2"><code>foreach (int v in g[u]) {</code></li>
+            <li data-step="enqueue" class="code-sync__in3"><code>if (seen[v]) continue;</code></li>
+            <li data-step="enqueue" class="code-sync__in3"><code>seen[v] = true; q.Enqueue(v);</code></li>
+            <li class="code-sync__in2"><code>}</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done"><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="bfs" data-lang="go" hidden>
+            <li data-step="intro"><code>func bfs(g [][]int, s int) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>q := []int{s}</code></li>
+            <li data-step="intro" class="code-sync__in"><code>seen := make([]bool, len(g)); seen[s] = true</code></li>
+            <li data-step="dequeue" class="code-sync__in"><code>for len(q) &gt; 0 {</code></li>
+            <li data-step="dequeue" class="code-sync__in2"><code>u := q[0]; q = q[1:]</code></li>
+            <li data-step="enqueue" class="code-sync__in2"><code>for _, v := range g[u] {</code></li>
+            <li data-step="enqueue" class="code-sync__in3"><code>if seen[v] { continue }</code></li>
+            <li data-step="enqueue" class="code-sync__in3"><code>seen[v] = true; q = append(q, v)</code></li>
+            <li class="code-sync__in2"><code>}</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done"><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="bfs" data-lang="kotlin" hidden>
+            <li data-step="intro"><code>fun bfs(g: Array&lt;MutableList&lt;Int&gt;&gt;, s: Int) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>val q = ArrayDeque(listOf(s))</code></li>
+            <li data-step="intro" class="code-sync__in"><code>val seen = BooleanArray(g.size); seen[s] = true</code></li>
+            <li data-step="dequeue" class="code-sync__in"><code>while (q.isNotEmpty()) {</code></li>
+            <li data-step="dequeue" class="code-sync__in2"><code>val u = q.removeFirst()</code></li>
+            <li data-step="enqueue" class="code-sync__in2"><code>for (v in g[u]) {</code></li>
+            <li data-step="enqueue" class="code-sync__in3"><code>if (seen[v]) continue</code></li>
+            <li data-step="enqueue" class="code-sync__in3"><code>seen[v] = true; q.addLast(v)</code></li>
+            <li class="code-sync__in2"><code>}</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done"><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="bfs" data-lang="swift" hidden>
+            <li data-step="intro"><code>func bfs(_ g: &#91;[Int]], _ s: Int) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>var q = [s]; var head = 0</code></li>
+            <li data-step="intro" class="code-sync__in"><code>var seen = [Bool](repeating: false, count: g.count); seen[s] = true</code></li>
+            <li data-step="dequeue" class="code-sync__in"><code>while head &lt; q.count {</code></li>
+            <li data-step="dequeue" class="code-sync__in2"><code>let u = q[head]; head += 1</code></li>
+            <li data-step="enqueue" class="code-sync__in2"><code>for v in g[u] {</code></li>
+            <li data-step="enqueue" class="code-sync__in3"><code>if seen[v] { continue }</code></li>
+            <li data-step="enqueue" class="code-sync__in3"><code>seen[v] = true; q.append(v)</code></li>
+            <li class="code-sync__in2"><code>}</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done"><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="bfs" data-lang="rust" hidden>
+            <li data-step="intro"><code>fn bfs(g: &amp;Vec&lt;Vec&lt;usize&gt;&gt;, s: usize) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>let mut q = VecDeque::from(vec![s]);</code></li>
+            <li data-step="intro" class="code-sync__in"><code>let mut seen = vec![false; g.len()]; seen[s] = true;</code></li>
+            <li data-step="dequeue" class="code-sync__in"><code>while let Some(u) = q.pop_front() {</code></li>
+            <li data-step="dequeue" class="code-sync__in2"><code>// u 를 꺼냈다</code></li>
+            <li data-step="enqueue" class="code-sync__in2"><code>for &amp;v in &amp;g[u] {</code></li>
+            <li data-step="enqueue" class="code-sync__in3"><code>if seen[v] { continue; }</code></li>
+            <li data-step="enqueue" class="code-sync__in3"><code>seen[v] = true; q.push_back(v);</code></li>
+            <li class="code-sync__in2"><code>}</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done"><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="bfs" data-lang="ruby" hidden>
+            <li data-step="intro"><code>def bfs(g, s)</code></li>
+            <li data-step="intro" class="code-sync__in"><code>q = [s]</code></li>
+            <li data-step="intro" class="code-sync__in"><code>seen = { s =&gt; true }</code></li>
+            <li data-step="dequeue" class="code-sync__in"><code>until q.empty?</code></li>
+            <li data-step="dequeue" class="code-sync__in2"><code>u = q.shift</code></li>
+            <li data-step="enqueue" class="code-sync__in2"><code>g[u].each do |v|</code></li>
+            <li data-step="enqueue" class="code-sync__in3"><code>next if seen[v]</code></li>
+            <li data-step="enqueue" class="code-sync__in3"><code>seen[v] = true; q &lt;&lt; v</code></li>
+            <li class="code-sync__in2"><code>end</code></li>
+            <li class="code-sync__in"><code>end</code></li>
+            <li data-step="done"><code>end</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="bfs" data-lang="php" hidden>
+            <li data-step="intro"><code>function bfs(array $g, int $s): void {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>$q = [$s];</code></li>
+            <li data-step="intro" class="code-sync__in"><code>$seen = [$s =&gt; true];</code></li>
+            <li data-step="dequeue" class="code-sync__in"><code>while ($q) {</code></li>
+            <li data-step="dequeue" class="code-sync__in2"><code>$u = array_shift($q);</code></li>
+            <li data-step="enqueue" class="code-sync__in2"><code>foreach ($g[$u] as $v) {</code></li>
+            <li data-step="enqueue" class="code-sync__in3"><code>if (isset($seen[$v])) continue;</code></li>
+            <li data-step="enqueue" class="code-sync__in3"><code>$seen[$v] = true; $q[] = $v;</code></li>
+            <li class="code-sync__in2"><code>}</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done"><code>}</code></li>
+        </ol>
+
+        <!-- DFS — 재귀로 갈 수 있는 데까지 -->
+        <ol class="code-sync__lines" data-variant="dfs" data-lang="easy" hidden>
+            <li data-step="intro"><span>한 점에서 갈 수 있는 데까지 들어간다</span></li>
+            <li data-step="enter" class="code-sync__in"><span>지금 점을 방문했다고 적는다</span></li>
+            <li data-step="visit" class="code-sync__in"><span>지금 점을 처리한다</span></li>
+            <li data-step="enter" class="code-sync__in"><span>그 점의 이웃을 하나씩 본다</span></li>
+            <li data-step="enter" class="code-sync__in2"><span>이미 방문했으면 건너뛴다</span></li>
+            <li data-step="enter" class="code-sync__in2"><span>아니면 그 이웃으로 더 깊이 들어간다</span></li>
+            <li data-step="return" class="code-sync__in"><span>더 갈 곳이 없으면 왔던 곳으로 돌아간다</span></li>
+            <li data-step="done"><span>한 갈래를 끝까지 간 뒤에 다음 갈래로 넘어간다</span></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="dfs" data-lang="java" hidden>
+            <li data-step="intro"><code>void dfs(List&lt;List&lt;Integer&gt;&gt; g, int u, boolean[] seen) {</code></li>
+            <li data-step="enter" class="code-sync__in"><code>seen[u] = true;</code></li>
+            <li data-step="visit" class="code-sync__in"><code>visit(u);</code></li>
+            <li data-step="enter" class="code-sync__in"><code>for (int v : g.get(u)) {</code></li>
+            <li data-step="enter" class="code-sync__in2"><code>if (seen[v]) continue;</code></li>
+            <li data-step="enter" class="code-sync__in2"><code>dfs(g, v, seen);</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="return" class="code-sync__in"><code>return;</code></li>
+            <li data-step="done"><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="dfs" data-lang="python" hidden>
+            <li data-step="intro"><code>def dfs(g, u, seen):</code></li>
+            <li data-step="enter" class="code-sync__in"><code>seen.add(u)</code></li>
+            <li data-step="visit" class="code-sync__in"><code>visit(u)</code></li>
+            <li data-step="enter" class="code-sync__in"><code>for v in g[u]:</code></li>
+            <li data-step="enter" class="code-sync__in2"><code>if v in seen: continue</code></li>
+            <li data-step="enter" class="code-sync__in2"><code>dfs(g, v, seen)</code></li>
+            <li data-step="return" class="code-sync__in"><code>return</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="dfs" data-lang="javascript" hidden>
+            <li data-step="intro"><code>function dfs(g, u, seen) {</code></li>
+            <li data-step="enter" class="code-sync__in"><code>seen.add(u);</code></li>
+            <li data-step="visit" class="code-sync__in"><code>visit(u);</code></li>
+            <li data-step="enter" class="code-sync__in"><code>for (const v of g[u]) {</code></li>
+            <li data-step="enter" class="code-sync__in2"><code>if (seen.has(v)) continue;</code></li>
+            <li data-step="enter" class="code-sync__in2"><code>dfs(g, v, seen);</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="return" class="code-sync__in"><code>return;</code></li>
+            <li data-step="done"><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="dfs" data-lang="typescript" hidden>
+            <li data-step="intro"><code>function dfs(g: number[][], u: number, seen: Set&lt;number&gt;): void {</code></li>
+            <li data-step="enter" class="code-sync__in"><code>seen.add(u);</code></li>
+            <li data-step="visit" class="code-sync__in"><code>visit(u);</code></li>
+            <li data-step="enter" class="code-sync__in"><code>for (const v of g[u]) {</code></li>
+            <li data-step="enter" class="code-sync__in2"><code>if (seen.has(v)) continue;</code></li>
+            <li data-step="enter" class="code-sync__in2"><code>dfs(g, v, seen);</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="return" class="code-sync__in"><code>return;</code></li>
+            <li data-step="done"><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="dfs" data-lang="c" hidden>
+            <li data-step="intro"><code>void dfs(int u, int seen[]) {</code></li>
+            <li data-step="enter" class="code-sync__in"><code>seen[u] = 1;</code></li>
+            <li data-step="visit" class="code-sync__in"><code>visit(u);</code></li>
+            <li data-step="enter" class="code-sync__in"><code>for (Node* e = g[u]; e; e = e-&gt;next) {</code></li>
+            <li data-step="enter" class="code-sync__in2"><code>if (seen[e-&gt;v]) continue;</code></li>
+            <li data-step="enter" class="code-sync__in2"><code>dfs(e-&gt;v, seen);</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="return" class="code-sync__in"><code>return;</code></li>
+            <li data-step="done"><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="dfs" data-lang="cpp" hidden>
+            <li data-step="intro"><code>void dfs(const Graph&amp; g, int u, std::vector&lt;bool&gt;&amp; seen) {</code></li>
+            <li data-step="enter" class="code-sync__in"><code>seen[u] = true;</code></li>
+            <li data-step="visit" class="code-sync__in"><code>visit(u);</code></li>
+            <li data-step="enter" class="code-sync__in"><code>for (int v : g[u]) {</code></li>
+            <li data-step="enter" class="code-sync__in2"><code>if (seen[v]) continue;</code></li>
+            <li data-step="enter" class="code-sync__in2"><code>dfs(g, v, seen);</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="return" class="code-sync__in"><code>return;</code></li>
+            <li data-step="done"><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="dfs" data-lang="csharp" hidden>
+            <li data-step="intro"><code>void Dfs(List&lt;int&gt;[] g, int u, bool[] seen) {</code></li>
+            <li data-step="enter" class="code-sync__in"><code>seen[u] = true;</code></li>
+            <li data-step="visit" class="code-sync__in"><code>Visit(u);</code></li>
+            <li data-step="enter" class="code-sync__in"><code>foreach (int v in g[u]) {</code></li>
+            <li data-step="enter" class="code-sync__in2"><code>if (seen[v]) continue;</code></li>
+            <li data-step="enter" class="code-sync__in2"><code>Dfs(g, v, seen);</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="return" class="code-sync__in"><code>return;</code></li>
+            <li data-step="done"><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="dfs" data-lang="go" hidden>
+            <li data-step="intro"><code>func dfs(g [][]int, u int, seen []bool) {</code></li>
+            <li data-step="enter" class="code-sync__in"><code>seen[u] = true</code></li>
+            <li data-step="visit" class="code-sync__in"><code>visit(u)</code></li>
+            <li data-step="enter" class="code-sync__in"><code>for _, v := range g[u] {</code></li>
+            <li data-step="enter" class="code-sync__in2"><code>if seen[v] { continue }</code></li>
+            <li data-step="enter" class="code-sync__in2"><code>dfs(g, v, seen)</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="return" class="code-sync__in"><code>return</code></li>
+            <li data-step="done"><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="dfs" data-lang="kotlin" hidden>
+            <li data-step="intro"><code>fun dfs(g: Array&lt;MutableList&lt;Int&gt;&gt;, u: Int, seen: BooleanArray) {</code></li>
+            <li data-step="enter" class="code-sync__in"><code>seen[u] = true</code></li>
+            <li data-step="visit" class="code-sync__in"><code>visit(u)</code></li>
+            <li data-step="enter" class="code-sync__in"><code>for (v in g[u]) {</code></li>
+            <li data-step="enter" class="code-sync__in2"><code>if (seen[v]) continue</code></li>
+            <li data-step="enter" class="code-sync__in2"><code>dfs(g, v, seen)</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="return" class="code-sync__in"><code>return</code></li>
+            <li data-step="done"><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="dfs" data-lang="swift" hidden>
+            <li data-step="intro"><code>func dfs(_ g: &#91;[Int]], _ u: Int, _ seen: inout [Bool]) {</code></li>
+            <li data-step="enter" class="code-sync__in"><code>seen[u] = true</code></li>
+            <li data-step="visit" class="code-sync__in"><code>visit(u)</code></li>
+            <li data-step="enter" class="code-sync__in"><code>for v in g[u] {</code></li>
+            <li data-step="enter" class="code-sync__in2"><code>if seen[v] { continue }</code></li>
+            <li data-step="enter" class="code-sync__in2"><code>dfs(g, v, &amp;seen)</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="return" class="code-sync__in"><code>return</code></li>
+            <li data-step="done"><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="dfs" data-lang="rust" hidden>
+            <li data-step="intro"><code>fn dfs(g: &amp;Vec&lt;Vec&lt;usize&gt;&gt;, u: usize, seen: &amp;mut Vec&lt;bool&gt;) {</code></li>
+            <li data-step="enter" class="code-sync__in"><code>seen[u] = true;</code></li>
+            <li data-step="visit" class="code-sync__in"><code>visit(u);</code></li>
+            <li data-step="enter" class="code-sync__in"><code>for &amp;v in &amp;g[u] {</code></li>
+            <li data-step="enter" class="code-sync__in2"><code>if seen[v] { continue; }</code></li>
+            <li data-step="enter" class="code-sync__in2"><code>dfs(g, v, seen);</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="return" class="code-sync__in"><code>return;</code></li>
+            <li data-step="done"><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="dfs" data-lang="ruby" hidden>
+            <li data-step="intro"><code>def dfs(g, u, seen)</code></li>
+            <li data-step="enter" class="code-sync__in"><code>seen[u] = true</code></li>
+            <li data-step="visit" class="code-sync__in"><code>visit(u)</code></li>
+            <li data-step="enter" class="code-sync__in"><code>g[u].each do |v|</code></li>
+            <li data-step="enter" class="code-sync__in2"><code>next if seen[v]</code></li>
+            <li data-step="enter" class="code-sync__in2"><code>dfs(g, v, seen)</code></li>
+            <li class="code-sync__in"><code>end</code></li>
+            <li data-step="return" class="code-sync__in"><code>nil</code></li>
+            <li data-step="done"><code>end</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="dfs" data-lang="php" hidden>
+            <li data-step="intro"><code>function dfs(array $g, int $u, array &amp;$seen): void {</code></li>
+            <li data-step="enter" class="code-sync__in"><code>$seen[$u] = true;</code></li>
+            <li data-step="visit" class="code-sync__in"><code>visit($u);</code></li>
+            <li data-step="enter" class="code-sync__in"><code>foreach ($g[$u] as $v) {</code></li>
+            <li data-step="enter" class="code-sync__in2"><code>if (isset($seen[$v])) continue;</code></li>
+            <li data-step="enter" class="code-sync__in2"><code>dfs($g, $v, $seen);</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="return" class="code-sync__in"><code>return;</code></li>
+            <li data-step="done"><code>}</code></li>
+        </ol>
+    </div>
+</th:block>

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <th:block th:replace="~{fragments/head :: head}"></th:block>
+    <meta name="author" content="CS Flow">
+    <title>면접 대비 계획 | CS Flow</title>
+    <link rel="stylesheet" th:href="@{/css/pages/subject.css}">
+    <link rel="stylesheet" th:href="@{/css/pages/interview.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <th:block th:replace="~{fragments/header :: header}"></th:block>
+
+    <main>
+        <!-- hero -->
+        <section class="subject-hero">
+            <div class="subject-hero__bg-grid"></div>
+            <div class="subject-hero__glow"></div>
+
+            <div class="subject-hero__inner">
+                <div class="subject-hero__breadcrumb">
+                    <a th:href="@{/}" class="subject-hero__breadcrumb-home">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        홈
+                    </a>
+                    <span class="subject-hero__breadcrumb-sep">/</span>
+                    <span class="subject-hero__breadcrumb-current">면접 대비</span>
+                </div>
+
+                <div class="subject-hero__meta">
+                    <span class="subject-hero__slug">interview</span>
+                </div>
+                <h1 class="subject-hero__title">면접 대비 계획</h1>
+                <p class="subject-hero__count">면접일까지 매일 풀 CS 면접 질문을 직무와 학습 시간에 맞춰 짜 드려요.</p>
+                <p class="interview-note">계획 주소는 이 브라우저에 저장돼요. 다른 기기에서 이어 하려면 계획 주소를 복사해 두세요.</p>
+            </div>
+        </section>
+
+        <section class="topic-list">
+            <div class="topic-list__inner">
+
+                <p class="interview-message" id="interview-loading" role="status">계획을 불러오는 중이에요...</p>
+
+                <!-- 계획 만들기 · 조건 바꾸기 -->
+                <section class="interview-setup" id="interview-setup" hidden aria-labelledby="interview-setup-title">
+                    <h2 class="interview-title" id="interview-setup-title">계획 만들기</h2>
+
+                    <form class="interview-form" id="interview-form" novalidate>
+                        <div class="interview-field">
+                            <label class="interview-field__label" for="interview-role">직무</label>
+                            <select class="interview-select" id="interview-role" name="role">
+                                <option value="BACKEND">백엔드</option>
+                                <option value="FRONTEND">프런트엔드</option>
+                                <option value="EMBEDDED">임베디드</option>
+                                <option value="COMMON">공통(전체 균등)</option>
+                            </select>
+                        </div>
+
+                        <div class="interview-field">
+                            <label class="interview-field__label" for="interview-target">면접 날짜</label>
+                            <input class="interview-input" type="date" id="interview-target" name="target" required>
+                        </div>
+
+                        <fieldset class="interview-field">
+                            <legend class="interview-field__label">하루 학습 시간</legend>
+                            <div class="interview-choices">
+                                <label class="interview-choice">
+                                    <input type="radio" name="minutes" value="30">
+                                    <span class="interview-choice__text">30분 <small>7문제</small></span>
+                                </label>
+                                <label class="interview-choice">
+                                    <input type="radio" name="minutes" value="45" checked>
+                                    <span class="interview-choice__text">45분 <small>11문제</small></span>
+                                </label>
+                                <label class="interview-choice">
+                                    <input type="radio" name="minutes" value="60">
+                                    <span class="interview-choice__text">60분 <small>15문제</small></span>
+                                </label>
+                            </div>
+                        </fieldset>
+
+                        <fieldset class="interview-field">
+                            <legend class="interview-field__label">쉬는 요일 <small>(선택)</small></legend>
+                            <div class="interview-choices">
+                                <label class="interview-choice"><input type="checkbox" name="rest" value="MONDAY"><span class="interview-choice__text">월</span></label>
+                                <label class="interview-choice"><input type="checkbox" name="rest" value="TUESDAY"><span class="interview-choice__text">화</span></label>
+                                <label class="interview-choice"><input type="checkbox" name="rest" value="WEDNESDAY"><span class="interview-choice__text">수</span></label>
+                                <label class="interview-choice"><input type="checkbox" name="rest" value="THURSDAY"><span class="interview-choice__text">목</span></label>
+                                <label class="interview-choice"><input type="checkbox" name="rest" value="FRIDAY"><span class="interview-choice__text">금</span></label>
+                                <label class="interview-choice"><input type="checkbox" name="rest" value="SATURDAY"><span class="interview-choice__text">토</span></label>
+                                <label class="interview-choice"><input type="checkbox" name="rest" value="SUNDAY"><span class="interview-choice__text">일</span></label>
+                            </div>
+                        </fieldset>
+
+                        <p class="interview-error" id="interview-error" role="alert" hidden></p>
+
+                        <div class="interview-actions">
+                            <button type="submit" class="interview-btn interview-btn--primary" id="interview-submit">계획 만들기</button>
+                            <button type="button" class="interview-btn" id="interview-cancel" hidden>취소</button>
+                        </div>
+                    </form>
+                </section>
+
+                <!-- 내 계획 -->
+                <section class="interview-plan" id="interview-plan" hidden>
+                    <div class="interview-summary">
+                        <span class="interview-summary__dday" id="interview-dday"></span>
+                        <div class="interview-summary__body">
+                            <p class="interview-summary__meta" id="interview-meta"></p>
+                            <p class="interview-summary__progress" id="interview-progress"></p>
+                        </div>
+                    </div>
+
+                    <section class="interview-block" aria-labelledby="interview-today-title">
+                        <h2 class="interview-title" id="interview-today-title">
+                            오늘 할 일 <span class="interview-title__sub" id="interview-today-type"></span>
+                        </h2>
+                        <p class="interview-message" id="interview-today-note" hidden></p>
+                        <div class="interview-tasks" id="interview-tasks"></div>
+                    </section>
+
+                    <section class="interview-block" aria-labelledby="interview-weak-title">
+                        <h2 class="interview-title" id="interview-weak-title">약한 과목</h2>
+                        <p class="interview-message" id="interview-weak-note"></p>
+                        <div class="interview-weak" id="interview-weak"></div>
+                    </section>
+
+                    <section class="interview-block" aria-labelledby="interview-calendar-title">
+                        <h2 class="interview-title" id="interview-calendar-title">
+                            달력 <span class="interview-title__sub">완료 / 문제 수</span>
+                        </h2>
+                        <div class="interview-legend" id="interview-legend"></div>
+                        <div class="interview-calendar" id="interview-calendar"></div>
+                    </section>
+
+                    <div class="interview-actions interview-actions--end">
+                        <button type="button" class="interview-btn" id="interview-edit">조건 바꾸기</button>
+                        <button type="button" class="interview-btn" id="interview-copy">계획 주소 복사</button>
+                        <button type="button" class="interview-btn" id="interview-forget">이 브라우저에서 해제</button>
+                    </div>
+                </section>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <th:block th:replace="~{fragments/footer :: footer}"></th:block>
+
+    <!-- 과목 이름 (interview.js가 읽음, 실행 코드 없음) -->
+    <div hidden>
+        <span th:each="subject : ${subjects}" class="interview-subject-name"
+              th:attr="data-slug=${subject.slug},data-name=${subject.name}"></span>
+    </div>
+
+    <script th:src="@{/js/common.js}"></script>
+    <script th:src="@{/js/interview.js}"></script>
+</body>
+</html>

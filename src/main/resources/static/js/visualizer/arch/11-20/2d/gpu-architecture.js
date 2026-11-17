@@ -240,6 +240,12 @@
     var GP_SUMM = 'CPU는 지연, GPU는 처리량에 맞춘 설계입니다';
     var GP_CONC = '원소 ' + ELEMS + '개 덧셈 (개념도)';
 
+    window.CsFlow.gpuData = {
+        elems: ELEMS, cpuCores: CPU_CORES, gpuCores: GPU_CORES, cpuRounds: CPU_ROUNDS, gpuRounds: GPU_ROUNDS, gpFew: GP_FEW,
+        cgSteps: CG_STEPS, lanes: LANES, pred: PRED, cntA: CNT_A, cntB: CNT_B, warpSteps: WARP_STEPS,
+        tMax: T_MAX, sims: SIMS, latSteps: LAT_STEPS
+    };
+
     /* ===================== 드로우 헬퍼 ===================== */
     function ez(q) { q = clamp01(q); return q * q * (3 - 2 * q); }
     function gpAl(v) { var n = Math.round(clamp01(v) * 255).toString(16); return n.length < 2 ? '0' + n : n; }
@@ -643,6 +649,21 @@
                 setHoveredKey: function () {},
                 draw: draw
             };
+        }
+    });
+
+    window.CsFlow.mount3dButton({
+        container: container,
+        parent: toolbar,
+        cls: 'gpu-viz__btn gpu-viz__btn--primary',
+        label: '3D 카드섹션',
+        onOpen: function () {
+            vizReset();
+            root.classList.add('gpu-viz--hidden');
+        },
+        onExit: function () {
+            root.classList.remove('gpu-viz--hidden');
+            resize();
         }
     });
 

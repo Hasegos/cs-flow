@@ -1,7 +1,6 @@
 package io.dev.cs_flow.controller;
 
 import io.dev.cs_flow.common.interceptor.VisitorCookieInterceptor;
-import io.dev.cs_flow.common.util.BotDetector;
 import io.dev.cs_flow.common.util.BreadcrumbLd;
 import io.dev.cs_flow.common.util.OgImages;
 import io.dev.cs_flow.common.util.SubjectSlugs;
@@ -49,6 +48,7 @@ public class TopicController {
      *
      * @param subjectSlug 과목 영문 식별자
      * @param topicSlug   토픽 영문 식별자
+     * @param request     방문자 ID와 User-Agent를 읽기 위한 현재 요청
      * @param model       뷰에 전달할 데이터 모델
      * @return 토픽 학습 페이지 뷰 이름 (topics/{subjectSlug}/{assetGroup}/{templateName})
      */
@@ -66,12 +66,14 @@ public class TopicController {
         String canonicalUrl = "https://csflow.kr/" + subjectSlug + "/" + encodedTopic;
 
         String visitorId = (String) request.getAttribute(VisitorCookieInterceptor.REQUEST_ATTR);
-        if (visitorId != null && !BotDetector.isBot(request.getHeader("User-Agent"))) {
-            topicService.recordView(topicSlug, visitorId);
-        }
+        topicService.recordView(topicSlug, visitorId, request.getHeader("User-Agent"));
 
         model.addAttribute("topic", topic);
         model.addAttribute("currentSubject", subjectSlug);
+        model.addAttribute("sideNavTitle", topic.subject().name());
+        model.addAttribute("sideNavAccent", topic.subject().colorAccent());
+        model.addAttribute("sideNavFilterLabel", "토픽 거르기");
+        model.addAttribute("sideNavItems", topicService.getSideNav(subjectSlug, topicSlug));
         model.addAttribute("jsFileKey", viewPath.jsFileKey());
         model.addAttribute("ldJson", topicService.buildLdJson(topic, canonicalUrl));
         model.addAttribute("breadcrumbLd", BreadcrumbLd.build(List.of(
@@ -83,6 +85,7 @@ public class TopicController {
         model.addAttribute("relatedTopics", topicService.getRelatedTopics(topic));
         model.addAttribute("topicErrors", errorEntryService.getVerifiedByTopic(subjectSlug, topicSlug));
         model.addAttribute("quizQuestions", quizService.getQuestions(topicSlug));
+        model.addAttribute("interviewQuestions", topicService.getInterviewQuestions(topicSlug));
         model.addAttribute("liked", visitorId != null && topicLikeService.isLiked(topicSlug, visitorId));
         model.addAttribute("likeCount", topicLikeService.countLikes(topicSlug));
         model.addAttribute("canonicalUrl", canonicalUrl);

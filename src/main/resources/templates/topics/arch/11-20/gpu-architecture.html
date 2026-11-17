@@ -5,6 +5,7 @@
     <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">GPU 아키텍처 | CS 지식 정리 - CS Flow</title>
     <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
     <link rel="stylesheet" th:href="@{/css/visualizer/arch/11-20/2d/gpu-architecture.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/viz3d-common.css}">
 </head>
 <body>
     <!-- 헤더 -->
@@ -67,7 +68,6 @@
             <div class="topic-tabs__inner">
                 <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
                 <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
-                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
                 <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
             </div>
         </nav>
@@ -187,29 +187,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">CPU와 GPU의 구조 차이는 무엇인가요?</h3>
-                            <p class="overview-card__desc">CPU는 큰 캐시와 복잡한 제어로 한 스레드를 빠르게 처리하는 지연 지향이고, GPU는 단순한 코어를 수천 개 두고 같은 연산을 많은 데이터에 동시에 적용하는 처리량 지향입니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">워프와 워프 분기란 무엇인가요?</h3>
-                            <p class="overview-card__desc">NVIDIA GPU에서 스레드 32개 묶음이 한 번에 같은 명령어를 실행하는 단위가 워프입니다. 한 워프 안에서 조건문으로 경로가 갈리면 각 경로가 차례로 실행되어 성능이 떨어지는 것이 워프 분기입니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">GPU는 메모리 지연을 어떻게 다루나요?</h3>
-                            <p class="overview-card__desc">GPU에도 캐시가 있지만 지연을 주로 많은 워프를 번갈아 실행해 숨깁니다. 한 워프가 메모리를 기다리는 동안 다른 워프가 계산하므로 연산 유닛이 쉬지 않습니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">GPU에 알맞지 않은 작업은?</h3>
-                            <p class="overview-card__desc">조건 분기가 많아 스레드마다 경로가 갈리거나 앞 결과에 의존하는 순차 작업, 데이터가 작아 CPU와 GPU 사이 전송 시간이 더 큰 작업입니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">
@@ -274,16 +252,15 @@
             <!-- 탭 2: 작동 원리 -->
             <div class="topic-panel" id="panel-visualizer">
                 <div class="visualizer-wrap">
-                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                    <div class="visualizer-canvas-area" id="visualizer-container"
+                         th:attr="data-three-src=@{/vendor/three/three-r128.min.js}, data-viz3d-common-src=@{/js/visualizer/viz3d-common.js}, data-viz3d-src=@{/js/visualizer/arch/11-20/3d/gpu-architecture.js}"></div>
                 </div>
-            </div>
 
-            <!-- 탭 3: 코드 연결 -->
-            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code-divider :: divider}"></th:block>
                 <th:block th:replace="~{fragments/code/arch/11-20/gpu-architecture-code :: code}"></th:block>
             </div>
 
-            <!-- 탭 4: 퀴즈 -->
+            <!-- 탭 3: 퀴즈 -->
             <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
                 <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
             </div>

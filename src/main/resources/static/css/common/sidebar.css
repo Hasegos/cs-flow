@@ -1,0 +1,440 @@
+/* 과목 토픽 목차 */
+
+/* === 좁은 화면: 고정 헤더 바로 아래 줄로 붙인다 === */
+.side-nav {
+  position: relative;
+  z-index: 30;
+  padding-top: var(--header-h);
+  background: var(--color-surface);
+}
+
+/* 헤더 높이만큼은 목차가 이미 차지하므로 히어로에서 뺀다 */
+@media (max-width: 1140px) {
+  body:has(.side-nav) .topic-hero { padding-top: 3rem; }
+  body:has(.side-nav) .subject-hero { padding-top: 5rem; }
+}
+
+@media (max-width: 768px) {
+  body:has(.side-nav) .subject-hero { padding-top: 3rem; }
+}
+
+/* === 모바일 토글 버튼 (기본) === */
+.side-nav__toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  margin: 0;
+  /* 좌우 2rem 은 헤더 .gnb__inner 와 같은 값이다 */
+  padding: 0.85rem 2rem;
+  font-family: inherit;
+  font-size: 0.85rem;
+  text-align: left;
+  color: var(--color-text-sub);
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--color-border);
+  border-radius: 0;
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+}
+
+.side-nav__toggle:hover {
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.side-nav__toggle:focus-visible {
+  outline: 2px solid var(--subject-accent, var(--color-purple));
+  outline-offset: -2px;
+}
+
+.side-nav__toggle-text {
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.side-nav__toggle-count {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--subject-accent, var(--color-purple));
+}
+
+.side-nav__toggle-count::after {
+  content: ' \25BE';
+}
+
+.side-nav__toggle[aria-expanded="true"] .side-nav__toggle-count::after {
+  content: ' \25B4';
+}
+
+/* === 패널 (기본: 접힘) === */
+.side-nav__panel {
+  display: none;
+  margin: 0;
+  /* 1.3rem + 링크 안쪽 0.7rem = 토글 글자와 같은 2rem */
+  padding: 0 1.3rem 0.9rem;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--color-border);
+  border-radius: 0;
+}
+
+.side-nav__panel--open { display: block; }
+
+.side-nav__panel .side-nav__progress { margin: 0 0.7rem 0.6rem; }
+
+.side-nav__toggle[aria-expanded="true"] {
+  background: var(--color-bg);
+  border-bottom-color: transparent;
+}
+
+.side-nav__title { display: none; }
+
+/* === 필터 === */
+.side-nav__filter {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0 0.7rem 0.6rem;
+  padding: 0.4rem 0.8rem;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+}
+
+.side-nav__filter:focus-within {
+  border-color: var(--subject-accent, var(--color-purple));
+}
+
+.side-nav__filter-icon {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  color: var(--color-text-muted);
+}
+
+.side-nav__filter-input {
+  width: 100%;
+  min-width: 0;
+  font-family: inherit;
+  font-size: 0.82rem;
+  color: var(--color-text);
+  background: none;
+  border: 0;
+  outline: none;
+}
+
+.side-nav__filter-input::placeholder { color: var(--color-text-muted); }
+.side-nav__filter-input::-webkit-search-cancel-button { filter: grayscale(1); }
+
+/* === 목록 === */
+.side-nav__list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.side-nav__item--hidden { display: none; }
+
+.side-nav__link {
+  display: flex;
+  align-items: baseline;
+  gap: 0.7rem;
+  padding: 0.45rem 0.7rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.84rem;
+  color: var(--color-text-sub);
+  text-decoration: none;
+  transition: color var(--transition), background var(--transition);
+}
+
+.side-nav__link:hover {
+  color: var(--color-text);
+  background: var(--color-surface-2);
+}
+
+.side-nav__link:focus-visible {
+  outline: 2px solid var(--subject-accent, var(--color-purple));
+  outline-offset: -2px;
+}
+
+.side-nav__link--active {
+  color: var(--color-text);
+  font-weight: 500;
+  background: var(--color-purple-dim);
+  box-shadow: inset 2px 0 0 var(--subject-accent, var(--color-purple));
+}
+
+.side-nav__num {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+}
+
+.side-nav__link--active .side-nav__num {
+  color: var(--subject-accent, var(--color-purple));
+}
+
+.side-nav__text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* === 개수 꼬리 (에러 분류) === */
+.side-nav__tail {
+  margin-left: auto;
+  padding-left: 0.4rem;
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.side-nav__link--active .side-nav__tail {
+  color: var(--subject-accent, var(--color-purple));
+}
+
+/* === 학습 진행 표시 === */
+.side-nav__progress {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0.1rem 0.7rem;
+}
+
+.side-nav__progress-track {
+  flex: 1 1 auto;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--color-border);
+  overflow: hidden;
+}
+
+.side-nav__progress-fill {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--subject-accent, var(--color-purple));
+  transition: width var(--transition);
+}
+
+.side-nav__progress-text {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* === 상태 표식 (✓ 완료 · ◗ 학습 중 · ★ 북마크) === */
+.side-nav__state {
+  margin-left: auto;
+  padding-left: 0.4rem;
+  flex: 0 0 auto;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  color: var(--color-text-muted);
+}
+
+.side-nav__item[data-state="done"] .side-nav__state {
+  color: var(--subject-accent, var(--color-purple));
+}
+
+.side-nav__item[data-state="done"] .side-nav__text {
+  color: var(--color-text);
+}
+
+.side-nav__empty {
+  padding: 0.6rem;
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+}
+
+/* === 접기 · 펴기 단추 (1140px 이상에서만) === */
+.side-nav__collapse,
+.side-nav__open { display: none; }
+
+/* === 너비 조절 손잡이 === */
+.side-nav__resizer { display: none; }
+
+/* === 너비 조절 중 === */
+body.is-nav-resizing {
+  cursor: col-resize;
+  user-select: none;
+}
+
+/* === 1140px 이상: 왼쪽 고정 === */
+@media (min-width: 1141px) {
+  .side-nav {
+    position: fixed;
+    padding-top: 0;
+    top: var(--header-h);
+    left: 0;
+    bottom: 0;
+    z-index: 40;
+    width: var(--side-nav-w);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background: var(--color-surface);
+    border-right: 1px solid var(--color-border);
+  }
+
+  .side-nav__toggle { display: none; }
+
+  .side-nav__panel {
+    display: block;
+    margin: 0;
+    /* 오른쪽은 조절 손잡이 폭(6px)을 비운다 */
+    padding: 1.5rem calc(var(--side-nav-pad) + 6px) 2.5rem var(--side-nav-pad);
+    background: none;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .side-nav__title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0 0.1rem 0.85rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--color-text);
+  }
+
+  .side-nav__collapse {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: auto;
+    width: 1.5rem;
+    height: 1.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    background: none;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: color var(--transition), border-color var(--transition);
+  }
+
+  .side-nav__collapse:hover {
+    color: var(--color-text);
+    border-color: var(--color-border);
+  }
+
+  .side-nav__collapse:focus-visible {
+    outline: 2px solid var(--subject-accent, var(--color-purple));
+    outline-offset: 1px;
+  }
+
+  /* 접으면 목차 자리를 통째로 내준다. --side-nav-w 가 0 이 되어 본문이 따라 넓어진다 */
+  body.is-nav-collapsed .side-nav,
+  body.is-nav-collapsed .side-nav__resizer {
+    display: none;
+  }
+
+  /* 토픽 탭 막대(헤더 아래 53px)보다 더 내려야 겹치지 않는다 */
+  body.is-nav-collapsed .side-nav__open {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    top: calc(var(--header-h) + 4rem);
+    left: 0;
+    z-index: 60;
+    width: 1.5rem;
+    height: 2.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-left: 0;
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    cursor: pointer;
+    transition: color var(--transition), background var(--transition);
+  }
+
+  body.is-nav-collapsed .side-nav__open:hover {
+    color: var(--color-text);
+    background: var(--color-surface-2);
+  }
+
+  body.is-nav-collapsed .side-nav__open:focus-visible {
+    outline: 2px solid var(--subject-accent, var(--color-purple));
+    outline-offset: 2px;
+  }
+
+  .side-nav__count {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 500;
+    padding: 0.05rem 0.4rem;
+    border-radius: 999px;
+    color: var(--subject-accent, var(--color-purple));
+    background: var(--color-purple-dim);
+  }
+
+  .side-nav__filter,
+  .side-nav__panel .side-nav__progress {
+    margin: 0 0.1rem 0.7rem;
+  }
+
+  .side-nav__resizer {
+    display: block;
+    position: fixed;
+    top: var(--header-h);
+    bottom: 0;
+    left: calc(var(--side-nav-w) - 3px);
+    z-index: 41;
+    width: 6px;
+    cursor: col-resize;
+    background: transparent;
+    transition: background var(--transition);
+  }
+
+  .side-nav__resizer:hover,
+  .side-nav__resizer:focus-visible,
+  body.is-nav-resizing .side-nav__resizer {
+    background: var(--subject-accent, var(--color-purple));
+    outline: none;
+  }
+
+  /* 손가락으로 집는 기기에서는 손잡이를 넓힌다 */
+  @media (pointer: coarse) {
+    .side-nav__resizer {
+      left: calc(var(--side-nav-w) - 8px);
+      width: 16px;
+    }
+  }
+
+  /* 목차가 있는 페이지만 본문 왼쪽을 비운다 */
+  body:has(.side-nav) main {
+    padding-left: var(--side-nav-w);
+  }
+
+  /* .footer 의 좌우 2rem 이 padding-left 에 덮이지 않게 더한다 */
+  body:has(.side-nav) > footer {
+    padding-left: calc(var(--side-nav-w) + 2rem);
+  }
+}
+
+/* === 라이트 모드 === */
+[data-theme="light"] .side-nav,
+[data-theme="light"] .side-nav__panel,
+[data-theme="light"] .side-nav__toggle {
+  background: var(--color-surface);
+}
+
+[data-theme="light"] .side-nav__link:hover {
+  background: var(--color-bg);
+}

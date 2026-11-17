@@ -3,6 +3,7 @@
   "order": 11,
   "category": "java",
   "title": "Java: NullPointerException: Cannot invoke ... because ... is null 에러",
+  "seoTitle": "Java NullPointerException",
   "errorMessage": "java.lang.NullPointerException: Cannot invoke \"<메서드>\" because \"<대상>\" is null",
   "envOs": "Windows 10 (재현 환경)",
   "envDistro": null,

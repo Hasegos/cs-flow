@@ -3,6 +3,7 @@
   "order": 18,
   "category": "web",
   "title": "Chrome CORS: has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present 에러",
+  "seoTitle": "Chrome CORS 차단 에러",
   "errorMessage": "Access to <리소스 종류> at '<요청 URL>' from origin '<출처>' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.",
   "envOs": "Windows 10 (재현 환경)",
   "envDistro": "Chrome (Chromium 152)",

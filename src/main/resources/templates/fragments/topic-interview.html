@@ -1,0 +1,12 @@
+<th:block th:fragment="interview">
+    <th:block th:if="${not #lists.isEmpty(interviewQuestions)}">
+        <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
+        <div class="overview-grid">
+            <div class="overview-card" th:each="question : ${interviewQuestions}">
+                <p class="overview-card__label">면접 질문</p>
+                <h3 class="overview-card__title" th:text="${question.question}">면접 질문</h3>
+                <p class="overview-card__desc" th:text="${question.answer}">답변</p>
+            </div>
+        </div>
+    </th:block>
+</th:block>

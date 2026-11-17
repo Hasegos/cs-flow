@@ -7,6 +7,9 @@ import java.util.*;
  */
 public final class PageRangeUtil {
 
+    /**
+     * 인스턴스 생성을 막는다.
+     */
     private PageRangeUtil() {
     }
 

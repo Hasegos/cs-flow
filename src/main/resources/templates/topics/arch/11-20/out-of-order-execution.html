@@ -5,6 +5,7 @@
     <title th:text="${topic.title} + ' | CS 지식 정리 - CS Flow'">비순차 실행 | CS 지식 정리 - CS Flow</title>
     <link rel="stylesheet" th:href="@{/css/pages/topic.css}">
     <link rel="stylesheet" th:href="@{/css/visualizer/arch/11-20/2d/out-of-order-execution.css}">
+    <link rel="stylesheet" th:href="@{/css/visualizer/viz3d-common.css}">
 </head>
 <body>
     <!-- 헤더 -->
@@ -67,7 +68,6 @@
             <div class="topic-tabs__inner">
                 <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
                 <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
-                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
                 <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
             </div>
         </nav>
@@ -194,29 +194,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">비순차 실행은 어떤 문제를 푸나요?</h3>
-                            <p class="overview-card__desc">캐시 미스 같은 긴 지연 동안 뒤에 있는 독립 명령어를 먼저 실행해 파이프라인이 멈추는 시간을 줄입니다. 의존성이 없는 명령어의 순서를 바꿔도 결과가 같다는 점을 이용합니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">리오더 버퍼(ROB)는 왜 필요한가요?</h3>
-                            <p class="overview-card__desc">실행은 뒤섞여도 결과는 프로그램 순서대로 확정해야 합니다. ROB는 실행이 끝난 결과를 보관하다 맨 앞부터 순서대로 반영해 정밀 예외와 분기 예측 실패 복구를 가능하게 합니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">레지스터 리네이밍이 없으면 어떻게 되나요?</h3>
-                            <p class="overview-card__desc">WAR와 WAW 같은 가짜 의존성 때문에 독립적인 명령어도 같은 레지스터 이름을 쓰면 순서를 지켜야 해서 병렬성이 줄어듭니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">슈퍼스칼라와 비순차 실행은 같은 말인가요?</h3>
-                            <p class="overview-card__desc">다릅니다. 슈퍼스칼라는 한 사이클에 여러 명령어를 발행하는 폭에 대한 개념이고, 비순차 실행은 발행 순서를 프로그램 순서와 다르게 하는 개념입니다. 순차 실행하는 이중 발행 코어(예: Arm Cortex-A53)도 있습니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">
@@ -289,16 +267,15 @@
             <!-- 탭 2: 작동 원리 -->
             <div class="topic-panel" id="panel-visualizer">
                 <div class="visualizer-wrap">
-                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                    <div class="visualizer-canvas-area" id="visualizer-container"
+                         th:attr="data-three-src=@{/vendor/three/three-r128.min.js}, data-viz3d-common-src=@{/js/visualizer/viz3d-common.js}, data-viz3d-src=@{/js/visualizer/arch/11-20/3d/out-of-order-execution.js}"></div>
                 </div>
-            </div>
 
-            <!-- 탭 3: 코드 연결 -->
-            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code-divider :: divider}"></th:block>
                 <th:block th:replace="~{fragments/code/arch/11-20/out-of-order-execution-code :: code}"></th:block>
             </div>
 
-            <!-- 탭 4: 퀴즈 -->
+            <!-- 탭 3: 퀴즈 -->
             <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
                 <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
             </div>

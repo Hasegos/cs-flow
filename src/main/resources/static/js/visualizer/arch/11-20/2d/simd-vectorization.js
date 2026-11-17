@@ -162,6 +162,7 @@
         { sc: N, vc: VECS, log: '벡터 덧셈 ' + VECS + '번이면 원소 ' + N + '개가 끝납니다. 같은 일을 하는 덧셈 명령이 ' + N + '개에서 ' + VECS + '개로 줄었습니다.' },
         { sc: N, vc: VECS, log: '정리 — 덧셈 명령 수는 레인 수(' + LANES + ')만큼 줄어듭니다. 다만 실행 시간이 같은 비율로 줄어든다고 단정할 수는 없습니다. 메모리에서 읽고 쓰는 시간도 걸리기 때문입니다.' }
     ];
+    window.CsFlow.simdVectorizationData = { n: N, lanes: LANES, vecs: VECS, a: A, b: B, c: C, steps: VEC_STEPS };
 
     /* ===================== 데이터: 레지스터 폭과 레인 ===================== */
     var SUM_N = 64;
@@ -618,6 +619,21 @@
                 setHoveredKey: function () {},
                 draw: draw
             };
+        }
+    });
+
+    window.CsFlow.mount3dButton({
+        container: container,
+        parent: controls,
+        cls: 'simd-viz__btn simd-viz__btn--primary',
+        label: '3D 붕어빵 틀',
+        onOpen: function () {
+            vizReset();
+            root.classList.add('simd-viz--hidden');
+        },
+        onExit: function () {
+            root.classList.remove('simd-viz--hidden');
+            resize();
         }
     });
 

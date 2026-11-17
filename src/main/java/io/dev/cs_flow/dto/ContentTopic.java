@@ -1,5 +1,6 @@
 package io.dev.cs_flow.dto;
 
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -12,6 +13,7 @@ import java.util.List;
  * @param templateName    본문 템플릿 이름
  * @param metaDescription 검색 · 공유용 설명, 없으면 null
  * @param published       발행 여부
+ * @param updatedOn       콘텐츠를 마지막으로 고친 날 (sitemap.xml 의 lastmod)
  * @param order           과목 안 순서 (1부터, 이전 · 다음 토픽과 과목 목록 기본 정렬 기준)
  * @param seq             전체 순서 (1부터, 검색 기본 정렬과 조회수 · 추천수 동점 정렬 기준, 기존 topic_id 순서)
  * @param tags            태그 목록
@@ -19,7 +21,7 @@ import java.util.List;
  * @param exams           관련 시험 목록 (지금은 비어 있어도 된다)
  * @param visual          시각화 정보(키, 3D 여부), 없으면 null
  * @param quizzes         퀴즈 문항 목록
- * @param interview       면접 질문 목록 (4단계에서 채움, 없으면 null이나 빈 목록)
+ * @param interview       면접 질문 목록 (없으면 null이나 빈 목록)
  */
 public record ContentTopic(
         String subject,
@@ -28,6 +30,7 @@ public record ContentTopic(
         String templateName,
         String metaDescription,
         Boolean published,
+        LocalDate updatedOn,
         Integer order,
         Integer seq,
         List<String> tags,

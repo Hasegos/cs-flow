@@ -8,6 +8,7 @@ import java.util.Map;
  * @param subjects  과목 수
  * @param topics    토픽 수
  * @param quizzes   퀴즈 문항 수
+ * @param interviews 면접 질문 수
  * @param errors    에러 사전 항목 수
  * @param bySubject 과목 slug별 개수
  */
@@ -15,6 +16,7 @@ public record ContentManifest(
         Integer subjects,
         Integer topics,
         Integer quizzes,
+        Integer interviews,
         Integer errors,
         Map<String, Count> bySubject
 ) {
@@ -22,9 +24,10 @@ public record ContentManifest(
     /**
      * 과목 하나의 개수.
      *
-     * @param topics  토픽 수
-     * @param quizzes 퀴즈 문항 수
+     * @param topics     토픽 수
+     * @param quizzes    퀴즈 문항 수
+     * @param interviews 면접 질문 수
      */
-    public record Count(Integer topics, Integer quizzes) {
+    public record Count(Integer topics, Integer quizzes, Integer interviews) {
     }
 }

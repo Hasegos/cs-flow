@@ -173,6 +173,11 @@
   cursor: not-allowed;
 }
 
+/* === .coh-viz--hidden — 3D 화면을 열 때 2D 시각화 숨김 === */
+.coh-viz--hidden {
+  display: none;
+}
+
 @media (max-width: 600px) {
   .coh-viz__toolbar {
     padding: 12px 16px;

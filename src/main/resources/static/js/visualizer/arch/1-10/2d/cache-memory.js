@@ -68,6 +68,21 @@
     root.appendChild(controls);
     container.appendChild(root);
 
+    window.CsFlow.mount3dButton({
+        container: container,
+        parent: toolbar,
+        cls: 'cache-viz__btn cache-viz__btn--primary',
+        label: '3D 자판기',
+        onOpen: function () {
+            vizReset();
+            root.classList.add('cache-viz--hidden');
+        },
+        onExit: function () {
+            root.classList.remove('cache-viz--hidden');
+            resize();
+        }
+    });
+
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
     function GW() { return canvas.width / dpr; }
@@ -228,6 +243,8 @@
             log: 'Step 7 — CPU가 블록 E 요청. 캐시 미스 + 캐시 풀! LRU 정책으로 가장 오래된 A를 제거하고 E를 슬롯 0에 적재합니다.',
         },
     ];
+
+    window.CsFlow.cacheMemoryData = { BLOCKS: MEM_BLOCKS, STEPS: STEPS, SLOTS: 4, replay: pcmReplay };
 
     /* ===================== 상태 ===================== */
     var TIPS = TOOLTIPS;

@@ -1,8 +1,11 @@
 package io.dev.cs_flow.service;
 
 import io.dev.cs_flow.common.exception.NotFoundException;
+import io.dev.cs_flow.common.util.BotDetector;
 import io.dev.cs_flow.common.util.SearchPatterns;
+import io.dev.cs_flow.dto.InterviewQuestionView;
 import io.dev.cs_flow.dto.TagCount;
+import io.dev.cs_flow.dto.SideNavItem;
 import io.dev.cs_flow.dto.TopicIndexItem;
 import io.dev.cs_flow.dto.TopicInfo;
 import io.dev.cs_flow.dto.TopicSearchCondition;
@@ -22,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -101,6 +105,10 @@ public class TopicService {
 
     /**
      * 같은 과목 안에서 기준 토픽에서 offset만큼 떨어진 토픽을 요약으로 돌려준다.
+     *
+     * @param topic  기준 토픽
+     * @param offset 기준 토픽에서 떨어진 칸 수(이전은 음수, 다음은 양수)
+     * @return 이웃 토픽 요약, 과목의 처음이나 끝을 벗어나면 null
      */
     private TopicIndexItem neighbor(TopicInfo topic, int offset){
         List<TopicInfo> siblings = contentStore.topicsOf(topic.subject().slug());
@@ -157,6 +165,10 @@ public class TopicService {
 
     /**
      * 정렬 기준에 맞는 비교자를 만든다. 동점이면 먼저 그 수에 도달한 토픽, 그다음 전체 순서(seq) 순이다.
+     *
+     * @param sort  정렬 기준({@code view}, {@code like}, 그 외는 전체 순서)
+     * @param stats 토픽 slug별 조회수 · 추천수 통계
+     * @return 토픽 비교자
      */
     private static Comparator<TopicInfo> comparator(String sort, Map<String, TopicStat> stats){
         Comparator<TopicInfo> bySeq = Comparator.comparingInt(TopicInfo::seq);
@@ -175,6 +187,51 @@ public class TopicService {
     }
 
     /**
+     * 과목에 속한 공개 토픽 전체를 발행 순서대로 왼쪽 목차 형태로 조회한다.
+     * <p>
+     * 과목 홈과 토픽 상세가 같은 목록을 쓴다. 조회수 · 추천수를 쓰지 않으므로 DB를 조회하지 않는다.
+     * </p>
+     *
+     * @param subjectSlug     과목 영문 식별자
+     * @param currentTopicSlug 지금 보고 있는 토픽 slug, 과목 홈이면 null
+     * @return 과목 전체 토픽 목차, 없으면 빈 리스트 반환
+     */
+    public List<SideNavItem> getSideNav(String subjectSlug, String currentTopicSlug){
+        List<TopicInfo> topics = contentStore.topicsOf(subjectSlug).stream()
+                .sorted(Comparator.comparingInt(TopicInfo::seq))
+                .toList();
+
+        List<SideNavItem> items = new ArrayList<>(topics.size());
+        for (int i = 0; i < topics.size(); i++) {
+            TopicInfo t = topics.get(i);
+            items.add(SideNavItem.numbered(
+                    t.slug(),
+                    "/" + t.subject().slug() + "/" + t.slug(),
+                    t.title(),
+                    i + 1,
+                    t.slug().equals(currentTopicSlug)));
+        }
+        return items;
+    }
+
+    /**
+     * 조건에 맞는 공개된 토픽 전체를 한 번에 조회한다. 조회수 · 추천수는 DB 값을 slug로 합친다.
+     * <p>
+     * 과목 홈은 토픽이 20~23개라 페이지로 나누지 않고 전부 보여 준다.
+     * 페이지 단위가 필요한 검색 화면은 {@link #getPublishedTopicsPageable} 쪽을 쓴다.
+     * </p>
+     *
+     * @param subjectSlug 과목 영문 식별자, null이면 전체 과목
+     * @param condition   검색 조건
+     * @param sort        정렬 기준
+     * @return 공개된 토픽 목록, 없으면 빈 리스트 반환
+     */
+    @Transactional(readOnly = true)
+    public List<TopicInfo> getPublishedTopics(String subjectSlug, TopicSearchCondition condition, String sort){
+        return getPublishedTopicsPageable(subjectSlug, condition, 0, Integer.MAX_VALUE, sort).getContent();
+    }
+
+    /**
      * 과목에 속한 공개 토픽의 태그 목록을 토픽 수와 함께 조회한다.
      *
      * @param subjectSlug 과목 영문 식별자
@@ -188,6 +245,16 @@ public class TopicService {
                 .map(e -> new TagCount(e.getKey(), e.getValue()))
                 .sorted(Comparator.comparingLong(TagCount::count).reversed().thenComparing(TagCount::tag))
                 .toList();
+    }
+
+    /**
+     * 토픽의 면접 질문을 순서대로 조회한다.
+     *
+     * @param topicSlug 토픽 영문 식별자
+     * @return 면접 질문 목록, 없으면 빈 리스트 반환
+     */
+    public List<InterviewQuestionView> getInterviewQuestions(String topicSlug){
+        return contentStore.interviews(topicSlug);
     }
 
     /**
@@ -235,13 +302,17 @@ public class TopicService {
     }
 
     /**
-     * 토픽 조회를 기록한다. 같은 방문자가 오늘 이미 조회했으면 무시한다.
+     * 토픽 조회를 기록한다. 방문자를 알 수 없거나 크롤러면 세지 않고, 같은 방문자가 오늘 이미 조회했으면 무시한다.
      *
      * @param topicSlug 토픽 영문 식별자
-     * @param visitorId 익명 방문자 식별자
+     * @param visitorId 익명 방문자 식별자, 없으면 null
+     * @param userAgent 요청의 User-Agent 헤더, 없으면 null
      */
     @Transactional
-    public void recordView(String topicSlug, String visitorId){
+    public void recordView(String topicSlug, String visitorId, String userAgent){
+        if (visitorId == null || BotDetector.isBot(userAgent)) {
+            return;
+        }
         int inserted = topicViewRepository.recordViewIfNew(topicSlug, visitorId);
         if (inserted > 0) {
             topicStatRepository.incrementViewCount(topicSlug);

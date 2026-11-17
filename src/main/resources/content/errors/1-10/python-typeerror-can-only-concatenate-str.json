@@ -3,6 +3,7 @@
   "order": 2,
   "category": "python",
   "title": "Python: TypeError: can only concatenate str (not \"int\") to str 에러",
+  "seoTitle": "Python TypeError: concatenate str",
   "errorMessage": "TypeError: can only concatenate str (not \"<타입 이름>\") to str",
   "envOs": "Windows 10 (재현 환경)",
   "envDistro": null,

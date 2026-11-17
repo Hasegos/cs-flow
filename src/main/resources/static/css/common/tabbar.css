@@ -1,0 +1,197 @@
+/* 모바일 하단 탭 */
+
+/* === 탭 막대 === */
+.tabbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 95;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  padding-bottom: env(safe-area-inset-bottom);
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+}
+
+.tabbar__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  min-height: var(--tabbar-h);
+  padding: 0.45rem 0 0.5rem;
+  font-family: inherit;
+  font-size: 0.66rem;
+  color: var(--color-text-muted);
+  background: none;
+  border: 0;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color var(--transition);
+}
+
+.tabbar__item:focus-visible {
+  outline: 2px solid var(--subject-accent, var(--color-purple));
+  outline-offset: -3px;
+}
+
+.tabbar__item--active {
+  color: var(--subject-accent, var(--color-purple));
+}
+
+.tabbar__icon {
+  width: 21px;
+  height: 21px;
+}
+
+.tabbar__item--active .tabbar__icon {
+  stroke-width: 2.2;
+}
+
+.tabbar__text {
+  line-height: 1.2;
+}
+
+/* === 과목 시트 === */
+.tabbar__scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 96;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.tabbar__sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 97;
+  max-height: 72vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0.75rem 1rem calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 1rem);
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+
+.tabbar__grip {
+  width: 36px;
+  height: 3px;
+  margin: 0 auto 0.75rem;
+  border-radius: 999px;
+  background: var(--color-border);
+}
+
+.tabbar__sheet-title {
+  margin: 0 0 0.55rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.tabbar__sheet-title + .tabbar__grid + .tabbar__sheet-title {
+  margin-top: 0.9rem;
+}
+
+.tabbar__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+
+.tabbar__sheet-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  color: var(--color-text-sub);
+  text-decoration: none;
+}
+
+.tabbar__sheet-item:focus-visible {
+  outline: 2px solid var(--subject-accent, var(--color-purple));
+  outline-offset: 1px;
+}
+
+.tabbar__sheet-item--active {
+  color: var(--color-text);
+  font-weight: 500;
+  background: var(--color-purple-dim);
+  border-color: var(--color-border-hover);
+}
+
+.tabbar__dot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.tabbar__dot--plain {
+  background: var(--color-text-muted);
+}
+
+/* === 시트가 열린 동안 === */
+body.is-sheet-open {
+  overflow: hidden;
+}
+
+/* === 740px 이상: 아래 탭 막대만 숨긴다. 과목 시트는 헤더 단추가 쓴다 === */
+@media (min-width: 740px) {
+  .tabbar {
+    display: none;
+  }
+}
+
+/* === 740px ~ 1140px: 시트를 헤더 아래 드롭다운으로 === */
+@media (min-width: 740px) and (max-width: 1140px) {
+  .tabbar__sheet {
+    top: var(--header-h);
+    /* 오른쪽 2rem 은 헤더 .gnb__inner 와 같은 값이다 */
+    right: 2rem;
+    left: auto;
+    bottom: auto;
+    width: min(26rem, calc(100vw - 4rem));
+    max-height: calc(100vh - var(--header-h) - 2rem);
+    padding: 0.9rem 1rem 1rem;
+    border: 1px solid var(--color-border);
+    border-top: 0;
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
+  }
+
+  .tabbar__grip {
+    display: none;
+  }
+}
+
+/* === 1141px 이상: 헤더 메뉴가 다 보이므로 시트가 필요 없다 === */
+@media (min-width: 1141px) {
+  .tabbar__scrim,
+  .tabbar__sheet {
+    display: none;
+  }
+}
+
+/* === 740px 미만: 본문 아래 여백 === */
+@media (max-width: 739px) {
+  body {
+    padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
+  }
+}
+
+/* === 라이트 모드 === */
+[data-theme="light"] .tabbar,
+[data-theme="light"] .tabbar__sheet {
+  background: var(--color-surface);
+}
+
+[data-theme="light"] .tabbar__scrim {
+  background: rgba(26, 26, 46, 0.35);
+}

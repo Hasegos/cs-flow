@@ -10,6 +10,9 @@ import java.util.Locale;
  */
 public final class SearchPatterns {
 
+    /**
+     * 인스턴스 생성을 막는다.
+     */
     private SearchPatterns() {
     }
 

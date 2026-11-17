@@ -3,6 +3,7 @@
   "order": 26,
   "category": "network",
   "title": "Python: ValueError: has host bits set (ipaddress) 에러",
+  "seoTitle": "Python ValueError: host bits set",
   "errorMessage": "ValueError: 192.168.1.5/24 has host bits set",
   "envOs": "Windows 10 (재현 환경)",
   "envDistro": null,

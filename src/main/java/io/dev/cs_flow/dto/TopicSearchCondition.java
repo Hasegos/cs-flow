@@ -14,6 +14,9 @@ public record TopicSearchCondition(String query, String tag) {
 
     public static final int MAX_LENGTH = 50;
 
+    /**
+     * 검색어와 태그를 정규화한다. 앞뒤 공백을 지우고 빈 값은 null로 바꾸며 최대 길이로 자른다.
+     */
     public TopicSearchCondition {
         query = normalize(query);
         tag = normalize(tag);
@@ -28,6 +31,12 @@ public record TopicSearchCondition(String query, String tag) {
         return query != null || tag != null;
     }
 
+    /**
+     * 문자열 하나를 정규화한다.
+     *
+     * @param value 입력 값
+     * @return 공백을 지우고 최대 길이로 자른 값, 비어 있으면 null
+     */
     private static String normalize(String value) {
         if (value == null) {
             return null;

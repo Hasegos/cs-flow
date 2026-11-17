@@ -2,35 +2,43 @@
   "subjects": 7,
   "topics": 128,
   "quizzes": 386,
+  "interviews": 512,
   "errors": 28,
   "bySubject": {
     "arch": {
       "topics": 20,
-      "quizzes": 61
+      "quizzes": 61,
+      "interviews": 80
     },
     "os": {
       "topics": 20,
-      "quizzes": 60
+      "quizzes": 60,
+      "interviews": 80
     },
     "network": {
       "topics": 23,
-      "quizzes": 69
+      "quizzes": 69,
+      "interviews": 92
     },
     "ds": {
       "topics": 20,
-      "quizzes": 60
+      "quizzes": 60,
+      "interviews": 80
     },
     "algo": {
       "topics": 20,
-      "quizzes": 60
+      "quizzes": 60,
+      "interviews": 80
     },
     "db": {
       "topics": 22,
-      "quizzes": 67
+      "quizzes": 67,
+      "interviews": 88
     },
     "robot": {
       "topics": 3,
-      "quizzes": 9
+      "quizzes": 9,
+      "interviews": 12
     }
   }
 }

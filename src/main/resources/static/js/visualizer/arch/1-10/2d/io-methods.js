@@ -68,6 +68,22 @@
     root.appendChild(controls);
     container.appendChild(root);
 
+    /* ===================== 3D 택배 현관 전환 ===================== */
+    window.CsFlow.mount3dButton({
+        container: container,
+        parent: toolbar,
+        cls: 'io-viz__btn io-viz__btn--primary',
+        label: '3D 택배 현관',
+        onOpen: function () {
+            vizReset();
+            root.classList.add('io-viz--hidden');
+        },
+        onExit: function () {
+            root.classList.remove('io-viz--hidden');
+            resize();
+        }
+    });
+
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
     function GW() { return canvas.width / dpr; }
@@ -236,6 +252,9 @@
         ['DMA', 'Free', 'DMA 직접'],
         ['DMA', 'IRQ만 처리', '완료']
     ];
+
+    /* ===================== 3D 데이터 노출 ===================== */
+    window.CsFlow.ioMethodsData = { STEPS: STEPS, IO_BLOCKS: IO_BLOCKS, IO_SUB: IO_SUB, IO_BAR: IO_BAR, IO_LBL: IO_LBL, IO_INFO: IO_INFO, ioState: ioState };
 
     /* ===================== 단계 계산 ===================== */
     function currentSteps() { return STEPS; }

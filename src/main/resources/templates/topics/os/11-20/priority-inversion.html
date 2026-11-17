@@ -67,7 +67,6 @@
             <div class="topic-tabs__inner">
                 <button class="topic-tabs__btn is-active" data-tab="overview">큰 그림</button>
                 <button class="topic-tabs__btn" data-tab="visualizer">작동 원리</button>
-                <button class="topic-tabs__btn" data-tab="code">코드 연결</button>
                 <button th:if="${not #lists.isEmpty(quizQuestions)}" class="topic-tabs__btn" data-tab="quiz">퀴즈</button>
             </div>
         </nav>
@@ -185,29 +184,7 @@
                         </div>
                     </div>
 
-                    <h2 class="overview-heading">면접에서 이렇게 물어요</h2>
-                    <div class="overview-grid">
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">우선순위 역전이 무엇인가요?</h3>
-                            <p class="overview-card__desc">낮은 우선순위 작업이 쥔 락을 높은 우선순위 작업이 기다리는 동안, 중간 우선순위 작업이 CPU를 차지해 높은 작업이 중간 작업보다도 늦게 실행되는 현상입니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">어떻게 해결하나요?</h3>
-                            <p class="overview-card__desc">우선순위 상속으로 락을 쥔 낮은 작업이 기다리는 높은 작업의 우선순위를 임시로 받게 하거나, 우선순위 상한 프로토콜로 락을 쥔 작업의 우선순위를 상한으로 올립니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">패스파인더에서 무슨 일이 있었나요?</h3>
-                            <p class="overview-card__desc">1997년 화성 탐사선에서 높은 우선순위 작업이 낮은 작업이 쥔 뮤텍스를 기다리는 사이 중간 우선순위 작업들이 낮은 작업을 계속 선점했고, 높은 작업이 제때 끝나지 않은 것을 감지한 소프트웨어가 시스템을 재설정했습니다. 해당 뮤텍스 세마포어의 우선순위 상속 옵션을 켜는 패치로 해결했습니다.</p>
-                        </div>
-                        <div class="overview-card">
-                            <p class="overview-card__label">면접 질문</p>
-                            <h3 class="overview-card__title">락 없이 피할 수 있나요?</h3>
-                            <p class="overview-card__desc">락을 쓰지 않는 자료 구조를 쓰거나 임계 구역을 짧게 하고, 락을 공유하는 작업의 우선순위 차이를 줄이는 설계로 위험을 줄일 수 있습니다. 락이 필요하다면 우선순위 상속을 지원하는 뮤텍스를 씁니다.</p>
-                        </div>
-                    </div>
+                    <th:block th:replace="~{fragments/topic-interview :: interview}"></th:block>
 
                     <h2 class="overview-heading">실제 시스템에서는</h2>
                     <div class="overview-points">
@@ -278,14 +255,12 @@
                 <div class="visualizer-wrap">
                     <div class="visualizer-canvas-area" id="visualizer-container"></div>
                 </div>
-            </div>
 
-            <!-- 탭 3: 코드 연결 -->
-            <div class="topic-panel" id="panel-code">
+                <th:block th:replace="~{fragments/code-divider :: divider}"></th:block>
                 <th:block th:replace="~{fragments/code/os/11-20/priority-inversion-code :: code}"></th:block>
             </div>
 
-            <!-- 탭 4: 퀴즈 -->
+            <!-- 탭 3: 퀴즈 -->
             <div class="topic-panel" id="panel-quiz" th:if="${not #lists.isEmpty(quizQuestions)}">
                 <th:block th:replace="~{fragments/quiz :: quiz}"></th:block>
             </div>

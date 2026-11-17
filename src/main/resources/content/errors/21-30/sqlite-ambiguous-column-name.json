@@ -3,6 +3,7 @@
   "order": 28,
   "category": "sqlite",
   "title": "SQLite: sqlite3.OperationalError: ambiguous column name 에러",
+  "seoTitle": "SQLite ambiguous column name 에러",
   "errorMessage": "sqlite3.OperationalError: ambiguous column name: id",
   "envOs": "Windows 10 (재현 환경)",
   "envDistro": null,

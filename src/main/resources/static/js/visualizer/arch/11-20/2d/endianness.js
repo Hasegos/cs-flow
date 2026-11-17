@@ -197,6 +197,11 @@
         { n: 4, log: '정리 — 파일이나 네트워크로 여러 바이트 정수를 주고받을 때는 양쪽이 같은 바이트 순서를 쓰기로 약속해야 합니다.' }
     ];
 
+    window.CsFlow.endiannessData = {
+        bytes: BYTES, val: VAL, base: BASE, hx: hx, valOf: valOf,
+        store: STORE_STEPS, net: NET_STEPS, read: READ_STEPS, hostMem: HOST_MEM, netOrder: NET_ORDER
+    };
+
     /* ===================== 상태 ===================== */
     function currentSteps() {
         if (mode === 'net') return NET_STEPS;
@@ -591,6 +596,21 @@
                 setHoveredKey: function () {},
                 draw: draw
             };
+        }
+    });
+
+    window.CsFlow.mount3dButton({
+        container: container,
+        parent: toolbar,
+        cls: 'end-viz__btn end-viz__btn--primary',
+        label: '3D 서랍장 우체국',
+        onOpen: function () {
+            vizReset();
+            root.classList.add('end-viz--hidden');
+        },
+        onExit: function () {
+            root.classList.remove('end-viz--hidden');
+            resize();
         }
     });
 

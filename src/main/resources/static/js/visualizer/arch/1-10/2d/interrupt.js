@@ -68,6 +68,22 @@
     root.appendChild(controls);
     container.appendChild(root);
 
+    /* ===================== 3D 사무실 전환 ===================== */
+    window.CsFlow.mount3dButton({
+        container: container,
+        parent: toolbar,
+        cls: 'intr__btn intr__btn--primary',
+        label: '3D 사무실',
+        onOpen: function () {
+            vizReset();
+            root.classList.add('intr--hidden');
+        },
+        onExit: function () {
+            root.classList.remove('intr--hidden');
+            resize();
+        }
+    });
+
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
     function GW() { return canvas.width / dpr; }
@@ -232,6 +248,7 @@
     var IV_MAIN_AD = ['0100', '0102', '0104', '0106'];
     var IV_ISR = ['push ax', 'in al,60h', 'mov buf,al', 'iret'];
     var IV_ISR_AD = ['0204', '0206', '0208', '020A'];
+    var IV_STACK = ['PC=0106', 'FLAGS'];
     var IV_EDGES = [['CPU', 'PIC'], ['CPU', 'STACK'], ['CPU', 'IVT'], ['IVT', 'ISR'], ['ISR', 'STACK']];
     var IV_NODE_COL = { CPU: 'purple', PIC: 'orange', IVT: 'yellow', STACK: 'teal', ISR: 'green' };
     var IV_TYPE_COL = { signal: 'orange', save: 'teal', lookup: 'yellow', jump: 'green', restore: 'teal', resume: 'purple' };
@@ -248,6 +265,9 @@
         3: [['IVT', 'ISR', 'JMP', 'green', 0, 0.3]],
         4: [['ISR', 'STACK', 'RST', 'teal', 0.3, 0.6], ['STACK', 'CPU', 'RET', 'purple', 0.6, 0.9]]
     };
+
+    /* ===================== 3D 데이터 노출 ===================== */
+    window.CsFlow.interruptData = { STEPS: STEPS, PHASE: IV_PHASE, NODE_COL: IV_NODE_COL, STACK: IV_STACK, MAIN: IV_MAIN, MAIN_AD: IV_MAIN_AD, ISR: IV_ISR, ISR_AD: IV_ISR_AD };
 
     /* ===================== 단계 ===================== */
     function currentSteps() { return STEPS; }
@@ -423,7 +443,7 @@
         var h = mob ? 14 : 16, gap = mob ? 2 : 4, fs = mob ? 11 : 12;
         var y0 = n.y + (mob ? 36 : 48);
         if (count === 0) tx('비어 있음', n.x + (mob ? 8 : 12), y0 + h / 2, fs, P.sub, 'left', false);
-        ['PC=0106', 'FLAGS'].forEach(function (it, i) {
+        IV_STACK.forEach(function (it, i) {
             if (i >= count) return;
             var y = y0 + i * (h + gap);
             rr(n.x + 6, y, n.w - 12, h, 4, P.teal + '33', P.teal + 'aa', 1);

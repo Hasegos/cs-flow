@@ -210,6 +210,13 @@
         { c: 4, log: '정리 — 간격은 지수에 따라 달라지고, 큰 수 근처에서는 작은 차이를 더해도 값이 변하지 않을 수 있습니다. 상대 오차는 비슷해도 절대 오차는 커집니다.' }
     ];
 
+    window.CsFlow.ieee754Data = {
+        ex: EX, bits: B, exp: EXP, mant: MANT, sign: SIGN, bits32: bits32,
+        fields: FIELD_STEPS, sum: SUM_STEPS, range: RANGE_STEPS, cards: RANGE_CARDS,
+        da: DA, db: DB, ds: DS, dc: DC, diff: DIFF, dig: DIG,
+        fStep1: F_STEP1, dStep1: D_STEP1, fBig: F_BIG, fBigP1: F_BIG_P1, dBig: D_BIG, dBigP1: D_BIG_P1
+    };
+
     /* ===================== 상태 ===================== */
     function currentSteps() {
         if (mode === 'sum') return SUM_STEPS;
@@ -571,6 +578,21 @@
                 setHoveredKey: function () {},
                 draw: draw
             };
+        }
+    });
+
+    window.CsFlow.mount3dButton({
+        container: container,
+        parent: toolbar,
+        cls: 'fp-viz__btn fp-viz__btn--primary',
+        label: '3D 눈금 작업대',
+        onOpen: function () {
+            vizReset();
+            root.classList.add('fp-viz--hidden');
+        },
+        onExit: function () {
+            root.classList.remove('fp-viz--hidden');
+            resize();
         }
     });
 
