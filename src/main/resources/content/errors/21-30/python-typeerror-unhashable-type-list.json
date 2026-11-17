@@ -3,6 +3,7 @@
   "order": 21,
   "category": "algorithm",
   "title": "Python: TypeError: unhashable type: 'list' 에러 (3.14는 dict key 문구)",
+  "seoTitle": "Python TypeError: unhashable type",
   "errorMessage": "TypeError: cannot use 'list' as a dict key (unhashable type: 'list')\n(Python 3.13까지: TypeError: unhashable type: 'list')",
   "envOs": "Windows 10 (재현 환경)",
   "envDistro": null,

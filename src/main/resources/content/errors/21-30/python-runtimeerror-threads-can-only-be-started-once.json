@@ -3,6 +3,7 @@
   "order": 23,
   "category": "python",
   "title": "Python: RuntimeError: threads can only be started once 에러",
+  "seoTitle": "Python threads started once 에러",
   "errorMessage": "RuntimeError: threads can only be started once",
   "envOs": "Windows 10 (재현 환경)",
   "envDistro": null,

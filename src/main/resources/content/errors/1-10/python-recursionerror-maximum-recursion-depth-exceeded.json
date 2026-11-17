@@ -3,6 +3,7 @@
   "order": 4,
   "category": "algorithm",
   "title": "Python: RecursionError: maximum recursion depth exceeded 에러",
+  "seoTitle": "Python RecursionError",
   "errorMessage": "RecursionError: maximum recursion depth exceeded",
   "envOs": "Windows 10 (재현 환경)",
   "envDistro": null,

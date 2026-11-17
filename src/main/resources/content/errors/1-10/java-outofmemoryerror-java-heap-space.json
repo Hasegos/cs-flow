@@ -3,6 +3,7 @@
   "order": 8,
   "category": "java",
   "title": "Java: java.lang.OutOfMemoryError: Java heap space 에러",
+  "seoTitle": "Java OutOfMemoryError: heap space",
   "errorMessage": "java.lang.OutOfMemoryError: Java heap space",
   "envOs": "Windows 10 (재현 환경)",
   "envDistro": null,

@@ -3,6 +3,7 @@
   "order": 10,
   "category": "algorithm",
   "title": "Java: ArrayIndexOutOfBoundsException: Index 5 out of bounds for length 3 에러",
+  "seoTitle": "Java ArrayIndexOutOfBoundsException",
   "errorMessage": "java.lang.ArrayIndexOutOfBoundsException: Index <인덱스> out of bounds for length <길이>",
   "envOs": "Windows 10 (재현 환경)",
   "envDistro": null,
