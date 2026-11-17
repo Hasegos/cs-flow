@@ -3,6 +3,7 @@
   "order": 15,
   "category": "git",
   "title": "Git: fatal: not a git repository (or any of the parent directories): .git 에러",
+  "seoTitle": "Git not a git repository 에러",
   "errorMessage": "fatal: not a git repository (or any of the parent directories): .git",
   "envOs": "Windows 10 (재현 환경)",
   "envDistro": null,

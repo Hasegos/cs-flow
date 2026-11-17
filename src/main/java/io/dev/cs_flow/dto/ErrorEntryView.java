@@ -10,6 +10,7 @@ import java.util.List;
  * @param order        목록 순서
  * @param category     분류
  * @param title        제목
+ * @param seoTitle     검색 결과용 짧은 제목, 없으면 null (제목이 60자를 넘길 때만 쓴다)
  * @param errorMessage 에러 메시지 원문
  * @param envOs        재현 환경 OS, 없으면 null
  * @param envDistro    재현 환경 배포판, 없으면 null
@@ -28,6 +29,7 @@ public record ErrorEntryView(
         int order,
         String category,
         String title,
+        String seoTitle,
         String errorMessage,
         String envOs,
         String envDistro,
@@ -41,4 +43,13 @@ public record ErrorEntryView(
         List<ContentError.Source> sources,
         List<TopicInfo> topics
 ) {
+
+    /**
+     * 검색 결과에 쓸 제목을 돌려준다. {@code seoTitle}이 있으면 그것을, 없으면 {@code title}을 쓴다.
+     *
+     * @return 짧은 제목
+     */
+    public String shortTitle() {
+        return seoTitle == null || seoTitle.isBlank() ? title : seoTitle;
+    }
 }

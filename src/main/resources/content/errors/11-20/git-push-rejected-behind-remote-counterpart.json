@@ -3,6 +3,7 @@
   "order": 17,
   "category": "git",
   "title": "Git: error: failed to push some refs (tip of your current branch is behind) 에러",
+  "seoTitle": "Git push rejected 에러",
   "errorMessage": "error: failed to push some refs to '<원격 URL>'\nhint: Updates were rejected because the tip of your current branch is behind\nhint: its remote counterpart. If you want to integrate the remote changes,\nhint: use 'git pull' before pushing again.\nhint: See the 'Note about fast-forwards' in 'git push --help' for details.",
   "envOs": "Windows 10 (재현 환경)",
   "envDistro": null,

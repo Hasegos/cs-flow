@@ -92,7 +92,7 @@ public class ContentStore {
         List<ErrorEntryView> errors = new ArrayList<>();
         for (ContentError e : loader.getErrorEntries()) {
             List<TopicInfo> related = e.topics().stream().map(topicBySlug::get).filter(Objects::nonNull).toList();
-            ErrorEntryView view = new ErrorEntryView(e.slug(), e.order(), e.category(), e.title(), e.errorMessage(),
+            ErrorEntryView view = new ErrorEntryView(e.slug(), e.order(), e.category(), e.title(), e.seoTitle(), e.errorMessage(),
                     e.envOs(), e.envDistro(), e.envVersion(), e.cause(), e.solution(), e.reproduction(),
                     e.createdOn(), e.verifiedOn(), e.verified(), e.sources(), related);
             errors.add(view);

@@ -1,7 +1,7 @@
 {
   "subject": "arch",
   "slug": "virtual-memory",
-  "title": "가상 메모리",
+  "title": "가상 메모리와 주소 변환",
   "templateName": "virtual-memory",
   "metaDescription": "가상 메모리 CS 지식 정리 — 페이지 테이블, TLB, 페이지 폴트, 스와핑 동작 원리를 인터랙티브 시각화로 학습하세요. 개발자 면접 컴퓨터구조 핵심 개념.",
   "published": true,
