@@ -246,8 +246,11 @@
 
             <!-- 탭 2: 작동 원리 -->
             <div class="topic-panel" id="panel-visualizer">
-                <div class="visualizer-wrap">
-                    <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                <div class="code-sync">
+                    <div class="visualizer-wrap">
+                        <div class="visualizer-canvas-area" id="visualizer-container"></div>
+                    </div>
+                    <th:block th:replace="~{fragments/code-sync/ds/1-10/trie-sync :: sync}"></th:block>
                 </div>
 
                 <th:block th:replace="~{fragments/code-divider :: divider}"></th:block>

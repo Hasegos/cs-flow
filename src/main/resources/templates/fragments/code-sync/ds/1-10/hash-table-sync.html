@@ -1,0 +1,344 @@
+<th:block th:fragment="sync">
+    <!-- 시각화 옆 코드 패널. 줄의 data-step 이 시각화 단계 이름과 짝지어 밝아진다 -->
+    <div class="code-sync__panel" data-code-sync>
+        <div class="code-sync__bar">
+            <label class="code-sync__label" for="codeSyncLang">언어</label>
+            <select class="code-sync__select" id="codeSyncLang">
+                <option value="easy">쉬운 말</option>
+                <option value="java">Java</option>
+                <option value="python">Python</option>
+                <option value="javascript">JavaScript</option>
+                <option value="typescript">TypeScript</option>
+                <option value="c">C</option>
+                <option value="cpp">C++</option>
+                <option value="csharp">C#</option>
+                <option value="go">Go</option>
+                <option value="kotlin">Kotlin</option>
+                <option value="swift">Swift</option>
+                <option value="rust">Rust</option>
+                <option value="ruby">Ruby</option>
+                <option value="php">PHP</option>
+            </select>
+            <span class="code-sync__state" data-code-sync-state>재생하면 지금 줄이 밝아집니다</span>
+        </div>
+
+        <!-- Chaining — 같은 칸이면 줄을 매단다 -->
+        <ol class="code-sync__lines" data-variant="chain" data-lang="easy">
+            <li data-step="idle"><span>키 하나를 표에 넣는다</span></li>
+            <li data-step="inserted collision search" class="code-sync__in"><span>키를 버킷 수로 나눈 나머지가 들어갈 칸이다</span></li>
+            <li data-step="collision search" class="code-sync__in"><span>그 칸에 이미 달린 줄의 맨 앞을 잡는다</span></li>
+            <li data-step="search" class="code-sync__in"><span>같은 키가 나올 때까지 줄을 따라 내려간다</span></li>
+            <li data-step="search" class="code-sync__in"><span>이미 있으면 그냥 끝낸다</span></li>
+            <li data-step="inserted collision" class="code-sync__in"><span>없으면 줄 맨 앞에 새 칸을 매단다</span></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="chain" data-lang="java" hidden>
+            <li data-step="idle"><code>void put(int key) {</code></li>
+            <li data-step="inserted collision search" class="code-sync__in"><code>int i = key % buckets.length;</code></li>
+            <li data-step="collision search" class="code-sync__in"><code>Node node = buckets[i];</code></li>
+            <li data-step="search" class="code-sync__in"><code>while (node != null &amp;&amp; node.key != key) node = node.next;</code></li>
+            <li data-step="search" class="code-sync__in"><code>if (node != null) return;</code></li>
+            <li data-step="inserted collision" class="code-sync__in"><code>buckets[i] = new Node(key, buckets[i]);</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="chain" data-lang="python" hidden>
+            <li data-step="idle"><code>def put(self, key):</code></li>
+            <li data-step="inserted collision search" class="code-sync__in"><code>i = key % len(self.buckets)</code></li>
+            <li data-step="collision search" class="code-sync__in"><code>chain = self.buckets[i]</code></li>
+            <li data-step="search" class="code-sync__in"><code>if key in chain: return</code></li>
+            <li data-step="inserted collision" class="code-sync__in"><code>chain.insert(0, key)</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="chain" data-lang="javascript" hidden>
+            <li data-step="idle"><code>put(key) {</code></li>
+            <li data-step="inserted collision search" class="code-sync__in"><code>const i = key % this.buckets.length;</code></li>
+            <li data-step="collision search" class="code-sync__in"><code>let node = this.buckets[i];</code></li>
+            <li data-step="search" class="code-sync__in"><code>while (node &amp;&amp; node.key !== key) node = node.next;</code></li>
+            <li data-step="search" class="code-sync__in"><code>if (node) return;</code></li>
+            <li data-step="inserted collision" class="code-sync__in"><code>this.buckets[i] = { key, next: this.buckets[i] };</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="chain" data-lang="typescript" hidden>
+            <li data-step="idle"><code>put(key: number): void {</code></li>
+            <li data-step="inserted collision search" class="code-sync__in"><code>const i = key % this.buckets.length;</code></li>
+            <li data-step="collision search" class="code-sync__in"><code>let node = this.buckets[i];</code></li>
+            <li data-step="search" class="code-sync__in"><code>while (node &amp;&amp; node.key !== key) node = node.next;</code></li>
+            <li data-step="search" class="code-sync__in"><code>if (node) return;</code></li>
+            <li data-step="inserted collision" class="code-sync__in"><code>this.buckets[i] = { key, next: this.buckets[i] };</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="chain" data-lang="c" hidden>
+            <li data-step="idle"><code>void put(Table* t, int key) {</code></li>
+            <li data-step="inserted collision search" class="code-sync__in"><code>int i = key % t-&gt;cap;</code></li>
+            <li data-step="collision search" class="code-sync__in"><code>Node* node = t-&gt;buckets[i];</code></li>
+            <li data-step="search" class="code-sync__in"><code>while (node &amp;&amp; node-&gt;key != key) node = node-&gt;next;</code></li>
+            <li data-step="search" class="code-sync__in"><code>if (node) return;</code></li>
+            <li data-step="inserted collision" class="code-sync__in"><code>t-&gt;buckets[i] = new_node(key, t-&gt;buckets[i]);</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="chain" data-lang="cpp" hidden>
+            <li data-step="idle"><code>void put(int key) {</code></li>
+            <li data-step="inserted collision search" class="code-sync__in"><code>int i = key % (int)buckets.size();</code></li>
+            <li data-step="collision search" class="code-sync__in"><code>auto&amp; chain = buckets[i];</code></li>
+            <li data-step="search" class="code-sync__in"><code>if (std::find(chain.begin(), chain.end(), key) != chain.end())</code></li>
+            <li data-step="search" class="code-sync__in"><code>return;</code></li>
+            <li data-step="inserted collision" class="code-sync__in"><code>chain.insert(chain.begin(), key);</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="chain" data-lang="csharp" hidden>
+            <li data-step="idle"><code>void Put(int key) {</code></li>
+            <li data-step="inserted collision search" class="code-sync__in"><code>int i = key % buckets.Length;</code></li>
+            <li data-step="collision search" class="code-sync__in"><code>var node = buckets[i];</code></li>
+            <li data-step="search" class="code-sync__in"><code>while (node != null &amp;&amp; node.Key != key) node = node.Next;</code></li>
+            <li data-step="search" class="code-sync__in"><code>if (node != null) return;</code></li>
+            <li data-step="inserted collision" class="code-sync__in"><code>buckets[i] = new Node(key, buckets[i]);</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="chain" data-lang="go" hidden>
+            <li data-step="idle"><code>func (t *Table) Put(key int) {</code></li>
+            <li data-step="inserted collision search" class="code-sync__in"><code>i := key % len(t.buckets)</code></li>
+            <li data-step="collision search" class="code-sync__in"><code>node := t.buckets[i]</code></li>
+            <li data-step="search" class="code-sync__in"><code>for node != nil &amp;&amp; node.key != key { node = node.next }</code></li>
+            <li data-step="search" class="code-sync__in"><code>if node != nil { return }</code></li>
+            <li data-step="inserted collision" class="code-sync__in"><code>t.buckets[i] = &amp;Node{key, t.buckets[i]}</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="chain" data-lang="kotlin" hidden>
+            <li data-step="idle"><code>fun put(key: Int) {</code></li>
+            <li data-step="inserted collision search" class="code-sync__in"><code>val i = key % buckets.size</code></li>
+            <li data-step="collision search" class="code-sync__in"><code>var node = buckets[i]</code></li>
+            <li data-step="search" class="code-sync__in"><code>while (node != null &amp;&amp; node.key != key) node = node.next</code></li>
+            <li data-step="search" class="code-sync__in"><code>if (node != null) return</code></li>
+            <li data-step="inserted collision" class="code-sync__in"><code>buckets[i] = Node(key, buckets[i])</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="chain" data-lang="swift" hidden>
+            <li data-step="idle"><code>func put(_ key: Int) {</code></li>
+            <li data-step="inserted collision search" class="code-sync__in"><code>let i = key % buckets.count</code></li>
+            <li data-step="collision search" class="code-sync__in"><code>var chain = buckets[i]</code></li>
+            <li data-step="search" class="code-sync__in"><code>if chain.contains(key) {</code></li>
+            <li data-step="search" class="code-sync__in"><code>return }</code></li>
+            <li data-step="inserted collision" class="code-sync__in"><code>chain.insert(key, at: 0); buckets[i] = chain</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="chain" data-lang="rust" hidden>
+            <li data-step="idle"><code>fn put(&amp;mut self, key: i32) {</code></li>
+            <li data-step="inserted collision search" class="code-sync__in"><code>let i = (key as usize) % self.buckets.len();</code></li>
+            <li data-step="collision search" class="code-sync__in"><code>let chain = &amp;mut self.buckets[i];</code></li>
+            <li data-step="search" class="code-sync__in"><code>if chain.contains(&amp;key) {</code></li>
+            <li data-step="search" class="code-sync__in"><code>return; }</code></li>
+            <li data-step="inserted collision" class="code-sync__in"><code>chain.insert(0, key);</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="chain" data-lang="ruby" hidden>
+            <li data-step="idle"><code>def put(key)</code></li>
+            <li data-step="inserted collision search" class="code-sync__in"><code>i = key % @buckets.length</code></li>
+            <li data-step="collision search" class="code-sync__in"><code>chain = @buckets[i]</code></li>
+            <li data-step="search" class="code-sync__in"><code>return if chain.include?(key)</code></li>
+            <li data-step="inserted collision" class="code-sync__in"><code>chain.unshift(key)</code></li>
+            <li><code>end</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="chain" data-lang="php" hidden>
+            <li data-step="idle"><code>function put(int $key): void {</code></li>
+            <li data-step="inserted collision search" class="code-sync__in"><code>$i = $key % count($this-&gt;buckets);</code></li>
+            <li data-step="collision search" class="code-sync__in"><code>$chain = &amp;$this-&gt;buckets[$i];</code></li>
+            <li data-step="search" class="code-sync__in"><code>if (in_array($key, $chain, true)) return;</code></li>
+            <li data-step="inserted collision" class="code-sync__in"><code>array_unshift($chain, $key);</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <!-- Open Addressing — 다음 빈 자리를 찾아간다 -->
+        <ol class="code-sync__lines" data-variant="open" data-lang="easy" hidden>
+            <li data-step="idle"><span>키 하나를 슬롯에 넣는다</span></li>
+            <li data-step="inserted collision delete search" class="code-sync__in"><span>키를 슬롯 수로 나눈 나머지가 첫 자리다</span></li>
+            <li data-step="collision delete search" class="code-sync__in"><span>그 자리가 비지 않았고 같은 키도 아니면</span></li>
+            <li data-step="collision delete search" class="code-sync__in2"><span>바로 다음 자리로 한 칸 옮긴다</span></li>
+            <li data-step="inserted collision" class="code-sync__in"><span>빈 자리를 찾으면 거기에 넣는다</span></li>
+            <li data-step="delete"><span>키 하나를 지운다</span></li>
+            <li data-step="delete" class="code-sync__in"><span>같은 방식으로 자리를 찾는다</span></li>
+            <li data-step="delete" class="code-sync__in"><span>빈칸이 아니라 묘비를 남긴다 — 뒤 탐사가 끊기면 안 된다</span></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="open" data-lang="java" hidden>
+            <li data-step="idle"><code>void put(int key) {</code></li>
+            <li data-step="inserted collision delete search" class="code-sync__in"><code>int i = key % slots.length;</code></li>
+            <li data-step="collision delete search" class="code-sync__in"><code>while (slots[i] != EMPTY &amp;&amp; slots[i] != key)</code></li>
+            <li data-step="collision delete search" class="code-sync__in2"><code>i = (i + 1) % slots.length;</code></li>
+            <li data-step="inserted collision" class="code-sync__in"><code>slots[i] = key;</code></li>
+            <li><code>}</code></li>
+            <li data-step="delete"><code>void remove(int key) {</code></li>
+            <li data-step="delete" class="code-sync__in"><code>int i = find(key);</code></li>
+            <li data-step="delete" class="code-sync__in"><code>slots[i] = TOMBSTONE;</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="open" data-lang="python" hidden>
+            <li data-step="idle"><code>def put(self, key):</code></li>
+            <li data-step="inserted collision delete search" class="code-sync__in"><code>i = key % len(self.slots)</code></li>
+            <li data-step="collision delete search" class="code-sync__in"><code>while self.slots[i] not in (EMPTY, key):</code></li>
+            <li data-step="collision delete search" class="code-sync__in2"><code>i = (i + 1) % len(self.slots)</code></li>
+            <li data-step="inserted collision" class="code-sync__in"><code>self.slots[i] = key</code></li>
+            <li data-step="delete"><code>def remove(self, key):</code></li>
+            <li data-step="delete" class="code-sync__in"><code>i = self.find(key)</code></li>
+            <li data-step="delete" class="code-sync__in"><code>self.slots[i] = TOMBSTONE</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="open" data-lang="javascript" hidden>
+            <li data-step="idle"><code>put(key) {</code></li>
+            <li data-step="inserted collision delete search" class="code-sync__in"><code>let i = key % this.slots.length;</code></li>
+            <li data-step="collision delete search" class="code-sync__in"><code>while (this.slots[i] !== EMPTY &amp;&amp; this.slots[i] !== key)</code></li>
+            <li data-step="collision delete search" class="code-sync__in2"><code>i = (i + 1) % this.slots.length;</code></li>
+            <li data-step="inserted collision" class="code-sync__in"><code>this.slots[i] = key;</code></li>
+            <li><code>}</code></li>
+            <li data-step="delete"><code>remove(key) {</code></li>
+            <li data-step="delete" class="code-sync__in"><code>const i = this.find(key);</code></li>
+            <li data-step="delete" class="code-sync__in"><code>this.slots[i] = TOMBSTONE;</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="open" data-lang="typescript" hidden>
+            <li data-step="idle"><code>put(key: number): void {</code></li>
+            <li data-step="inserted collision delete search" class="code-sync__in"><code>let i = key % this.slots.length;</code></li>
+            <li data-step="collision delete search" class="code-sync__in"><code>while (this.slots[i] !== EMPTY &amp;&amp; this.slots[i] !== key)</code></li>
+            <li data-step="collision delete search" class="code-sync__in2"><code>i = (i + 1) % this.slots.length;</code></li>
+            <li data-step="inserted collision" class="code-sync__in"><code>this.slots[i] = key;</code></li>
+            <li><code>}</code></li>
+            <li data-step="delete"><code>remove(key: number): void {</code></li>
+            <li data-step="delete" class="code-sync__in"><code>const i = this.find(key);</code></li>
+            <li data-step="delete" class="code-sync__in"><code>this.slots[i] = TOMBSTONE;</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="open" data-lang="c" hidden>
+            <li data-step="idle"><code>void put(Table* t, int key) {</code></li>
+            <li data-step="inserted collision delete search" class="code-sync__in"><code>int i = key % t-&gt;cap;</code></li>
+            <li data-step="collision delete search" class="code-sync__in"><code>while (t-&gt;slots[i] != EMPTY &amp;&amp; t-&gt;slots[i] != key)</code></li>
+            <li data-step="collision delete search" class="code-sync__in2"><code>i = (i + 1) % t-&gt;cap;</code></li>
+            <li data-step="inserted collision" class="code-sync__in"><code>t-&gt;slots[i] = key;</code></li>
+            <li><code>}</code></li>
+            <li data-step="delete"><code>void remove(Table* t, int key) {</code></li>
+            <li data-step="delete" class="code-sync__in"><code>int i = find(t, key);</code></li>
+            <li data-step="delete" class="code-sync__in"><code>t-&gt;slots[i] = TOMBSTONE;</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="open" data-lang="cpp" hidden>
+            <li data-step="idle"><code>void put(int key) {</code></li>
+            <li data-step="inserted collision delete search" class="code-sync__in"><code>int i = key % (int)slots.size();</code></li>
+            <li data-step="collision delete search" class="code-sync__in"><code>while (slots[i] != EMPTY &amp;&amp; slots[i] != key)</code></li>
+            <li data-step="collision delete search" class="code-sync__in2"><code>i = (i + 1) % (int)slots.size();</code></li>
+            <li data-step="inserted collision" class="code-sync__in"><code>slots[i] = key;</code></li>
+            <li><code>}</code></li>
+            <li data-step="delete"><code>void remove(int key) {</code></li>
+            <li data-step="delete" class="code-sync__in"><code>int i = find(key);</code></li>
+            <li data-step="delete" class="code-sync__in"><code>slots[i] = TOMBSTONE;</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="open" data-lang="csharp" hidden>
+            <li data-step="idle"><code>void Put(int key) {</code></li>
+            <li data-step="inserted collision delete search" class="code-sync__in"><code>int i = key % slots.Length;</code></li>
+            <li data-step="collision delete search" class="code-sync__in"><code>while (slots[i] != Empty &amp;&amp; slots[i] != key)</code></li>
+            <li data-step="collision delete search" class="code-sync__in2"><code>i = (i + 1) % slots.Length;</code></li>
+            <li data-step="inserted collision" class="code-sync__in"><code>slots[i] = key;</code></li>
+            <li><code>}</code></li>
+            <li data-step="delete"><code>void Remove(int key) {</code></li>
+            <li data-step="delete" class="code-sync__in"><code>int i = Find(key);</code></li>
+            <li data-step="delete" class="code-sync__in"><code>slots[i] = Tombstone;</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="open" data-lang="go" hidden>
+            <li data-step="idle"><code>func (t *Table) Put(key int) {</code></li>
+            <li data-step="inserted collision delete search" class="code-sync__in"><code>i := key % len(t.slots)</code></li>
+            <li data-step="collision delete search" class="code-sync__in"><code>for t.slots[i] != empty &amp;&amp; t.slots[i] != key {</code></li>
+            <li data-step="collision delete search" class="code-sync__in2"><code>i = (i + 1) % len(t.slots)</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="inserted collision" class="code-sync__in"><code>t.slots[i] = key</code></li>
+            <li><code>}</code></li>
+            <li data-step="delete"><code>func (t *Table) Remove(key int) {</code></li>
+            <li data-step="delete" class="code-sync__in"><code>i := t.find(key)</code></li>
+            <li data-step="delete" class="code-sync__in"><code>t.slots[i] = tombstone</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="open" data-lang="kotlin" hidden>
+            <li data-step="idle"><code>fun put(key: Int) {</code></li>
+            <li data-step="inserted collision delete search" class="code-sync__in"><code>var i = key % slots.size</code></li>
+            <li data-step="collision delete search" class="code-sync__in"><code>while (slots[i] != EMPTY &amp;&amp; slots[i] != key)</code></li>
+            <li data-step="collision delete search" class="code-sync__in2"><code>i = (i + 1) % slots.size</code></li>
+            <li data-step="inserted collision" class="code-sync__in"><code>slots[i] = key</code></li>
+            <li><code>}</code></li>
+            <li data-step="delete"><code>fun remove(key: Int) {</code></li>
+            <li data-step="delete" class="code-sync__in"><code>val i = find(key)</code></li>
+            <li data-step="delete" class="code-sync__in"><code>slots[i] = TOMBSTONE</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="open" data-lang="swift" hidden>
+            <li data-step="idle"><code>func put(_ key: Int) {</code></li>
+            <li data-step="inserted collision delete search" class="code-sync__in"><code>var i = key % slots.count</code></li>
+            <li data-step="collision delete search" class="code-sync__in"><code>while slots[i] != empty &amp;&amp; slots[i] != key {</code></li>
+            <li data-step="collision delete search" class="code-sync__in2"><code>i = (i + 1) % slots.count</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="inserted collision" class="code-sync__in"><code>slots[i] = key</code></li>
+            <li><code>}</code></li>
+            <li data-step="delete"><code>func remove(_ key: Int) {</code></li>
+            <li data-step="delete" class="code-sync__in"><code>let i = find(key)</code></li>
+            <li data-step="delete" class="code-sync__in"><code>slots[i] = tombstone</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="open" data-lang="rust" hidden>
+            <li data-step="idle"><code>fn put(&amp;mut self, key: i32) {</code></li>
+            <li data-step="inserted collision delete search" class="code-sync__in"><code>let mut i = (key as usize) % self.slots.len();</code></li>
+            <li data-step="collision delete search" class="code-sync__in"><code>while self.slots[i] != EMPTY &amp;&amp; self.slots[i] != key {</code></li>
+            <li data-step="collision delete search" class="code-sync__in2"><code>i = (i + 1) % self.slots.len();</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="inserted collision" class="code-sync__in"><code>self.slots[i] = key;</code></li>
+            <li><code>}</code></li>
+            <li data-step="delete"><code>fn remove(&amp;mut self, key: i32) {</code></li>
+            <li data-step="delete" class="code-sync__in"><code>let i = self.find(key);</code></li>
+            <li data-step="delete" class="code-sync__in"><code>self.slots[i] = TOMBSTONE;</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="open" data-lang="ruby" hidden>
+            <li data-step="idle"><code>def put(key)</code></li>
+            <li data-step="inserted collision delete search" class="code-sync__in"><code>i = key % @slots.length</code></li>
+            <li data-step="collision delete search" class="code-sync__in"><code>while @slots[i] != EMPTY &amp;&amp; @slots[i] != key</code></li>
+            <li data-step="collision delete search" class="code-sync__in2"><code>i = (i + 1) % @slots.length</code></li>
+            <li class="code-sync__in"><code>end</code></li>
+            <li data-step="inserted collision" class="code-sync__in"><code>@slots[i] = key</code></li>
+            <li><code>end</code></li>
+            <li data-step="delete"><code>def remove(key)</code></li>
+            <li data-step="delete" class="code-sync__in"><code>i = find(key)</code></li>
+            <li data-step="delete" class="code-sync__in"><code>@slots[i] = TOMBSTONE</code></li>
+            <li><code>end</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="open" data-lang="php" hidden>
+            <li data-step="idle"><code>function put(int $key): void {</code></li>
+            <li data-step="inserted collision delete search" class="code-sync__in"><code>$i = $key % count($this-&gt;slots);</code></li>
+            <li data-step="collision delete search" class="code-sync__in"><code>while ($this-&gt;slots[$i] !== EMPTY &amp;&amp; $this-&gt;slots[$i] !== $key)</code></li>
+            <li data-step="collision delete search" class="code-sync__in2"><code>$i = ($i + 1) % count($this-&gt;slots);</code></li>
+            <li data-step="inserted collision" class="code-sync__in"><code>$this-&gt;slots[$i] = $key;</code></li>
+            <li><code>}</code></li>
+            <li data-step="delete"><code>function remove(int $key): void {</code></li>
+            <li data-step="delete" class="code-sync__in"><code>$i = $this-&gt;find($key);</code></li>
+            <li data-step="delete" class="code-sync__in"><code>$this-&gt;slots[$i] = TOMBSTONE;</code></li>
+            <li><code>}</code></li>
+        </ol>
+    </div>
+</th:block>
