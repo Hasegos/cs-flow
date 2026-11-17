@@ -533,6 +533,25 @@
     }
 
     document.addEventListener('keydown', function (e) {
+        /*
+         * Ctrl + \ : 이 화면에 있는 목차 조작을 누른다.
+         * 넓은 화면은 왼쪽 고정 목차를 접거나 펴고, 좁은 화면은 헤더 아래 띠를
+         * 펼치거나 닫는다. 조작할 목차가 없는 화면에서는 아무 일도 하지 않는다.
+         */
+        if (e.key === '\\' && (e.ctrlKey || e.metaKey) && !e.altKey && !isTyping(e.target)) {
+            const wide = window.matchMedia('(min-width: 1141px)').matches;
+            let target = null;
+            if (wide && navCollapse && navOpen) {
+                target = document.body.classList.contains('is-nav-collapsed') ? navOpen : navCollapse;
+            } else if (!wide && navToggle) {
+                target = navToggle;
+            }
+            if (!target) return;
+            e.preventDefault();
+            target.click();
+            return;
+        }
+
         if (e.ctrlKey || e.metaKey || e.altKey) return;
 
         if (e.key === '/' && !isTyping(e.target)) {

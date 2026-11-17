@@ -14,7 +14,7 @@
                 <span th:text="${sideNavTitle}">목차</span>
                 <span class="side-nav__count" th:text="${#lists.size(sideNavItems)}">0</span>
                 <button type="button" class="side-nav__collapse" id="sideNavCollapse"
-                        aria-label="목차 접기" title="목차 접기">&#171;</button>
+                        aria-label="목차 접기" title="목차 접기 (Ctrl + \)">&#171;</button>
             </h2>
 
             <!-- 학습 진행률 (learning.js가 채운다) -->
@@ -61,5 +61,5 @@
     <!-- 접었을 때 다시 펴는 단추. 목차 바깥에 둬야 목차를 감춰도 남는다 -->
     <button type="button" class="side-nav__open" id="sideNavOpen"
             th:if="${sideNavItems != null and not #lists.isEmpty(sideNavItems)}"
-            aria-label="목차 펴기" title="목차 펴기">&#187;</button>
+            aria-label="목차 펴기" title="목차 펴기 (Ctrl + \)">&#187;</button>
 </th:block>
