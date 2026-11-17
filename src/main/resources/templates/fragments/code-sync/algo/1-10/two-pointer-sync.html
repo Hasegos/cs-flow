@@ -1,0 +1,588 @@
+<th:block th:fragment="sync">
+    <!-- 시각화 옆 코드 패널. 줄의 data-step 이 시각화 단계 이름과 짝지어 밝아진다 -->
+    <div class="code-sync__panel" data-code-sync>
+        <div class="code-sync__bar">
+            <label class="code-sync__label" for="codeSyncLang">언어</label>
+            <select class="code-sync__select" id="codeSyncLang">
+                <option value="easy">쉬운 말</option>
+                <option value="java">Java</option>
+                <option value="python">Python</option>
+                <option value="javascript">JavaScript</option>
+                <option value="typescript">TypeScript</option>
+                <option value="c">C</option>
+                <option value="cpp">C++</option>
+                <option value="csharp">C#</option>
+                <option value="go">Go</option>
+                <option value="kotlin">Kotlin</option>
+                <option value="swift">Swift</option>
+                <option value="rust">Rust</option>
+                <option value="ruby">Ruby</option>
+                <option value="php">PHP</option>
+            </select>
+            <span class="code-sync__state" data-code-sync-state>재생하면 지금 줄이 밝아집니다</span>
+        </div>
+
+        <!-- 투 포인터 — 정렬된 배열 -->
+        <ol class="code-sync__lines" data-variant="twoptr" data-lang="easy">
+            <li data-step="intro"><span>정렬된 배열과 찾을 합을 준비한다</span></li>
+            <li data-step="intro" class="code-sync__in"><span>왼쪽은 맨 앞, 오른쪽은 맨 뒤를 가리킨다</span></li>
+            <li data-step="move-left move-right found" class="code-sync__in"><span>두 포인터가 만나기 전까지 되풀이한다</span></li>
+            <li data-step="move-left move-right found" class="code-sync__in2"><span>양쪽이 가리키는 두 수를 더한다</span></li>
+            <li data-step="found" class="code-sync__in2"><span>합이 찾는 값과 같으면 거기서 끝낸다</span></li>
+            <li data-step="move-left" class="code-sync__in2"><span>합이 더 작으면 왼쪽을 한 칸 오른쪽으로 옮긴다</span></li>
+            <li data-step="move-right" class="code-sync__in2"><span>합이 더 크면 오른쪽을 한 칸 왼쪽으로 옮긴다</span></li>
+            <li class="code-sync__in"><span>둘이 만나도록 못 찾으면 그런 쌍이 없다</span></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="twoptr" data-lang="java" hidden>
+            <li data-step="intro"><code>int[] twoSum(int[] arr, int target) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>int low = 0, high = arr.length - 1;</code></li>
+            <li data-step="move-left move-right found" class="code-sync__in"><code>while (low &lt; high) {</code></li>
+            <li data-step="move-left move-right found" class="code-sync__in2"><code>int sum = arr[low] + arr[high];</code></li>
+            <li data-step="found" class="code-sync__in2"><code>if (sum == target) return new int[] { low, high };</code></li>
+            <li data-step="move-left" class="code-sync__in2"><code>if (sum &lt; target) low++;</code></li>
+            <li data-step="move-right" class="code-sync__in2"><code>else high--;</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li class="code-sync__in"><code>return null;</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="twoptr" data-lang="python" hidden>
+            <li data-step="intro"><code>def two_sum(arr, target):</code></li>
+            <li data-step="intro" class="code-sync__in"><code>low, high = 0, len(arr) - 1</code></li>
+            <li data-step="move-left move-right found" class="code-sync__in"><code>while low &lt; high:</code></li>
+            <li data-step="move-left move-right found" class="code-sync__in2"><code>total = arr[low] + arr[high]</code></li>
+            <li data-step="found" class="code-sync__in2"><code>if total == target: return (low, high)</code></li>
+            <li data-step="move-left" class="code-sync__in2"><code>if total &lt; target: low += 1</code></li>
+            <li data-step="move-right" class="code-sync__in2"><code>else: high -= 1</code></li>
+            <li class="code-sync__in"><code>return None</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="twoptr" data-lang="javascript" hidden>
+            <li data-step="intro"><code>function twoSum(arr, target) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>let low = 0, high = arr.length - 1;</code></li>
+            <li data-step="move-left move-right found" class="code-sync__in"><code>while (low &lt; high) {</code></li>
+            <li data-step="move-left move-right found" class="code-sync__in2"><code>const sum = arr[low] + arr[high];</code></li>
+            <li data-step="found" class="code-sync__in2"><code>if (sum === target) return [low, high];</code></li>
+            <li data-step="move-left" class="code-sync__in2"><code>if (sum &lt; target) low++;</code></li>
+            <li data-step="move-right" class="code-sync__in2"><code>else high--;</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li class="code-sync__in"><code>return null;</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="twoptr" data-lang="typescript" hidden>
+            <li data-step="intro"><code>function twoSum(arr: number[], target: number): [number, number] | null {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>let low = 0, high = arr.length - 1;</code></li>
+            <li data-step="move-left move-right found" class="code-sync__in"><code>while (low &lt; high) {</code></li>
+            <li data-step="move-left move-right found" class="code-sync__in2"><code>const sum = arr[low] + arr[high];</code></li>
+            <li data-step="found" class="code-sync__in2"><code>if (sum === target) return [low, high];</code></li>
+            <li data-step="move-left" class="code-sync__in2"><code>if (sum &lt; target) low++;</code></li>
+            <li data-step="move-right" class="code-sync__in2"><code>else high--;</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li class="code-sync__in"><code>return null;</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="twoptr" data-lang="c" hidden>
+            <li data-step="intro"><code>int two_sum(const int arr[], int n, int target, int out[2]) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>int low = 0, high = n - 1;</code></li>
+            <li data-step="move-left move-right found" class="code-sync__in"><code>while (low &lt; high) {</code></li>
+            <li data-step="move-left move-right found" class="code-sync__in2"><code>int sum = arr[low] + arr[high];</code></li>
+            <li data-step="found" class="code-sync__in2"><code>if (sum == target) { out[0] = low; out[1] = high; return 1; }</code></li>
+            <li data-step="move-left" class="code-sync__in2"><code>if (sum &lt; target) low++;</code></li>
+            <li data-step="move-right" class="code-sync__in2"><code>else high--;</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li class="code-sync__in"><code>return 0;</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="twoptr" data-lang="cpp" hidden>
+            <li data-step="intro"><code>std::optional&lt;std::pair&lt;int, int&gt;&gt; twoSum(const std::vector&lt;int&gt;&amp; arr, int target) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>int low = 0, high = (int)arr.size() - 1;</code></li>
+            <li data-step="move-left move-right found" class="code-sync__in"><code>while (low &lt; high) {</code></li>
+            <li data-step="move-left move-right found" class="code-sync__in2"><code>int sum = arr[low] + arr[high];</code></li>
+            <li data-step="found" class="code-sync__in2"><code>if (sum == target) return std::make_pair(low, high);</code></li>
+            <li data-step="move-left" class="code-sync__in2"><code>if (sum &lt; target) low++;</code></li>
+            <li data-step="move-right" class="code-sync__in2"><code>else high--;</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li class="code-sync__in"><code>return std::nullopt;</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="twoptr" data-lang="csharp" hidden>
+            <li data-step="intro"><code>int[] TwoSum(int[] arr, int target) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>int low = 0, high = arr.Length - 1;</code></li>
+            <li data-step="move-left move-right found" class="code-sync__in"><code>while (low &lt; high) {</code></li>
+            <li data-step="move-left move-right found" class="code-sync__in2"><code>int sum = arr[low] + arr[high];</code></li>
+            <li data-step="found" class="code-sync__in2"><code>if (sum == target) return new[] { low, high };</code></li>
+            <li data-step="move-left" class="code-sync__in2"><code>if (sum &lt; target) low++;</code></li>
+            <li data-step="move-right" class="code-sync__in2"><code>else high--;</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li class="code-sync__in"><code>return null;</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="twoptr" data-lang="go" hidden>
+            <li data-step="intro"><code>func twoSum(arr []int, target int) (int, int, bool) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>low, high := 0, len(arr)-1</code></li>
+            <li data-step="move-left move-right found" class="code-sync__in"><code>for low &lt; high {</code></li>
+            <li data-step="move-left move-right found" class="code-sync__in2"><code>sum := arr[low] + arr[high]</code></li>
+            <li data-step="found" class="code-sync__in2"><code>if sum == target { return low, high, true }</code></li>
+            <li data-step="move-left" class="code-sync__in2"><code>if sum &lt; target { low++ }</code></li>
+            <li data-step="move-right" class="code-sync__in2"><code>if sum &gt; target { high-- }</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li class="code-sync__in"><code>return 0, 0, false</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="twoptr" data-lang="kotlin" hidden>
+            <li data-step="intro"><code>fun twoSum(arr: IntArray, target: Int): Pair&lt;Int, Int&gt;? {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>var low = 0; var high = arr.size - 1</code></li>
+            <li data-step="move-left move-right found" class="code-sync__in"><code>while (low &lt; high) {</code></li>
+            <li data-step="move-left move-right found" class="code-sync__in2"><code>val sum = arr[low] + arr[high]</code></li>
+            <li data-step="found" class="code-sync__in2"><code>if (sum == target) return low to high</code></li>
+            <li data-step="move-left" class="code-sync__in2"><code>if (sum &lt; target) low++</code></li>
+            <li data-step="move-right" class="code-sync__in2"><code>else high--</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li class="code-sync__in"><code>return null</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="twoptr" data-lang="swift" hidden>
+            <li data-step="intro"><code>func twoSum(_ arr: [Int], _ target: Int) -&gt; (Int, Int)? {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>var low = 0, high = arr.count - 1</code></li>
+            <li data-step="move-left move-right found" class="code-sync__in"><code>while low &lt; high {</code></li>
+            <li data-step="move-left move-right found" class="code-sync__in2"><code>let sum = arr[low] + arr[high]</code></li>
+            <li data-step="found" class="code-sync__in2"><code>if sum == target { return (low, high) }</code></li>
+            <li data-step="move-left" class="code-sync__in2"><code>if sum &lt; target { low += 1 }</code></li>
+            <li data-step="move-right" class="code-sync__in2"><code>else { high -= 1 }</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li class="code-sync__in"><code>return nil</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="twoptr" data-lang="rust" hidden>
+            <li data-step="intro"><code>fn two_sum(arr: &amp;[i32], target: i32) -&gt; Option&lt;(usize, usize)&gt; {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>let (mut low, mut high) = (0usize, arr.len() - 1);</code></li>
+            <li data-step="move-left move-right found" class="code-sync__in"><code>while low &lt; high {</code></li>
+            <li data-step="move-left move-right found" class="code-sync__in2"><code>let sum = arr[low] + arr[high];</code></li>
+            <li data-step="found" class="code-sync__in2"><code>if sum == target { return Some((low, high)); }</code></li>
+            <li data-step="move-left" class="code-sync__in2"><code>if sum &lt; target { low += 1; }</code></li>
+            <li data-step="move-right" class="code-sync__in2"><code>else { high -= 1; }</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li class="code-sync__in"><code>None</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="twoptr" data-lang="ruby" hidden>
+            <li data-step="intro"><code>def two_sum(arr, target)</code></li>
+            <li data-step="intro" class="code-sync__in"><code>low, high = 0, arr.length - 1</code></li>
+            <li data-step="move-left move-right found" class="code-sync__in"><code>while low &lt; high</code></li>
+            <li data-step="move-left move-right found" class="code-sync__in2"><code>sum = arr[low] + arr[high]</code></li>
+            <li data-step="found" class="code-sync__in2"><code>return [low, high] if sum == target</code></li>
+            <li data-step="move-left" class="code-sync__in2"><code>low += 1 if sum &lt; target</code></li>
+            <li data-step="move-right" class="code-sync__in2"><code>high -= 1 if sum &gt; target</code></li>
+            <li class="code-sync__in"><code>end</code></li>
+            <li class="code-sync__in"><code>nil</code></li>
+            <li><code>end</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="twoptr" data-lang="php" hidden>
+            <li data-step="intro"><code>function twoSum(array $arr, int $target): ?array {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>$low = 0; $high = count($arr) - 1;</code></li>
+            <li data-step="move-left move-right found" class="code-sync__in"><code>while ($low &lt; $high) {</code></li>
+            <li data-step="move-left move-right found" class="code-sync__in2"><code>$sum = $arr[$low] + $arr[$high];</code></li>
+            <li data-step="found" class="code-sync__in2"><code>if ($sum === $target) return [$low, $high];</code></li>
+            <li data-step="move-left" class="code-sync__in2"><code>if ($sum &lt; $target) $low++;</code></li>
+            <li data-step="move-right" class="code-sync__in2"><code>else $high--;</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li class="code-sync__in"><code>return null;</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <!-- 정렬이 필요한 이유 — 같은 코드를 정렬 안 된 배열에 -->
+        <ol class="code-sync__lines" data-variant="unsorted" data-lang="easy" hidden>
+            <li data-step="intro"><span>정렬된 배열과 찾을 합을 준비한다</span></li>
+            <li data-step="intro" class="code-sync__in"><span>왼쪽은 맨 앞, 오른쪽은 맨 뒤를 가리킨다</span></li>
+            <li data-step="move-left move-right found" class="code-sync__in"><span>두 포인터가 만나기 전까지 되풀이한다</span></li>
+            <li data-step="move-left move-right found" class="code-sync__in2"><span>양쪽이 가리키는 두 수를 더한다</span></li>
+            <li data-step="found" class="code-sync__in2"><span>합이 찾는 값과 같으면 거기서 끝낸다</span></li>
+            <li data-step="move-left" class="code-sync__in2"><span>합이 더 작으면 왼쪽을 한 칸 오른쪽으로 옮긴다</span></li>
+            <li data-step="move-right" class="code-sync__in2"><span>합이 더 크면 오른쪽을 한 칸 왼쪽으로 옮긴다</span></li>
+            <li class="code-sync__in"><span>둘이 만나도록 못 찾으면 그런 쌍이 없다</span></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="unsorted" data-lang="java" hidden>
+            <li data-step="intro"><code>int[] twoSum(int[] arr, int target) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>int low = 0, high = arr.length - 1;</code></li>
+            <li data-step="move-left move-right found" class="code-sync__in"><code>while (low &lt; high) {</code></li>
+            <li data-step="move-left move-right found" class="code-sync__in2"><code>int sum = arr[low] + arr[high];</code></li>
+            <li data-step="found" class="code-sync__in2"><code>if (sum == target) return new int[] { low, high };</code></li>
+            <li data-step="move-left" class="code-sync__in2"><code>if (sum &lt; target) low++;</code></li>
+            <li data-step="move-right" class="code-sync__in2"><code>else high--;</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li class="code-sync__in"><code>return null;</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="unsorted" data-lang="python" hidden>
+            <li data-step="intro"><code>def two_sum(arr, target):</code></li>
+            <li data-step="intro" class="code-sync__in"><code>low, high = 0, len(arr) - 1</code></li>
+            <li data-step="move-left move-right found" class="code-sync__in"><code>while low &lt; high:</code></li>
+            <li data-step="move-left move-right found" class="code-sync__in2"><code>total = arr[low] + arr[high]</code></li>
+            <li data-step="found" class="code-sync__in2"><code>if total == target: return (low, high)</code></li>
+            <li data-step="move-left" class="code-sync__in2"><code>if total &lt; target: low += 1</code></li>
+            <li data-step="move-right" class="code-sync__in2"><code>else: high -= 1</code></li>
+            <li class="code-sync__in"><code>return None</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="unsorted" data-lang="javascript" hidden>
+            <li data-step="intro"><code>function twoSum(arr, target) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>let low = 0, high = arr.length - 1;</code></li>
+            <li data-step="move-left move-right found" class="code-sync__in"><code>while (low &lt; high) {</code></li>
+            <li data-step="move-left move-right found" class="code-sync__in2"><code>const sum = arr[low] + arr[high];</code></li>
+            <li data-step="found" class="code-sync__in2"><code>if (sum === target) return [low, high];</code></li>
+            <li data-step="move-left" class="code-sync__in2"><code>if (sum &lt; target) low++;</code></li>
+            <li data-step="move-right" class="code-sync__in2"><code>else high--;</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li class="code-sync__in"><code>return null;</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="unsorted" data-lang="typescript" hidden>
+            <li data-step="intro"><code>function twoSum(arr: number[], target: number): [number, number] | null {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>let low = 0, high = arr.length - 1;</code></li>
+            <li data-step="move-left move-right found" class="code-sync__in"><code>while (low &lt; high) {</code></li>
+            <li data-step="move-left move-right found" class="code-sync__in2"><code>const sum = arr[low] + arr[high];</code></li>
+            <li data-step="found" class="code-sync__in2"><code>if (sum === target) return [low, high];</code></li>
+            <li data-step="move-left" class="code-sync__in2"><code>if (sum &lt; target) low++;</code></li>
+            <li data-step="move-right" class="code-sync__in2"><code>else high--;</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li class="code-sync__in"><code>return null;</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="unsorted" data-lang="c" hidden>
+            <li data-step="intro"><code>int two_sum(const int arr[], int n, int target, int out[2]) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>int low = 0, high = n - 1;</code></li>
+            <li data-step="move-left move-right found" class="code-sync__in"><code>while (low &lt; high) {</code></li>
+            <li data-step="move-left move-right found" class="code-sync__in2"><code>int sum = arr[low] + arr[high];</code></li>
+            <li data-step="found" class="code-sync__in2"><code>if (sum == target) { out[0] = low; out[1] = high; return 1; }</code></li>
+            <li data-step="move-left" class="code-sync__in2"><code>if (sum &lt; target) low++;</code></li>
+            <li data-step="move-right" class="code-sync__in2"><code>else high--;</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li class="code-sync__in"><code>return 0;</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="unsorted" data-lang="cpp" hidden>
+            <li data-step="intro"><code>std::optional&lt;std::pair&lt;int, int&gt;&gt; twoSum(const std::vector&lt;int&gt;&amp; arr, int target) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>int low = 0, high = (int)arr.size() - 1;</code></li>
+            <li data-step="move-left move-right found" class="code-sync__in"><code>while (low &lt; high) {</code></li>
+            <li data-step="move-left move-right found" class="code-sync__in2"><code>int sum = arr[low] + arr[high];</code></li>
+            <li data-step="found" class="code-sync__in2"><code>if (sum == target) return std::make_pair(low, high);</code></li>
+            <li data-step="move-left" class="code-sync__in2"><code>if (sum &lt; target) low++;</code></li>
+            <li data-step="move-right" class="code-sync__in2"><code>else high--;</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li class="code-sync__in"><code>return std::nullopt;</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="unsorted" data-lang="csharp" hidden>
+            <li data-step="intro"><code>int[] TwoSum(int[] arr, int target) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>int low = 0, high = arr.Length - 1;</code></li>
+            <li data-step="move-left move-right found" class="code-sync__in"><code>while (low &lt; high) {</code></li>
+            <li data-step="move-left move-right found" class="code-sync__in2"><code>int sum = arr[low] + arr[high];</code></li>
+            <li data-step="found" class="code-sync__in2"><code>if (sum == target) return new[] { low, high };</code></li>
+            <li data-step="move-left" class="code-sync__in2"><code>if (sum &lt; target) low++;</code></li>
+            <li data-step="move-right" class="code-sync__in2"><code>else high--;</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li class="code-sync__in"><code>return null;</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="unsorted" data-lang="go" hidden>
+            <li data-step="intro"><code>func twoSum(arr []int, target int) (int, int, bool) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>low, high := 0, len(arr)-1</code></li>
+            <li data-step="move-left move-right found" class="code-sync__in"><code>for low &lt; high {</code></li>
+            <li data-step="move-left move-right found" class="code-sync__in2"><code>sum := arr[low] + arr[high]</code></li>
+            <li data-step="found" class="code-sync__in2"><code>if sum == target { return low, high, true }</code></li>
+            <li data-step="move-left" class="code-sync__in2"><code>if sum &lt; target { low++ }</code></li>
+            <li data-step="move-right" class="code-sync__in2"><code>if sum &gt; target { high-- }</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li class="code-sync__in"><code>return 0, 0, false</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="unsorted" data-lang="kotlin" hidden>
+            <li data-step="intro"><code>fun twoSum(arr: IntArray, target: Int): Pair&lt;Int, Int&gt;? {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>var low = 0; var high = arr.size - 1</code></li>
+            <li data-step="move-left move-right found" class="code-sync__in"><code>while (low &lt; high) {</code></li>
+            <li data-step="move-left move-right found" class="code-sync__in2"><code>val sum = arr[low] + arr[high]</code></li>
+            <li data-step="found" class="code-sync__in2"><code>if (sum == target) return low to high</code></li>
+            <li data-step="move-left" class="code-sync__in2"><code>if (sum &lt; target) low++</code></li>
+            <li data-step="move-right" class="code-sync__in2"><code>else high--</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li class="code-sync__in"><code>return null</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="unsorted" data-lang="swift" hidden>
+            <li data-step="intro"><code>func twoSum(_ arr: [Int], _ target: Int) -&gt; (Int, Int)? {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>var low = 0, high = arr.count - 1</code></li>
+            <li data-step="move-left move-right found" class="code-sync__in"><code>while low &lt; high {</code></li>
+            <li data-step="move-left move-right found" class="code-sync__in2"><code>let sum = arr[low] + arr[high]</code></li>
+            <li data-step="found" class="code-sync__in2"><code>if sum == target { return (low, high) }</code></li>
+            <li data-step="move-left" class="code-sync__in2"><code>if sum &lt; target { low += 1 }</code></li>
+            <li data-step="move-right" class="code-sync__in2"><code>else { high -= 1 }</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li class="code-sync__in"><code>return nil</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="unsorted" data-lang="rust" hidden>
+            <li data-step="intro"><code>fn two_sum(arr: &amp;[i32], target: i32) -&gt; Option&lt;(usize, usize)&gt; {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>let (mut low, mut high) = (0usize, arr.len() - 1);</code></li>
+            <li data-step="move-left move-right found" class="code-sync__in"><code>while low &lt; high {</code></li>
+            <li data-step="move-left move-right found" class="code-sync__in2"><code>let sum = arr[low] + arr[high];</code></li>
+            <li data-step="found" class="code-sync__in2"><code>if sum == target { return Some((low, high)); }</code></li>
+            <li data-step="move-left" class="code-sync__in2"><code>if sum &lt; target { low += 1; }</code></li>
+            <li data-step="move-right" class="code-sync__in2"><code>else { high -= 1; }</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li class="code-sync__in"><code>None</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="unsorted" data-lang="ruby" hidden>
+            <li data-step="intro"><code>def two_sum(arr, target)</code></li>
+            <li data-step="intro" class="code-sync__in"><code>low, high = 0, arr.length - 1</code></li>
+            <li data-step="move-left move-right found" class="code-sync__in"><code>while low &lt; high</code></li>
+            <li data-step="move-left move-right found" class="code-sync__in2"><code>sum = arr[low] + arr[high]</code></li>
+            <li data-step="found" class="code-sync__in2"><code>return [low, high] if sum == target</code></li>
+            <li data-step="move-left" class="code-sync__in2"><code>low += 1 if sum &lt; target</code></li>
+            <li data-step="move-right" class="code-sync__in2"><code>high -= 1 if sum &gt; target</code></li>
+            <li class="code-sync__in"><code>end</code></li>
+            <li class="code-sync__in"><code>nil</code></li>
+            <li><code>end</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="unsorted" data-lang="php" hidden>
+            <li data-step="intro"><code>function twoSum(array $arr, int $target): ?array {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>$low = 0; $high = count($arr) - 1;</code></li>
+            <li data-step="move-left move-right found" class="code-sync__in"><code>while ($low &lt; $high) {</code></li>
+            <li data-step="move-left move-right found" class="code-sync__in2"><code>$sum = $arr[$low] + $arr[$high];</code></li>
+            <li data-step="found" class="code-sync__in2"><code>if ($sum === $target) return [$low, $high];</code></li>
+            <li data-step="move-left" class="code-sync__in2"><code>if ($sum &lt; $target) $low++;</code></li>
+            <li data-step="move-right" class="code-sync__in2"><code>else $high--;</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li class="code-sync__in"><code>return null;</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <!-- 슬라이딩 윈도우 — 합이 목표 이상인 최소 길이 -->
+        <ol class="code-sync__lines" data-variant="window" data-lang="easy" hidden>
+            <li data-step="intro"><span>배열과 넘어야 할 목표 합을 준비한다</span></li>
+            <li data-step="intro" class="code-sync__in"><span>왼쪽은 맨 앞, 창 안의 합은 0, 기록은 아직 없다</span></li>
+            <li data-step="expand" class="code-sync__in"><span>오른쪽을 한 칸씩 끝까지 늘린다</span></li>
+            <li data-step="expand" class="code-sync__in2"><span>늘린 칸의 값을 창 안의 합에 더한다</span></li>
+            <li data-step="check shrink" class="code-sync__in2"><span>합이 목표 이상인 동안 되풀이한다</span></li>
+            <li data-step="check" class="code-sync__in3"><span>지금 창이 더 짧으면 기록을 바꾼다</span></li>
+            <li data-step="shrink" class="code-sync__in3"><span>왼쪽 칸의 값을 합에서 뺀다</span></li>
+            <li data-step="shrink" class="code-sync__in3"><span>왼쪽을 한 칸 오른쪽으로 옮긴다</span></li>
+            <li data-step="done" class="code-sync__in"><span>다 훑었으면 기록한 가장 짧은 길이를 돌려준다</span></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="window" data-lang="java" hidden>
+            <li data-step="intro"><code>int minWindow(int[] arr, int target) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>int low = 0, sum = 0, best = Integer.MAX_VALUE;</code></li>
+            <li data-step="expand" class="code-sync__in"><code>for (int high = 0; high &lt; arr.length; high++) {</code></li>
+            <li data-step="expand" class="code-sync__in2"><code>sum += arr[high];</code></li>
+            <li data-step="check shrink" class="code-sync__in2"><code>while (sum &gt;= target) {</code></li>
+            <li data-step="check" class="code-sync__in3"><code>best = Math.min(best, high - low + 1);</code></li>
+            <li data-step="shrink" class="code-sync__in3"><code>sum -= arr[low];</code></li>
+            <li data-step="shrink" class="code-sync__in3"><code>low++;</code></li>
+            <li class="code-sync__in2"><code>}</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done" class="code-sync__in"><code>return best == Integer.MAX_VALUE ? 0 : best;</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="window" data-lang="python" hidden>
+            <li data-step="intro"><code>def min_window(arr, target):</code></li>
+            <li data-step="intro" class="code-sync__in"><code>low, total, best = 0, 0, float("inf")</code></li>
+            <li data-step="expand" class="code-sync__in"><code>for high, value in enumerate(arr):</code></li>
+            <li data-step="expand" class="code-sync__in2"><code>total += value</code></li>
+            <li data-step="check shrink" class="code-sync__in2"><code>while total &gt;= target:</code></li>
+            <li data-step="check" class="code-sync__in3"><code>best = min(best, high - low + 1)</code></li>
+            <li data-step="shrink" class="code-sync__in3"><code>total -= arr[low]</code></li>
+            <li data-step="shrink" class="code-sync__in3"><code>low += 1</code></li>
+            <li data-step="done" class="code-sync__in"><code>return 0 if best == float("inf") else best</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="window" data-lang="javascript" hidden>
+            <li data-step="intro"><code>function minWindow(arr, target) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>let low = 0, sum = 0, best = Infinity;</code></li>
+            <li data-step="expand" class="code-sync__in"><code>for (let high = 0; high &lt; arr.length; high++) {</code></li>
+            <li data-step="expand" class="code-sync__in2"><code>sum += arr[high];</code></li>
+            <li data-step="check shrink" class="code-sync__in2"><code>while (sum &gt;= target) {</code></li>
+            <li data-step="check" class="code-sync__in3"><code>best = Math.min(best, high - low + 1);</code></li>
+            <li data-step="shrink" class="code-sync__in3"><code>sum -= arr[low];</code></li>
+            <li data-step="shrink" class="code-sync__in3"><code>low++;</code></li>
+            <li class="code-sync__in2"><code>}</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done" class="code-sync__in"><code>return best === Infinity ? 0 : best;</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="window" data-lang="typescript" hidden>
+            <li data-step="intro"><code>function minWindow(arr: number[], target: number): number {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>let low = 0, sum = 0, best = Infinity;</code></li>
+            <li data-step="expand" class="code-sync__in"><code>for (let high = 0; high &lt; arr.length; high++) {</code></li>
+            <li data-step="expand" class="code-sync__in2"><code>sum += arr[high];</code></li>
+            <li data-step="check shrink" class="code-sync__in2"><code>while (sum &gt;= target) {</code></li>
+            <li data-step="check" class="code-sync__in3"><code>best = Math.min(best, high - low + 1);</code></li>
+            <li data-step="shrink" class="code-sync__in3"><code>sum -= arr[low];</code></li>
+            <li data-step="shrink" class="code-sync__in3"><code>low++;</code></li>
+            <li class="code-sync__in2"><code>}</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done" class="code-sync__in"><code>return best === Infinity ? 0 : best;</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="window" data-lang="c" hidden>
+            <li data-step="intro"><code>int min_window(const int arr[], int n, int target) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>int low = 0, sum = 0, best = INT_MAX;</code></li>
+            <li data-step="expand" class="code-sync__in"><code>for (int high = 0; high &lt; n; high++) {</code></li>
+            <li data-step="expand" class="code-sync__in2"><code>sum += arr[high];</code></li>
+            <li data-step="check shrink" class="code-sync__in2"><code>while (sum &gt;= target) {</code></li>
+            <li data-step="check" class="code-sync__in3"><code>if (high - low + 1 &lt; best) best = high - low + 1;</code></li>
+            <li data-step="shrink" class="code-sync__in3"><code>sum -= arr[low];</code></li>
+            <li data-step="shrink" class="code-sync__in3"><code>low++;</code></li>
+            <li class="code-sync__in2"><code>}</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done" class="code-sync__in"><code>return best == INT_MAX ? 0 : best;</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="window" data-lang="cpp" hidden>
+            <li data-step="intro"><code>int minWindow(const std::vector&lt;int&gt;&amp; arr, int target) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>int low = 0, sum = 0, best = INT_MAX;</code></li>
+            <li data-step="expand" class="code-sync__in"><code>for (int high = 0; high &lt; (int)arr.size(); high++) {</code></li>
+            <li data-step="expand" class="code-sync__in2"><code>sum += arr[high];</code></li>
+            <li data-step="check shrink" class="code-sync__in2"><code>while (sum &gt;= target) {</code></li>
+            <li data-step="check" class="code-sync__in3"><code>best = std::min(best, high - low + 1);</code></li>
+            <li data-step="shrink" class="code-sync__in3"><code>sum -= arr[low];</code></li>
+            <li data-step="shrink" class="code-sync__in3"><code>low++;</code></li>
+            <li class="code-sync__in2"><code>}</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done" class="code-sync__in"><code>return best == INT_MAX ? 0 : best;</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="window" data-lang="csharp" hidden>
+            <li data-step="intro"><code>int MinWindow(int[] arr, int target) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>int low = 0, sum = 0, best = int.MaxValue;</code></li>
+            <li data-step="expand" class="code-sync__in"><code>for (int high = 0; high &lt; arr.Length; high++) {</code></li>
+            <li data-step="expand" class="code-sync__in2"><code>sum += arr[high];</code></li>
+            <li data-step="check shrink" class="code-sync__in2"><code>while (sum &gt;= target) {</code></li>
+            <li data-step="check" class="code-sync__in3"><code>best = Math.Min(best, high - low + 1);</code></li>
+            <li data-step="shrink" class="code-sync__in3"><code>sum -= arr[low];</code></li>
+            <li data-step="shrink" class="code-sync__in3"><code>low++;</code></li>
+            <li class="code-sync__in2"><code>}</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done" class="code-sync__in"><code>return best == int.MaxValue ? 0 : best;</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="window" data-lang="go" hidden>
+            <li data-step="intro"><code>func minWindow(arr []int, target int) int {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>low, sum, best := 0, 0, math.MaxInt</code></li>
+            <li data-step="expand" class="code-sync__in"><code>for high := 0; high &lt; len(arr); high++ {</code></li>
+            <li data-step="expand" class="code-sync__in2"><code>sum += arr[high]</code></li>
+            <li data-step="check shrink" class="code-sync__in2"><code>for sum &gt;= target {</code></li>
+            <li data-step="check" class="code-sync__in3"><code>if high-low+1 &lt; best { best = high - low + 1 }</code></li>
+            <li data-step="shrink" class="code-sync__in3"><code>sum -= arr[low]</code></li>
+            <li data-step="shrink" class="code-sync__in3"><code>low++</code></li>
+            <li class="code-sync__in2"><code>}</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done" class="code-sync__in"><code>if best == math.MaxInt { return 0 }; return best</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="window" data-lang="kotlin" hidden>
+            <li data-step="intro"><code>fun minWindow(arr: IntArray, target: Int): Int {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>var low = 0; var sum = 0; var best = Int.MAX_VALUE</code></li>
+            <li data-step="expand" class="code-sync__in"><code>for (high in arr.indices) {</code></li>
+            <li data-step="expand" class="code-sync__in2"><code>sum += arr[high]</code></li>
+            <li data-step="check shrink" class="code-sync__in2"><code>while (sum &gt;= target) {</code></li>
+            <li data-step="check" class="code-sync__in3"><code>best = minOf(best, high - low + 1)</code></li>
+            <li data-step="shrink" class="code-sync__in3"><code>sum -= arr[low]</code></li>
+            <li data-step="shrink" class="code-sync__in3"><code>low++</code></li>
+            <li class="code-sync__in2"><code>}</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done" class="code-sync__in"><code>return if (best == Int.MAX_VALUE) 0 else best</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="window" data-lang="swift" hidden>
+            <li data-step="intro"><code>func minWindow(_ arr: [Int], _ target: Int) -&gt; Int {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>var low = 0, sum = 0, best = Int.max</code></li>
+            <li data-step="expand" class="code-sync__in"><code>for high in arr.indices {</code></li>
+            <li data-step="expand" class="code-sync__in2"><code>sum += arr[high]</code></li>
+            <li data-step="check shrink" class="code-sync__in2"><code>while sum &gt;= target {</code></li>
+            <li data-step="check" class="code-sync__in3"><code>best = min(best, high - low + 1)</code></li>
+            <li data-step="shrink" class="code-sync__in3"><code>sum -= arr[low]</code></li>
+            <li data-step="shrink" class="code-sync__in3"><code>low += 1</code></li>
+            <li class="code-sync__in2"><code>}</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done" class="code-sync__in"><code>return best == Int.max ? 0 : best</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="window" data-lang="rust" hidden>
+            <li data-step="intro"><code>fn min_window(arr: &amp;[i32], target: i32) -&gt; usize {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>let (mut low, mut sum, mut best) = (0usize, 0i32, usize::MAX);</code></li>
+            <li data-step="expand" class="code-sync__in"><code>for high in 0..arr.len() {</code></li>
+            <li data-step="expand" class="code-sync__in2"><code>sum += arr[high];</code></li>
+            <li data-step="check shrink" class="code-sync__in2"><code>while sum &gt;= target {</code></li>
+            <li data-step="check" class="code-sync__in3"><code>best = best.min(high - low + 1);</code></li>
+            <li data-step="shrink" class="code-sync__in3"><code>sum -= arr[low];</code></li>
+            <li data-step="shrink" class="code-sync__in3"><code>low += 1;</code></li>
+            <li class="code-sync__in2"><code>}</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done" class="code-sync__in"><code>if best == usize::MAX { 0 } else { best }</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="window" data-lang="ruby" hidden>
+            <li data-step="intro"><code>def min_window(arr, target)</code></li>
+            <li data-step="intro" class="code-sync__in"><code>low, sum, best = 0, 0, Float::INFINITY</code></li>
+            <li data-step="expand" class="code-sync__in"><code>arr.each_with_index do |value, high|</code></li>
+            <li data-step="expand" class="code-sync__in2"><code>sum += value</code></li>
+            <li data-step="check shrink" class="code-sync__in2"><code>while sum &gt;= target</code></li>
+            <li data-step="check" class="code-sync__in3"><code>best = [best, high - low + 1].min</code></li>
+            <li data-step="shrink" class="code-sync__in3"><code>sum -= arr[low]</code></li>
+            <li data-step="shrink" class="code-sync__in3"><code>low += 1</code></li>
+            <li class="code-sync__in2"><code>end</code></li>
+            <li class="code-sync__in"><code>end</code></li>
+            <li data-step="done" class="code-sync__in"><code>best == Float::INFINITY ? 0 : best</code></li>
+            <li><code>end</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="window" data-lang="php" hidden>
+            <li data-step="intro"><code>function minWindow(array $arr, int $target): int {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>$low = 0; $sum = 0; $best = PHP_INT_MAX;</code></li>
+            <li data-step="expand" class="code-sync__in"><code>for ($high = 0; $high &lt; count($arr); $high++) {</code></li>
+            <li data-step="expand" class="code-sync__in2"><code>$sum += $arr[$high];</code></li>
+            <li data-step="check shrink" class="code-sync__in2"><code>while ($sum &gt;= $target) {</code></li>
+            <li data-step="check" class="code-sync__in3"><code>$best = min($best, $high - $low + 1);</code></li>
+            <li data-step="shrink" class="code-sync__in3"><code>$sum -= $arr[$low];</code></li>
+            <li data-step="shrink" class="code-sync__in3"><code>$low++;</code></li>
+            <li class="code-sync__in2"><code>}</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done" class="code-sync__in"><code>return $best === PHP_INT_MAX ? 0 : $best;</code></li>
+            <li><code>}</code></li>
+        </ol>
+    </div>
+</th:block>
