@@ -846,6 +846,9 @@
 .code-sync__in2 > code,
 .code-sync__in2 > span { margin-left: 2.2rem; }
 
+.code-sync__in3 > code,
+.code-sync__in3 > span { margin-left: 3.3rem; }
+
 .code-sync__lines li.is-now {
   color: var(--color-text);
   background: var(--color-purple-dim);
