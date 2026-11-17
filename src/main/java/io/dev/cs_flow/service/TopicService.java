@@ -1,6 +1,7 @@
 package io.dev.cs_flow.service;
 
 import io.dev.cs_flow.common.exception.NotFoundException;
+import io.dev.cs_flow.common.util.BotDetector;
 import io.dev.cs_flow.common.util.SearchPatterns;
 import io.dev.cs_flow.dto.InterviewQuestionView;
 import io.dev.cs_flow.dto.TagCount;
@@ -301,13 +302,17 @@ public class TopicService {
     }
 
     /**
-     * 토픽 조회를 기록한다. 같은 방문자가 오늘 이미 조회했으면 무시한다.
+     * 토픽 조회를 기록한다. 방문자를 알 수 없거나 크롤러면 세지 않고, 같은 방문자가 오늘 이미 조회했으면 무시한다.
      *
      * @param topicSlug 토픽 영문 식별자
-     * @param visitorId 익명 방문자 식별자
+     * @param visitorId 익명 방문자 식별자, 없으면 null
+     * @param userAgent 요청의 User-Agent 헤더, 없으면 null
      */
     @Transactional
-    public void recordView(String topicSlug, String visitorId){
+    public void recordView(String topicSlug, String visitorId, String userAgent){
+        if (visitorId == null || BotDetector.isBot(userAgent)) {
+            return;
+        }
         int inserted = topicViewRepository.recordViewIfNew(topicSlug, visitorId);
         if (inserted > 0) {
             topicStatRepository.incrementViewCount(topicSlug);
