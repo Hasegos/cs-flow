@@ -196,6 +196,45 @@
         });
     }
 
+    /* --- 접기 --- */
+    const navCollapse = document.getElementById('sideNavCollapse');
+    const navOpen     = document.getElementById('sideNavOpen');
+
+    if (navCollapse && navOpen) {
+        const COLLAPSE_KEY = 'csflow-nav-collapsed';
+        const root = document.documentElement;
+
+        /**
+         * 목차를 접거나 편다. 접으면 --side-nav-w 를 0 으로 두어
+         * 본문 여백과 읽기 진행 바까지 한 번에 따라오게 한다.
+         *
+         * @param on true면 접는다
+         */
+        function setCollapsed(on) {
+            document.body.classList.toggle('is-nav-collapsed', on);
+            if (on) {
+                root.style.setProperty('--side-nav-w', '0px');
+            } else {
+                const saved = parseInt(storage.get('csflow-nav-width'), 10);
+                if (saved) root.style.setProperty('--side-nav-w', saved + 'px');
+                else root.style.removeProperty('--side-nav-w');
+            }
+            storage.set(COLLAPSE_KEY, on ? '1' : '0');
+        }
+
+        if (storage.get(COLLAPSE_KEY) === '1') setCollapsed(true);
+
+        navCollapse.addEventListener('click', function () {
+            setCollapsed(true);
+            navOpen.focus();
+        });
+
+        navOpen.addEventListener('click', function () {
+            setCollapsed(false);
+            navCollapse.focus();
+        });
+    }
+
     const navFilter = document.getElementById('sideNavFilter');
     const navList   = document.getElementById('sideNavList');
     const navEmpty  = document.getElementById('sideNavEmpty');
@@ -494,6 +533,25 @@
     }
 
     document.addEventListener('keydown', function (e) {
+        /*
+         * Ctrl + \ : 이 화면에 있는 목차 조작을 누른다.
+         * 넓은 화면은 왼쪽 고정 목차를 접거나 펴고, 좁은 화면은 헤더 아래 띠를
+         * 펼치거나 닫는다. 조작할 목차가 없는 화면에서는 아무 일도 하지 않는다.
+         */
+        if (e.key === '\\' && (e.ctrlKey || e.metaKey) && !e.altKey && !isTyping(e.target)) {
+            const wide = window.matchMedia('(min-width: 1141px)').matches;
+            let target = null;
+            if (wide && navCollapse && navOpen) {
+                target = document.body.classList.contains('is-nav-collapsed') ? navOpen : navCollapse;
+            } else if (!wide && navToggle) {
+                target = navToggle;
+            }
+            if (!target) return;
+            e.preventDefault();
+            target.click();
+            return;
+        }
+
         if (e.ctrlKey || e.metaKey || e.altKey) return;
 
         if (e.key === '/' && !isTyping(e.target)) {
@@ -586,10 +644,18 @@
         const hint = document.createElement('p');
         hint.className = 'viz-hint';
         hint.hidden = true;
-        hint.innerHTML = '<kbd>Space</kbd> 재생 · 정지'
-            + '<kbd>→</kbd> 한 단계'
-            + '<kbd>R</kbd> 처음으로'
-            + '<a class="viz-hint__more" href="/guide#shortcuts">이용 가이드</a>';
+        [['Space', '재생 · 정지'], ['→', '한 단계'], ['R', '처음으로']].forEach(function (pair) {
+            const key = document.createElement('kbd');
+            key.textContent = pair[0];
+            hint.appendChild(key);
+            hint.appendChild(document.createTextNode(pair[1]));
+        });
+
+        const more = document.createElement('a');
+        more.className = 'viz-hint__more';
+        more.href = '/guide#shortcuts';
+        more.textContent = '이용 가이드';
+        hint.appendChild(more);
         vizWrap.appendChild(hint);
 
         const vizWatch = new MutationObserver(revealVizHint);
@@ -611,6 +677,225 @@
             vizWatch.observe(vizWrap, { childList: true, subtree: true });
             /* 재생 버튼이 없는 시각화도 있으므로 오래 지켜보지 않는다 */
             setTimeout(function () { vizWatch.disconnect(); }, 8000);
+        }
+    }
+
+    /* ===================== 코드 패널 ===================== */
+    /* 시각화가 단계를 넘길 때마다 같은 이름이 달린 코드 줄을 밝힌다 */
+    const codeSync = document.querySelector('[data-code-sync]');
+    if (codeSync) {
+        const langSel  = codeSync.querySelector('.code-sync__select');
+        const stateEl  = codeSync.querySelector('[data-code-sync-state]');
+        const allLists = codeSync.querySelectorAll('.code-sync__lines');
+        const LANG_KEY = 'csflow-code-lang';
+
+        let variant  = allLists[0].dataset.variant;
+        let lastStep = null;
+
+        /*
+         * 위아래로 쌓이면 코드가 화면 밖으로 밀린다. 지금 실행 중인 한 줄만
+         * 시각화 위에 붙여 둔다. 전체 코드는 그대로 아래에서 읽는다.
+         */
+        const OPEN_KEY = 'csflow-nowbar-open';
+        const nowBar = document.createElement('button');
+        nowBar.type = 'button';
+        nowBar.className = 'code-sync__now';
+        nowBar.setAttribute('aria-expanded', 'false');
+        const nowCaret = document.createElement('span');
+        nowCaret.className = 'code-sync__now-caret';
+        nowCaret.setAttribute('aria-hidden', 'true');
+        nowCaret.textContent = '▸';
+
+        const nowBody = document.createElement('span');
+        nowBody.className = 'code-sync__now-body';
+
+        const nowNum = document.createElement('span');
+        nowNum.className = 'code-sync__now-num';
+
+        nowBar.appendChild(nowCaret);
+        nowBar.appendChild(nowBody);
+        nowBar.appendChild(nowNum);
+        codeSync.parentNode.insertBefore(nowBar, codeSync.parentNode.firstChild);
+
+        /* 기본은 전부 보여 준다. 접으면 첫 줄만 남고, 그 선택은 기억한다 */
+        let nowOpen = storage.get(OPEN_KEY) !== '0';
+
+        /** 띠를 접거나 편다. */
+        function setNowOpen(on) {
+            nowOpen = on;
+            nowBar.classList.toggle('code-sync__now--open', on);
+            nowBar.setAttribute('aria-expanded', on ? 'true' : 'false');
+            storage.set(OPEN_KEY, on ? '1' : '0');
+        }
+
+        nowBar.addEventListener('click', function () { setNowOpen(!nowOpen); });
+        setNowOpen(nowOpen);
+        let lang     = storage.get(LANG_KEY) || langSel.value;
+        if (!codeSync.querySelector('.code-sync__lines[data-lang="' + lang + '"]')) lang = langSel.value;
+        langSel.value = lang;
+
+        /** 고른 갈래와 언어에 맞는 목록 하나만 보여 준다. */
+        function showList() {
+            allLists.forEach(function (list) {
+                list.hidden = !(list.dataset.variant === variant && list.dataset.lang === lang);
+            });
+        }
+
+        /**
+         * 지금 단계에 해당하는 줄을 밝힌다.
+         *
+         * @param step 단계 이름. null 이면 모두 끈다
+         */
+        function markStep(step) {
+            const list = codeSync.querySelector('.code-sync__lines:not([hidden])');
+            if (!list) return;
+
+            let first = null;
+            list.querySelectorAll('li').forEach(function (li) {
+                const names = (li.dataset.step || '').split(' ');
+                const on = step !== null && names.indexOf(step) !== -1;
+                li.classList.toggle('is-now', on);
+                if (on && !first) first = li;
+            });
+
+            if (first) bringIntoView(list, first);
+            fillNowBar(list, step);
+        }
+
+        /**
+         * 지금 밝은 줄을 모두 띠에 옮겨 적는다.
+         * 한 단계가 여러 줄에 걸치는 일이 흔해서(반복문 머리 + 가운데 고르기 등)
+         * 접힌 채로는 첫 줄만, 펴면 전부 보인다.
+         *
+         * @param list 지금 보이는 코드 목록
+         * @param step 단계 이름. null 이면 시작 전
+         */
+        function fillNowBar(list, step) {
+            const lines = Array.prototype.slice.call(list.querySelectorAll('li'));
+            const lit = lines.filter(function (li) {
+                return step !== null && (li.dataset.step || '').split(' ').indexOf(step) !== -1;
+            });
+
+            nowBody.textContent = '';
+            if (lit.length === 0) {
+                const p = document.createElement('span');
+                p.className = 'code-sync__now-line';
+                p.textContent = '재생하면 지금 줄이 여기에 나옵니다';
+                nowBody.appendChild(p);
+                nowNum.textContent = '';
+                nowBar.classList.remove('code-sync__now--on', 'code-sync__now--many');
+                nowBar.disabled = true;
+                return;
+            }
+
+            lit.forEach(function (li) {
+                const row = document.createElement('span');
+                row.className = 'code-sync__now-line';
+                const no = document.createElement('b');
+                no.textContent = lines.indexOf(li) + 1;
+                row.appendChild(no);
+                row.appendChild(document.createTextNode(li.textContent.trim()));
+                nowBody.appendChild(row);
+            });
+
+            nowNum.textContent = lit.length > 1 ? lit.length + '줄' : '';
+            nowBar.classList.add('code-sync__now--on');
+            nowBar.classList.toggle('code-sync__now--many', lit.length > 1);
+            nowBar.disabled = lit.length < 2;
+        }
+
+        /**
+         * 밝아진 줄을 목록 가운데로 옮긴다.
+         * 목록이 통째로 펼쳐져 스스로 스크롤하지 않으면 아무것도 하지 않는다.
+         * 그때 화면을 움직이면 사용자가 보던 자리를 빼앗는다.
+         *
+         * @param list  지금 보이는 코드 목록
+         * @param line  밝아진 첫 줄
+         */
+        function bringIntoView(list, line) {
+            if (list.scrollHeight <= list.clientHeight + 1) return;
+
+            /* offsetTop 은 패널 기준이 아니라 어긋난다. 실제 자리 차이로 잰다 */
+            const lr = list.getBoundingClientRect();
+            const fr = line.getBoundingClientRect();
+            const top = list.scrollTop + (fr.top - lr.top) - list.clientHeight / 2 + fr.height / 2;
+            list.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+        }
+
+        langSel.addEventListener('change', function () {
+            lang = langSel.value;
+            storage.set(LANG_KEY, lang);
+            showList();
+            markStep(lastStep);
+        });
+
+        window.addEventListener('csflow-viz-step', function (e) {
+            const d = e.detail || {};
+            if (d.variant && d.variant !== variant) {
+                variant = d.variant;
+                showList();
+            }
+            lastStep = d.step || null;
+            markStep(lastStep);
+            /* 한 번 밝아지고 나면 안내는 필요 없다 */
+            if (stateEl) stateEl.hidden = lastStep !== null;
+        });
+
+        showList();
+        markStep(null);
+
+    }
+
+    /* ===================== 아래 고정 조작 막대 ===================== */
+    /*
+     * .topic-panel 이 animation ... both 로 transform 을 남겨 고정 위치의
+     * 기준이 된다. 그래서 진짜 버튼을 옮기지 않고 body 에 대신 누를 막대를
+     * 만들어 둔다. 좁은 화면에서 진짜 버튼이 화면 밖으로 나가면 나타난다.
+     */
+    if (document.querySelector('[data-code-sync]') && document.getElementById('visualizer-container')) {
+        const DOCK_KEYS = [
+            { label: '▶',  target: '▶ PLAY',  aria: '재생' },
+            { label: '▶|', target: '▶| STEP', aria: '한 단계' },
+            { label: '↺',  target: '↺ RESET', aria: '처음으로' }
+        ];
+
+        const dock = document.createElement('div');
+        dock.className = 'viz-dock';
+        dock.hidden = true;
+        DOCK_KEYS.forEach(function (k) {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'viz-dock__btn';
+            b.textContent = k.label;
+            b.setAttribute('aria-label', k.aria);
+            b.addEventListener('click', function () {
+                const real = findVizButton(k.target);
+                if (real) real.click();
+            });
+            dock.appendChild(b);
+        });
+        document.body.appendChild(dock);
+
+        /** 진짜 조작 막대가 화면 밖이고 작동 원리 탭일 때만 띄운다. */
+        function watchControls() {
+            const play = findVizButton('▶ PLAY');
+            if (!play || !play.parentNode) return false;
+
+            /* isIntersecting 은 1% 만 보여도 참이다. 다 보일 때만 막대를 숨긴다 */
+            const io = new IntersectionObserver(function (entries) {
+                const panel = document.getElementById('panel-visualizer');
+                const open = panel && panel.classList.contains('is-active');
+                dock.hidden = !open || entries[0].intersectionRatio > 0.95;
+            }, { threshold: [0, 0.5, 0.95, 1] });
+            io.observe(play.parentNode);
+            return true;
+        }
+
+        if (!watchControls()) {
+            /* 시각화는 나중에 그려진다. 생기면 그때 붙인다 */
+            const mo = new MutationObserver(function () { if (watchControls()) mo.disconnect(); });
+            mo.observe(document.getElementById('visualizer-container'), { childList: true, subtree: true });
+            setTimeout(function () { mo.disconnect(); }, 8000);
         }
     }
 

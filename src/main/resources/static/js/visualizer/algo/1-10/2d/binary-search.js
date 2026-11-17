@@ -477,7 +477,9 @@
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
-        logEl.textContent = currentSteps()[idx].log;
+        var st = currentSteps()[idx];
+        logEl.textContent = st.log;
+        window.CsFlow.emitStep(st.type, mode);
         animateStep(function () { if (onDone) setTimeout(onDone, 0); });
     }
 
@@ -515,6 +517,7 @@
         running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
+        window.CsFlow.emitStep(null, mode);
         setSpeedDisabled(false);
         resize();
     }
