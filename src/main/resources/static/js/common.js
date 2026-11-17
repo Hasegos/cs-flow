@@ -682,7 +682,8 @@
         codeSync.parentNode.insertBefore(nowBar, codeSync.parentNode.firstChild);
 
         /* 한 단계가 여러 줄이면 접힌 채로는 첫 줄만 보인다. 눌러서 전부 편다 */
-        let nowOpen = storage.get(OPEN_KEY) === '1';
+        /* 기본은 전부 보여 준다. 접으면 첫 줄만 남고, 그 선택은 기억한다 */
+        let nowOpen = storage.get(OPEN_KEY) !== '0';
 
         /** 띠를 접거나 편다. */
         function setNowOpen(on) {
@@ -807,6 +808,7 @@
 
         showList();
         markStep(null);
+
     }
 
     /* ===================== 아래 고정 조작 막대 ===================== */
