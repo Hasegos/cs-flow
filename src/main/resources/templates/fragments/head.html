@@ -69,14 +69,39 @@
     <!-- 학습 진행도 / 북마크. 과목 홈은 왼쪽 목차에 표시하려고 같이 읽는다. -->
     <script th:if="${topic != null or sideNavItems != null}" th:src="@{/js/learning.js}" defer></script>
 
-    <!-- JSON-LD -->
+    <!-- JSON-LD. SearchAction 은 검색 결과 안에 사이트 검색창을 띄우는 후보가 된다 -->
     <script type="application/ld+json">
         {
             "@context": "https://schema.org",
             "@type": "WebSite",
             "name": "CS Flow",
             "url": "https://csflow.kr",
-            "description": "컴퓨터 구조, 운영체제, 네트워크, 자료구조, 알고리즘, 데이터베이스 CS 지식 인터랙티브 학습 플랫폼"
+            "description": "컴퓨터 구조, 운영체제, 네트워크, 자료구조, 알고리즘, 데이터베이스 CS 지식 인터랙티브 학습 플랫폼",
+            "inLanguage": "ko",
+            "publisher": { "@id": "https://csflow.kr/#organization" },
+            "potentialAction": {
+                "@type": "SearchAction",
+                "target": {
+                    "@type": "EntryPoint",
+                    "urlTemplate": "https://csflow.kr/search?q={search_term_string}"
+                },
+                "query-input": "required name=search_term_string"
+            }
+        }
+    </script>
+
+    <!-- 운영 주체. 토픽 · 에러 사전의 provider 와 같은 곳을 가리킨다 -->
+    <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            "@id": "https://csflow.kr/#organization",
+            "name": "CS Flow",
+            "url": "https://csflow.kr",
+            "logo": {
+                "@type": "ImageObject",
+                "url": "https://csflow.kr/img/og_image.png"
+            }
         }
     </script>
 
