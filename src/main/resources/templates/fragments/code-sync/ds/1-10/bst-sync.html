@@ -1,0 +1,567 @@
+<th:block th:fragment="sync">
+    <!-- 시각화 옆 코드 패널. 줄의 data-step 이 시각화 단계 이름과 짝지어 밝아진다 -->
+    <div class="code-sync__panel" data-code-sync>
+        <div class="code-sync__bar">
+            <label class="code-sync__label" for="codeSyncLang">언어</label>
+            <select class="code-sync__select" id="codeSyncLang">
+                <option value="easy">쉬운 말</option>
+                <option value="java">Java</option>
+                <option value="python">Python</option>
+                <option value="javascript">JavaScript</option>
+                <option value="typescript">TypeScript</option>
+                <option value="c">C</option>
+                <option value="cpp">C++</option>
+                <option value="csharp">C#</option>
+                <option value="go">Go</option>
+                <option value="kotlin">Kotlin</option>
+                <option value="swift">Swift</option>
+                <option value="rust">Rust</option>
+                <option value="ruby">Ruby</option>
+                <option value="php">PHP</option>
+            </select>
+            <span class="code-sync__state" data-code-sync-state>재생하면 지금 줄이 밝아집니다</span>
+        </div>
+
+        <!-- 삽입 — 작으면 왼쪽, 크면 오른쪽 -->
+        <ol class="code-sync__lines" data-variant="insert" data-lang="easy">
+            <li data-step="idle"><span>뿌리에서 시작해 들어갈 자리를 찾는다</span></li>
+            <li data-step="insert" class="code-sync__in"><span>자리가 비어 있으면 거기에 새 노드를 만든다</span></li>
+            <li data-step="insert" class="code-sync__in"><span>넣을 값이 지금 노드보다 작으면 왼쪽으로 내려간다</span></li>
+            <li data-step="insert" class="code-sync__in"><span>크면 오른쪽으로 내려간다</span></li>
+            <li data-step="insert" class="code-sync__in"><span>돌아오면서 부모와 자식을 다시 이어 준다</span></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="insert" data-lang="java" hidden>
+            <li data-step="idle"><code>Node insert(Node node, int key) {</code></li>
+            <li data-step="insert" class="code-sync__in"><code>if (node == null) return new Node(key);</code></li>
+            <li data-step="insert" class="code-sync__in"><code>if (key &lt; node.key) node.left = insert(node.left, key);</code></li>
+            <li data-step="insert" class="code-sync__in"><code>else if (key &gt; node.key) node.right = insert(node.right, key);</code></li>
+            <li data-step="insert" class="code-sync__in"><code>return node;</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="insert" data-lang="python" hidden>
+            <li data-step="idle"><code>def insert(node, key):</code></li>
+            <li data-step="insert" class="code-sync__in"><code>if node is None: return Node(key)</code></li>
+            <li data-step="insert" class="code-sync__in"><code>if key &lt; node.key: node.left = insert(node.left, key)</code></li>
+            <li data-step="insert" class="code-sync__in"><code>elif key &gt; node.key: node.right = insert(node.right, key)</code></li>
+            <li data-step="insert" class="code-sync__in"><code>return node</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="insert" data-lang="javascript" hidden>
+            <li data-step="idle"><code>function insert(node, key) {</code></li>
+            <li data-step="insert" class="code-sync__in"><code>if (node === null) return new Node(key);</code></li>
+            <li data-step="insert" class="code-sync__in"><code>if (key &lt; node.key) node.left = insert(node.left, key);</code></li>
+            <li data-step="insert" class="code-sync__in"><code>else if (key &gt; node.key) node.right = insert(node.right, key);</code></li>
+            <li data-step="insert" class="code-sync__in"><code>return node;</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="insert" data-lang="typescript" hidden>
+            <li data-step="idle"><code>function insert(node: Node | null, key: number): Node {</code></li>
+            <li data-step="insert" class="code-sync__in"><code>if (node === null) return new Node(key);</code></li>
+            <li data-step="insert" class="code-sync__in"><code>if (key &lt; node.key) node.left = insert(node.left, key);</code></li>
+            <li data-step="insert" class="code-sync__in"><code>else if (key &gt; node.key) node.right = insert(node.right, key);</code></li>
+            <li data-step="insert" class="code-sync__in"><code>return node;</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="insert" data-lang="c" hidden>
+            <li data-step="idle"><code>Node* insert(Node* node, int key) {</code></li>
+            <li data-step="insert" class="code-sync__in"><code>if (node == NULL) return new_node(key);</code></li>
+            <li data-step="insert" class="code-sync__in"><code>if (key &lt; node-&gt;key) node-&gt;left = insert(node-&gt;left, key);</code></li>
+            <li data-step="insert" class="code-sync__in"><code>else if (key &gt; node-&gt;key) node-&gt;right = insert(node-&gt;right, key);</code></li>
+            <li data-step="insert" class="code-sync__in"><code>return node;</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="insert" data-lang="cpp" hidden>
+            <li data-step="idle"><code>Node* insert(Node* node, int key) {</code></li>
+            <li data-step="insert" class="code-sync__in"><code>if (!node) return new Node(key);</code></li>
+            <li data-step="insert" class="code-sync__in"><code>if (key &lt; node-&gt;key) node-&gt;left = insert(node-&gt;left, key);</code></li>
+            <li data-step="insert" class="code-sync__in"><code>else if (key &gt; node-&gt;key) node-&gt;right = insert(node-&gt;right, key);</code></li>
+            <li data-step="insert" class="code-sync__in"><code>return node;</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="insert" data-lang="csharp" hidden>
+            <li data-step="idle"><code>Node Insert(Node node, int key) {</code></li>
+            <li data-step="insert" class="code-sync__in"><code>if (node == null) return new Node(key);</code></li>
+            <li data-step="insert" class="code-sync__in"><code>if (key &lt; node.Key) node.Left = Insert(node.Left, key);</code></li>
+            <li data-step="insert" class="code-sync__in"><code>else if (key &gt; node.Key) node.Right = Insert(node.Right, key);</code></li>
+            <li data-step="insert" class="code-sync__in"><code>return node;</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="insert" data-lang="go" hidden>
+            <li data-step="idle"><code>func insert(node *Node, key int) *Node {</code></li>
+            <li data-step="insert" class="code-sync__in"><code>if node == nil { return &amp;Node{Key: key} }</code></li>
+            <li data-step="insert" class="code-sync__in"><code>if key &lt; node.Key { node.Left = insert(node.Left, key) }</code></li>
+            <li data-step="insert" class="code-sync__in"><code>else if key &gt; node.Key { node.Right = insert(node.Right, key) }</code></li>
+            <li data-step="insert" class="code-sync__in"><code>return node</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="insert" data-lang="kotlin" hidden>
+            <li data-step="idle"><code>fun insert(node: Node?, key: Int): Node {</code></li>
+            <li data-step="insert" class="code-sync__in"><code>if (node == null) return Node(key)</code></li>
+            <li data-step="insert" class="code-sync__in"><code>if (key &lt; node.key) node.left = insert(node.left, key)</code></li>
+            <li data-step="insert" class="code-sync__in"><code>else if (key &gt; node.key) node.right = insert(node.right, key)</code></li>
+            <li data-step="insert" class="code-sync__in"><code>return node</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="insert" data-lang="swift" hidden>
+            <li data-step="idle"><code>func insert(_ node: Node?, _ key: Int) -&gt; Node {</code></li>
+            <li data-step="insert" class="code-sync__in"><code>guard let node = node else { return Node(key) }</code></li>
+            <li data-step="insert" class="code-sync__in"><code>if key &lt; node.key { node.left = insert(node.left, key) }</code></li>
+            <li data-step="insert" class="code-sync__in"><code>else if key &gt; node.key { node.right = insert(node.right, key) }</code></li>
+            <li data-step="insert" class="code-sync__in"><code>return node</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="insert" data-lang="rust" hidden>
+            <li data-step="idle"><code>fn insert(node: Option&lt;Box&lt;Node&gt;&gt;, key: i32) -&gt; Box&lt;Node&gt; {</code></li>
+            <li data-step="insert" class="code-sync__in"><code>let mut n = match node { Some(n) =&gt; n, None =&gt; return Box::new(Node::new(key)) };</code></li>
+            <li data-step="insert" class="code-sync__in"><code>if key &lt; n.key { n.left = Some(insert(n.left.take(), key)); }</code></li>
+            <li data-step="insert" class="code-sync__in"><code>else if key &gt; n.key { n.right = Some(insert(n.right.take(), key)); }</code></li>
+            <li data-step="insert" class="code-sync__in"><code>n</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="insert" data-lang="ruby" hidden>
+            <li data-step="idle"><code>def insert(node, key)</code></li>
+            <li data-step="insert" class="code-sync__in"><code>return Node.new(key) if node.nil?</code></li>
+            <li data-step="insert" class="code-sync__in"><code>node.left = insert(node.left, key) if key &lt; node.key</code></li>
+            <li data-step="insert" class="code-sync__in"><code>node.right = insert(node.right, key) if key &gt; node.key</code></li>
+            <li data-step="insert" class="code-sync__in"><code>node</code></li>
+            <li><code>end</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="insert" data-lang="php" hidden>
+            <li data-step="idle"><code>function insert(?Node $node, int $key): Node {</code></li>
+            <li data-step="insert" class="code-sync__in"><code>if ($node === null) return new Node($key);</code></li>
+            <li data-step="insert" class="code-sync__in"><code>if ($key &lt; $node-&gt;key) $node-&gt;left = insert($node-&gt;left, $key);</code></li>
+            <li data-step="insert" class="code-sync__in"><code>elseif ($key &gt; $node-&gt;key) $node-&gt;right = insert($node-&gt;right, $key);</code></li>
+            <li data-step="insert" class="code-sync__in"><code>return $node;</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <!-- 탐색 — 한 번에 절반을 버린다 -->
+        <ol class="code-sync__lines" data-variant="search" data-lang="easy" hidden>
+            <li data-step="idle"><span>뿌리에서 시작해 찾는 값을 따라 내려간다</span></li>
+            <li data-step="notfound" class="code-sync__in"><span>빈 자리에 닿으면 그 값은 없는 것이다</span></li>
+            <li data-step="found" class="code-sync__in"><span>지금 노드와 값이 같으면 찾은 것이다</span></li>
+            <li data-step="search" class="code-sync__in"><span>찾는 값이 작으면 왼쪽만 본다</span></li>
+            <li data-step="search" class="code-sync__in"><span>크면 오른쪽만 본다</span></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="search" data-lang="java" hidden>
+            <li data-step="idle"><code>Node search(Node node, int key) {</code></li>
+            <li data-step="notfound" class="code-sync__in"><code>if (node == null) return null;</code></li>
+            <li data-step="found" class="code-sync__in"><code>if (key == node.key) return node;</code></li>
+            <li data-step="search" class="code-sync__in"><code>if (key &lt; node.key) return search(node.left, key);</code></li>
+            <li data-step="search" class="code-sync__in"><code>return search(node.right, key);</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="search" data-lang="python" hidden>
+            <li data-step="idle"><code>def search(node, key):</code></li>
+            <li data-step="notfound" class="code-sync__in"><code>if node is None: return None</code></li>
+            <li data-step="found" class="code-sync__in"><code>if key == node.key: return node</code></li>
+            <li data-step="search" class="code-sync__in"><code>if key &lt; node.key: return search(node.left, key)</code></li>
+            <li data-step="search" class="code-sync__in"><code>return search(node.right, key)</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="search" data-lang="javascript" hidden>
+            <li data-step="idle"><code>function search(node, key) {</code></li>
+            <li data-step="notfound" class="code-sync__in"><code>if (node === null) return null;</code></li>
+            <li data-step="found" class="code-sync__in"><code>if (key === node.key) return node;</code></li>
+            <li data-step="search" class="code-sync__in"><code>if (key &lt; node.key) return search(node.left, key);</code></li>
+            <li data-step="search" class="code-sync__in"><code>return search(node.right, key);</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="search" data-lang="typescript" hidden>
+            <li data-step="idle"><code>function search(node: Node | null, key: number): Node | null {</code></li>
+            <li data-step="notfound" class="code-sync__in"><code>if (node === null) return null;</code></li>
+            <li data-step="found" class="code-sync__in"><code>if (key === node.key) return node;</code></li>
+            <li data-step="search" class="code-sync__in"><code>if (key &lt; node.key) return search(node.left, key);</code></li>
+            <li data-step="search" class="code-sync__in"><code>return search(node.right, key);</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="search" data-lang="c" hidden>
+            <li data-step="idle"><code>Node* search(Node* node, int key) {</code></li>
+            <li data-step="notfound" class="code-sync__in"><code>if (node == NULL) return NULL;</code></li>
+            <li data-step="found" class="code-sync__in"><code>if (key == node-&gt;key) return node;</code></li>
+            <li data-step="search" class="code-sync__in"><code>if (key &lt; node-&gt;key) return search(node-&gt;left, key);</code></li>
+            <li data-step="search" class="code-sync__in"><code>return search(node-&gt;right, key);</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="search" data-lang="cpp" hidden>
+            <li data-step="idle"><code>Node* search(Node* node, int key) {</code></li>
+            <li data-step="notfound" class="code-sync__in"><code>if (!node) return nullptr;</code></li>
+            <li data-step="found" class="code-sync__in"><code>if (key == node-&gt;key) return node;</code></li>
+            <li data-step="search" class="code-sync__in"><code>if (key &lt; node-&gt;key) return search(node-&gt;left, key);</code></li>
+            <li data-step="search" class="code-sync__in"><code>return search(node-&gt;right, key);</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="search" data-lang="csharp" hidden>
+            <li data-step="idle"><code>Node Search(Node node, int key) {</code></li>
+            <li data-step="notfound" class="code-sync__in"><code>if (node == null) return null;</code></li>
+            <li data-step="found" class="code-sync__in"><code>if (key == node.Key) return node;</code></li>
+            <li data-step="search" class="code-sync__in"><code>if (key &lt; node.Key) return Search(node.Left, key);</code></li>
+            <li data-step="search" class="code-sync__in"><code>return Search(node.Right, key);</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="search" data-lang="go" hidden>
+            <li data-step="idle"><code>func search(node *Node, key int) *Node {</code></li>
+            <li data-step="notfound" class="code-sync__in"><code>if node == nil { return nil }</code></li>
+            <li data-step="found" class="code-sync__in"><code>if key == node.Key { return node }</code></li>
+            <li data-step="search" class="code-sync__in"><code>if key &lt; node.Key { return search(node.Left, key) }</code></li>
+            <li data-step="search" class="code-sync__in"><code>return search(node.Right, key)</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="search" data-lang="kotlin" hidden>
+            <li data-step="idle"><code>fun search(node: Node?, key: Int): Node? {</code></li>
+            <li data-step="notfound" class="code-sync__in"><code>if (node == null) return null</code></li>
+            <li data-step="found" class="code-sync__in"><code>if (key == node.key) return node</code></li>
+            <li data-step="search" class="code-sync__in"><code>if (key &lt; node.key) return search(node.left, key)</code></li>
+            <li data-step="search" class="code-sync__in"><code>return search(node.right, key)</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="search" data-lang="swift" hidden>
+            <li data-step="idle"><code>func search(_ node: Node?, _ key: Int) -&gt; Node? {</code></li>
+            <li data-step="notfound" class="code-sync__in"><code>guard let node = node else { return nil }</code></li>
+            <li data-step="found" class="code-sync__in"><code>if key == node.key { return node }</code></li>
+            <li data-step="search" class="code-sync__in"><code>if key &lt; node.key { return search(node.left, key) }</code></li>
+            <li data-step="search" class="code-sync__in"><code>return search(node.right, key)</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="search" data-lang="rust" hidden>
+            <li data-step="idle"><code>fn search(node: &amp;Option&lt;Box&lt;Node&gt;&gt;, key: i32) -&gt; bool {</code></li>
+            <li data-step="notfound" class="code-sync__in"><code>let Some(n) = node else { return false };</code></li>
+            <li data-step="found" class="code-sync__in"><code>if key == n.key { return true; }</code></li>
+            <li data-step="search" class="code-sync__in"><code>if key &lt; n.key { return search(&amp;n.left, key); }</code></li>
+            <li data-step="search" class="code-sync__in"><code>search(&amp;n.right, key)</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="search" data-lang="ruby" hidden>
+            <li data-step="idle"><code>def search(node, key)</code></li>
+            <li data-step="notfound" class="code-sync__in"><code>return nil if node.nil?</code></li>
+            <li data-step="found" class="code-sync__in"><code>return node if key == node.key</code></li>
+            <li data-step="search" class="code-sync__in"><code>return search(node.left, key) if key &lt; node.key</code></li>
+            <li data-step="search" class="code-sync__in"><code>search(node.right, key)</code></li>
+            <li><code>end</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="search" data-lang="php" hidden>
+            <li data-step="idle"><code>function search(?Node $node, int $key): ?Node {</code></li>
+            <li data-step="notfound" class="code-sync__in"><code>if ($node === null) return null;</code></li>
+            <li data-step="found" class="code-sync__in"><code>if ($key === $node-&gt;key) return $node;</code></li>
+            <li data-step="search" class="code-sync__in"><code>if ($key &lt; $node-&gt;key) return search($node-&gt;left, $key);</code></li>
+            <li data-step="search" class="code-sync__in"><code>return search($node-&gt;right, $key);</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <!-- 삭제 — 자식 수에 따라 세 경우 -->
+        <ol class="code-sync__lines" data-variant="delete" data-lang="easy" hidden>
+            <li data-step="idle"><span>지울 값을 먼저 찾아 내려간다</span></li>
+            <li data-step="case1-target case2-target case3-target" class="code-sync__in"><span>지울 값이 작으면 왼쪽, 크면 오른쪽으로 내려간다</span></li>
+            <li data-step="case1-done" class="code-sync__in"><span>자식이 없으면 그냥 떼어 낸다</span></li>
+            <li data-step="case2-done" class="code-sync__in"><span>자식이 하나면 그 자식을 자기 자리에 올린다</span></li>
+            <li data-step="case3-successor" class="code-sync__in"><span>자식이 둘이면 오른쪽에서 가장 작은 값을 찾는다</span></li>
+            <li data-step="case3-done" class="code-sync__in"><span>그 값을 지울 자리에 적어 넣는다</span></li>
+            <li data-step="case3-done" class="code-sync__in"><span>원래 있던 자리의 값을 다시 지운다</span></li>
+            <li class="code-sync__in"><span>돌아오면서 부모와 자식을 다시 이어 준다</span></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="delete" data-lang="java" hidden>
+            <li data-step="idle"><code>Node delete(Node node, int key) {</code></li>
+            <li data-step="case1-target case2-target case3-target" class="code-sync__in"><code>if (key != node.key) { /* 작으면 left, 크면 right */ }</code></li>
+            <li data-step="case1-done" class="code-sync__in"><code>if (node.left == null &amp;&amp; node.right == null) return null;</code></li>
+            <li data-step="case2-done" class="code-sync__in"><code>if (node.left == null) return node.right;</code></li>
+            <li data-step="case3-successor" class="code-sync__in"><code>Node s = min(node.right);</code></li>
+            <li data-step="case3-done" class="code-sync__in"><code>node.key = s.key;</code></li>
+            <li data-step="case3-done" class="code-sync__in"><code>node.right = delete(node.right, s.key);</code></li>
+            <li class="code-sync__in"><code>return node;</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="delete" data-lang="python" hidden>
+            <li data-step="idle"><code>def delete(node, key):</code></li>
+            <li data-step="case1-target case2-target case3-target" class="code-sync__in"><code>if key != node.key: pass  # 작으면 left, 크면 right</code></li>
+            <li data-step="case1-done" class="code-sync__in"><code>if node.left is None and node.right is None: return None</code></li>
+            <li data-step="case2-done" class="code-sync__in"><code>if node.left is None: return node.right</code></li>
+            <li data-step="case3-successor" class="code-sync__in"><code>s = min_node(node.right)</code></li>
+            <li data-step="case3-done" class="code-sync__in"><code>node.key = s.key</code></li>
+            <li data-step="case3-done" class="code-sync__in"><code>node.right = delete(node.right, s.key)</code></li>
+            <li class="code-sync__in"><code>return node</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="delete" data-lang="javascript" hidden>
+            <li data-step="idle"><code>function remove(node, key) {</code></li>
+            <li data-step="case1-target case2-target case3-target" class="code-sync__in"><code>if (key !== node.key) { /* 작으면 left, 크면 right */ }</code></li>
+            <li data-step="case1-done" class="code-sync__in"><code>if (node.left === null &amp;&amp; node.right === null) return null;</code></li>
+            <li data-step="case2-done" class="code-sync__in"><code>if (node.left === null) return node.right;</code></li>
+            <li data-step="case3-successor" class="code-sync__in"><code>const s = min(node.right);</code></li>
+            <li data-step="case3-done" class="code-sync__in"><code>node.key = s.key;</code></li>
+            <li data-step="case3-done" class="code-sync__in"><code>node.right = remove(node.right, s.key);</code></li>
+            <li class="code-sync__in"><code>return node;</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="delete" data-lang="typescript" hidden>
+            <li data-step="idle"><code>function remove(node: Node, key: number): Node | null {</code></li>
+            <li data-step="case1-target case2-target case3-target" class="code-sync__in"><code>if (key !== node.key) { /* 작으면 left, 크면 right */ }</code></li>
+            <li data-step="case1-done" class="code-sync__in"><code>if (node.left === null &amp;&amp; node.right === null) return null;</code></li>
+            <li data-step="case2-done" class="code-sync__in"><code>if (node.left === null) return node.right;</code></li>
+            <li data-step="case3-successor" class="code-sync__in"><code>const s = min(node.right);</code></li>
+            <li data-step="case3-done" class="code-sync__in"><code>node.key = s.key;</code></li>
+            <li data-step="case3-done" class="code-sync__in"><code>node.right = remove(node.right, s.key);</code></li>
+            <li class="code-sync__in"><code>return node;</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="delete" data-lang="c" hidden>
+            <li data-step="idle"><code>Node* delete_node(Node* node, int key) {</code></li>
+            <li data-step="case1-target case2-target case3-target" class="code-sync__in"><code>if (key != node-&gt;key) { /* 작으면 left, 크면 right */ }</code></li>
+            <li data-step="case1-done" class="code-sync__in"><code>if (!node-&gt;left &amp;&amp; !node-&gt;right) { free(node); return NULL; }</code></li>
+            <li data-step="case2-done" class="code-sync__in"><code>if (!node-&gt;left) return node-&gt;right;</code></li>
+            <li data-step="case3-successor" class="code-sync__in"><code>Node* s = min_node(node-&gt;right);</code></li>
+            <li data-step="case3-done" class="code-sync__in"><code>node-&gt;key = s-&gt;key;</code></li>
+            <li data-step="case3-done" class="code-sync__in"><code>node-&gt;right = delete_node(node-&gt;right, s-&gt;key);</code></li>
+            <li class="code-sync__in"><code>return node;</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="delete" data-lang="cpp" hidden>
+            <li data-step="idle"><code>Node* erase(Node* node, int key) {</code></li>
+            <li data-step="case1-target case2-target case3-target" class="code-sync__in"><code>if (key != node-&gt;key) { /* 작으면 left, 크면 right */ }</code></li>
+            <li data-step="case1-done" class="code-sync__in"><code>if (!node-&gt;left &amp;&amp; !node-&gt;right) { delete node; return nullptr; }</code></li>
+            <li data-step="case2-done" class="code-sync__in"><code>if (!node-&gt;left) return node-&gt;right;</code></li>
+            <li data-step="case3-successor" class="code-sync__in"><code>Node* s = min_node(node-&gt;right);</code></li>
+            <li data-step="case3-done" class="code-sync__in"><code>node-&gt;key = s-&gt;key;</code></li>
+            <li data-step="case3-done" class="code-sync__in"><code>node-&gt;right = erase(node-&gt;right, s-&gt;key);</code></li>
+            <li class="code-sync__in"><code>return node;</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="delete" data-lang="csharp" hidden>
+            <li data-step="idle"><code>Node Delete(Node node, int key) {</code></li>
+            <li data-step="case1-target case2-target case3-target" class="code-sync__in"><code>if (key != node.Key) { /* 작으면 Left, 크면 Right */ }</code></li>
+            <li data-step="case1-done" class="code-sync__in"><code>if (node.Left == null &amp;&amp; node.Right == null) return null;</code></li>
+            <li data-step="case2-done" class="code-sync__in"><code>if (node.Left == null) return node.Right;</code></li>
+            <li data-step="case3-successor" class="code-sync__in"><code>Node s = Min(node.Right);</code></li>
+            <li data-step="case3-done" class="code-sync__in"><code>node.Key = s.Key;</code></li>
+            <li data-step="case3-done" class="code-sync__in"><code>node.Right = Delete(node.Right, s.Key);</code></li>
+            <li class="code-sync__in"><code>return node;</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="delete" data-lang="go" hidden>
+            <li data-step="idle"><code>func delete(node *Node, key int) *Node {</code></li>
+            <li data-step="case1-target case2-target case3-target" class="code-sync__in"><code>if key != node.Key { /* 작으면 Left, 크면 Right */ }</code></li>
+            <li data-step="case1-done" class="code-sync__in"><code>if node.Left == nil &amp;&amp; node.Right == nil { return nil }</code></li>
+            <li data-step="case2-done" class="code-sync__in"><code>if node.Left == nil { return node.Right }</code></li>
+            <li data-step="case3-successor" class="code-sync__in"><code>s := minNode(node.Right)</code></li>
+            <li data-step="case3-done" class="code-sync__in"><code>node.Key = s.Key</code></li>
+            <li data-step="case3-done" class="code-sync__in"><code>node.Right = delete(node.Right, s.Key)</code></li>
+            <li class="code-sync__in"><code>return node</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="delete" data-lang="kotlin" hidden>
+            <li data-step="idle"><code>fun delete(node: Node, key: Int): Node? {</code></li>
+            <li data-step="case1-target case2-target case3-target" class="code-sync__in"><code>if (key != node.key) { /* 작으면 left, 크면 right */ }</code></li>
+            <li data-step="case1-done" class="code-sync__in"><code>if (node.left == null &amp;&amp; node.right == null) return null</code></li>
+            <li data-step="case2-done" class="code-sync__in"><code>if (node.left == null) return node.right</code></li>
+            <li data-step="case3-successor" class="code-sync__in"><code>val s = minNode(node.right!!)</code></li>
+            <li data-step="case3-done" class="code-sync__in"><code>node.key = s.key</code></li>
+            <li data-step="case3-done" class="code-sync__in"><code>node.right = delete(node.right!!, s.key)</code></li>
+            <li class="code-sync__in"><code>return node</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="delete" data-lang="swift" hidden>
+            <li data-step="idle"><code>func delete(_ node: Node, _ key: Int) -&gt; Node? {</code></li>
+            <li data-step="case1-target case2-target case3-target" class="code-sync__in"><code>if key != node.key { /* 작으면 left, 크면 right */ }</code></li>
+            <li data-step="case1-done" class="code-sync__in"><code>if node.left == nil &amp;&amp; node.right == nil { return nil }</code></li>
+            <li data-step="case2-done" class="code-sync__in"><code>if node.left == nil { return node.right }</code></li>
+            <li data-step="case3-successor" class="code-sync__in"><code>let s = minNode(node.right!)</code></li>
+            <li data-step="case3-done" class="code-sync__in"><code>node.key = s.key</code></li>
+            <li data-step="case3-done" class="code-sync__in"><code>node.right = delete(node.right!, s.key)</code></li>
+            <li class="code-sync__in"><code>return node</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="delete" data-lang="rust" hidden>
+            <li data-step="idle"><code>fn delete(mut node: Box&lt;Node&gt;, key: i32) -&gt; Option&lt;Box&lt;Node&gt;&gt; {</code></li>
+            <li data-step="case1-target case2-target case3-target" class="code-sync__in"><code>if key != node.key { /* 작으면 left, 크면 right */ }</code></li>
+            <li data-step="case1-done" class="code-sync__in"><code>if node.left.is_none() &amp;&amp; node.right.is_none() { return None; }</code></li>
+            <li data-step="case2-done" class="code-sync__in"><code>if node.left.is_none() { return node.right.take(); }</code></li>
+            <li data-step="case3-successor" class="code-sync__in"><code>let s_key = min_key(node.right.as_ref().unwrap());</code></li>
+            <li data-step="case3-done" class="code-sync__in"><code>node.key = s_key;</code></li>
+            <li data-step="case3-done" class="code-sync__in"><code>node.right = delete(node.right.take().unwrap(), s_key);</code></li>
+            <li class="code-sync__in"><code>Some(node)</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="delete" data-lang="ruby" hidden>
+            <li data-step="idle"><code>def delete(node, key)</code></li>
+            <li data-step="case1-target case2-target case3-target" class="code-sync__in"><code># 작으면 node.left, 크면 node.right 로 내려간다</code></li>
+            <li data-step="case1-done" class="code-sync__in"><code>return nil if node.left.nil? &amp;&amp; node.right.nil?</code></li>
+            <li data-step="case2-done" class="code-sync__in"><code>return node.right if node.left.nil?</code></li>
+            <li data-step="case3-successor" class="code-sync__in"><code>s = min_node(node.right)</code></li>
+            <li data-step="case3-done" class="code-sync__in"><code>node.key = s.key</code></li>
+            <li data-step="case3-done" class="code-sync__in"><code>node.right = delete(node.right, s.key)</code></li>
+            <li class="code-sync__in"><code>node</code></li>
+            <li><code>end</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="delete" data-lang="php" hidden>
+            <li data-step="idle"><code>function delete(Node $node, int $key): ?Node {</code></li>
+            <li data-step="case1-target case2-target case3-target" class="code-sync__in"><code>if ($key !== $node-&gt;key) { /* 작으면 left, 크면 right */ }</code></li>
+            <li data-step="case1-done" class="code-sync__in"><code>if ($node-&gt;left === null &amp;&amp; $node-&gt;right === null) return null;</code></li>
+            <li data-step="case2-done" class="code-sync__in"><code>if ($node-&gt;left === null) return $node-&gt;right;</code></li>
+            <li data-step="case3-successor" class="code-sync__in"><code>$s = minNode($node-&gt;right);</code></li>
+            <li data-step="case3-done" class="code-sync__in"><code>$node-&gt;key = $s-&gt;key;</code></li>
+            <li data-step="case3-done" class="code-sync__in"><code>$node-&gt;right = delete($node-&gt;right, $s-&gt;key);</code></li>
+            <li class="code-sync__in"><code>return $node;</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <!-- 치우침 — 정렬된 입력이 최악 -->
+        <ol class="code-sync__lines" data-variant="skewed" data-lang="easy" hidden>
+            <li data-step="idle"><span>이미 정렬된 값을 순서대로 넣어 본다</span></li>
+            <li data-step="build" class="code-sync__in"><span>작은 값부터 하나씩 꺼낸다</span></li>
+            <li data-step="build" class="code-sync__in2"><span>넣을 때마다 항상 오른쪽으로만 내려간다</span></li>
+            <li data-step="compare"><span>그래서 트리가 한쪽으로만 길어지고 높이가 n 이 된다</span></li>
+            <li data-step="highlight"><span>높이를 log n 으로 지키려면 AVL · 레드블랙 트리를 쓴다</span></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="skewed" data-lang="java" hidden>
+            <li data-step="idle"><code>int[] sorted = {10, 20, 30, 40, 50};</code></li>
+            <li data-step="build" class="code-sync__in"><code>for (int key : sorted) {</code></li>
+            <li data-step="build" class="code-sync__in2"><code>root = insert(root, key);</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="compare"><code>// 높이 h = n → 탐색 O(n)</code></li>
+            <li data-step="highlight"><code>// 균형 트리(AVL · Red-Black)는 h = O(log n) 을 지킨다</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="skewed" data-lang="python" hidden>
+            <li data-step="idle"><code>sorted_keys = [10, 20, 30, 40, 50]</code></li>
+            <li data-step="build" class="code-sync__in"><code>for key in sorted_keys:</code></li>
+            <li data-step="build" class="code-sync__in2"><code>root = insert(root, key)</code></li>
+            <li data-step="compare"><code># 높이 h = n → 탐색 O(n)</code></li>
+            <li data-step="highlight"><code># 균형 트리(AVL · Red-Black)는 h = O(log n) 을 지킨다</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="skewed" data-lang="javascript" hidden>
+            <li data-step="idle"><code>const sorted = [10, 20, 30, 40, 50];</code></li>
+            <li data-step="build" class="code-sync__in"><code>for (const key of sorted) {</code></li>
+            <li data-step="build" class="code-sync__in2"><code>root = insert(root, key);</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="compare"><code>// 높이 h = n → 탐색 O(n)</code></li>
+            <li data-step="highlight"><code>// 균형 트리(AVL · Red-Black)는 h = O(log n) 을 지킨다</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="skewed" data-lang="typescript" hidden>
+            <li data-step="idle"><code>const sorted: number[] = [10, 20, 30, 40, 50];</code></li>
+            <li data-step="build" class="code-sync__in"><code>for (const key of sorted) {</code></li>
+            <li data-step="build" class="code-sync__in2"><code>root = insert(root, key);</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="compare"><code>// 높이 h = n → 탐색 O(n)</code></li>
+            <li data-step="highlight"><code>// 균형 트리(AVL · Red-Black)는 h = O(log n) 을 지킨다</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="skewed" data-lang="c" hidden>
+            <li data-step="idle"><code>int sorted[5] = {10, 20, 30, 40, 50};</code></li>
+            <li data-step="build" class="code-sync__in"><code>for (int i = 0; i &lt; 5; i++) {</code></li>
+            <li data-step="build" class="code-sync__in2"><code>root = insert(root, sorted[i]);</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="compare"><code>/* 높이 h = n → 탐색 O(n) */</code></li>
+            <li data-step="highlight"><code>/* 균형 트리(AVL · Red-Black)는 h = O(log n) 을 지킨다 */</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="skewed" data-lang="cpp" hidden>
+            <li data-step="idle"><code>std::vector&lt;int&gt; sorted = {10, 20, 30, 40, 50};</code></li>
+            <li data-step="build" class="code-sync__in"><code>for (int key : sorted) {</code></li>
+            <li data-step="build" class="code-sync__in2"><code>root = insert(root, key);</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="compare"><code>// 높이 h = n → 탐색 O(n)</code></li>
+            <li data-step="highlight"><code>// 균형 트리(AVL · Red-Black)는 h = O(log n) 을 지킨다</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="skewed" data-lang="csharp" hidden>
+            <li data-step="idle"><code>int[] sorted = { 10, 20, 30, 40, 50 };</code></li>
+            <li data-step="build" class="code-sync__in"><code>foreach (var key in sorted) {</code></li>
+            <li data-step="build" class="code-sync__in2"><code>root = Insert(root, key);</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="compare"><code>// 높이 h = n → 탐색 O(n)</code></li>
+            <li data-step="highlight"><code>// 균형 트리(AVL · Red-Black)는 h = O(log n) 을 지킨다</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="skewed" data-lang="go" hidden>
+            <li data-step="idle"><code>sorted := []int{10, 20, 30, 40, 50}</code></li>
+            <li data-step="build" class="code-sync__in"><code>for _, key := range sorted {</code></li>
+            <li data-step="build" class="code-sync__in2"><code>root = insert(root, key)</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="compare"><code>// 높이 h = n → 탐색 O(n)</code></li>
+            <li data-step="highlight"><code>// 균형 트리(AVL · Red-Black)는 h = O(log n) 을 지킨다</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="skewed" data-lang="kotlin" hidden>
+            <li data-step="idle"><code>val sorted = listOf(10, 20, 30, 40, 50)</code></li>
+            <li data-step="build" class="code-sync__in"><code>for (key in sorted) {</code></li>
+            <li data-step="build" class="code-sync__in2"><code>root = insert(root, key)</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="compare"><code>// 높이 h = n → 탐색 O(n)</code></li>
+            <li data-step="highlight"><code>// 균형 트리(AVL · Red-Black)는 h = O(log n) 을 지킨다</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="skewed" data-lang="swift" hidden>
+            <li data-step="idle"><code>let sorted = [10, 20, 30, 40, 50]</code></li>
+            <li data-step="build" class="code-sync__in"><code>for key in sorted {</code></li>
+            <li data-step="build" class="code-sync__in2"><code>root = insert(root, key)</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="compare"><code>// 높이 h = n → 탐색 O(n)</code></li>
+            <li data-step="highlight"><code>// 균형 트리(AVL · Red-Black)는 h = O(log n) 을 지킨다</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="skewed" data-lang="rust" hidden>
+            <li data-step="idle"><code>let sorted = vec![10, 20, 30, 40, 50];</code></li>
+            <li data-step="build" class="code-sync__in"><code>for key in sorted {</code></li>
+            <li data-step="build" class="code-sync__in2"><code>root = Some(insert(root.take(), key));</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="compare"><code>// 높이 h = n → 탐색 O(n)</code></li>
+            <li data-step="highlight"><code>// 균형 트리(AVL · Red-Black)는 h = O(log n) 을 지킨다</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="skewed" data-lang="ruby" hidden>
+            <li data-step="idle"><code>sorted = [10, 20, 30, 40, 50]</code></li>
+            <li data-step="build" class="code-sync__in"><code>sorted.each do |key|</code></li>
+            <li data-step="build" class="code-sync__in2"><code>root = insert(root, key)</code></li>
+            <li class="code-sync__in"><code>end</code></li>
+            <li data-step="compare"><code># 높이 h = n → 탐색 O(n)</code></li>
+            <li data-step="highlight"><code># 균형 트리(AVL · Red-Black)는 h = O(log n) 을 지킨다</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="skewed" data-lang="php" hidden>
+            <li data-step="idle"><code>$sorted = [10, 20, 30, 40, 50];</code></li>
+            <li data-step="build" class="code-sync__in"><code>foreach ($sorted as $key) {</code></li>
+            <li data-step="build" class="code-sync__in2"><code>$root = insert($root, $key);</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="compare"><code>// 높이 h = n → 탐색 O(n)</code></li>
+            <li data-step="highlight"><code>// 균형 트리(AVL · Red-Black)는 h = O(log n) 을 지킨다</code></li>
+        </ol>
+    </div>
+</th:block>
