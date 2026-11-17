@@ -42,6 +42,12 @@ architecture/
 .claude
 .keel-backup/
 .claude-designlog-hooks.log
+
 ### graphify ###
 graphify-out/
 scripts/__pycache__/
+
+# keelkit
+.claude/
+AGENTS.md
+.agents/
