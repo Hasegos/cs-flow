@@ -124,12 +124,17 @@
 @media (max-width: 1140px) {
   .gnb__nav { display: none; }
 
-  .gnb__search-btn {
-    margin-left: auto;
+  /* 간격은 .gnb__inner 의 gap 하나로만 정한다 */
+  .gnb__inner {
+    gap: 0.75rem;
+  }
+
+  .gnb__logo {
+    margin-right: auto;
   }
 
   .gnb__theme-btn {
-    margin-left: 0.5rem;
+    margin-left: 0;
   }
 }
 
@@ -137,11 +142,6 @@
 @media (min-width: 740px) and (max-width: 1140px) {
   .gnb__browse-btn {
     display: inline-flex;
-    margin-left: auto;
-  }
-
-  .gnb__search-btn {
-    margin-left: 0.5rem;
   }
 }
 
@@ -188,8 +188,15 @@
 
 .gnb__search-btn,
 .gnb__study-btn {
-  margin-right: -1.75rem;
   text-decoration: none;
+}
+
+/* gap 2.5rem 은 로고 · 메뉴 사이 값이라 아이콘끼리는 당겨 준다 */
+@media (min-width: 1141px) {
+  .gnb__search-btn,
+  .gnb__study-btn {
+    margin-right: -1.75rem;
+  }
 }
 
 @media (max-width: 739px) {

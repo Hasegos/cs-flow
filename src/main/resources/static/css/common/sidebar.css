@@ -258,6 +258,10 @@
   color: var(--color-text-muted);
 }
 
+/* === 접기 · 펴기 단추 (1140px 이상에서만) === */
+.side-nav__collapse,
+.side-nav__open { display: none; }
+
 /* === 너비 조절 손잡이 === */
 .side-nav__resizer { display: none; }
 
@@ -303,6 +307,71 @@ body.is-nav-resizing {
     font-size: 0.95rem;
     font-weight: 700;
     color: var(--color-text);
+  }
+
+  .side-nav__collapse {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: auto;
+    width: 1.5rem;
+    height: 1.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    background: none;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: color var(--transition), border-color var(--transition);
+  }
+
+  .side-nav__collapse:hover {
+    color: var(--color-text);
+    border-color: var(--color-border);
+  }
+
+  .side-nav__collapse:focus-visible {
+    outline: 2px solid var(--subject-accent, var(--color-purple));
+    outline-offset: 1px;
+  }
+
+  /* 접으면 목차 자리를 통째로 내준다. --side-nav-w 가 0 이 되어 본문이 따라 넓어진다 */
+  body.is-nav-collapsed .side-nav,
+  body.is-nav-collapsed .side-nav__resizer {
+    display: none;
+  }
+
+  /* 토픽 탭 막대(헤더 아래 53px)보다 더 내려야 겹치지 않는다 */
+  body.is-nav-collapsed .side-nav__open {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    top: calc(var(--header-h) + 4rem);
+    left: 0;
+    z-index: 60;
+    width: 1.5rem;
+    height: 2.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-left: 0;
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    cursor: pointer;
+    transition: color var(--transition), background var(--transition);
+  }
+
+  body.is-nav-collapsed .side-nav__open:hover {
+    color: var(--color-text);
+    background: var(--color-surface-2);
+  }
+
+  body.is-nav-collapsed .side-nav__open:focus-visible {
+    outline: 2px solid var(--subject-accent, var(--color-purple));
+    outline-offset: 2px;
   }
 
   .side-nav__count {

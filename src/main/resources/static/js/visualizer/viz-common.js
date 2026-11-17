@@ -105,6 +105,19 @@
     };
 })();
 
+/* ===================== 단계 알림 ===================== */
+/**
+ * 지금 보고 있는 단계를 알린다. 코드 패널이 받아 해당 줄을 밝힌다.
+ *
+ * @param step    단계 이름 (step.type). 시작 전이면 null
+ * @param variant 같은 토픽에서 고른 갈래 (예: 이진 탐색 · 선형 탐색). 없으면 null
+ */
+window.CsFlow.emitStep = function (step, variant) {
+    window.dispatchEvent(new CustomEvent('csflow-viz-step', {
+        detail: { step: step || null, variant: variant || null }
+    }));
+};
+
 /* ===================== 캔버스 줄바꿈 ===================== */
 window.CsFlow.wrapText = function (ctx, str, maxW) {
     const lines = [];
