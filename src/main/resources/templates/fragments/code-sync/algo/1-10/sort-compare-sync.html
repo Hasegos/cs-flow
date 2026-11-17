@@ -1,0 +1,551 @@
+<th:block th:fragment="sync">
+    <!-- 시각화 옆 코드 패널. 줄의 data-step 이 시각화 단계 이름과 짝지어 밝아진다 -->
+    <div class="code-sync__panel" data-code-sync>
+        <div class="code-sync__bar">
+            <label class="code-sync__label" for="codeSyncLang">언어</label>
+            <select class="code-sync__select" id="codeSyncLang">
+                <option value="easy">쉬운 말</option>
+                <option value="java">Java</option>
+                <option value="python">Python</option>
+                <option value="javascript">JavaScript</option>
+                <option value="typescript">TypeScript</option>
+                <option value="c">C</option>
+                <option value="cpp">C++</option>
+                <option value="csharp">C#</option>
+                <option value="go">Go</option>
+                <option value="kotlin">Kotlin</option>
+                <option value="swift">Swift</option>
+                <option value="rust">Rust</option>
+                <option value="ruby">Ruby</option>
+                <option value="php">PHP</option>
+            </select>
+            <span class="code-sync__state" data-code-sync-state>재생하면 지금 줄이 밝아집니다</span>
+        </div>
+
+        <!-- 병합 정렬 — 반으로 가르고 합친다 -->
+        <ol class="code-sync__lines" data-variant="merge" data-lang="easy">
+            <li data-step="intro"><span>구간 하나를 정렬한다</span></li>
+            <li data-step="intro" class="code-sync__in"><span>원소가 하나면 이미 정렬된 것이다</span></li>
+            <li data-step="place" class="code-sync__in"><span>구간을 절반으로 가른다</span></li>
+            <li data-step="place" class="code-sync__in"><span>왼쪽 절반을 같은 방법으로 정렬한다</span></li>
+            <li data-step="place" class="code-sync__in"><span>오른쪽 절반도 같은 방법으로 정렬한다</span></li>
+            <li data-step="place done" class="code-sync__in"><span>정렬된 두 절반을 앞에서부터 비교해 합친다</span></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="merge" data-lang="java" hidden>
+            <li data-step="intro"><code>void mergeSort(int[] a, int lo, int hi) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>if (lo &gt;= hi) return;</code></li>
+            <li data-step="place" class="code-sync__in"><code>int mid = lo + (hi - lo) / 2;</code></li>
+            <li data-step="place" class="code-sync__in"><code>mergeSort(a, lo, mid);</code></li>
+            <li data-step="place" class="code-sync__in"><code>mergeSort(a, mid + 1, hi);</code></li>
+            <li data-step="place done" class="code-sync__in"><code>merge(a, lo, mid, hi);</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="merge" data-lang="python" hidden>
+            <li data-step="intro"><code>def merge_sort(a, lo, hi):</code></li>
+            <li data-step="intro" class="code-sync__in"><code>if lo &gt;= hi: return</code></li>
+            <li data-step="place" class="code-sync__in"><code>mid = (lo + hi) // 2</code></li>
+            <li data-step="place" class="code-sync__in"><code>merge_sort(a, lo, mid)</code></li>
+            <li data-step="place" class="code-sync__in"><code>merge_sort(a, mid + 1, hi)</code></li>
+            <li data-step="place done" class="code-sync__in"><code>merge(a, lo, mid, hi)</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="merge" data-lang="javascript" hidden>
+            <li data-step="intro"><code>function mergeSort(a, lo, hi) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>if (lo &gt;= hi) return;</code></li>
+            <li data-step="place" class="code-sync__in"><code>const mid = (lo + hi) &gt;&gt; 1;</code></li>
+            <li data-step="place" class="code-sync__in"><code>mergeSort(a, lo, mid);</code></li>
+            <li data-step="place" class="code-sync__in"><code>mergeSort(a, mid + 1, hi);</code></li>
+            <li data-step="place done" class="code-sync__in"><code>merge(a, lo, mid, hi);</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="merge" data-lang="typescript" hidden>
+            <li data-step="intro"><code>function mergeSort(a: number[], lo: number, hi: number): void {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>if (lo &gt;= hi) return;</code></li>
+            <li data-step="place" class="code-sync__in"><code>const mid = (lo + hi) &gt;&gt; 1;</code></li>
+            <li data-step="place" class="code-sync__in"><code>mergeSort(a, lo, mid);</code></li>
+            <li data-step="place" class="code-sync__in"><code>mergeSort(a, mid + 1, hi);</code></li>
+            <li data-step="place done" class="code-sync__in"><code>merge(a, lo, mid, hi);</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="merge" data-lang="c" hidden>
+            <li data-step="intro"><code>void merge_sort(int a[], int lo, int hi) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>if (lo &gt;= hi) return;</code></li>
+            <li data-step="place" class="code-sync__in"><code>int mid = lo + (hi - lo) / 2;</code></li>
+            <li data-step="place" class="code-sync__in"><code>merge_sort(a, lo, mid);</code></li>
+            <li data-step="place" class="code-sync__in"><code>merge_sort(a, mid + 1, hi);</code></li>
+            <li data-step="place done" class="code-sync__in"><code>merge(a, lo, mid, hi);</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="merge" data-lang="cpp" hidden>
+            <li data-step="intro"><code>void mergeSort(std::vector&lt;int&gt;&amp; a, int lo, int hi) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>if (lo &gt;= hi) return;</code></li>
+            <li data-step="place" class="code-sync__in"><code>int mid = lo + (hi - lo) / 2;</code></li>
+            <li data-step="place" class="code-sync__in"><code>mergeSort(a, lo, mid);</code></li>
+            <li data-step="place" class="code-sync__in"><code>mergeSort(a, mid + 1, hi);</code></li>
+            <li data-step="place done" class="code-sync__in"><code>merge(a, lo, mid, hi);</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="merge" data-lang="csharp" hidden>
+            <li data-step="intro"><code>void MergeSort(int[] a, int lo, int hi) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>if (lo &gt;= hi) return;</code></li>
+            <li data-step="place" class="code-sync__in"><code>int mid = lo + (hi - lo) / 2;</code></li>
+            <li data-step="place" class="code-sync__in"><code>MergeSort(a, lo, mid);</code></li>
+            <li data-step="place" class="code-sync__in"><code>MergeSort(a, mid + 1, hi);</code></li>
+            <li data-step="place done" class="code-sync__in"><code>Merge(a, lo, mid, hi);</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="merge" data-lang="go" hidden>
+            <li data-step="intro"><code>func mergeSort(a []int, lo, hi int) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>if lo &gt;= hi { return }</code></li>
+            <li data-step="place" class="code-sync__in"><code>mid := (lo + hi) / 2</code></li>
+            <li data-step="place" class="code-sync__in"><code>mergeSort(a, lo, mid)</code></li>
+            <li data-step="place" class="code-sync__in"><code>mergeSort(a, mid+1, hi)</code></li>
+            <li data-step="place done" class="code-sync__in"><code>merge(a, lo, mid, hi)</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="merge" data-lang="kotlin" hidden>
+            <li data-step="intro"><code>fun mergeSort(a: IntArray, lo: Int, hi: Int) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>if (lo &gt;= hi) return</code></li>
+            <li data-step="place" class="code-sync__in"><code>val mid = (lo + hi) / 2</code></li>
+            <li data-step="place" class="code-sync__in"><code>mergeSort(a, lo, mid)</code></li>
+            <li data-step="place" class="code-sync__in"><code>mergeSort(a, mid + 1, hi)</code></li>
+            <li data-step="place done" class="code-sync__in"><code>merge(a, lo, mid, hi)</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="merge" data-lang="swift" hidden>
+            <li data-step="intro"><code>func mergeSort(_ a: inout [Int], _ lo: Int, _ hi: Int) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>if lo &gt;= hi { return }</code></li>
+            <li data-step="place" class="code-sync__in"><code>let mid = (lo + hi) / 2</code></li>
+            <li data-step="place" class="code-sync__in"><code>mergeSort(&amp;a, lo, mid)</code></li>
+            <li data-step="place" class="code-sync__in"><code>mergeSort(&amp;a, mid + 1, hi)</code></li>
+            <li data-step="place done" class="code-sync__in"><code>merge(&amp;a, lo, mid, hi)</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="merge" data-lang="rust" hidden>
+            <li data-step="intro"><code>fn merge_sort(a: &amp;mut [i32], lo: usize, hi: usize) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>if lo &gt;= hi { return; }</code></li>
+            <li data-step="place" class="code-sync__in"><code>let mid = lo + (hi - lo) / 2;</code></li>
+            <li data-step="place" class="code-sync__in"><code>merge_sort(a, lo, mid);</code></li>
+            <li data-step="place" class="code-sync__in"><code>merge_sort(a, mid + 1, hi);</code></li>
+            <li data-step="place done" class="code-sync__in"><code>merge(a, lo, mid, hi);</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="merge" data-lang="ruby" hidden>
+            <li data-step="intro"><code>def merge_sort(a, lo, hi)</code></li>
+            <li data-step="intro" class="code-sync__in"><code>return if lo &gt;= hi</code></li>
+            <li data-step="place" class="code-sync__in"><code>mid = (lo + hi) / 2</code></li>
+            <li data-step="place" class="code-sync__in"><code>merge_sort(a, lo, mid)</code></li>
+            <li data-step="place" class="code-sync__in"><code>merge_sort(a, mid + 1, hi)</code></li>
+            <li data-step="place done" class="code-sync__in"><code>merge(a, lo, mid, hi)</code></li>
+            <li><code>end</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="merge" data-lang="php" hidden>
+            <li data-step="intro"><code>function mergeSort(array &amp;$a, int $lo, int $hi): void {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>if ($lo &gt;= $hi) return;</code></li>
+            <li data-step="place" class="code-sync__in"><code>$mid = intdiv($lo + $hi, 2);</code></li>
+            <li data-step="place" class="code-sync__in"><code>mergeSort($a, $lo, $mid);</code></li>
+            <li data-step="place" class="code-sync__in"><code>mergeSort($a, $mid + 1, $hi);</code></li>
+            <li data-step="place done" class="code-sync__in"><code>merge($a, $lo, $mid, $hi);</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <!-- 퀵 정렬 — 피벗보다 작은 값을 앞으로 모은다 (Lomuto) -->
+        <ol class="code-sync__lines" data-variant="quick" data-lang="easy" hidden>
+            <li data-step="intro"><span>구간 하나를 정렬한다</span></li>
+            <li data-step="intro" class="code-sync__in"><span>원소가 하나 이하면 이미 정렬된 것이다</span></li>
+            <li data-step="pivot" class="code-sync__in"><span>맨 뒤 값을 기준(피벗)으로 삼는다</span></li>
+            <li data-step="pivot" class="code-sync__in"><span>작은 값이 들어갈 자리를 맨 앞으로 둔다</span></li>
+            <li data-step="compare swap-or-compare" class="code-sync__in"><span>앞에서부터 피벗 앞까지 하나씩 본다</span></li>
+            <li data-step="compare swap-or-compare" class="code-sync__in2"><span>지금 값이 피벗보다 작으면</span></li>
+            <li data-step="swap-or-compare" class="code-sync__in3"><span>작은 값 자리를 한 칸 뒤로 민다</span></li>
+            <li data-step="swap-or-compare" class="code-sync__in3"><span>그 자리와 지금 값을 맞바꾼다</span></li>
+            <li data-step="place-pivot" class="code-sync__in"><span>피벗을 작은 값들 바로 뒤에 놓는다 — 이 자리는 확정이다</span></li>
+            <li data-step="place-pivot" class="code-sync__in"><span>피벗 왼쪽을 같은 방법으로 정렬한다</span></li>
+            <li data-step="place-pivot done" class="code-sync__in"><span>피벗 오른쪽도 같은 방법으로 정렬한다</span></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="quick" data-lang="java" hidden>
+            <li data-step="intro"><code>void quickSort(int[] a, int lo, int hi) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>if (lo &gt;= hi) return;</code></li>
+            <li data-step="pivot" class="code-sync__in"><code>int pivot = a[hi];</code></li>
+            <li data-step="pivot" class="code-sync__in"><code>int i = lo - 1;</code></li>
+            <li data-step="compare swap-or-compare" class="code-sync__in"><code>for (int j = lo; j &lt; hi; j++) {</code></li>
+            <li data-step="compare swap-or-compare" class="code-sync__in2"><code>if (a[j] &lt; pivot) {</code></li>
+            <li data-step="swap-or-compare" class="code-sync__in3"><code>i++;</code></li>
+            <li data-step="swap-or-compare" class="code-sync__in3"><code>swap(a, i, j);</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="place-pivot" class="code-sync__in"><code>swap(a, i + 1, hi);</code></li>
+            <li data-step="place-pivot" class="code-sync__in"><code>quickSort(a, lo, i);</code></li>
+            <li data-step="place-pivot done" class="code-sync__in"><code>quickSort(a, i + 2, hi);</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="quick" data-lang="python" hidden>
+            <li data-step="intro"><code>def quick_sort(a, lo, hi):</code></li>
+            <li data-step="intro" class="code-sync__in"><code>if lo &gt;= hi: return</code></li>
+            <li data-step="pivot" class="code-sync__in"><code>pivot = a[hi]</code></li>
+            <li data-step="pivot" class="code-sync__in"><code>i = lo - 1</code></li>
+            <li data-step="compare swap-or-compare" class="code-sync__in"><code>for j in range(lo, hi):</code></li>
+            <li data-step="compare swap-or-compare" class="code-sync__in2"><code>if a[j] &lt; pivot:</code></li>
+            <li data-step="swap-or-compare" class="code-sync__in3"><code>i += 1</code></li>
+            <li data-step="swap-or-compare" class="code-sync__in3"><code>a[i], a[j] = a[j], a[i]</code></li>
+            <li data-step="place-pivot" class="code-sync__in"><code>a[i + 1], a[hi] = a[hi], a[i + 1]</code></li>
+            <li data-step="place-pivot" class="code-sync__in"><code>quick_sort(a, lo, i)</code></li>
+            <li data-step="place-pivot done" class="code-sync__in"><code>quick_sort(a, i + 2, hi)</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="quick" data-lang="javascript" hidden>
+            <li data-step="intro"><code>function quickSort(a, lo, hi) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>if (lo &gt;= hi) return;</code></li>
+            <li data-step="pivot" class="code-sync__in"><code>const pivot = a[hi];</code></li>
+            <li data-step="pivot" class="code-sync__in"><code>let i = lo - 1;</code></li>
+            <li data-step="compare swap-or-compare" class="code-sync__in"><code>for (let j = lo; j &lt; hi; j++) {</code></li>
+            <li data-step="compare swap-or-compare" class="code-sync__in2"><code>if (a[j] &lt; pivot) {</code></li>
+            <li data-step="swap-or-compare" class="code-sync__in3"><code>i++;</code></li>
+            <li data-step="swap-or-compare" class="code-sync__in3"><code>[a[i], a[j]] = [a[j], a[i]];</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="place-pivot" class="code-sync__in"><code>[a[i + 1], a[hi]] = [a[hi], a[i + 1]];</code></li>
+            <li data-step="place-pivot" class="code-sync__in"><code>quickSort(a, lo, i);</code></li>
+            <li data-step="place-pivot done" class="code-sync__in"><code>quickSort(a, i + 2, hi);</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="quick" data-lang="typescript" hidden>
+            <li data-step="intro"><code>function quickSort(a: number[], lo: number, hi: number): void {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>if (lo &gt;= hi) return;</code></li>
+            <li data-step="pivot" class="code-sync__in"><code>const pivot = a[hi];</code></li>
+            <li data-step="pivot" class="code-sync__in"><code>let i = lo - 1;</code></li>
+            <li data-step="compare swap-or-compare" class="code-sync__in"><code>for (let j = lo; j &lt; hi; j++) {</code></li>
+            <li data-step="compare swap-or-compare" class="code-sync__in2"><code>if (a[j] &lt; pivot) {</code></li>
+            <li data-step="swap-or-compare" class="code-sync__in3"><code>i++;</code></li>
+            <li data-step="swap-or-compare" class="code-sync__in3"><code>[a[i], a[j]] = [a[j], a[i]];</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="place-pivot" class="code-sync__in"><code>[a[i + 1], a[hi]] = [a[hi], a[i + 1]];</code></li>
+            <li data-step="place-pivot" class="code-sync__in"><code>quickSort(a, lo, i);</code></li>
+            <li data-step="place-pivot done" class="code-sync__in"><code>quickSort(a, i + 2, hi);</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="quick" data-lang="c" hidden>
+            <li data-step="intro"><code>void quick_sort(int a[], int lo, int hi) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>if (lo &gt;= hi) return;</code></li>
+            <li data-step="pivot" class="code-sync__in"><code>int pivot = a[hi];</code></li>
+            <li data-step="pivot" class="code-sync__in"><code>int i = lo - 1;</code></li>
+            <li data-step="compare swap-or-compare" class="code-sync__in"><code>for (int j = lo; j &lt; hi; j++) {</code></li>
+            <li data-step="compare swap-or-compare" class="code-sync__in2"><code>if (a[j] &lt; pivot) {</code></li>
+            <li data-step="swap-or-compare" class="code-sync__in3"><code>i++;</code></li>
+            <li data-step="swap-or-compare" class="code-sync__in3"><code>swap(&amp;a[i], &amp;a[j]);</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="place-pivot" class="code-sync__in"><code>swap(&amp;a[i + 1], &amp;a[hi]);</code></li>
+            <li data-step="place-pivot" class="code-sync__in"><code>quick_sort(a, lo, i);</code></li>
+            <li data-step="place-pivot done" class="code-sync__in"><code>quick_sort(a, i + 2, hi);</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="quick" data-lang="cpp" hidden>
+            <li data-step="intro"><code>void quickSort(std::vector&lt;int&gt;&amp; a, int lo, int hi) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>if (lo &gt;= hi) return;</code></li>
+            <li data-step="pivot" class="code-sync__in"><code>int pivot = a[hi];</code></li>
+            <li data-step="pivot" class="code-sync__in"><code>int i = lo - 1;</code></li>
+            <li data-step="compare swap-or-compare" class="code-sync__in"><code>for (int j = lo; j &lt; hi; j++) {</code></li>
+            <li data-step="compare swap-or-compare" class="code-sync__in2"><code>if (a[j] &lt; pivot) {</code></li>
+            <li data-step="swap-or-compare" class="code-sync__in3"><code>i++;</code></li>
+            <li data-step="swap-or-compare" class="code-sync__in3"><code>std::swap(a[i], a[j]);</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="place-pivot" class="code-sync__in"><code>std::swap(a[i + 1], a[hi]);</code></li>
+            <li data-step="place-pivot" class="code-sync__in"><code>quickSort(a, lo, i);</code></li>
+            <li data-step="place-pivot done" class="code-sync__in"><code>quickSort(a, i + 2, hi);</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="quick" data-lang="csharp" hidden>
+            <li data-step="intro"><code>void QuickSort(int[] a, int lo, int hi) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>if (lo &gt;= hi) return;</code></li>
+            <li data-step="pivot" class="code-sync__in"><code>int pivot = a[hi];</code></li>
+            <li data-step="pivot" class="code-sync__in"><code>int i = lo - 1;</code></li>
+            <li data-step="compare swap-or-compare" class="code-sync__in"><code>for (int j = lo; j &lt; hi; j++) {</code></li>
+            <li data-step="compare swap-or-compare" class="code-sync__in2"><code>if (a[j] &lt; pivot) {</code></li>
+            <li data-step="swap-or-compare" class="code-sync__in3"><code>i++;</code></li>
+            <li data-step="swap-or-compare" class="code-sync__in3"><code>(a[i], a[j]) = (a[j], a[i]);</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="place-pivot" class="code-sync__in"><code>(a[i + 1], a[hi]) = (a[hi], a[i + 1]);</code></li>
+            <li data-step="place-pivot" class="code-sync__in"><code>QuickSort(a, lo, i);</code></li>
+            <li data-step="place-pivot done" class="code-sync__in"><code>QuickSort(a, i + 2, hi);</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="quick" data-lang="go" hidden>
+            <li data-step="intro"><code>func quickSort(a []int, lo, hi int) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>if lo &gt;= hi { return }</code></li>
+            <li data-step="pivot" class="code-sync__in"><code>pivot := a[hi]</code></li>
+            <li data-step="pivot" class="code-sync__in"><code>i := lo - 1</code></li>
+            <li data-step="compare swap-or-compare" class="code-sync__in"><code>for j := lo; j &lt; hi; j++ {</code></li>
+            <li data-step="compare swap-or-compare" class="code-sync__in2"><code>if a[j] &lt; pivot {</code></li>
+            <li data-step="swap-or-compare" class="code-sync__in3"><code>i++</code></li>
+            <li data-step="swap-or-compare" class="code-sync__in3"><code>a[i], a[j] = a[j], a[i]</code></li>
+            <li class="code-sync__in"><code>} }</code></li>
+            <li data-step="place-pivot" class="code-sync__in"><code>a[i+1], a[hi] = a[hi], a[i+1]</code></li>
+            <li data-step="place-pivot" class="code-sync__in"><code>quickSort(a, lo, i)</code></li>
+            <li data-step="place-pivot done" class="code-sync__in"><code>quickSort(a, i+2, hi)</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="quick" data-lang="kotlin" hidden>
+            <li data-step="intro"><code>fun quickSort(a: IntArray, lo: Int, hi: Int) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>if (lo &gt;= hi) return</code></li>
+            <li data-step="pivot" class="code-sync__in"><code>val pivot = a[hi]</code></li>
+            <li data-step="pivot" class="code-sync__in"><code>var i = lo - 1</code></li>
+            <li data-step="compare swap-or-compare" class="code-sync__in"><code>for (j in lo until hi) {</code></li>
+            <li data-step="compare swap-or-compare" class="code-sync__in2"><code>if (a[j] &lt; pivot) {</code></li>
+            <li data-step="swap-or-compare" class="code-sync__in3"><code>i++</code></li>
+            <li data-step="swap-or-compare" class="code-sync__in3"><code>a.swap(i, j)</code></li>
+            <li class="code-sync__in"><code>} }</code></li>
+            <li data-step="place-pivot" class="code-sync__in"><code>a.swap(i + 1, hi)</code></li>
+            <li data-step="place-pivot" class="code-sync__in"><code>quickSort(a, lo, i)</code></li>
+            <li data-step="place-pivot done" class="code-sync__in"><code>quickSort(a, i + 2, hi)</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="quick" data-lang="swift" hidden>
+            <li data-step="intro"><code>func quickSort(_ a: inout [Int], _ lo: Int, _ hi: Int) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>if lo &gt;= hi { return }</code></li>
+            <li data-step="pivot" class="code-sync__in"><code>let pivot = a[hi]</code></li>
+            <li data-step="pivot" class="code-sync__in"><code>var i = lo - 1</code></li>
+            <li data-step="compare swap-or-compare" class="code-sync__in"><code>for j in lo..&lt;hi {</code></li>
+            <li data-step="compare swap-or-compare" class="code-sync__in2"><code>if a[j] &lt; pivot {</code></li>
+            <li data-step="swap-or-compare" class="code-sync__in3"><code>i += 1</code></li>
+            <li data-step="swap-or-compare" class="code-sync__in3"><code>a.swapAt(i, j)</code></li>
+            <li class="code-sync__in"><code>} }</code></li>
+            <li data-step="place-pivot" class="code-sync__in"><code>a.swapAt(i + 1, hi)</code></li>
+            <li data-step="place-pivot" class="code-sync__in"><code>quickSort(&amp;a, lo, i)</code></li>
+            <li data-step="place-pivot done" class="code-sync__in"><code>quickSort(&amp;a, i + 2, hi)</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="quick" data-lang="rust" hidden>
+            <li data-step="intro"><code>fn quick_sort(a: &amp;mut Vec&lt;i32&gt;, lo: isize, hi: isize) {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>if lo &gt;= hi { return; }</code></li>
+            <li data-step="pivot" class="code-sync__in"><code>let pivot = a[hi as usize];</code></li>
+            <li data-step="pivot" class="code-sync__in"><code>let mut i = lo - 1;</code></li>
+            <li data-step="compare swap-or-compare" class="code-sync__in"><code>for j in lo..hi {</code></li>
+            <li data-step="compare swap-or-compare" class="code-sync__in2"><code>if a[j as usize] &lt; pivot {</code></li>
+            <li data-step="swap-or-compare" class="code-sync__in3"><code>i += 1;</code></li>
+            <li data-step="swap-or-compare" class="code-sync__in3"><code>a.swap(i as usize, j as usize);</code></li>
+            <li class="code-sync__in"><code>} }</code></li>
+            <li data-step="place-pivot" class="code-sync__in"><code>a.swap((i + 1) as usize, hi as usize);</code></li>
+            <li data-step="place-pivot" class="code-sync__in"><code>quick_sort(a, lo, i);</code></li>
+            <li data-step="place-pivot done" class="code-sync__in"><code>quick_sort(a, i + 2, hi);</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="quick" data-lang="ruby" hidden>
+            <li data-step="intro"><code>def quick_sort(a, lo, hi)</code></li>
+            <li data-step="intro" class="code-sync__in"><code>return if lo &gt;= hi</code></li>
+            <li data-step="pivot" class="code-sync__in"><code>pivot = a[hi]</code></li>
+            <li data-step="pivot" class="code-sync__in"><code>i = lo - 1</code></li>
+            <li data-step="compare swap-or-compare" class="code-sync__in"><code>(lo...hi).each do |j|</code></li>
+            <li data-step="compare swap-or-compare" class="code-sync__in2"><code>next unless a[j] &lt; pivot</code></li>
+            <li data-step="swap-or-compare" class="code-sync__in3"><code>i += 1</code></li>
+            <li data-step="swap-or-compare" class="code-sync__in3"><code>a[i], a[j] = a[j], a[i]</code></li>
+            <li class="code-sync__in"><code>end</code></li>
+            <li data-step="place-pivot" class="code-sync__in"><code>a[i + 1], a[hi] = a[hi], a[i + 1]</code></li>
+            <li data-step="place-pivot" class="code-sync__in"><code>quick_sort(a, lo, i)</code></li>
+            <li data-step="place-pivot done" class="code-sync__in"><code>quick_sort(a, i + 2, hi)</code></li>
+            <li><code>end</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="quick" data-lang="php" hidden>
+            <li data-step="intro"><code>function quickSort(array &amp;$a, int $lo, int $hi): void {</code></li>
+            <li data-step="intro" class="code-sync__in"><code>if ($lo &gt;= $hi) return;</code></li>
+            <li data-step="pivot" class="code-sync__in"><code>$pivot = $a[$hi];</code></li>
+            <li data-step="pivot" class="code-sync__in"><code>$i = $lo - 1;</code></li>
+            <li data-step="compare swap-or-compare" class="code-sync__in"><code>for ($j = $lo; $j &lt; $hi; $j++) {</code></li>
+            <li data-step="compare swap-or-compare" class="code-sync__in2"><code>if ($a[$j] &lt; $pivot) {</code></li>
+            <li data-step="swap-or-compare" class="code-sync__in3"><code>$i++;</code></li>
+            <li data-step="swap-or-compare" class="code-sync__in3"><code>[$a[$i], $a[$j]] = [$a[$j], $a[$i]];</code></li>
+            <li class="code-sync__in"><code>} }</code></li>
+            <li data-step="place-pivot" class="code-sync__in"><code>[$a[$i + 1], $a[$hi]] = [$a[$hi], $a[$i + 1]];</code></li>
+            <li data-step="place-pivot" class="code-sync__in"><code>quickSort($a, $lo, $i);</code></li>
+            <li data-step="place-pivot done" class="code-sync__in"><code>quickSort($a, $i + 2, $hi);</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <!-- 힙 정렬 — 최대 힙을 만들고 뿌리를 뒤로 보낸다 -->
+        <ol class="code-sync__lines" data-variant="heap" data-lang="easy" hidden>
+            <li data-step="intro"><span>배열 전체를 정렬한다</span></li>
+            <li data-step="sift" class="code-sync__in"><span>가운데부터 앞으로 한 칸씩 거슬러 올라가며</span></li>
+            <li data-step="sift" class="code-sync__in2"><span>그 자리를 뿌리로 보고 큰 값을 위로 끌어올린다</span></li>
+            <li data-step="heap-built" class="code-sync__in"><span>여기까지 하면 맨 앞이 가장 큰 값이다</span></li>
+            <li data-step="extract" class="code-sync__in"><span>맨 뒤부터 한 칸씩 자리를 줄여 가며</span></li>
+            <li data-step="extract" class="code-sync__in2"><span>맨 앞(최댓값)과 지금 마지막 칸을 맞바꾼다</span></li>
+            <li data-step="sift" class="code-sync__in2"><span>줄어든 범위에서 다시 큰 값을 위로 끌어올린다</span></li>
+            <li data-step="done" class="code-sync__in"><span>다 꺼내면 정렬이 끝난다</span></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="heap" data-lang="java" hidden>
+            <li data-step="intro"><code>void heapSort(int[] a) {</code></li>
+            <li data-step="sift" class="code-sync__in"><code>for (int i = a.length / 2 - 1; i &gt;= 0; i--)</code></li>
+            <li data-step="sift" class="code-sync__in2"><code>siftDown(a, i, a.length);</code></li>
+            <li data-step="heap-built" class="code-sync__in"><code>// 여기서 최대 힙 완성</code></li>
+            <li data-step="extract" class="code-sync__in"><code>for (int end = a.length - 1; end &gt; 0; end--) {</code></li>
+            <li data-step="extract" class="code-sync__in2"><code>swap(a, 0, end);</code></li>
+            <li data-step="sift" class="code-sync__in2"><code>siftDown(a, 0, end);</code></li>
+            <li data-step="done" class="code-sync__in"><code>}</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="heap" data-lang="python" hidden>
+            <li data-step="intro"><code>def heap_sort(a):</code></li>
+            <li data-step="sift" class="code-sync__in"><code>for i in range(len(a) // 2 - 1, -1, -1):</code></li>
+            <li data-step="sift" class="code-sync__in2"><code>sift_down(a, i, len(a))</code></li>
+            <li data-step="heap-built" class="code-sync__in"><code># 여기서 최대 힙 완성</code></li>
+            <li data-step="extract" class="code-sync__in"><code>for end in range(len(a) - 1, 0, -1):</code></li>
+            <li data-step="extract" class="code-sync__in2"><code>a[0], a[end] = a[end], a[0]</code></li>
+            <li data-step="sift" class="code-sync__in2"><code>sift_down(a, 0, end)</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="heap" data-lang="javascript" hidden>
+            <li data-step="intro"><code>function heapSort(a) {</code></li>
+            <li data-step="sift" class="code-sync__in"><code>for (let i = (a.length &gt;&gt; 1) - 1; i &gt;= 0; i--)</code></li>
+            <li data-step="sift" class="code-sync__in2"><code>siftDown(a, i, a.length);</code></li>
+            <li data-step="heap-built" class="code-sync__in"><code>// 여기서 최대 힙 완성</code></li>
+            <li data-step="extract" class="code-sync__in"><code>for (let end = a.length - 1; end &gt; 0; end--) {</code></li>
+            <li data-step="extract" class="code-sync__in2"><code>[a[0], a[end]] = [a[end], a[0]];</code></li>
+            <li data-step="sift" class="code-sync__in2"><code>siftDown(a, 0, end);</code></li>
+            <li data-step="done" class="code-sync__in"><code>}</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="heap" data-lang="typescript" hidden>
+            <li data-step="intro"><code>function heapSort(a: number[]): void {</code></li>
+            <li data-step="sift" class="code-sync__in"><code>for (let i = (a.length &gt;&gt; 1) - 1; i &gt;= 0; i--)</code></li>
+            <li data-step="sift" class="code-sync__in2"><code>siftDown(a, i, a.length);</code></li>
+            <li data-step="heap-built" class="code-sync__in"><code>// 여기서 최대 힙 완성</code></li>
+            <li data-step="extract" class="code-sync__in"><code>for (let end = a.length - 1; end &gt; 0; end--) {</code></li>
+            <li data-step="extract" class="code-sync__in2"><code>[a[0], a[end]] = [a[end], a[0]];</code></li>
+            <li data-step="sift" class="code-sync__in2"><code>siftDown(a, 0, end);</code></li>
+            <li data-step="done" class="code-sync__in"><code>}</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="heap" data-lang="c" hidden>
+            <li data-step="intro"><code>void heap_sort(int a[], int n) {</code></li>
+            <li data-step="sift" class="code-sync__in"><code>for (int i = n / 2 - 1; i &gt;= 0; i--)</code></li>
+            <li data-step="sift" class="code-sync__in2"><code>sift_down(a, i, n);</code></li>
+            <li data-step="heap-built" class="code-sync__in"><code>/* 여기서 최대 힙 완성 */</code></li>
+            <li data-step="extract" class="code-sync__in"><code>for (int end = n - 1; end &gt; 0; end--) {</code></li>
+            <li data-step="extract" class="code-sync__in2"><code>swap(&amp;a[0], &amp;a[end]);</code></li>
+            <li data-step="sift" class="code-sync__in2"><code>sift_down(a, 0, end);</code></li>
+            <li data-step="done" class="code-sync__in"><code>}</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="heap" data-lang="cpp" hidden>
+            <li data-step="intro"><code>void heapSort(std::vector&lt;int&gt;&amp; a) {</code></li>
+            <li data-step="sift" class="code-sync__in"><code>for (int i = (int)a.size() / 2 - 1; i &gt;= 0; i--)</code></li>
+            <li data-step="sift" class="code-sync__in2"><code>siftDown(a, i, (int)a.size());</code></li>
+            <li data-step="heap-built" class="code-sync__in"><code>// 여기서 최대 힙 완성</code></li>
+            <li data-step="extract" class="code-sync__in"><code>for (int end = (int)a.size() - 1; end &gt; 0; end--) {</code></li>
+            <li data-step="extract" class="code-sync__in2"><code>std::swap(a[0], a[end]);</code></li>
+            <li data-step="sift" class="code-sync__in2"><code>siftDown(a, 0, end);</code></li>
+            <li data-step="done" class="code-sync__in"><code>}</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="heap" data-lang="csharp" hidden>
+            <li data-step="intro"><code>void HeapSort(int[] a) {</code></li>
+            <li data-step="sift" class="code-sync__in"><code>for (int i = a.Length / 2 - 1; i &gt;= 0; i--)</code></li>
+            <li data-step="sift" class="code-sync__in2"><code>SiftDown(a, i, a.Length);</code></li>
+            <li data-step="heap-built" class="code-sync__in"><code>// 여기서 최대 힙 완성</code></li>
+            <li data-step="extract" class="code-sync__in"><code>for (int end = a.Length - 1; end &gt; 0; end--) {</code></li>
+            <li data-step="extract" class="code-sync__in2"><code>(a[0], a[end]) = (a[end], a[0]);</code></li>
+            <li data-step="sift" class="code-sync__in2"><code>SiftDown(a, 0, end);</code></li>
+            <li data-step="done" class="code-sync__in"><code>}</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="heap" data-lang="go" hidden>
+            <li data-step="intro"><code>func heapSort(a []int) {</code></li>
+            <li data-step="sift" class="code-sync__in"><code>for i := len(a)/2 - 1; i &gt;= 0; i-- {</code></li>
+            <li data-step="sift" class="code-sync__in2"><code>siftDown(a, i, len(a))</code></li>
+            <li data-step="heap-built" class="code-sync__in"><code>} // 여기서 최대 힙 완성</code></li>
+            <li data-step="extract" class="code-sync__in"><code>for end := len(a) - 1; end &gt; 0; end-- {</code></li>
+            <li data-step="extract" class="code-sync__in2"><code>a[0], a[end] = a[end], a[0]</code></li>
+            <li data-step="sift" class="code-sync__in2"><code>siftDown(a, 0, end)</code></li>
+            <li data-step="done" class="code-sync__in"><code>}</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="heap" data-lang="kotlin" hidden>
+            <li data-step="intro"><code>fun heapSort(a: IntArray) {</code></li>
+            <li data-step="sift" class="code-sync__in"><code>for (i in a.size / 2 - 1 downTo 0)</code></li>
+            <li data-step="sift" class="code-sync__in2"><code>siftDown(a, i, a.size)</code></li>
+            <li data-step="heap-built" class="code-sync__in"><code>// 여기서 최대 힙 완성</code></li>
+            <li data-step="extract" class="code-sync__in"><code>for (end in a.size - 1 downTo 1) {</code></li>
+            <li data-step="extract" class="code-sync__in2"><code>a.swap(0, end)</code></li>
+            <li data-step="sift" class="code-sync__in2"><code>siftDown(a, 0, end)</code></li>
+            <li data-step="done" class="code-sync__in"><code>}</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="heap" data-lang="swift" hidden>
+            <li data-step="intro"><code>func heapSort(_ a: inout [Int]) {</code></li>
+            <li data-step="sift" class="code-sync__in"><code>for i in stride(from: a.count / 2 - 1, through: 0, by: -1) {</code></li>
+            <li data-step="sift" class="code-sync__in2"><code>siftDown(&amp;a, i, a.count)</code></li>
+            <li data-step="heap-built" class="code-sync__in"><code>} // 여기서 최대 힙 완성</code></li>
+            <li data-step="extract" class="code-sync__in"><code>for end in stride(from: a.count - 1, to: 0, by: -1) {</code></li>
+            <li data-step="extract" class="code-sync__in2"><code>a.swapAt(0, end)</code></li>
+            <li data-step="sift" class="code-sync__in2"><code>siftDown(&amp;a, 0, end)</code></li>
+            <li data-step="done" class="code-sync__in"><code>}</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="heap" data-lang="rust" hidden>
+            <li data-step="intro"><code>fn heap_sort(a: &amp;mut Vec&lt;i32&gt;) {</code></li>
+            <li data-step="sift" class="code-sync__in"><code>for i in (0..a.len() / 2).rev() {</code></li>
+            <li data-step="sift" class="code-sync__in2"><code>sift_down(a, i, a.len());</code></li>
+            <li data-step="heap-built" class="code-sync__in"><code>} // 여기서 최대 힙 완성</code></li>
+            <li data-step="extract" class="code-sync__in"><code>for end in (1..a.len()).rev() {</code></li>
+            <li data-step="extract" class="code-sync__in2"><code>a.swap(0, end);</code></li>
+            <li data-step="sift" class="code-sync__in2"><code>sift_down(a, 0, end);</code></li>
+            <li data-step="done" class="code-sync__in"><code>}</code></li>
+            <li><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="heap" data-lang="ruby" hidden>
+            <li data-step="intro"><code>def heap_sort(a)</code></li>
+            <li data-step="sift" class="code-sync__in"><code>(a.length / 2 - 1).downto(0) do |i|</code></li>
+            <li data-step="sift" class="code-sync__in2"><code>sift_down(a, i, a.length)</code></li>
+            <li data-step="heap-built" class="code-sync__in"><code>end # 여기서 최대 힙 완성</code></li>
+            <li data-step="extract" class="code-sync__in"><code>(a.length - 1).downto(1) do |last|</code></li>
+            <li data-step="extract" class="code-sync__in2"><code>a[0], a[last] = a[last], a[0]</code></li>
+            <li data-step="sift" class="code-sync__in2"><code>sift_down(a, 0, last)</code></li>
+            <li data-step="done" class="code-sync__in"><code>end</code></li>
+            <li><code>end</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="heap" data-lang="php" hidden>
+            <li data-step="intro"><code>function heapSort(array &amp;$a): void {</code></li>
+            <li data-step="sift" class="code-sync__in"><code>for ($i = intdiv(count($a), 2) - 1; $i &gt;= 0; $i--)</code></li>
+            <li data-step="sift" class="code-sync__in2"><code>siftDown($a, $i, count($a));</code></li>
+            <li data-step="heap-built" class="code-sync__in"><code>// 여기서 최대 힙 완성</code></li>
+            <li data-step="extract" class="code-sync__in"><code>for ($end = count($a) - 1; $end &gt; 0; $end--) {</code></li>
+            <li data-step="extract" class="code-sync__in2"><code>[$a[0], $a[$end]] = [$a[$end], $a[0]];</code></li>
+            <li data-step="sift" class="code-sync__in2"><code>siftDown($a, 0, $end);</code></li>
+            <li data-step="done" class="code-sync__in"><code>}</code></li>
+            <li><code>}</code></li>
+        </ol>
+    </div>
+</th:block>
