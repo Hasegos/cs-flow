@@ -5,6 +5,7 @@
   "templateName": "index",
   "metaDescription": "인덱스 CS 지식 정리 — B-Tree 인덱스 구조, Clustered vs Non-Clustered, 인덱스 스캔 vs 풀 스캔을 인터랙티브 시각화로 학습하세요. 개발자 면접 데이터베이스 핵심 개념.",
   "published": true,
+  "updatedOn": "2026-10-30",
   "order": 3,
   "seq": 53,
   "tags": [

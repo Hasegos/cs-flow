@@ -5,6 +5,7 @@
   "templateName": "bfs-dfs",
   "metaDescription": "BFS·DFS CS 지식 정리 — 너비 우선·깊이 우선 탐색 순서, 큐·스택·재귀 구현을 인터랙티브 시각화로 학습하세요. 개발자 면접 알고리즘 핵심 개념.",
   "published": true,
+  "updatedOn": "2026-10-30",
   "order": 4,
   "seq": 44,
   "tags": [

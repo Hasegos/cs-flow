@@ -5,6 +5,7 @@
   "templateName": "priority-inversion",
   "metaDescription": "우선순위 역전 CS 지식 정리 — 락을 잡은 낮은 우선순위 작업이 높은 우선순위 작업을 막는 현상과 우선순위 상속 해결법을 인터랙티브 시각화로 학습하세요. 개발자 면접 운영체제 핵심 개념.",
   "published": true,
+  "updatedOn": "2026-10-30",
   "order": 18,
   "seq": 78,
   "tags": [

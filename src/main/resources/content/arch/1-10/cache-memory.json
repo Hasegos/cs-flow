@@ -5,6 +5,7 @@
   "templateName": "cache-memory",
   "metaDescription": "캐시 메모리 CS 지식 정리 — 캐시 히트·미스, LRU 교체 정책, L1·L2·L3 캐시 계층 동작 원리를 인터랙티브 시각화로 학습하세요. 개발자 면접 컴퓨터구조 핵심 개념.",
   "published": true,
+  "updatedOn": "2026-10-30",
   "order": 5,
   "seq": 5,
   "tags": [

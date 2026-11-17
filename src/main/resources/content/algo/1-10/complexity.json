@@ -5,6 +5,7 @@
   "templateName": "complexity",
   "metaDescription": "시간·공간 복잡도 CS 지식 정리 — Big-O 표기법, O(1)·O(log n)·O(n)·O(n²) 그래프 비교를 인터랙티브 시각화로 학습하세요. 개발자 면접 알고리즘 핵심 개념.",
   "published": true,
+  "updatedOn": "2026-10-30",
   "order": 1,
   "seq": 41,
   "tags": [
