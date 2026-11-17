@@ -593,7 +593,10 @@
 
     function applyStep(idx, onDone) {
         stepIdx = idx;
-        logEl.textContent = currentSteps()[idx].log;
+        var st = currentSteps()[idx];
+        logEl.textContent = st.log;
+        /* 단계 이름이 없는 묶음은 시작 줄을 밝힌다 */
+        window.CsFlow.emitStep(st.type || st.phase || 'intro', mode);
         animateStep(function () { if (onDone) setTimeout(onDone, 0); });
     }
 
@@ -631,6 +634,7 @@
         running = false; stepIdx = -1; anim = 1;
         btnPlay.disabled = false; btnStep.disabled = false;
         logEl.textContent = defaultLog();
+        window.CsFlow.emitStep(null, mode);
         setSpeedDisabled(false);
         resize();
     }

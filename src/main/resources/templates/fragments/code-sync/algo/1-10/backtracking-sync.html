@@ -1,0 +1,357 @@
+<th:block th:fragment="sync">
+    <!-- 시각화 옆 코드 패널. 줄의 data-step 이 시각화 단계 이름과 짝지어 밝아진다 -->
+    <div class="code-sync__panel" data-code-sync>
+        <div class="code-sync__bar">
+            <label class="code-sync__label" for="codeSyncLang">언어</label>
+            <select class="code-sync__select" id="codeSyncLang">
+                <option value="easy">쉬운 말</option>
+                <option value="java">Java</option>
+                <option value="python">Python</option>
+                <option value="javascript">JavaScript</option>
+                <option value="typescript">TypeScript</option>
+                <option value="c">C</option>
+                <option value="cpp">C++</option>
+                <option value="csharp">C#</option>
+                <option value="go">Go</option>
+                <option value="kotlin">Kotlin</option>
+                <option value="swift">Swift</option>
+                <option value="rust">Rust</option>
+                <option value="ruby">Ruby</option>
+                <option value="php">PHP</option>
+            </select>
+            <span class="code-sync__state" data-code-sync-state>재생하면 지금 줄이 밝아집니다</span>
+        </div>
+
+        <!-- 보드에서 탐색 — 놓고, 내려가고, 안 되면 걷어낸다 -->
+        <ol class="code-sync__lines" data-variant="board" data-lang="easy">
+            <li data-step="intro"><span>지금 줄에 퀸을 놓아 본다</span></li>
+            <li data-step="solution" class="code-sync__in"><span>마지막 줄까지 다 놓았으면 답 하나를 찾은 것이다</span></li>
+            <li data-step="place backtrack" class="code-sync__in"><span>이 줄의 모든 칸을 왼쪽부터 하나씩 본다</span></li>
+            <li data-step="place backtrack" class="code-sync__in2"><span>같은 열이나 대각선에 퀸이 있으면 건너뛴다</span></li>
+            <li data-step="place" class="code-sync__in2"><span>그 칸에 퀸을 놓는다</span></li>
+            <li data-step="place" class="code-sync__in2"><span>다음 줄로 내려가 같은 일을 한다</span></li>
+            <li data-step="remove backtrack" class="code-sync__in2"><span>돌아오면 놓았던 퀸을 걷어낸다</span></li>
+            <li data-step="done"><span>모든 자리를 다 보면 끝난다</span></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="board" data-lang="java" hidden>
+            <li data-step="intro"><code>void solve(int row) {</code></li>
+            <li data-step="solution" class="code-sync__in"><code>if (row == n) { record(); return; }</code></li>
+            <li data-step="place backtrack" class="code-sync__in"><code>for (int col = 0; col &lt; n; col++) {</code></li>
+            <li data-step="place backtrack" class="code-sync__in2"><code>if (!safe(row, col)) continue;</code></li>
+            <li data-step="place" class="code-sync__in2"><code>board[row] = col;</code></li>
+            <li data-step="place" class="code-sync__in2"><code>solve(row + 1);</code></li>
+            <li data-step="remove backtrack" class="code-sync__in2"><code>board[row] = -1;</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done"><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="board" data-lang="python" hidden>
+            <li data-step="intro"><code>def solve(row):</code></li>
+            <li data-step="solution" class="code-sync__in"><code>if row == n: record(); return</code></li>
+            <li data-step="place backtrack" class="code-sync__in"><code>for col in range(n):</code></li>
+            <li data-step="place backtrack" class="code-sync__in2"><code>if not safe(row, col): continue</code></li>
+            <li data-step="place" class="code-sync__in2"><code>board[row] = col</code></li>
+            <li data-step="place" class="code-sync__in2"><code>solve(row + 1)</code></li>
+            <li data-step="remove backtrack" class="code-sync__in2"><code>board[row] = -1</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="board" data-lang="javascript" hidden>
+            <li data-step="intro"><code>function solve(row) {</code></li>
+            <li data-step="solution" class="code-sync__in"><code>if (row === n) { record(); return; }</code></li>
+            <li data-step="place backtrack" class="code-sync__in"><code>for (let col = 0; col &lt; n; col++) {</code></li>
+            <li data-step="place backtrack" class="code-sync__in2"><code>if (!safe(row, col)) continue;</code></li>
+            <li data-step="place" class="code-sync__in2"><code>board[row] = col;</code></li>
+            <li data-step="place" class="code-sync__in2"><code>solve(row + 1);</code></li>
+            <li data-step="remove backtrack" class="code-sync__in2"><code>board[row] = -1;</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done"><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="board" data-lang="typescript" hidden>
+            <li data-step="intro"><code>function solve(row: number): void {</code></li>
+            <li data-step="solution" class="code-sync__in"><code>if (row === n) { record(); return; }</code></li>
+            <li data-step="place backtrack" class="code-sync__in"><code>for (let col = 0; col &lt; n; col++) {</code></li>
+            <li data-step="place backtrack" class="code-sync__in2"><code>if (!safe(row, col)) continue;</code></li>
+            <li data-step="place" class="code-sync__in2"><code>board[row] = col;</code></li>
+            <li data-step="place" class="code-sync__in2"><code>solve(row + 1);</code></li>
+            <li data-step="remove backtrack" class="code-sync__in2"><code>board[row] = -1;</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done"><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="board" data-lang="c" hidden>
+            <li data-step="intro"><code>void solve(int row) {</code></li>
+            <li data-step="solution" class="code-sync__in"><code>if (row == n) { record(); return; }</code></li>
+            <li data-step="place backtrack" class="code-sync__in"><code>for (int col = 0; col &lt; n; col++) {</code></li>
+            <li data-step="place backtrack" class="code-sync__in2"><code>if (!safe(row, col)) continue;</code></li>
+            <li data-step="place" class="code-sync__in2"><code>board[row] = col;</code></li>
+            <li data-step="place" class="code-sync__in2"><code>solve(row + 1);</code></li>
+            <li data-step="remove backtrack" class="code-sync__in2"><code>board[row] = -1;</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done"><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="board" data-lang="cpp" hidden>
+            <li data-step="intro"><code>void solve(int row) {</code></li>
+            <li data-step="solution" class="code-sync__in"><code>if (row == n) { record(); return; }</code></li>
+            <li data-step="place backtrack" class="code-sync__in"><code>for (int col = 0; col &lt; n; col++) {</code></li>
+            <li data-step="place backtrack" class="code-sync__in2"><code>if (!safe(row, col)) continue;</code></li>
+            <li data-step="place" class="code-sync__in2"><code>board[row] = col;</code></li>
+            <li data-step="place" class="code-sync__in2"><code>solve(row + 1);</code></li>
+            <li data-step="remove backtrack" class="code-sync__in2"><code>board[row] = -1;</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done"><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="board" data-lang="csharp" hidden>
+            <li data-step="intro"><code>void Solve(int row) {</code></li>
+            <li data-step="solution" class="code-sync__in"><code>if (row == n) { Record(); return; }</code></li>
+            <li data-step="place backtrack" class="code-sync__in"><code>for (int col = 0; col &lt; n; col++) {</code></li>
+            <li data-step="place backtrack" class="code-sync__in2"><code>if (!Safe(row, col)) continue;</code></li>
+            <li data-step="place" class="code-sync__in2"><code>board[row] = col;</code></li>
+            <li data-step="place" class="code-sync__in2"><code>Solve(row + 1);</code></li>
+            <li data-step="remove backtrack" class="code-sync__in2"><code>board[row] = -1;</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done"><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="board" data-lang="go" hidden>
+            <li data-step="intro"><code>func solve(row int) {</code></li>
+            <li data-step="solution" class="code-sync__in"><code>if row == n { record(); return }</code></li>
+            <li data-step="place backtrack" class="code-sync__in"><code>for col := 0; col &lt; n; col++ {</code></li>
+            <li data-step="place backtrack" class="code-sync__in2"><code>if !safe(row, col) { continue }</code></li>
+            <li data-step="place" class="code-sync__in2"><code>board[row] = col</code></li>
+            <li data-step="place" class="code-sync__in2"><code>solve(row + 1)</code></li>
+            <li data-step="remove backtrack" class="code-sync__in2"><code>board[row] = -1</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done"><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="board" data-lang="kotlin" hidden>
+            <li data-step="intro"><code>fun solve(row: Int) {</code></li>
+            <li data-step="solution" class="code-sync__in"><code>if (row == n) { record(); return }</code></li>
+            <li data-step="place backtrack" class="code-sync__in"><code>for (col in 0 until n) {</code></li>
+            <li data-step="place backtrack" class="code-sync__in2"><code>if (!safe(row, col)) continue</code></li>
+            <li data-step="place" class="code-sync__in2"><code>board[row] = col</code></li>
+            <li data-step="place" class="code-sync__in2"><code>solve(row + 1)</code></li>
+            <li data-step="remove backtrack" class="code-sync__in2"><code>board[row] = -1</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done"><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="board" data-lang="swift" hidden>
+            <li data-step="intro"><code>func solve(_ row: Int) {</code></li>
+            <li data-step="solution" class="code-sync__in"><code>if row == n { record(); return }</code></li>
+            <li data-step="place backtrack" class="code-sync__in"><code>for col in 0..&lt;n {</code></li>
+            <li data-step="place backtrack" class="code-sync__in2"><code>if !safe(row, col) { continue }</code></li>
+            <li data-step="place" class="code-sync__in2"><code>board[row] = col</code></li>
+            <li data-step="place" class="code-sync__in2"><code>solve(row + 1)</code></li>
+            <li data-step="remove backtrack" class="code-sync__in2"><code>board[row] = -1</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done"><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="board" data-lang="rust" hidden>
+            <li data-step="intro"><code>fn solve(row: usize, board: &amp;mut Vec&lt;i32&gt;) {</code></li>
+            <li data-step="solution" class="code-sync__in"><code>if row == n { record(board); return; }</code></li>
+            <li data-step="place backtrack" class="code-sync__in"><code>for col in 0..n {</code></li>
+            <li data-step="place backtrack" class="code-sync__in2"><code>if !safe(row, col, board) { continue; }</code></li>
+            <li data-step="place" class="code-sync__in2"><code>board[row] = col as i32;</code></li>
+            <li data-step="place" class="code-sync__in2"><code>solve(row + 1, board);</code></li>
+            <li data-step="remove backtrack" class="code-sync__in2"><code>board[row] = -1;</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done"><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="board" data-lang="ruby" hidden>
+            <li data-step="intro"><code>def solve(row)</code></li>
+            <li data-step="solution" class="code-sync__in"><code>return record if row == n</code></li>
+            <li data-step="place backtrack" class="code-sync__in"><code>(0...n).each do |col|</code></li>
+            <li data-step="place backtrack" class="code-sync__in2"><code>next unless safe?(row, col)</code></li>
+            <li data-step="place" class="code-sync__in2"><code>board[row] = col</code></li>
+            <li data-step="place" class="code-sync__in2"><code>solve(row + 1)</code></li>
+            <li data-step="remove backtrack" class="code-sync__in2"><code>board[row] = -1</code></li>
+            <li class="code-sync__in"><code>end</code></li>
+            <li data-step="done"><code>end</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="board" data-lang="php" hidden>
+            <li data-step="intro"><code>function solve(int $row): void {</code></li>
+            <li data-step="solution" class="code-sync__in"><code>if ($row === $n) { record(); return; }</code></li>
+            <li data-step="place backtrack" class="code-sync__in"><code>for ($col = 0; $col &lt; $n; $col++) {</code></li>
+            <li data-step="place backtrack" class="code-sync__in2"><code>if (!safe($row, $col)) continue;</code></li>
+            <li data-step="place" class="code-sync__in2"><code>$board[$row] = $col;</code></li>
+            <li data-step="place" class="code-sync__in2"><code>solve($row + 1);</code></li>
+            <li data-step="remove backtrack" class="code-sync__in2"><code>$board[$row] = -1;</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done"><code>}</code></li>
+        </ol>
+
+        <!-- 탐색 트리 — 같은 코드가 그리는 호출 모양 -->
+        <ol class="code-sync__lines" data-variant="tree" data-lang="easy" hidden>
+            <li data-step="intro"><span>지금 줄에 퀸을 놓아 본다</span></li>
+            <li data-step="solution" class="code-sync__in"><span>마지막 줄까지 다 놓았으면 답 하나를 찾은 것이다</span></li>
+            <li data-step="place deadend" class="code-sync__in"><span>이 줄의 모든 칸을 왼쪽부터 하나씩 본다</span></li>
+            <li data-step="place deadend" class="code-sync__in2"><span>같은 열이나 대각선에 퀸이 있으면 건너뛴다</span></li>
+            <li data-step="place" class="code-sync__in2"><span>그 칸에 퀸을 놓는다</span></li>
+            <li data-step="place" class="code-sync__in2"><span>다음 줄로 내려가 같은 일을 한다</span></li>
+            <li data-step="deadend" class="code-sync__in2"><span>돌아오면 놓았던 퀸을 걷어낸다</span></li>
+            <li data-step="done"><span>모든 자리를 다 보면 끝난다</span></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="tree" data-lang="java" hidden>
+            <li data-step="intro"><code>void solve(int row) {</code></li>
+            <li data-step="solution" class="code-sync__in"><code>if (row == n) { record(); return; }</code></li>
+            <li data-step="place deadend" class="code-sync__in"><code>for (int col = 0; col &lt; n; col++) {</code></li>
+            <li data-step="place deadend" class="code-sync__in2"><code>if (!safe(row, col)) continue;</code></li>
+            <li data-step="place" class="code-sync__in2"><code>board[row] = col;</code></li>
+            <li data-step="place" class="code-sync__in2"><code>solve(row + 1);</code></li>
+            <li data-step="deadend" class="code-sync__in2"><code>board[row] = -1;</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done"><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="tree" data-lang="python" hidden>
+            <li data-step="intro"><code>def solve(row):</code></li>
+            <li data-step="solution" class="code-sync__in"><code>if row == n: record(); return</code></li>
+            <li data-step="place deadend" class="code-sync__in"><code>for col in range(n):</code></li>
+            <li data-step="place deadend" class="code-sync__in2"><code>if not safe(row, col): continue</code></li>
+            <li data-step="place" class="code-sync__in2"><code>board[row] = col</code></li>
+            <li data-step="place" class="code-sync__in2"><code>solve(row + 1)</code></li>
+            <li data-step="deadend" class="code-sync__in2"><code>board[row] = -1</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="tree" data-lang="javascript" hidden>
+            <li data-step="intro"><code>function solve(row) {</code></li>
+            <li data-step="solution" class="code-sync__in"><code>if (row === n) { record(); return; }</code></li>
+            <li data-step="place deadend" class="code-sync__in"><code>for (let col = 0; col &lt; n; col++) {</code></li>
+            <li data-step="place deadend" class="code-sync__in2"><code>if (!safe(row, col)) continue;</code></li>
+            <li data-step="place" class="code-sync__in2"><code>board[row] = col;</code></li>
+            <li data-step="place" class="code-sync__in2"><code>solve(row + 1);</code></li>
+            <li data-step="deadend" class="code-sync__in2"><code>board[row] = -1;</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done"><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="tree" data-lang="typescript" hidden>
+            <li data-step="intro"><code>function solve(row: number): void {</code></li>
+            <li data-step="solution" class="code-sync__in"><code>if (row === n) { record(); return; }</code></li>
+            <li data-step="place deadend" class="code-sync__in"><code>for (let col = 0; col &lt; n; col++) {</code></li>
+            <li data-step="place deadend" class="code-sync__in2"><code>if (!safe(row, col)) continue;</code></li>
+            <li data-step="place" class="code-sync__in2"><code>board[row] = col;</code></li>
+            <li data-step="place" class="code-sync__in2"><code>solve(row + 1);</code></li>
+            <li data-step="deadend" class="code-sync__in2"><code>board[row] = -1;</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done"><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="tree" data-lang="c" hidden>
+            <li data-step="intro"><code>void solve(int row) {</code></li>
+            <li data-step="solution" class="code-sync__in"><code>if (row == n) { record(); return; }</code></li>
+            <li data-step="place deadend" class="code-sync__in"><code>for (int col = 0; col &lt; n; col++) {</code></li>
+            <li data-step="place deadend" class="code-sync__in2"><code>if (!safe(row, col)) continue;</code></li>
+            <li data-step="place" class="code-sync__in2"><code>board[row] = col;</code></li>
+            <li data-step="place" class="code-sync__in2"><code>solve(row + 1);</code></li>
+            <li data-step="deadend" class="code-sync__in2"><code>board[row] = -1;</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done"><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="tree" data-lang="cpp" hidden>
+            <li data-step="intro"><code>void solve(int row) {</code></li>
+            <li data-step="solution" class="code-sync__in"><code>if (row == n) { record(); return; }</code></li>
+            <li data-step="place deadend" class="code-sync__in"><code>for (int col = 0; col &lt; n; col++) {</code></li>
+            <li data-step="place deadend" class="code-sync__in2"><code>if (!safe(row, col)) continue;</code></li>
+            <li data-step="place" class="code-sync__in2"><code>board[row] = col;</code></li>
+            <li data-step="place" class="code-sync__in2"><code>solve(row + 1);</code></li>
+            <li data-step="deadend" class="code-sync__in2"><code>board[row] = -1;</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done"><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="tree" data-lang="csharp" hidden>
+            <li data-step="intro"><code>void Solve(int row) {</code></li>
+            <li data-step="solution" class="code-sync__in"><code>if (row == n) { Record(); return; }</code></li>
+            <li data-step="place deadend" class="code-sync__in"><code>for (int col = 0; col &lt; n; col++) {</code></li>
+            <li data-step="place deadend" class="code-sync__in2"><code>if (!Safe(row, col)) continue;</code></li>
+            <li data-step="place" class="code-sync__in2"><code>board[row] = col;</code></li>
+            <li data-step="place" class="code-sync__in2"><code>Solve(row + 1);</code></li>
+            <li data-step="deadend" class="code-sync__in2"><code>board[row] = -1;</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done"><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="tree" data-lang="go" hidden>
+            <li data-step="intro"><code>func solve(row int) {</code></li>
+            <li data-step="solution" class="code-sync__in"><code>if row == n { record(); return }</code></li>
+            <li data-step="place deadend" class="code-sync__in"><code>for col := 0; col &lt; n; col++ {</code></li>
+            <li data-step="place deadend" class="code-sync__in2"><code>if !safe(row, col) { continue }</code></li>
+            <li data-step="place" class="code-sync__in2"><code>board[row] = col</code></li>
+            <li data-step="place" class="code-sync__in2"><code>solve(row + 1)</code></li>
+            <li data-step="deadend" class="code-sync__in2"><code>board[row] = -1</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done"><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="tree" data-lang="kotlin" hidden>
+            <li data-step="intro"><code>fun solve(row: Int) {</code></li>
+            <li data-step="solution" class="code-sync__in"><code>if (row == n) { record(); return }</code></li>
+            <li data-step="place deadend" class="code-sync__in"><code>for (col in 0 until n) {</code></li>
+            <li data-step="place deadend" class="code-sync__in2"><code>if (!safe(row, col)) continue</code></li>
+            <li data-step="place" class="code-sync__in2"><code>board[row] = col</code></li>
+            <li data-step="place" class="code-sync__in2"><code>solve(row + 1)</code></li>
+            <li data-step="deadend" class="code-sync__in2"><code>board[row] = -1</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done"><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="tree" data-lang="swift" hidden>
+            <li data-step="intro"><code>func solve(_ row: Int) {</code></li>
+            <li data-step="solution" class="code-sync__in"><code>if row == n { record(); return }</code></li>
+            <li data-step="place deadend" class="code-sync__in"><code>for col in 0..&lt;n {</code></li>
+            <li data-step="place deadend" class="code-sync__in2"><code>if !safe(row, col) { continue }</code></li>
+            <li data-step="place" class="code-sync__in2"><code>board[row] = col</code></li>
+            <li data-step="place" class="code-sync__in2"><code>solve(row + 1)</code></li>
+            <li data-step="deadend" class="code-sync__in2"><code>board[row] = -1</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done"><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="tree" data-lang="rust" hidden>
+            <li data-step="intro"><code>fn solve(row: usize, board: &amp;mut Vec&lt;i32&gt;) {</code></li>
+            <li data-step="solution" class="code-sync__in"><code>if row == n { record(board); return; }</code></li>
+            <li data-step="place deadend" class="code-sync__in"><code>for col in 0..n {</code></li>
+            <li data-step="place deadend" class="code-sync__in2"><code>if !safe(row, col, board) { continue; }</code></li>
+            <li data-step="place" class="code-sync__in2"><code>board[row] = col as i32;</code></li>
+            <li data-step="place" class="code-sync__in2"><code>solve(row + 1, board);</code></li>
+            <li data-step="deadend" class="code-sync__in2"><code>board[row] = -1;</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done"><code>}</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="tree" data-lang="ruby" hidden>
+            <li data-step="intro"><code>def solve(row)</code></li>
+            <li data-step="solution" class="code-sync__in"><code>return record if row == n</code></li>
+            <li data-step="place deadend" class="code-sync__in"><code>(0...n).each do |col|</code></li>
+            <li data-step="place deadend" class="code-sync__in2"><code>next unless safe?(row, col)</code></li>
+            <li data-step="place" class="code-sync__in2"><code>board[row] = col</code></li>
+            <li data-step="place" class="code-sync__in2"><code>solve(row + 1)</code></li>
+            <li data-step="deadend" class="code-sync__in2"><code>board[row] = -1</code></li>
+            <li class="code-sync__in"><code>end</code></li>
+            <li data-step="done"><code>end</code></li>
+        </ol>
+
+        <ol class="code-sync__lines" data-variant="tree" data-lang="php" hidden>
+            <li data-step="intro"><code>function solve(int $row): void {</code></li>
+            <li data-step="solution" class="code-sync__in"><code>if ($row === $n) { record(); return; }</code></li>
+            <li data-step="place deadend" class="code-sync__in"><code>for ($col = 0; $col &lt; $n; $col++) {</code></li>
+            <li data-step="place deadend" class="code-sync__in2"><code>if (!safe($row, $col)) continue;</code></li>
+            <li data-step="place" class="code-sync__in2"><code>$board[$row] = $col;</code></li>
+            <li data-step="place" class="code-sync__in2"><code>solve($row + 1);</code></li>
+            <li data-step="deadend" class="code-sync__in2"><code>$board[$row] = -1;</code></li>
+            <li class="code-sync__in"><code>}</code></li>
+            <li data-step="done"><code>}</code></li>
+        </ol>
+    </div>
+</th:block>
