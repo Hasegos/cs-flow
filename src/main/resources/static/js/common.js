@@ -644,10 +644,18 @@
         const hint = document.createElement('p');
         hint.className = 'viz-hint';
         hint.hidden = true;
-        hint.innerHTML = '<kbd>Space</kbd> 재생 · 정지'
-            + '<kbd>→</kbd> 한 단계'
-            + '<kbd>R</kbd> 처음으로'
-            + '<a class="viz-hint__more" href="/guide#shortcuts">이용 가이드</a>';
+        [['Space', '재생 · 정지'], ['→', '한 단계'], ['R', '처음으로']].forEach(function (pair) {
+            const key = document.createElement('kbd');
+            key.textContent = pair[0];
+            hint.appendChild(key);
+            hint.appendChild(document.createTextNode(pair[1]));
+        });
+
+        const more = document.createElement('a');
+        more.className = 'viz-hint__more';
+        more.href = '/guide#shortcuts';
+        more.textContent = '이용 가이드';
+        hint.appendChild(more);
         vizWrap.appendChild(hint);
 
         const vizWatch = new MutationObserver(revealVizHint);
@@ -693,14 +701,22 @@
         nowBar.type = 'button';
         nowBar.className = 'code-sync__now';
         nowBar.setAttribute('aria-expanded', 'false');
-        nowBar.innerHTML = '<span class="code-sync__now-caret" aria-hidden="true">&#9656;</span>'
-            + '<span class="code-sync__now-body"></span>'
-            + '<span class="code-sync__now-num"></span>';
-        const nowBody = nowBar.querySelector('.code-sync__now-body');
-        const nowNum  = nowBar.querySelector('.code-sync__now-num');
+        const nowCaret = document.createElement('span');
+        nowCaret.className = 'code-sync__now-caret';
+        nowCaret.setAttribute('aria-hidden', 'true');
+        nowCaret.textContent = '▸';
+
+        const nowBody = document.createElement('span');
+        nowBody.className = 'code-sync__now-body';
+
+        const nowNum = document.createElement('span');
+        nowNum.className = 'code-sync__now-num';
+
+        nowBar.appendChild(nowCaret);
+        nowBar.appendChild(nowBody);
+        nowBar.appendChild(nowNum);
         codeSync.parentNode.insertBefore(nowBar, codeSync.parentNode.firstChild);
 
-        /* 한 단계가 여러 줄이면 접힌 채로는 첫 줄만 보인다. 눌러서 전부 편다 */
         /* 기본은 전부 보여 준다. 접으면 첫 줄만 남고, 그 선택은 기억한다 */
         let nowOpen = storage.get(OPEN_KEY) !== '0';
 

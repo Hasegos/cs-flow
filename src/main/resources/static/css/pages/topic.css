@@ -587,10 +587,7 @@
   min-width: 0;
 }
 
-/*
- * 지금 실행 중인 한 줄. 위아래로 쌓이면 코드 전체가 화면 밖으로 밀리므로
- * 이 한 줄만 탭 막대 아래에 붙여 둔다. 좌우로 나뉘면 코드가 옆에 있으니 숨긴다.
- */
+/* 지금 실행 중인 줄. 위아래로 쌓일 때만 탭 막대 아래에 붙인다 */
 .code-sync__now {
   position: sticky;
   top: calc(var(--header-h) + var(--topic-tabs-h));
@@ -691,10 +688,7 @@
 
 .code-sync__now-num:empty { display: none; }
 
-/*
- * 아래 고정 조작 막대. 진짜 버튼이 화면 밖으로 나가면 JS 가 띄운다.
- * .topic-panel 이 transform 을 남겨 고정 위치의 기준이 되므로 body 에 둔다.
- */
+/* 아래 고정 조작 막대. 진짜 버튼이 화면 밖으로 나가면 JS 가 띄운다 */
 .viz-dock {
   position: fixed;
   left: 50%;
@@ -862,11 +856,7 @@
   color: var(--subject-accent, var(--color-purple));
 }
 
-/*
- * 나란히 놓는 것이 먼저다. 캔버스가 600px 밑으로 내려가면 시각화가 모바일
- * 배치로 바뀌지만, 위아래로 떨어져 한쪽을 못 보는 것보다 낫다.
- * 목차를 접으면 그 폭(기본 300px)이 본문으로 돌아오므로 임계값이 그만큼 내려간다.
- */
+/* 목차를 접으면 그 폭만큼 본문이 넓어져 더 좁은 창에서도 좌우로 나눈다 */
 @media (min-width: 900px) {
   body.is-nav-collapsed .code-sync {
     flex-direction: row;

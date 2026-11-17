@@ -124,11 +124,7 @@
 @media (max-width: 1140px) {
   .gnb__nav { display: none; }
 
-  /*
-   * 아이콘 사이 간격은 .gnb__inner 의 gap 하나로만 정한다.
-   * .gnb__search-btn 의 margin-right: -1.75rem 은 데스크톱 gap 2.5rem 에 맞춘
-   * 값이라 여기서는 간격을 거꾸로 먹는다.
-   */
+  /* 간격은 .gnb__inner 의 gap 하나로만 정한다 */
   .gnb__inner {
     gap: 0.75rem;
   }
@@ -195,10 +191,7 @@
   text-decoration: none;
 }
 
-/*
- * .gnb__inner 의 gap 2.5rem 은 로고 · 메뉴 사이 값이다. 아이콘끼리는 그만큼
- * 벌어지면 안 되므로 여기서만 당긴다. 좁은 폭은 gap 이 이미 작아 당기지 않는다.
- */
+/* gap 2.5rem 은 로고 · 메뉴 사이 값이라 아이콘끼리는 당겨 준다 */
 @media (min-width: 1141px) {
   .gnb__search-btn,
   .gnb__study-btn {
