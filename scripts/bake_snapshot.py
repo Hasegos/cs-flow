@@ -81,7 +81,13 @@ def wait_for_origin() -> None:
 
 def page_file(path: str) -> Path:
     clean = urllib.parse.unquote(path).strip("/")
-    return OUT / ("index.html" if not clean else clean + ".html")
+    if not clean:
+        return OUT / "index.html"
+    # 마지막 조각이 index 면 <경로>.html 이 폴더 기본 문서로 읽혀 원래 주소가 사라진다.
+    # 예: /db/index -> dist/db/index.html 은 /db/ 로 열리고 /db/index 는 404 가 된다.
+    if clean.rsplit("/", 1)[-1] == "index":
+        return OUT / clean / "index.html"
+    return OUT / (clean + ".html")
 
 
 def asset_file(path: str) -> Path:
