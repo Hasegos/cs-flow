@@ -138,7 +138,7 @@ public class ErrorEntryController {
                 new BreadcrumbLd.Crumb("에러 사전", BASE_URL),
                 new BreadcrumbLd.Crumb(entry.title(), canonicalUrl))));
         model.addAttribute("currentSection", "errors");
-        model.addAttribute("pageTitle", entry.title() + " 원인과 해결 | CS Flow 에러 사전");
+        model.addAttribute("pageTitle", entry.shortTitle() + " 해결 | CS Flow");
         model.addAttribute("pageDescription", errorEntryService.describe(entry));
         model.addAttribute("sideNavTitle", "에러 사전");
         model.addAttribute("sideNavFilterLabel", "분류 거르기");
