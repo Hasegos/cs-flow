@@ -1,5 +1,6 @@
 package io.dev.cs_flow.controller;
 
+import io.dev.cs_flow.dto.ErrorEntryView;
 import io.dev.cs_flow.dto.TopicInfo;
 import io.dev.cs_flow.service.ErrorEntryService;
 import io.dev.cs_flow.service.SitemapService;
@@ -9,6 +10,8 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -45,40 +48,51 @@ public class SitemapController {
     @ResponseBody
     public String sitemap() {
         List<TopicInfo> topics = sitemapService.getPublishedTopics();
+        LocalDate newestTopic = topics.stream()
+                .map(TopicInfo::updatedOn)
+                .max(Comparator.naturalOrder())
+                .orElse(null);
 
         StringBuilder sb = new StringBuilder();
         sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
         sb.append("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">");
 
-        sb.append(url(BASE_URL  + "/", CHANGE_FREQ_WEEKLY, "1.0"));
+        sb.append(url(BASE_URL  + "/", newestTopic, CHANGE_FREQ_WEEKLY, "1.0"));
 
-        sb.append(url(BASE_URL + "/about",   CHANGE_FREQ_YEARLY, "0.5"));
-        sb.append(url(BASE_URL + "/guide",   CHANGE_FREQ_YEARLY, "0.5"));
-        sb.append(url(BASE_URL + "/privacy", CHANGE_FREQ_YEARLY, "0.3"));
-        sb.append(url(BASE_URL + "/terms",   CHANGE_FREQ_YEARLY, "0.3"));
+        sb.append(url(BASE_URL + "/about",   null, CHANGE_FREQ_YEARLY, "0.5"));
+        sb.append(url(BASE_URL + "/guide",   null, CHANGE_FREQ_YEARLY, "0.5"));
+        sb.append(url(BASE_URL + "/privacy", null, CHANGE_FREQ_YEARLY, "0.3"));
+        sb.append(url(BASE_URL + "/terms",   null, CHANGE_FREQ_YEARLY, "0.3"));
 
         topics.stream()
                 .map(t -> t.subject().slug())
                 .distinct()
                 .filter(slug -> slug.matches(SLUG_PATTERN))
-                .forEach(slug -> sb.append(url(BASE_URL  + "/" + slug, CHANGE_FREQ_WEEKLY, "0.8")));
+                .forEach(slug -> sb.append(url(BASE_URL  + "/" + slug, subjectUpdatedOn(topics, slug),
+                        CHANGE_FREQ_WEEKLY, "0.8")));
 
         topics.stream()
                 .filter(t -> t.subject().slug().matches(SLUG_PATTERN)
                         && t.slug().matches(SLUG_PATTERN))
                 .forEach(t -> sb.append(url(
                         BASE_URL + "/" + t.subject().slug() + "/" + t.slug(),
-                        CHANGE_FREQ_MONTHLY, "0.7")));
+                        t.updatedOn(), CHANGE_FREQ_MONTHLY, "0.7")));
 
-        List<String> errorSlugs = errorEntryService.getVerifiedSlugs().stream()
-                .filter(slug -> slug.matches(SLUG_PATTERN))
+        List<ErrorEntryView> errorEntries = errorEntryService.getVerifiedEntries().stream()
+                .filter(e -> e.slug().matches(SLUG_PATTERN))
                 .toList();
-        if (!errorSlugs.isEmpty()) {
-            sb.append(url(BASE_URL + "/errors", CHANGE_FREQ_WEEKLY, "0.6"));
+        if (!errorEntries.isEmpty()) {
+            LocalDate newestError = errorEntries.stream()
+                    .map(SitemapController::errorUpdatedOn)
+                    .max(Comparator.naturalOrder())
+                    .orElse(null);
+            sb.append(url(BASE_URL + "/errors", newestError, CHANGE_FREQ_WEEKLY, "0.6"));
             errorEntryService.getCategories().stream()
                     .filter(c -> c.indexable() && c.category().matches(SLUG_PATTERN))
-                    .forEach(c -> sb.append(url(BASE_URL + "/errors/category/" + c.category(), CHANGE_FREQ_WEEKLY, "0.6")));
-            errorSlugs.forEach(slug -> sb.append(url(BASE_URL + "/errors/" + slug, CHANGE_FREQ_MONTHLY, "0.6")));
+                    .forEach(c -> sb.append(url(BASE_URL + "/errors/category/" + c.category(),
+                            categoryUpdatedOn(errorEntries, c.category()), CHANGE_FREQ_WEEKLY, "0.6")));
+            errorEntries.forEach(e -> sb.append(url(BASE_URL + "/errors/" + e.slug(),
+                    errorUpdatedOn(e), CHANGE_FREQ_MONTHLY, "0.6")));
         }
 
         sb.append("</urlset>");
@@ -93,12 +107,53 @@ public class SitemapController {
      * @param priority   우선순위 (0.0 ~ 1.0)
      * @return XML 형식의 url 블록 문자열
      */
-    private String url(String loc, String changefreq, String priority) {
+    private String url(String loc, LocalDate lastmod, String changefreq, String priority) {
         return "<url>"
                 + "<loc>" + escapeXml(loc) + "</loc>"
+                + (lastmod == null ? "" : "<lastmod>" + lastmod + "</lastmod>")
                 + "<changefreq>" + changefreq + "</changefreq>"
                 + "<priority>" + priority + "</priority>"
                 + "</url>";
+    }
+
+    /**
+     * 한 과목에 속한 토픽 중 가장 늦게 고친 날을 돌려준다.
+     *
+     * @param topics 공개된 토픽 전체
+     * @param slug   과목 slug
+     * @return 가장 늦은 수정일, 토픽이 없으면 null
+     */
+    private LocalDate subjectUpdatedOn(List<TopicInfo> topics, String slug) {
+        return topics.stream()
+                .filter(t -> t.subject().slug().equals(slug))
+                .map(TopicInfo::updatedOn)
+                .max(Comparator.naturalOrder())
+                .orElse(null);
+    }
+
+    /**
+     * 한 분류에 속한 에러 항목 중 가장 늦게 고친 날을 돌려준다.
+     *
+     * @param entries  검증된 에러 항목 전체
+     * @param category 분류 이름
+     * @return 가장 늦은 수정일, 항목이 없으면 null
+     */
+    private LocalDate categoryUpdatedOn(List<ErrorEntryView> entries, String category) {
+        return entries.stream()
+                .filter(e -> category.equals(e.category()))
+                .map(SitemapController::errorUpdatedOn)
+                .max(Comparator.naturalOrder())
+                .orElse(null);
+    }
+
+    /**
+     * 에러 항목의 수정일을 돌려준다. 재현 확인일이 있으면 그것을, 없으면 작성일을 쓴다.
+     *
+     * @param entry 에러 항목
+     * @return 수정일
+     */
+    private static LocalDate errorUpdatedOn(ErrorEntryView entry) {
+        return entry.verifiedOn() == null ? entry.createdOn() : entry.verifiedOn();
     }
 
     /**

@@ -1,5 +1,6 @@
 package io.dev.cs_flow.dto;
 
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -12,6 +13,7 @@ import java.util.List;
  * @param subject         소속 과목
  * @param tags            태그 목록
  * @param visual          시각화 정보, 없으면 null
+ * @param updatedOn       콘텐츠를 마지막으로 고친 날
  * @param order           과목 안 순서
  * @param seq             전체 순서
  * @param viewCount       조회수 (목록 화면에서만 채워지고 그 외에는 0)
@@ -25,6 +27,7 @@ public record TopicInfo(
         SubjectView subject,
         List<TopicTagView> tags,
         ContentVisual visual,
+        LocalDate updatedOn,
         int order,
         int seq,
         long viewCount,
@@ -39,6 +42,6 @@ public record TopicInfo(
      * @return 숫자가 채워진 사본
      */
     public TopicInfo withCounts(long view, long like) {
-        return new TopicInfo(slug, title, templateName, metaDescription, subject, tags, visual, order, seq, view, like);
+        return new TopicInfo(slug, title, templateName, metaDescription, subject, tags, visual, updatedOn, order, seq, view, like);
     }
 }

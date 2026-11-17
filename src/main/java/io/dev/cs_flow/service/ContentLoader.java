@@ -238,6 +238,7 @@ public class ContentLoader {
         checkText(where, "title", t.title(), 200);
         checkText(where, "templateName", t.templateName(), 200);
         require(where, "published", t.published());
+        require(where, "updatedOn", t.updatedOn());
         if (t.metaDescription() != null && t.metaDescription().length() > 300) {
             errors.add(where + ": metaDescription이 300자를 넘습니다");
         }

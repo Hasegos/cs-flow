@@ -1,5 +1,6 @@
 package io.dev.cs_flow.dto;
 
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -12,6 +13,7 @@ import java.util.List;
  * @param templateName    본문 템플릿 이름
  * @param metaDescription 검색 · 공유용 설명, 없으면 null
  * @param published       발행 여부
+ * @param updatedOn       콘텐츠를 마지막으로 고친 날 (sitemap.xml 의 lastmod)
  * @param order           과목 안 순서 (1부터, 이전 · 다음 토픽과 과목 목록 기본 정렬 기준)
  * @param seq             전체 순서 (1부터, 검색 기본 정렬과 조회수 · 추천수 동점 정렬 기준, 기존 topic_id 순서)
  * @param tags            태그 목록
@@ -28,6 +30,7 @@ public record ContentTopic(
         String templateName,
         String metaDescription,
         Boolean published,
+        LocalDate updatedOn,
         Integer order,
         Integer seq,
         List<String> tags,

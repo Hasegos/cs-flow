@@ -78,7 +78,7 @@ public class ContentStore {
             }
             TopicInfo info = new TopicInfo(t.slug(), t.title(), t.templateName(), t.metaDescription(),
                     allSubjects.get(t.subject()), t.tags().stream().map(TopicTagView::new).toList(),
-                    t.visual(), t.order(), t.seq(), 0, 0);
+                    t.visual(), t.updatedOn(), t.order(), t.seq(), 0, 0);
             visible.add(info);
             topicBySlug.put(t.slug(), info);
             topicsBySubject.computeIfAbsent(t.subject(), k -> new ArrayList<>()).add(info);

@@ -225,14 +225,13 @@ public class ErrorEntryService {
     }
 
     /**
-     * sitemap에 넣을 검증된 항목의 slug 목록을 등록 순으로 조회한다.
+     * sitemap에 넣을 검증된 항목을 등록 순으로 조회한다. 수정일이 필요해 slug 대신 항목을 돌려준다.
      *
-     * @return 검증된 항목 slug 목록, 없으면 빈 리스트 반환
+     * @return 검증된 항목 목록, 없으면 빈 리스트 반환
      */
-    public List<String> getVerifiedSlugs() {
+    public List<ErrorEntryView> getVerifiedEntries() {
         return contentStore.errorEntries().stream()
                 .filter(ErrorEntryView::verified)
-                .map(ErrorEntryView::slug)
                 .toList();
     }
 }
