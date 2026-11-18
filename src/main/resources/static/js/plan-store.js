@@ -116,6 +116,22 @@
         return d.getUTCFullYear() === +p[0] && d.getUTCMonth() + 1 === +p[1] && d.getUTCDate() === +p[2];
     }
 
+    /**
+     * 새 계획에 쓸 순서 값을 뽑는다. 계획을 다시 만들면 질문 조합이 달라지라고 두는 값이다.
+     * 같은 계획 안에서는 링크에 박혀 고정이므로 볼 때마다 같은 일정이 나온다.
+     *
+     * @return 0 이상 999 이하 정수
+     */
+    function newVariant() {
+        var max = 1000;
+        if (global.crypto && global.crypto.getRandomValues) {
+            var buf = new Uint32Array(1);
+            global.crypto.getRandomValues(buf);
+            return buf[0] % max;
+        }
+        return Math.floor(Math.random() * max);
+    }
+
     /* ===================== 보관 ===================== */
 
     function readRaw(key) {
@@ -280,6 +296,7 @@
         recordAnswer: recordAnswer,
         buildView: buildView,
         toIsoDays: toIsoDays,
-        toDayNames: toDayNames
+        toDayNames: toDayNames,
+        newVariant: newVariant
     };
 }(typeof globalThis !== 'undefined' ? globalThis : this));
