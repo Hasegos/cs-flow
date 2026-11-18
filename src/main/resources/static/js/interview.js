@@ -1,5 +1,8 @@
 /**
  * 면접 대비 계획 페이지 — 계획 만들기 · 조건 바꾸기 / 오늘 풀 질문 / 약한 과목 / 달력
+ *
+ * 서버를 부르지 않는다. 질문 목록을 한 번 받고(/data/interview.json) 일정은 plan-engine.js 가
+ * 계산한다. 조건은 plan-store.js 가 주소 해시와 localStorage 에 두고, 답변 기록은 이 기기에만 남는다.
  */
 (function () {
     'use strict';
@@ -10,10 +13,11 @@
     const storage = window.CsFlow.storage;
     const showToast = window.CsFlow.showToast;
 
-    const TOKEN_KEY = 'csflow-interview';
-    const TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
+    const DATA_URL = '/data/interview.json';
+    const store = window.CsFlow.PlanStore;
     const SLUG_PATTERN = /^[a-z0-9-]+$/;
-    const API = '/api/plans';
+    const engine = window.CsFlow.PlanEngine;
+    const SHARE_CONFIRM = '이 브라우저에 저장된 계획이 있어요.\n공유받은 계획으로 바꿀까요?\n답변 기록은 이 기기에만 남아 따라오지 않아요.';
     const DAY_TYPE_TEXT = { LEARN: '학습', REVIEW: '약점 보충', MOCK: '모의 면접', REST: '휴식' };
     const ROLE_TEXT = { BACKEND: '백엔드', FRONTEND: '프런트엔드', EMBEDDED: '임베디드', COMMON: '공통' };
     const WEEKDAY_TEXT = ['월', '화', '수', '목', '금', '토', '일'];
@@ -38,10 +42,10 @@
         subjectNames[node.getAttribute('data-slug')] = node.getAttribute('data-name');
     });
 
-    let token = null;
+    let spec = null;
     let plan = null;
     let editing = false;
-    let loadSeq = 0;
+    let questions = null;
 
     /* ===================== 공용 ===================== */
 
@@ -121,67 +125,67 @@
      * @param body   JSON 본문, 없으면 생략
      * @returns {ok, status, data}로 풀리는 Promise
      */
-    function api(method, url, body) {
-        const options = { method: method };
-        if (body !== undefined) {
-            options.headers = { 'Content-Type': 'application/json' };
-            options.body = JSON.stringify(body);
+    function loadQuestions() {
+        if (questions) {
+            return Promise.resolve(questions);
         }
-        return fetch(url, options).then(function (res) {
-            return res.text().then(function (text) {
-                let data = null;
-                try { data = text ? JSON.parse(text) : null; } catch (e) { data = null; }
-                return { ok: res.ok, status: res.status, data: data };
-            });
+        return fetch(DATA_URL).then(function (res) {
+            if (!res.ok) {
+                throw new Error('질문 목록을 받지 못했습니다');
+            }
+            return res.json();
+        }).then(function (list) {
+            questions = Array.isArray(list) ? list : [];
+            return questions;
         });
     }
 
-    /* ===================== 계획 주소 ===================== */
+    /* ===================== 계획 보관 ===================== */
 
     /**
-     * 계획 주소를 메모리와 localStorage에 저장한다.
+     * 계획 조건을 메모리와 localStorage에 저장한다.
      *
-     * @param value 계획 공개 토큰
+     * @param value 계획 조건
      */
-    function saveToken(value) {
-        token = value;
-        storage.set(TOKEN_KEY, value);
-    }
-
-    /**
-     * 이 브라우저의 계획 주소를 잊는다. 서버의 계획은 지우지 않는다.
-     */
-    function forgetToken() {
-        token = null;
+    function savePlan(value) {
+        spec = value;
         plan = null;
-        storage.remove(TOKEN_KEY);
+        store.save(value);
     }
 
     /**
-     * localStorage에서 형식이 맞는 계획 주소를 읽는다.
-     *
-     * @returns 계획 주소, 없거나 형식이 틀리면 null
+     * 이 브라우저의 계획과 답변 기록을 지운다. 서버에는 아무것도 남아 있지 않다.
      */
-    function readToken() {
-        const saved = storage.get(TOKEN_KEY);
-        return saved && TOKEN_PATTERN.test(saved) ? saved : null;
+    function forgetPlan() {
+        spec = null;
+        plan = null;
+        store.clear();
     }
 
     /**
-     * 공유 링크의 URL 해시(#토큰)에서 계획 주소를 가져와 저장하고 주소창에서 해시를 지운다.
+     * localStorage에서 형식이 맞는 계획 조건을 읽는다.
+     *
+     * @returns 계획 조건, 없거나 형식이 틀리면 null
+     */
+    function readPlan() {
+        return store.load();
+    }
+
+    /**
+     * 공유 링크의 URL 해시에서 계획 조건을 가져와 저장하고 주소창에서 해시를 지운다. 답변 기록은 따라오지 않는다.
      * 이미 저장된 다른 계획이 있으면 바꿀지 확인한다.
      */
     function importFromHash() {
-        const raw = window.location.hash.replace('#', '');
-        if (!TOKEN_PATTERN.test(raw)) return;
+        const shared = store.parse(window.location.hash.replace('#', ''));
+        if (!shared) return;
         history.replaceState(null, '', window.location.pathname);
 
-        const existing = readToken();
-        if (existing && existing !== raw &&
-            !window.confirm('이 브라우저에 저장된 계획이 있어요.\n공유받은 계획으로 바꿀까요?\n(계획 주소를 복사해 두지 않았다면 기존 계획은 다시 열 수 없어요.)')) {
+        const existing = readPlan();
+        if (existing && store.format(existing) !== store.format(shared)
+            && !window.confirm(SHARE_CONFIRM)) {
             return;
         }
-        saveToken(raw);
+        savePlan(shared);
         showToast('공유받은 계획을 불러왔어요');
     }
 
@@ -241,31 +245,21 @@
     }
 
     /**
-     * 저장된 계획을 서버에서 불러와 화면에 그린다. 늦게 온 이전 응답은 버린다.
+     * 보관된 조건으로 일정을 계산해 화면에 그린다. 질문 목록은 한 번만 받아 두고 다시 쓴다.
      *
      * @param show true면 응답 뒤 계획 화면으로 전환하고, false면 지금 보이는 화면을 그대로 둔다
      * @returns 끝나면 풀리는 Promise
      */
     function loadPlan(show) {
-        if (!token) return Promise.resolve();
-        const seq = ++loadSeq;
-        return api('GET', API + '/' + token).then(function (res) {
-            if (seq !== loadSeq) return;
-            if (res.status === 404) {
-                forgetToken();
-                showToast('저장된 계획을 찾을 수 없어요');
-                openSetup(false);
-                return;
-            }
-            if (!res.ok || !res.data) {
-                showLoadError('계획을 불러오지 못했어요. 새로고침해서 다시 시도해 주세요.');
-                return;
-            }
-            plan = res.data;
+        if (!spec) return Promise.resolve();
+        return loadQuestions().then(function (list) {
+            plan = store.buildView(spec, list, engine.todayKst());
             renderPlan();
             if (show) showOnly('plan');
-        }).catch(function () {
-            if (seq === loadSeq) showLoadError('네트워크 오류로 계획을 불러오지 못했어요. 새로고침해서 다시 시도해 주세요.');
+        }).catch(function (e) {
+            showLoadError(e && e.message === '질문 목록을 받지 못했습니다'
+                ? '질문을 불러오지 못했어요. 새로고침해서 다시 시도해 주세요.'
+                : '계획을 만들지 못했어요. 조건을 다시 확인해 주세요.');
         });
     }
 
@@ -312,36 +306,31 @@
             return;
         }
         setError('');
-        submitBtn.disabled = true;
 
-        const request = editing
-            ? api('PATCH', API + '/' + token, body)
-            : api('POST', API, body);
-        request.then(function (res) {
+        const today = engine.todayKst();
+        const next = {
+            role: body.role,
+            startDate: editing && spec ? spec.startDate : today,
+            targetDate: body.targetDate,
+            dailyMinutes: body.dailyMinutes,
+            restDays: store.toIsoDays(body.restWeekdays),
+            variant: editing && spec ? spec.variant : store.newVariant()
+        };
+
+        submitBtn.disabled = true;
+        loadQuestions().then(function (list) {
+            // 계산해 봐야 조건이 쓸 만한지 알 수 있다. 터지면 아래 catch 가 받는다
+            const view = store.buildView(next, list, today);
+            savePlan(next);
+            plan = view;
+            renderPlan();
+            showOnly('plan');
+            showToast(editing ? '조건을 바꿨어요' : '계획을 만들었어요');
+            editing = false;
             submitBtn.disabled = false;
-            if (editing && res.status === 404) {
-                forgetToken();
-                showToast('저장된 계획을 찾을 수 없어요');
-                openSetup(false);
-                return;
-            }
-            if (!res.ok) {
-                setError(res.data && res.data.message ? res.data.message : '저장하지 못했어요. 입력을 확인해 주세요.');
-                return;
-            }
-            if (editing) {
-                editing = false;
-                plan = res.data;
-                renderPlan();
-                showOnly('plan');
-                showToast('조건을 바꿨어요');
-            } else {
-                saveToken(res.data.token);
-                loadPlan(true);
-            }
-        }).catch(function () {
+        }).catch(function (e) {
             submitBtn.disabled = false;
-            setError('네트워크 오류가 났어요. 잠시 뒤 다시 시도해 주세요.');
+            setError(e && e.message ? e.message : '계획을 만들지 못했어요. 조건을 확인해 주세요.');
         });
     }
 
@@ -354,19 +343,17 @@
      */
     function recordAnswer(task, body, buttons) {
         buttons.forEach(function (btn) { btn.disabled = true; });
-        body.questionId = task.id;
-        api('POST', API + '/' + token + '/answers', body).then(function (res) {
-            if (!res.ok) {
-                buttons.forEach(function (btn) { btn.disabled = false; });
-                showToast(res.data && res.data.message ? res.data.message : '기록하지 못했어요');
-                return;
-            }
-            showToast('기록했어요');
-            loadPlan(false);
-        }).catch(function () {
-            buttons.forEach(function (btn) { btn.disabled = false; });
-            showToast('네트워크 오류가 났어요');
+        const today = engine.todayKst();
+        store.recordAnswer({
+            questionId: task.id,
+            phase: plan && plan.todayType ? plan.todayType : 'LEARN',
+            answeredOn: today,
+            hitCount: Number(body.hitCount) || 0,
+            totalCount: Number(body.totalCount) || 0,
+            selfRating: body.selfRating || null
         });
+        showToast('기록했어요');
+        loadPlan(false);
     }
 
     /* ===================== 계획 화면 ===================== */
@@ -613,7 +600,7 @@
     });
 
     document.getElementById('interview-copy').addEventListener('click', function () {
-        const link = window.location.origin + window.location.pathname + '#' + token;
+        const link = window.location.origin + window.location.pathname + '#' + store.format(spec);
         if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(link).then(function () {
                 showToast('계획 주소를 복사했어요');
@@ -627,15 +614,15 @@
 
     document.getElementById('interview-forget').addEventListener('click', function () {
         if (!window.confirm('이 브라우저에서 계획을 해제할까요?\n계획 주소를 복사해 두지 않았다면 다시 열 수 없어요.')) return;
-        loadSeq++;
-        forgetToken();
+
+        forgetPlan();
         openSetup(false);
     });
 
     /* ===================== 시작 ===================== */
     importFromHash();
-    token = token || readToken();
-    if (token) {
+    spec = spec || readPlan();
+    if (spec) {
         loadPlan(true);
     } else {
         openSetup(false);

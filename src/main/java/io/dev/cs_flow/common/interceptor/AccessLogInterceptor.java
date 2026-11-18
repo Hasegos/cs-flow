@@ -1,6 +1,5 @@
 package io.dev.cs_flow.common.interceptor;
 
-import io.dev.cs_flow.common.util.LogUris;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
@@ -54,7 +53,7 @@ public class AccessLogInterceptor implements HandlerInterceptor {
             log.info("IP={} METHOD={} URI={} UA={}",
                     ip,
                     request.getMethod(),
-                    LogUris.mask(request.getRequestURI()),
+                    request.getRequestURI(),
                     ua);
 
         } catch (Exception e) {

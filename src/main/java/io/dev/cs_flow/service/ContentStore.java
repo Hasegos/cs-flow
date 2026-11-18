@@ -7,6 +7,7 @@ import io.dev.cs_flow.dto.ContentSubject;
 import io.dev.cs_flow.dto.ContentTopic;
 import io.dev.cs_flow.dto.ErrorEntryView;
 import io.dev.cs_flow.dto.InterviewDetail;
+import io.dev.cs_flow.dto.InterviewQuestionData;
 import io.dev.cs_flow.dto.InterviewQuestionView;
 import io.dev.cs_flow.dto.QuizQuestionView;
 import io.dev.cs_flow.dto.SubjectView;
@@ -49,7 +50,7 @@ public class ContentStore {
     private final Map<String, String> correctByQuizId = new HashMap<>();
     private final Map<String, List<InterviewQuestionView>> interviewsByTopic = new HashMap<>();
     private final Map<String, InterviewDetail> interviewById = new HashMap<>();
-    private final List<PlanEngine.Question> planQuestions = new ArrayList<>();
+    private final List<InterviewQuestionData> interviewData = new ArrayList<>();
     private final List<ErrorEntryView> errorEntries;
     private final Map<String, ErrorEntryView> errorBySlug = new HashMap<>();
 
@@ -119,7 +120,7 @@ public class ContentStore {
     }
 
     /**
-     * 토픽의 면접 질문을 화면용 목록, 질문 ID별 내용, 면접 계획 출제 후보로 나눠 담는다.
+     * 토픽의 면접 질문을 화면용 목록, 질문 ID별 내용, 브라우저로 내려보낼 전체 목록으로 나눠 담는다.
      *
      * @param t 토픽
      */
@@ -129,10 +130,12 @@ public class ContentStore {
             for (ContentInterview q : t.interview()) {
                 views.add(new InterviewQuestionView(q.id(), q.question(), q.answer()));
                 List<String> keywords = q.keywords() == null ? List.of() : List.copyOf(q.keywords());
+                List<String> followUps = q.followUps() == null ? List.of() : List.copyOf(q.followUps());
+                int level = q.level() == null ? DEFAULT_LEVEL : q.level();
+                boolean core = Boolean.TRUE.equals(q.core());
                 interviewById.put(q.id(), new InterviewDetail(q.id(), t.subject(), t.slug(), q.question(), q.answer(), keywords));
-                planQuestions.add(new PlanEngine.Question(q.id(), t.subject(), Boolean.TRUE.equals(q.core()),
-                        q.level() == null ? DEFAULT_LEVEL : q.level(),
-                        q.followUps() == null ? List.of() : List.copyOf(q.followUps())));
+                interviewData.add(new InterviewQuestionData(q.id(), t.subject(), t.slug(), q.question(),
+                        q.answer(), keywords, followUps, level, core));
             }
         }
         interviewsByTopic.put(t.slug(), List.copyOf(views));
@@ -209,12 +212,12 @@ public class ContentStore {
     }
 
     /**
-     * 공개된 토픽의 면접 질문 가운데 면접 계획이 출제할 수 있는 것을 모두 돌려준다. 난이도가 비어 있으면 2, 필수 여부가 비어 있으면 아님으로 본다.
+     * 브라우저로 내려보낼 면접 질문 전체를 돌려준다. 일정 계산 값과 화면에 그릴 값을 함께 담는다.
      *
-     * @return 면접 계획 출제 후보 질문 목록(수정할 수 없다)
+     * @return 면접 질문 목록(수정할 수 없다)
      */
-    public List<PlanEngine.Question> planQuestions() {
-        return Collections.unmodifiableList(planQuestions);
+    public List<InterviewQuestionData> interviewData() {
+        return Collections.unmodifiableList(interviewData);
     }
 
     /**
