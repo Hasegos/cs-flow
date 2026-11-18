@@ -7,6 +7,7 @@ import io.dev.cs_flow.dto.ContentSubject;
 import io.dev.cs_flow.dto.ContentTopic;
 import io.dev.cs_flow.dto.ErrorEntryView;
 import io.dev.cs_flow.dto.InterviewDetail;
+import io.dev.cs_flow.dto.InterviewQuestionData;
 import io.dev.cs_flow.dto.InterviewQuestionView;
 import io.dev.cs_flow.dto.QuizQuestionView;
 import io.dev.cs_flow.dto.SubjectView;
@@ -50,6 +51,7 @@ public class ContentStore {
     private final Map<String, List<InterviewQuestionView>> interviewsByTopic = new HashMap<>();
     private final Map<String, InterviewDetail> interviewById = new HashMap<>();
     private final List<PlanEngine.Question> planQuestions = new ArrayList<>();
+    private final List<InterviewQuestionData> interviewData = new ArrayList<>();
     private final List<ErrorEntryView> errorEntries;
     private final Map<String, ErrorEntryView> errorBySlug = new HashMap<>();
 
@@ -129,10 +131,13 @@ public class ContentStore {
             for (ContentInterview q : t.interview()) {
                 views.add(new InterviewQuestionView(q.id(), q.question(), q.answer()));
                 List<String> keywords = q.keywords() == null ? List.of() : List.copyOf(q.keywords());
+                List<String> followUps = q.followUps() == null ? List.of() : List.copyOf(q.followUps());
+                int level = q.level() == null ? DEFAULT_LEVEL : q.level();
+                boolean core = Boolean.TRUE.equals(q.core());
                 interviewById.put(q.id(), new InterviewDetail(q.id(), t.subject(), t.slug(), q.question(), q.answer(), keywords));
-                planQuestions.add(new PlanEngine.Question(q.id(), t.subject(), Boolean.TRUE.equals(q.core()),
-                        q.level() == null ? DEFAULT_LEVEL : q.level(),
-                        q.followUps() == null ? List.of() : List.copyOf(q.followUps())));
+                planQuestions.add(new PlanEngine.Question(q.id(), t.subject(), core, level, followUps));
+                interviewData.add(new InterviewQuestionData(q.id(), t.subject(), t.slug(), q.question(),
+                        q.answer(), keywords, followUps, level, core));
             }
         }
         interviewsByTopic.put(t.slug(), List.copyOf(views));
@@ -206,6 +211,15 @@ public class ContentStore {
      */
     public List<InterviewQuestionView> interviews(String topicSlug) {
         return interviewsByTopic.getOrDefault(topicSlug, List.of());
+    }
+
+    /**
+     * 브라우저로 내려보낼 면접 질문 전체를 돌려준다. 일정 계산 값과 화면에 그릴 값을 함께 담는다.
+     *
+     * @return 면접 질문 목록(수정할 수 없다)
+     */
+    public List<InterviewQuestionData> interviewData() {
+        return Collections.unmodifiableList(interviewData);
     }
 
     /**
