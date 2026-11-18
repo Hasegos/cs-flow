@@ -50,7 +50,6 @@ public class ContentStore {
     private final Map<String, String> correctByQuizId = new HashMap<>();
     private final Map<String, List<InterviewQuestionView>> interviewsByTopic = new HashMap<>();
     private final Map<String, InterviewDetail> interviewById = new HashMap<>();
-    private final List<PlanEngine.Question> planQuestions = new ArrayList<>();
     private final List<InterviewQuestionData> interviewData = new ArrayList<>();
     private final List<ErrorEntryView> errorEntries;
     private final Map<String, ErrorEntryView> errorBySlug = new HashMap<>();
@@ -135,7 +134,6 @@ public class ContentStore {
                 int level = q.level() == null ? DEFAULT_LEVEL : q.level();
                 boolean core = Boolean.TRUE.equals(q.core());
                 interviewById.put(q.id(), new InterviewDetail(q.id(), t.subject(), t.slug(), q.question(), q.answer(), keywords));
-                planQuestions.add(new PlanEngine.Question(q.id(), t.subject(), core, level, followUps));
                 interviewData.add(new InterviewQuestionData(q.id(), t.subject(), t.slug(), q.question(),
                         q.answer(), keywords, followUps, level, core));
             }
@@ -220,15 +218,6 @@ public class ContentStore {
      */
     public List<InterviewQuestionData> interviewData() {
         return Collections.unmodifiableList(interviewData);
-    }
-
-    /**
-     * 공개된 토픽의 면접 질문 가운데 면접 계획이 출제할 수 있는 것을 모두 돌려준다. 난이도가 비어 있으면 2, 필수 여부가 비어 있으면 아님으로 본다.
-     *
-     * @return 면접 계획 출제 후보 질문 목록(수정할 수 없다)
-     */
-    public List<PlanEngine.Question> planQuestions() {
-        return Collections.unmodifiableList(planQuestions);
     }
 
     /**
