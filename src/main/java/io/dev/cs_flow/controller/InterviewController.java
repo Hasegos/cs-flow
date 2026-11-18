@@ -18,8 +18,8 @@ import java.util.List;
 /**
  * 면접 대비 계획 페이지 요청을 처리하는 컨트롤러.
  * <p>
- * 계획 데이터는 {@code /api/plans}로 불러오고 계획 주소(토큰)는 브라우저 localStorage에 두므로,
- * 서버는 화면 뼈대와 과목 이름만 전달한다.
+ * 일정 계산과 보관은 브라우저가 한다. 계획 조건은 주소 해시와 localStorage에 두고,
+ * 답변 기록은 그 기기에만 남는다. 서버는 화면 뼈대와 질문 목록({@code /data/interview.json})만 준다.
  * </p>
  */
 @Slf4j
@@ -52,7 +52,8 @@ public class InterviewController {
     /**
      * 면접 질문 전체를 JSON으로 돌려준다. 브라우저가 계획을 계산할 때 쓴다.
      * <p>
-     * 콘텐츠는 배포할 때만 바뀌므로 길게 캐시한다. 배포 뒤에는 주소 뒤 판 이름이 바뀌어 새로 받는다.
+     * 질문과 모범답안은 토픽 화면에 이미 보이는 공개 콘텐츠다. 다만 검색 결과에 JSON이 뜰 이유는
+     * 없으므로 {@code X-Robots-Tag}로 색인을 막는다. 콘텐츠는 배포할 때만 바뀌므로 길게 캐시한다.
      * </p>
      *
      * @return 면접 질문 목록
@@ -61,6 +62,7 @@ public class InterviewController {
     public ResponseEntity<List<InterviewQuestionData>> questions() {
         return ResponseEntity.ok()
                 .cacheControl(CacheControl.maxAge(Duration.ofDays(7)).cachePublic())
+                .header("X-Robots-Tag", "noindex")
                 .body(interviewDataService.questions());
     }
 }
