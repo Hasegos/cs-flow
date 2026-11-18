@@ -5,6 +5,7 @@
 원본이 아니라 Worker 폴백(X-Served-By 헤더)이 응답한 페이지는 실패로 보고, 하나라도 실패하면 종료 코드 1로 끝난다.
 조회수가 굽는 횟수만큼 오르지 않도록 고정 방문자 쿠키(cv)로 요청한다.
 sitemap은 Cloudflare 에지 캐시(1일)를 피하려고 매번 다른 쿼리를 붙여 받는다(저장되는 sitemap.xml은 같다).
+면접 계획은 브라우저에서 계산하므로 질문 목록(/data/interview.json)도 자산으로 굽는다.
 sitemap에 없는 /study, /search(검색어 없는 빈 화면), /errors(에러 사전 목록 첫 페이지)도 굽는다.
 과목 페이지는 정렬(default/view/like)과 페이지 조합마다 {과목}/_list/{정렬}-{페이지}.html로 따로 굽는다.
 """
@@ -32,7 +33,7 @@ SUBJECT_RE = re.compile(r"^/(arch|os|network|ds|algo|db|robot)$")
 PAGE_RE = re.compile(r"[?&;](?:amp;)?page=(\d+)")
 ASSET_RE = re.compile(r'''(?:href|src)=["'](/[^"'#]+?)["']''')
 CSS_URL_RE = re.compile(r'url\(["\']?(/[^"\')]+)["\']?\)')
-ASSET_EXT = (".css", ".js", ".svg", ".png", ".jpg", ".jpeg", ".webp", ".ico", ".woff", ".woff2", ".txt")
+ASSET_EXT = (".css", ".js", ".svg", ".png", ".jpg", ".jpeg", ".webp", ".ico", ".woff", ".woff2", ".txt", ".json")
 ROBOTS_MANAGED_RE = re.compile(r"(?s)# As a condition of accessing.*?# END Cloudflare Managed Content\s*")
 
 errors: list[str] = []
@@ -182,7 +183,8 @@ def main() -> None:
         for ref in ASSET_RE.findall(body.decode("utf-8", "ignore")):
             if not ref.startswith("/cdn-cgi/") and ref.split("?")[0].lower().endswith(ASSET_EXT):
                 assets.add(ref)
-    assets |= {"/robots.txt", "/ads.txt"}
+    # 면접 계획은 브라우저에서 계산하므로 질문 목록도 스냅샷에 넣어야 서버 없이 열린다
+    assets |= {"/robots.txt", "/ads.txt", "/data/interview.json"}
 
     with ThreadPoolExecutor(WORKERS) as pool:
         bodies = dict(zip(sorted(assets), pool.map(bake_asset, sorted(assets))))
