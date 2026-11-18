@@ -155,24 +155,8 @@
         c.strokeRect(lw / 2, lw / 2, pw - lw, ph - lw);
     }
 
-    /**
-     * 글자가 최대 폭에 들어갈 때까지 글꼴 크기를 줄여 글꼴을 설정한다.
-     *
-     * @param c      2D 컨텍스트
-     * @param text   그릴 문자열
-     * @param maxW   최대 폭
-     * @param size   처음 글꼴 크기
-     * @param weight 굵기
-     * @param family 글꼴 이름
-     */
-    function fitText(c, text, maxW, size, weight, family) {
-        let s = size;
-        c.font = weight + ' ' + s + 'px ' + family;
-        while (s > 14 && c.measureText(text).width > maxW) {
-            s -= 2;
-            c.font = weight + ' ' + s + 'px ' + family;
-        }
-    }
+    /** 글꼴 맞추기는 공용 것을 쓴다. 토픽마다 같은 코드를 두지 않는다. */
+    const fitText = kit.fitFont;
 
     /**
      * 열차 객차 표면을 그린다. 가운데에 명령어 이름을 적는다.
@@ -210,9 +194,9 @@
         } else if (st.kind === 'bits') {
             drawBitsRows(st, c, pw, ph);
         } else {
-            c.textAlign = 'center';
-            fitText(c, COPY.boardTitle, pw * 0.9, Math.round(ph * 0.22), '700', SERIF);
-            c.fillText(COPY.boardTitle, pw / 2, ph / 2);
+            kit.label(c, COPY.boardTitle, {
+                x: pw / 2, y: ph / 2, maxW: pw * 0.9, size: Math.round(ph * 0.22), pw: pw, ph: ph
+            });
         }
     }
 
@@ -227,9 +211,9 @@
     function drawPipeRows(st, c, pw, ph) {
         const x = pw * 0.07;
         const fs = Math.round(ph * 0.15);
-        c.font = '700 ' + fs + 'px ' + SERIF;
-        c.fillStyle = INK;
-        c.fillText(COPY.boardTitle, x, ph * 0.18);
+        kit.label(c, COPY.boardTitle, {
+            x: x, y: ph * 0.18, maxW: pw * 0.86, size: fs, color: INK, pw: pw, ph: ph
+        });
         fitText(c, COPY.predLabel + '  ' + (st.pred ? COPY.taken : COPY.notTaken), pw * 0.86, fs, '700', SERIF);
         c.fillStyle = st.pred ? hexCss(COLOR.taken) : hexCss(COLOR.notTaken);
         c.fillText(COPY.predLabel + '  ' + (st.pred ? COPY.taken : COPY.notTaken), x, ph * 0.46);
@@ -272,10 +256,10 @@
             const cx = pw * 0.06 + i * cellW;
             c.fillStyle = on ? hexCss(COLOR.pending) : hexCss(COLOR.cell) + '66';
             c.fillRect(cx + 3, cellY, cellW - 6, cellH);
-            c.fillStyle = on ? INK : '#2a2622';
-            c.font = '700 ' + Math.round(ph * 0.1) + 'px ' + SERIF;
-            c.textAlign = 'center';
-            c.fillText(COUNTER_NAME[i], cx + cellW / 2, cellY + cellH / 2 + 1);
+            kit.label(c, COUNTER_NAME[i], {
+                x: cx + cellW / 2, y: cellY + cellH / 2 + 1, maxW: cellW - 10,
+                size: Math.round(ph * 0.1), color: on ? INK : '#2a2622', pw: pw, ph: ph
+            });
         }
         c.textAlign = 'left';
         const r2 = COPY.bit2 + ' ' + st.s2 + '  예측 ' + (st.p2 ? 'T' : 'N') + (st.reveal ? (st.hit2 ? '  적중' : '  실패') : '');
@@ -283,9 +267,9 @@
         fitText(c, r2, pw * 0.88, fs, '700', SERIF);
         c.fillStyle = r2c === null ? INK : hexCss(r2c);
         c.fillText(r2, x, ph * 0.84);
-        c.fillStyle = INK;
-        c.font = '700 ' + Math.round(ph * 0.1) + 'px ' + SERIF;
-        c.fillText(COPY.missCount + '  1비트 ' + st.miss1 + ' · 2비트 ' + st.miss2, x, ph * 0.96);
+        kit.label(c, COPY.missCount + '  1비트 ' + st.miss1 + ' · 2비트 ' + st.miss2, {
+            x: x, y: ph * 0.94, size: Math.round(ph * 0.1), color: INK, pw: pw, ph: ph
+        });
     }
 
     /**
@@ -302,8 +286,7 @@
         c.textAlign = 'center';
         c.textBaseline = 'middle';
         c.fillStyle = INK;
-        c.font = '700 ' + Math.round(ph * 0.09) + 'px ' + SERIF;
-        c.fillText(COPY.accTitle, pw / 2, ph * 0.09);
+        kit.label(c, COPY.accTitle, { x: pw / 2, y: ph * 0.09, size: Math.round(ph * 0.09), pw: pw, ph: ph });
         const base = ph * 0.8;
         const maxH = ph * 0.5;
         const colW = pw / PATTERNS.length;
@@ -312,8 +295,7 @@
             const cx = colW * (gi + 0.5);
             c.globalAlpha = on ? 1 : 0.28;
             c.fillStyle = INK;
-            fitText(c, pt.name, colW * 0.92, Math.round(ph * 0.065), '700', SERIF);
-            c.fillText(pt.name, cx, ph * 0.18);
+            kit.label(c, pt.name, { x: cx, y: ph * 0.18, maxW: colW * 0.92, size: Math.round(ph * 0.065), pw: pw, ph: ph });
             for (let pi = 0; pi < 3; pi++) {
                 const bx = cx + (pi - 1) * (colW * 0.27);
                 const v = ACC[gi][pi];
@@ -324,13 +306,15 @@
                 if (on) {
                     c.fillStyle = col;
                     c.fillRect(bx - colW * 0.09, base - h, colW * 0.18, h);
-                    c.fillStyle = col;
-                    c.font = '700 ' + Math.round(ph * 0.07) + 'px ' + SERIF;
-                    c.fillText(Math.round(v) + '%', bx, base - h - ph * 0.05);
+                    kit.label(c, Math.round(v) + '%', {
+                        x: bx, y: base - h - ph * 0.05, maxW: colW * 0.24,
+                        size: Math.round(ph * 0.07), color: col, pw: pw, ph: ph
+                    });
                 }
-                c.fillStyle = INK;
-                c.font = '500 ' + Math.round(ph * 0.055) + 'px ' + SERIF;
-                c.fillText(PRED_NAME[pi], bx, base + ph * 0.07);
+                kit.label(c, PRED_NAME[pi], {
+                    x: bx, y: base + ph * 0.07, maxW: colW * 0.26, weight: '500',
+                    size: Math.round(ph * 0.055), color: INK, pw: pw, ph: ph
+                });
             }
             c.globalAlpha = 1;
         });
@@ -379,8 +363,7 @@
      */
     function createWorld(eng) {
         const scene = eng.scene;
-        const canvas2d = eng.canvas2d;
-        const texture = eng.texture;
+        const panel = eng.panel;
         const tween = eng.tween;
         const invalidate = eng.invalidate;
         const ink = eng.ink;
@@ -431,32 +414,7 @@
             return mesh;
         }
 
-        /**
-         * 캔버스를 그린 평면을 만든다. redraw로 내용을 다시 그릴 수 있다.
-         *
-         * @returns mesh와 redraw 함수
-         */
-        function panel(w, h, pw, ph, draw, basic) {
-            const [c, x] = canvas2d(pw, ph);
-            const tex = texture(c);
-            const mat = basic
-                ? new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide, toneMapped: false })
-                : new THREE.MeshLambertMaterial({ map: tex, transparent: true, side: THREE.DoubleSide });
-            const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
-            /**
-             * 평면의 그림을 지우고 다시 그린다.
-             *
-             * @param fn 그리는 함수(컨텍스트, 폭, 높이)
-             */
-            function redraw(fn) {
-                x.clearRect(0, 0, pw, ph);
-                fn(x, pw, ph);
-                tex.needsUpdate = true;
-                invalidate();
-            }
-            redraw(draw);
-            return { mesh: mesh, redraw: redraw };
-        }
+        /* 평면 만들기는 공용 엔진이 맡는다 (eng.panel). */
 
         /**
          * 점 목록을 따라 레일과 침목을 놓는다. 곡선을 짧은 구간으로 나눠 구간마다 상자를 놓는다.
