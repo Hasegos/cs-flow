@@ -162,6 +162,76 @@
      * @param lh 줄 높이
      * @returns 다음 줄이 시작될 y
      */
+    function fitFont(x, text, maxW, size, weight, family, min) {
+        let s = size;
+        const floor = min || 12;
+        x.font = weight + ' ' + s + 'px ' + family;
+        while (s > floor && x.measureText(text).width > maxW) {
+            s -= 1;
+            x.font = weight + ' ' + s + 'px ' + family;
+        }
+        return s;
+    }
+
+    /**
+     * 글자 한 줄을 판 안에 넣어 그린다. 폭이 넘치면 글꼴을 줄이고, 가장자리에 닿으면 안쪽으로 당긴다.
+     * <p>
+     * 토픽마다 fillText 를 직접 부르면 폭을 안 맞추거나 밑단에 그려 글자가 잘린다. 이 함수를 쓰면
+     * 그 두 가지가 한 곳에서 막힌다.
+     * </p>
+     *
+     * @param x    2D 컨텍스트
+     * @param text 그릴 문자열
+     * @param o    { x, y, maxW, size, weight, family, align, baseline, color, pw, ph, min }
+     *             pw · ph 를 주면 그 안으로 좌표를 당겨 글자가 잘리지 않게 한다
+     * @returns 실제로 쓰인 글꼴 크기
+     */
+    function label(x, text, o) {
+        const family = o.family || SERIF;
+        const weight = o.weight || '700';
+        const maxW = o.maxW || (o.pw ? o.pw * 0.88 : 9999);
+        const size = fitFont(x, text, maxW, o.size || 24, weight, family, o.min);
+        const align = o.align || 'center';
+        const baseline = o.baseline || 'middle';
+        x.textAlign = align;
+        x.textBaseline = baseline;
+        if (o.color) {
+            x.fillStyle = o.color;
+        }
+
+        let px = o.x;
+        let py = o.y;
+        if (o.pw) {
+            const half = x.measureText(text).width / 2;
+            const pad = size * 0.3;
+            if (align === 'center') {
+                px = Math.min(Math.max(px, half + pad), o.pw - half - pad);
+            } else if (align === 'left') {
+                px = Math.max(px, pad);
+            } else {
+                px = Math.min(px, o.pw - pad);
+            }
+        }
+        if (o.ph) {
+            const up = baseline === 'middle' ? size * 0.6 : (baseline === 'top' ? 0 : size);
+            const down = baseline === 'middle' ? size * 0.6 : (baseline === 'top' ? size : 0);
+            py = Math.min(Math.max(py, up), o.ph - down);
+        }
+        x.fillText(text, px, py);
+        return size;
+    }
+
+    /**
+     * 글자를 폭에 맞춰 여러 줄로 그린다.
+     *
+     * @param x  2D 컨텍스트
+     * @param t  그릴 문자열
+     * @param X  왼쪽
+     * @param Y  첫 줄 기준선
+     * @param W  최대 폭
+     * @param lh 줄 간격
+     * @returns 마지막 줄 다음 기준선
+     */
     function wrapText(x, t, X, Y, W, lh) {
         let line = '';
         let y = Y;
@@ -670,6 +740,40 @@
             canvases.length = 0;
         }
 
+        /**
+         * 캔버스에 그린 그림을 평면 메시로 만든다. 다시 그리려면 redraw 를 부른다.
+         * <p>
+         * 토픽마다 같은 함수를 두고 있어 공용으로 올렸다. 캔버스 생성 · 텍스처 변환 · 다시 그린 뒤
+         * 화면 갱신까지 한 곳에서 맡는다.
+         * </p>
+         *
+         * @param w     평면 가로 (장면 단위)
+         * @param h     평면 세로 (장면 단위)
+         * @param pw    캔버스 가로 (화소)
+         * @param ph    캔버스 세로 (화소)
+         * @param draw  (ctx, pw, ph) 를 받아 그리는 함수
+         * @param basic 빛을 받지 않는 재질로 만들지 여부
+         * @returns { mesh, redraw }
+         */
+        function panel(w, h, pw, ph, draw, basic) {
+            const [c, x] = canvas2d(pw, ph);
+            const tex = texture(c);
+            const mat = basic
+                ? new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide, toneMapped: false })
+                : new THREE.MeshLambertMaterial({ map: tex, transparent: true, side: THREE.DoubleSide });
+            const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
+
+            function redraw(fn) {
+                x.clearRect(0, 0, pw, ph);
+                fn(x, pw, ph);
+                tex.needsUpdate = true;
+                invalidate();
+            }
+
+            redraw(draw);
+            return { mesh: mesh, redraw: redraw };
+        }
+
         return {
             renderer: renderer,
             scene: scene,
@@ -679,6 +783,7 @@
             texScale: texScale,
             canvas2d: canvas2d,
             texture: texture,
+            panel: panel,
             hatch: hatch,
             ink: ink,
             inkM: inkM,
@@ -1061,5 +1166,19 @@
         return api;
     }
 
-    window.CsFlow.viz3d = { create: create, isLight: isLight, active: null, kit: { wrapText: wrapText, roundRect: roundRect, loadFonts: loadFonts, SERIF: SERIF, HAND: HAND, INK: INK } };
+    window.CsFlow.viz3d = {
+        create: create,
+        isLight: isLight,
+        active: null,
+        kit: {
+            label: label,
+            fitFont: fitFont,
+            wrapText: wrapText,
+            roundRect: roundRect,
+            loadFonts: loadFonts,
+            SERIF: SERIF,
+            HAND: HAND,
+            INK: INK
+        }
+    };
 })();
