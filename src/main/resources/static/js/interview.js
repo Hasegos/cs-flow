@@ -314,7 +314,7 @@
             targetDate: body.targetDate,
             dailyMinutes: body.dailyMinutes,
             restDays: store.toIsoDays(body.restWeekdays),
-            variant: editing && spec ? spec.variant : 0
+            variant: editing && spec ? spec.variant : store.newVariant()
         };
 
         submitBtn.disabled = true;
