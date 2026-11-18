@@ -740,6 +740,40 @@
             canvases.length = 0;
         }
 
+        /**
+         * 캔버스에 그린 그림을 평면 메시로 만든다. 다시 그리려면 redraw 를 부른다.
+         * <p>
+         * 토픽마다 같은 함수를 두고 있어 공용으로 올렸다. 캔버스 생성 · 텍스처 변환 · 다시 그린 뒤
+         * 화면 갱신까지 한 곳에서 맡는다.
+         * </p>
+         *
+         * @param w     평면 가로 (장면 단위)
+         * @param h     평면 세로 (장면 단위)
+         * @param pw    캔버스 가로 (화소)
+         * @param ph    캔버스 세로 (화소)
+         * @param draw  (ctx, pw, ph) 를 받아 그리는 함수
+         * @param basic 빛을 받지 않는 재질로 만들지 여부
+         * @returns { mesh, redraw }
+         */
+        function panel(w, h, pw, ph, draw, basic) {
+            const [c, x] = canvas2d(pw, ph);
+            const tex = texture(c);
+            const mat = basic
+                ? new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide, toneMapped: false })
+                : new THREE.MeshLambertMaterial({ map: tex, transparent: true, side: THREE.DoubleSide });
+            const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
+
+            function redraw(fn) {
+                x.clearRect(0, 0, pw, ph);
+                fn(x, pw, ph);
+                tex.needsUpdate = true;
+                invalidate();
+            }
+
+            redraw(draw);
+            return { mesh: mesh, redraw: redraw };
+        }
+
         return {
             renderer: renderer,
             scene: scene,
@@ -749,6 +783,7 @@
             texScale: texScale,
             canvas2d: canvas2d,
             texture: texture,
+            panel: panel,
             hatch: hatch,
             ink: ink,
             inkM: inkM,
@@ -1126,41 +1161,7 @@
             state.world = null;
         });
 
-        /**
-         * 캔버스에 그린 그림을 평면 메시로 만든다. 다시 그리려면 redraw 를 부른다.
-         * <p>
-         * 토픽마다 같은 코드를 두고 있어 공용으로 올렸다. 캔버스 생성 · 텍스처 변환 · 다시 그리기 뒤의
-         * 화면 갱신까지 한 곳에서 맡는다.
-         * </p>
-         *
-         * @param w     평면 가로 (장면 단위)
-         * @param h     평면 세로 (장면 단위)
-         * @param pw    캔버스 가로 (화소)
-         * @param ph    캔버스 세로 (화소)
-         * @param draw  (ctx, pw, ph) 를 받아 그리는 함수
-         * @param basic 빛을 받지 않는 재질로 만들지 여부
-         * @returns { mesh, redraw }
-         */
-        function panel(w, h, pw, ph, draw, basic) {
-            const [c, x] = canvas2d(pw, ph);
-            const tex = texture(c);
-            const mat = basic
-                ? new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide, toneMapped: false })
-                : new THREE.MeshLambertMaterial({ map: tex, transparent: true, side: THREE.DoubleSide });
-            const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
-
-            function redraw(fn) {
-                x.clearRect(0, 0, pw, ph);
-                fn(x, pw, ph);
-                tex.needsUpdate = true;
-                invalidate();
-            }
-
-            redraw(draw);
-            return { mesh: mesh, redraw: redraw };
-        }
-
-        const api = { state: state, open: open, close: close, setSteps: setSteps, setCaption: setCaption, alive: alive, wait: wait, panel: panel };
+        const api = { state: state, open: open, close: close, setSteps: setSteps, setCaption: setCaption, alive: alive, wait: wait };
         window.CsFlow.viz3d.active = api;
         return api;
     }
